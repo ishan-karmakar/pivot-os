@@ -1,5 +1,6 @@
 #include "string.h"
 #include "screen.h"
+#include "log.h"
 #define SSFN_CONSOLEBITMAP_TRUECOLOR
 #define SSFN_CONSOLEBITMAP_CONTROL
 #include "ssfn.h"
@@ -22,6 +23,7 @@ void init_screen(void) {
     ssfn_dst.fg = 0xFFFFFF;
     num_cols = bootp->width / ssfn_src->width * 2;
     num_rows = bootp->height / ssfn_src->height;
+    log(Info, "SCREEN", "Initialized framebuffer");
 }
 
 void print_char(char c) {
