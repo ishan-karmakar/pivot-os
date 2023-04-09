@@ -1,4 +1,4 @@
-#include "kernel/bootparam.h"
+#include "bootparam.h"
 #include <uefi.h>
 
 /*** ELF64 defines and structs ***/

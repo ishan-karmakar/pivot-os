@@ -7,7 +7,7 @@ size_t strlen(const char *str) {
 	return (s - str);
 }
 int
-itoa(long long num, unsigned char* str, int len, int base)
+itoa(long long num, char* str, int len, int base)
 {
 	long long sum = num;
 	int i = 0;
@@ -30,12 +30,12 @@ itoa(long long num, unsigned char* str, int len, int base)
 	return 0;
 }
 void
-strrev(unsigned char *str)
+strrev(char *str)
 {
 	int i;
 	int j;
-	unsigned char a;
-	unsigned len = strlen((const char *)str);
+	char a;
+	unsigned len = strlen(str);
 	for (i = 0, j = len - 1; i < j; i++, j--)
 	{
 		a = str[i];

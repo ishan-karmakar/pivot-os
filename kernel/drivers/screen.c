@@ -10,7 +10,7 @@ uint32_t num_cols;
 uint32_t num_rows;
 
 void init_screen(void) {
-    for(int i = 0; i < bootp->width * bootp->height; i++)
+    for(uint32_t i = 0; i < bootp->width * bootp->height; i++)
         bootp->framebuffer[i] = 0x000008;
     ssfn_src = (ssfn_font_t*) &font_data;
     ssfn_dst.ptr = bootp->framebuffer;
@@ -28,7 +28,7 @@ void print_char(char c) {
     ssfn_putc(c);
     if (c == '\n') {
         uint32_t last_line = bootp->pitch * ssfn_src->height * (num_rows - 1);
-        for (int i = 0; i < bootp->pitch * ssfn_src->height; i++)
+        for (uint32_t i = 0; i < bootp->pitch * ssfn_src->height; i++)
             ssfn_dst.ptr[last_line + i] = 0x8;
     }
 }
