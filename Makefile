@@ -1,20 +1,36 @@
-TARGET = pivotos.efi
+SHARED = pivotos.so
+EFI = pivotos.efi
+ISO = pivotos.iso
+ELF = kernel.elf
+ISO_DIR = image
 SRCS = entry.c
-ALSO = kernel.elf
-CFLAGS += -I./kernel/include
-include uefi/Makefile
+OBJ = $(SRCS:.c=.o)
+CFLAGS = -Ikernel/include -Ignu-efi/inc -fpic -ffreestanding -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -maccumulate-outgoing-args
+LDFLAGS = -shared -Bsymbolic -Lgnu-efi/x86_64/lib -Lgnu-efi/x86_64/gnuefi -Tgnu-efi/gnuefi/elf_x86_64_efi.lds gnu-efi/x86_64/gnuefi/crt0-efi-x86_64.o -lgnuefi -lefi
+OBJFLAGS = -j .text -j .sdata -j .data -j .dynamic -j .dynsym  -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --target efi-app-x86_64 --subsystem=10
+# .PHONY = run
+# run: $(TARGET)
+# 	uefi-run -d $(TARGET)
+# -f $(ALSO)
 
-.PHONY = run
-run: $(TARGET) $(ALSO)
-	uefi-run -d $(TARGET) -f $(ALSO)
+all: run
 
-$(ALSO): FORCE
+run: $(ISO_DIR)
+	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -net none -hda fat:rw:$^
+
+$(ISO_DIR): startup.nsh $(EFI) $(ELF)
+	mkdir -p image
+	cp $^ $@
+
+$(EFI): gnuefi $(OBJ)
+	ld $(LDFLAGS) $(OBJ) -o $(SHARED)
+	objcopy $(OBJFLAGS) $(SHARED) $(EFI)
+
+$(ELF):
 	make -C kernel
 
-FORCE: ;
+gnuefi:
+	make -C gnu-efi
 
-clean: kernelclean
-kernelclean:
-	make -C uefi clean
-	make -C kernel clean
-	rm *.o *.efi *.elf
+%.o: %.c
+	gcc $(CFLAGS) -c $< -o $@

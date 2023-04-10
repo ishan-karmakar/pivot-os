@@ -15,22 +15,21 @@
 struct __attribute__((packed)) gdtr {
     uint16_t size;
     uint64_t base;
-} gdtr;
+};
 
 struct __attribute__((packed)) gdt_entry {
     uint16_t limit_low;
     uint16_t base_low;
     uint8_t base_mid;
     uint8_t access;
-    uint8_t limit_high:4;
-    uint8_t flags:4;
-    uint16_t base_high;
+    uint8_t flags;
+    uint8_t base_high;
 };
 
-struct gdt_entry gdt[GDT_ENTRIES]; // null segment, code + data segment
-struct gdtr gdtr;
+static struct gdt_entry gdt[GDT_ENTRIES]; // null segment, code + data segment
+static struct gdtr gdtr;
 
-void add_entry(struct gdt_entry* entry, uint8_t access, uint8_t flags) {
+static void add_entry(struct gdt_entry* entry, uint8_t access, uint8_t flags) {
     entry->access = access;
     entry->flags = flags;
 }
@@ -42,6 +41,19 @@ void load_gdt(void) {
 
     gdtr.size = sizeof(struct gdt_entry) * GDT_ENTRIES;
     gdtr.base = (uintptr_t) &gdt[0];
-    asm ("lgdt (gdtr)");
+    asm volatile (
+        "lgdt %0\n"
+        "mov $0x10, %%ax\n"
+        "mov %%ax, %%ds\n"
+        "mov %%ax, %%ss\n"
+        "mov %%ax, %%es\n"
+        "mov %%ax, %%fs\n"
+        "mov %%ax, %%gs\n"
+        "push $0x08\n" 
+        "push $setLabel\n"
+        // "retfq\n"
+        "setLabel: \n"
+        : : "m" (gdtr) : "%ax"
+    );
     log(Info, "GDT", "Initialized GDT");
 }

@@ -1,5 +1,9 @@
 build/
+image/
+.vscode/
 *.o
 *.efi
 *.elf
 *.a
+*.so
+*.iso
