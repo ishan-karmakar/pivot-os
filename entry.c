@@ -1,7 +1,6 @@
 #include "bootparam.h"
 #include <uefi.h>
 
-/*** ELF64 defines and structs ***/
 #define ELFMAG      "\177ELF"
 #define SELFMAG     4
 #define EI_CLASS    4       /* File class byte index */
