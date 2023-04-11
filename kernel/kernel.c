@@ -3,6 +3,7 @@
 #include "screen.h"
 #include "gdt.h"
 #include "idt.h"
+#include "log.h"
 
 bootparam_t* bootp;
 
@@ -13,10 +14,8 @@ void _start(bootparam_t *bootpar)
 {
     bootp = bootpar;
     init_screen();
-    print_string("Hello World from kernel");
-    // load_gdt();
-    // load_idt();
+    load_gdt();
+    load_idt();
 
-    // asm ("int $2");
     for (;;);
 }

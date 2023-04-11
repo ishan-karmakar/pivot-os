@@ -1,47 +1,48 @@
 #include <stdint.h>
 #include "idt.h"
 #include "log.h"
-extern void* isr_stub_table[];
-#define IDT_ENTRIES 32
+#define NUM_INTERRUPTS 256
 
-struct __attribute__((packed)) idt_entry {
-    uint16_t offset_low;
-    uint16_t seg_sel;
-    uint8_t ist; // Only first 3 bits are used
+struct __attribute__((packed)) idt_entry_t {
+    uint16_t isr_low;
+    uint16_t kernel_cs;
+    uint8_t ist;
     uint8_t attributes;
-    uint16_t offset_mid;
-    uint32_t offset_high;
+    uint16_t isr_mid;
+    uint32_t isr_high;
     uint32_t rsv;
 };
 
-struct __attribute__((packed)) idtr {
-    uint16_t size;
+struct __attribute__((packed)) idtr_t {
+    uint16_t limit;
     uint64_t base;
 };
 
-static struct idt_entry idt[IDT_ENTRIES];
-static struct idtr idtr;
+extern void* isr_stub_table[];
+static struct idt_entry_t idt[NUM_INTERRUPTS];
+static struct idtr_t idtr;
 
-static void set_entry(struct idt_entry* entry, void* isr, uint8_t flags) {
+static void set_entry(struct idt_entry_t *entry, void* isr, uint8_t flags) {
     uint64_t isr_addr = (uint64_t)(uintptr_t) isr;
-    entry->offset_low = isr_addr & 0xFFFF;
-    entry->seg_sel = 0x8;
+    entry->isr_low = isr_addr & 0xFFFF;
+    entry->kernel_cs = 0x8;
     entry->ist = 0;
     entry->attributes = flags;
-    entry->offset_mid = (isr_addr >> 16) & 0xFFFF;
-    entry->offset_high = (isr_addr >> 32) & 0xFFFFFFFF;
+    entry->isr_mid = (isr_addr >> 16) & 0xFFFF;
+    entry->isr_high = (isr_addr >> 32) & 0xFFFFFFFF;
     entry->rsv = 0;
 }
 
 void load_idt(void) {
     idtr.base = (uintptr_t) &idt[0];
-    idtr.size = sizeof(struct idt_entry) * IDT_ENTRIES;
+    idtr.limit = sizeof(struct idt_entry_t) * NUM_INTERRUPTS - 1;
+    for (int idx = 0; idx < NUM_INTERRUPTS; idx++)
+        idt[idx] = (struct idt_entry_t) { 0 };
+    for (uint8_t idx = 0; idx < 32; idx++)
+        set_entry(&idt[idx], isr_stub_table[idx], 0x8E);
 
-    for (uint8_t i = 0; i < 32; i++)
-        set_entry(&idt[i], isr_stub_table[i], 0x8E);
-
-    asm ("lidt (idtr)");
-    asm ("sti");
+    asm volatile ("lidt %0" : : "m" (idtr));
+    asm volatile ("sti");
 
     log(Info, "IDT", "Initialized IDT");
 }
