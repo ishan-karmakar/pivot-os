@@ -1,4 +1,4 @@
 [submodule "posix-uefi"]
 	path = posix-uefi
-	url = https://gitlab.com/bztsrc/posix-uefi
+	url = https://gitlab.com/bztsrc/posix-uefi.git
     ignore = dirty
