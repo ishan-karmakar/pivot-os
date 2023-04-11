@@ -46,6 +46,7 @@ void load_gdt(void) {
     gdtr.size = sizeof(struct gdt_entry) * GDT_ENTRIES - 1;
     gdtr.base = (uintptr_t) &gdt[0];
     asm volatile ("lgdt %0" : : "m" (gdtr));
+
     asm volatile (
         "pushq %0\n"
         "pushq $1f\n"
@@ -53,6 +54,7 @@ void load_gdt(void) {
         "1:\n"
         : : "i" (0x8) : "memory"
     );
+
     asm volatile (
         "movl %0, %%ds\n"
         "movl %0, %%es\n"
