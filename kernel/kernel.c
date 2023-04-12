@@ -17,5 +17,14 @@ void _start(bootparam_t *bootpar)
     load_gdt();
     load_idt();
 
+    uint64_t cr3;
+    asm volatile (
+        "movl %%cr3, %%eax\n"
+        "movl %%eax, %0\n"
+        : "=m" (cr3) : : "%eax"
+    );
+
+    print_num(cr3);
+
     for (;;);
 }

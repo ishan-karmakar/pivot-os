@@ -137,11 +137,9 @@ int main(int argc, char **argv)
     /* free resources */
     free(buff);
 
-    /* exit this UEFI bullshit */
     if(exit_bs()) {
         fprintf(stderr,
-            "Ph'nglui mglw'nafh Chtulu R'lyeh wgah'nagl fhtagn\n"
-            "(Hastur has a hold on us and won't let us go)\n");
+            "Cannot exit UEFI\n");
         return 0;
     }
 
