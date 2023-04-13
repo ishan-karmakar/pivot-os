@@ -6,6 +6,19 @@
 #include "log.h"
 
 bootparam_t* bootp;
+uint64_t pml4[512] __attribute__((aligned(4096)));
+uint64_t pdpte[512] __attribute__((aligned(4096)));
+uint64_t pde[512] __attribute__((aligned(4096)));
+uint64_t pte[512] __attribute__((aligned(4096)));
+
+void initialize_page_tables(void) {
+    for (int i = 0; i < 512; i++) {
+        pml4[i] = 0x2;
+        pdpte[i] = 0x2;
+        pde[i] = 0x2;
+        pte[i] = 0x2;
+    }
+}
 
 /**
  * Example "kernel"
@@ -16,15 +29,6 @@ void _start(bootparam_t *bootpar)
     init_screen();
     load_gdt();
     load_idt();
-
-    uint64_t cr3;
-    asm volatile (
-        "movl %%cr3, %%eax\n"
-        "movl %%eax, %0\n"
-        : "=m" (cr3) : : "%eax"
-    );
-
-    print_num(cr3);
-
+    initialize_page_tables();
     for (;;);
 }
