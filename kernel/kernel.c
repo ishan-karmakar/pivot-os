@@ -47,7 +47,7 @@ void _start(bootparam_t *bootpar)
     init_screen();
     load_gdt();
     load_idt();
-    
+    init_paging();
     // setup_page_tables();
     for (;;);
 }
