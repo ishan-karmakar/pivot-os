@@ -13,5 +13,5 @@ void _start(bootparam_t *bootparam)
     load_gdt();
     load_idt();
     setup_paging();
-    for (;;);
+    while (1);
 }
