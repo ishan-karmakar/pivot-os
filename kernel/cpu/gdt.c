@@ -29,7 +29,7 @@ struct __attribute__((packed)) gdt_entry {
 static struct gdt_entry gdt[GDT_ENTRIES]; // null segment, code + data segment
 static struct gdtr gdtr;
 
-void add_entry(struct gdt_entry* entry, uint8_t access, uint8_t flags) {
+static void add_entry(struct gdt_entry* entry, uint8_t access, uint8_t flags) {
     entry->limit_low = 0;
     entry->base_low = 0;
     entry->base_mid = 0;

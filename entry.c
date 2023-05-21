@@ -85,19 +85,18 @@ int main(int argc, char **argv)
         printf("Unable to get memory map\n");
         return 1;
     }
-    for (mement = memory_map; (uint8_t*) mement < (uint8_t*) memory_map + memory_map_size;
-         mement = NextMemoryDescriptor(mement, desc_size)) {
-        if (mement->Type != EfiConventionalMemory) continue;
-        if (mement->NumberOfPages > best_number_of_pages) {
-            best_number_of_pages = mement->NumberOfPages;
-            best_alloc_start = mement->PhysicalStart;
-        }
+    int num_regions = memory_map_size / desc_size;
+    struct mem_region_t *mem_regions = malloc(sizeof(struct mem_region_t) * num_regions);
+    for (mement = memory_map, i = 0; (uint8_t*) mement < (uint8_t*) memory_map + memory_map_size;
+         mement = NextMemoryDescriptor(mement, desc_size), i++) {
+        struct mem_region_t mem_region;
+        mem_region.num_pages = mement->NumberOfPages;
+        mem_region.physical_start = mement->PhysicalStart;
+        mem_region.mem_type = mement->Type;
+        mem_regions[i] = mem_region;
     }
-    mem_region_t mem_region;
-    mem_region.physical_start = best_alloc_start;
-    mem_region.num_pages = best_number_of_pages;
-    bootparam.mem_region = mem_region;
-
+    bootparam.mem_regions = mem_regions;
+    bootparam.num_regions = num_regions;
     free(memory_map);
     /* load the file */
     if((f = fopen("\\kernel.elf", "r"))) {
@@ -158,7 +157,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "not a valid ELF executable for this architecture\n");
         return 0;
     }
-    /* free resources */
     free(buff);
 
     if(exit_bs()) {
@@ -167,9 +165,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    /* execute the "kernel" */
     (*((void(* __attribute__((sysv_abi)))(bootparam_t *))(entry)))(&bootparam);
-    /* failsafe, should never return just in case */
     while(1);
     return 0;
 }
