@@ -107,11 +107,11 @@ void load_gdt(void) {
     );
 
     asm volatile (
-        "movl %0, %%ds\n"
-        "movl %0, %%es\n"
-        "movl %0, %%fs\n"
-        "movl %0, %%gs\n"
-        "movl %0, %%ss\n"
+        "mov %0, %%ds\n"
+        "mov %0, %%es\n"
+        "mov %0, %%fs\n"
+        "mov %0, %%gs\n"
+        "mov %0, %%ss\n"
         : : "r" (0x10) : "memory"
     );
     log(Info, "GDT", "Initialized GDT");
