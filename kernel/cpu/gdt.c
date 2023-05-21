@@ -1,23 +1,44 @@
 #include <stdint.h>
 #include "gdt.h"
 #include "log.h"
-// Access Byte
+
+#define GDT_ENTRIES 5
+
 #define PRESENT (1 << 7)
 #define CODE_DATA (1 << 4)
 #define READ_WRITE (1 << 1)
 #define EXECUTABLE (1 << 3)
-
-// Flags
 #define BITS_64 (1 << 1)
 
-#define GDT_ENTRIES 3
+#define KERNEL_CODE (PRESENT | CODE_DATA | READ_WRITE | EXECUTABLE)
+#define KERNEL_DATA (PRESENT | CODE_DATA | READ_WRITE)
+#define TSS (PRESENT | 0x09)
 
-struct __attribute__((packed)) gdtr {
+#pragma pack(1)
+struct tss_t {
+    uint32_t reserved0;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+    uint64_t reserved1;
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
+    uint64_t reserved2;
+    uint16_t reserved3;
+    uint16_t iopb_offset;
+};
+
+struct gdtr_t {
     uint16_t size;
     uint64_t base;
 };
 
-struct __attribute__((packed)) gdt_entry {
+struct gdt_entry_t {
     uint16_t limit_low;
     uint16_t base_low;
     uint8_t base_mid;
@@ -26,26 +47,56 @@ struct __attribute__((packed)) gdt_entry {
     uint8_t base_high;
 };
 
-static struct gdt_entry gdt[GDT_ENTRIES]; // null segment, code + data segment
-static struct gdtr gdtr;
+struct tss_entry_t {
+    uint16_t limit_low;
+    uint16_t base_low;
+    uint8_t base_mid;
+    uint8_t access;
+    uint8_t limit_flags;
+    uint8_t base_mid2;
+    uint32_t base_high;
+    uint32_t rsv;
+};
 
-static void add_entry(struct gdt_entry* entry, uint8_t access, uint8_t flags) {
-    entry->limit_low = 0;
-    entry->base_low = 0;
-    entry->base_mid = 0;
-    entry->access = access;
-    entry->flags = (flags << 4);
-    entry->base_high = 0;
-}
+static struct {
+    struct gdt_entry_t null;
+    struct gdt_entry_t kernel_code;
+    struct gdt_entry_t kernel_data;
+    struct tss_entry_t tss;
+} gdt_table = {
+    { 0 }, // Null descriptor
+    { 0, 0, 0, KERNEL_CODE, BITS_64 << 4, 0 },
+    { 0, 0, 0, KERNEL_DATA, 0, 0 },
+    { 0 } // Initialize later
+};
+#pragma pack()
+
+static struct gdtr_t gdtr;
+static struct tss_t tss;
 
 void load_gdt(void) {
-    gdt[0] = (struct gdt_entry) { 0 };
-    add_entry(&gdt[1], PRESENT | CODE_DATA | READ_WRITE | EXECUTABLE, BITS_64);
-    add_entry(&gdt[2], PRESENT | CODE_DATA | READ_WRITE, 0);
+    uint64_t tss_addr = (uintptr_t) &tss;
+    uint64_t tss_size = sizeof(tss) - 1;
+    gdt_table.tss = (struct tss_entry_t) {
+        tss_size & 0xFFFF,
+        tss_addr & 0xFFFF,
+        (tss_addr >> 16) & 0xFFFF,
+        TSS,
+        (tss_size >> 16) & 0xF,
+        (tss_addr >> 24) & 0xFF,
+        (tss_addr >> 32) & 0xFFFF,
+        0
+    };
 
-    gdtr.size = sizeof(struct gdt_entry) * GDT_ENTRIES - 1;
-    gdtr.base = (uintptr_t) &gdt[0];
+    gdtr.size = sizeof(gdt_table) - 1;
+    gdtr.base = (uintptr_t) &gdt_table;
     asm volatile ("lgdt %0" : : "m" (gdtr));
+
+    asm volatile (
+        "mov %0, %%ax\n"
+        "ltr %%ax"
+        : : "i" (0x18) : "memory"
+    );
 
     asm volatile (
         "pushq %0\n"
