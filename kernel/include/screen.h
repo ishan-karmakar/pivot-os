@@ -5,3 +5,4 @@ void init_screen(void);
 void print_char(char c);
 void print_string(char* s);
 void print_num(long long num);
+void print_hex(long long num);

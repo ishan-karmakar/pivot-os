@@ -58,12 +58,47 @@ int main(int argc, char **argv)
     Elf64_Ehdr *elf;
     Elf64_Phdr *phdr;
     uintptr_t entry;
-    bootparam_t bootp;
+    bootparam_t bootparam;
     efi_status_t status;
     efi_guid_t gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
     efi_gop_t *gop = NULL;
+    efi_memory_descriptor_t *memory_map = NULL, *mement;
+    uintn_t memory_map_size = 0, map_key = 0, desc_size = 0;
+    efi_physical_address_t best_alloc_start;
+    uint64_t best_number_of_pages = 0;
     int i;
+    memset(&bootparam, 0, sizeof(bootparam_t));
 
+    status = BS->GetMemoryMap(&memory_map_size, NULL, &map_key, &desc_size, NULL);
+    if (status != EFI_BUFFER_TOO_SMALL || !memory_map_size) {
+        printf("Unable to get memory map\n");
+        return 1;
+    }
+    memory_map_size += 4 * desc_size;
+    memory_map = (efi_memory_descriptor_t*) malloc(memory_map_size);
+    if (!memory_map) {
+        printf("Unable to allocate memory\n");
+        return 1;
+    }
+    status = BS->GetMemoryMap(&memory_map_size, memory_map, &map_key, &desc_size, NULL);
+    if (EFI_ERROR(status)) {
+        printf("Unable to get memory map\n");
+        return 1;
+    }
+    for (mement = memory_map; (uint8_t*) mement < (uint8_t*) memory_map + memory_map_size;
+         mement = NextMemoryDescriptor(mement, desc_size)) {
+        if (mement->Type != EfiConventionalMemory) continue;
+        if (mement->NumberOfPages > best_number_of_pages) {
+            best_number_of_pages = mement->NumberOfPages;
+            best_alloc_start = mement->PhysicalStart;
+        }
+    }
+    mem_region_t mem_region;
+    mem_region.physical_start = best_alloc_start;
+    mem_region.num_pages = best_number_of_pages;
+    bootparam.mem_region = mem_region;
+
+    free(memory_map);
     /* load the file */
     if((f = fopen("\\kernel.elf", "r"))) {
         fseek(f, 0, SEEK_END);
@@ -82,7 +117,6 @@ int main(int argc, char **argv)
     }
 
     /* set up boot parameters passed to the "kernel" */
-    memset(&bootp, 0, sizeof(bootparam_t));
     status = BS->LocateProtocol(&gopGuid, NULL, (void**)&gop);
     if(!EFI_ERROR(status) && gop) {
         status = gop->SetMode(gop, 0);
@@ -93,23 +127,13 @@ int main(int argc, char **argv)
             return 0;
         }
         
-        bootp.framebuffer = (uint8_t*) gop->Mode->FrameBufferBase;
-        bootp.width = gop->Mode->Information->HorizontalResolution;
-        bootp.height = gop->Mode->Information->VerticalResolution;
-        bootp.pitch = sizeof(unsigned int) * gop->Mode->Information->PixelsPerScanLine;
+        bootparam.framebuffer = (uint8_t*) gop->Mode->FrameBufferBase;
+        bootparam.width = gop->Mode->Information->HorizontalResolution;
+        bootparam.height = gop->Mode->Information->VerticalResolution;
+        bootparam.pitch = sizeof(unsigned int) * gop->Mode->Information->PixelsPerScanLine;
     } else {
         fprintf(stderr, "unable to get graphics output protocol\n");
         return 0;
-    }
-    if(argc > 1) {
-        bootp.argc = argc - 1;
-        bootp.argv = (char**)malloc(argc * sizeof(char*));
-        if(bootp.argv) {
-            for(i = 0; i < bootp.argc; i++)
-                if((bootp.argv[i] = (char*)malloc(strlen(argv[i + 1]) + 1)))
-                    strcpy(bootp.argv[i], argv[i + 1]);
-            bootp.argv[i] = NULL;
-        }
     }
 
     /* is it a valid ELF executable for this architecture? */
@@ -144,9 +168,8 @@ int main(int argc, char **argv)
     }
 
     /* execute the "kernel" */
-    (*((void(* __attribute__((sysv_abi)))(bootparam_t *))(entry)))(&bootp);
+    (*((void(* __attribute__((sysv_abi)))(bootparam_t *))(entry)))(&bootparam);
     /* failsafe, should never return just in case */
     while(1);
-
     return 0;
 }

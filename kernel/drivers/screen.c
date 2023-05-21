@@ -43,3 +43,10 @@ void print_num(long long num) {
     itoa(num, str_num, 21, 10);
     print_string(str_num);
 }
+
+void print_hex(long long num) {
+    char str_num[21];
+    itoa(num, str_num, 21, 16);
+    print_string("0x");
+    print_string(str_num);
+}
