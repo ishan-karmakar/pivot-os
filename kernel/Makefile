@@ -16,4 +16,4 @@ $(TARGET): $(KERNEL_OBJ)
 
 .PHONY = clean
 clean:
-	rm drivers/*.o cpu/*.o libc/*.o *.o
+	rm -f drivers/*.o cpu/*.o libc/*.o *.o

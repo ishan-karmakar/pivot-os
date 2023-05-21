@@ -17,4 +17,4 @@ clean: kernelclean
 kernelclean:
 	make -C uefi clean
 	make -C kernel clean
-	rm *.o *.efi *.elf
+	rm -f *.o *.efi *.elf *.so
