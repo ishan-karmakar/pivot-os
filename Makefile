@@ -1,20 +1,32 @@
-TARGET = pivotos.efi
-SRCS = entry.c
-ALSO = kernel.elf
-CFLAGS += -I./kernel/include
-include uefi/Makefile
+C_SRC := kernel/main.c # Change to find later
+ASM_SRC := $(wildcard boot/*.asm)
+C_OBJ := $(patsubst kernel/%.c, build/%.o, $(C_SRC))
+ASM_OBJ := $(patsubst boot/%.asm, build/%.o, $(ASM_SRC))
+CFLAGS := -ffreestanding \
+        -O2 \
+        -Wall \
+        -Wextra \
+        -mno-red-zone \
+        -mno-sse \
+        -mcmodel=large
+
+all: build/os.iso
 
 .PHONY = run
-run: $(TARGET) $(ALSO)
-	uefi-run -d $(TARGET) -f $(ALSO)
+run: build/os.iso
+	qemu-system-x86_64 -cdrom $^ -serial stdio
 
-$(ALSO): FORCE
-	make -C kernel
+build/os.iso: build/kernel.bin grub.cfg
+	mkdir -p build/isofiles/boot/grub
+	cp grub.cfg build/isofiles/boot/grub
+	cp build/kernel.bin build/isofiles/boot
+	grub-mkrescue -o build/os.iso build/isofiles
 
-FORCE: ;
+build/kernel.bin: $(ASM_OBJ) $(C_OBJ)
+	ld -n -o $@ -T linker.ld $^
 
-clean: kernelclean
-kernelclean:
-	make -C uefi clean
-	make -C kernel clean
-	rm -f *.o *.efi *.elf *.so
+build/%.o: boot/%.asm
+	nasm -f elf64 $< -o $@
+
+build/%.o: kernel/%.c
+	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
