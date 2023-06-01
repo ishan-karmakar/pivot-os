@@ -1,4 +1,4 @@
-#include <ports.h>
+#include <io/ports.h>
 
 inline void outportb(int port, uint8_t data) {
     asm volatile ("outb %%al, %%dx" : : "a" (data), "d" (port));
