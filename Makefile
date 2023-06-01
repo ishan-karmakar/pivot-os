@@ -1,8 +1,9 @@
-C_SRC := kernel/main.c # Change to find later
-ASM_SRC := $(wildcard boot/*.asm)
-C_OBJ := $(patsubst kernel/%.c, build/%.o, $(C_SRC))
-ASM_OBJ := $(patsubst boot/%.asm, build/%.o, $(ASM_SRC))
+C_SRC := $(shell find src/ -type f -name "*.c") # Change to find later
+ASM_SRC := $(shell find src/ -type f -name "*.asm")
+C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
+ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
 CFLAGS := -ffreestanding \
+		-I src/include \
         -O2 \
         -Wall \
         -Wextra \
@@ -11,8 +12,8 @@ CFLAGS := -ffreestanding \
         -mcmodel=large
 
 all: build/os.iso
+.PHONY = run clean
 
-.PHONY = run
 run: build/os.iso
 	qemu-system-x86_64 -cdrom $^ -serial stdio
 
@@ -25,8 +26,13 @@ build/os.iso: build/kernel.bin grub.cfg
 build/kernel.bin: $(ASM_OBJ) $(C_OBJ)
 	ld -n -o $@ -T linker.ld $^
 
-build/%.o: boot/%.asm
+build/%.o: src/%.asm
+	mkdir -p $(@D)
 	nasm -f elf64 $< -o $@
 
-build/%.o: kernel/%.c
+build/%.o: src/%.c
+	mkdir -p $(@D)
 	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf build/*

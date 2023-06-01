@@ -1,8 +1,12 @@
-%include "boot/multiboot_struc.inc"
+%include "src/boot/multiboot_struc.inc"
 %define PAGE_TABLE_ENTRY 0b10000011
 extern kernel_start
 global start
 global p4_table
+global multiboot_framebuffer_data
+global multiboot_basic_meminfo
+global multiboot_acpi_info
+global multiboot_mmap_data
 
 section .text
 [bits 32]
