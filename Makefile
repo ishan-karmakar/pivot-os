@@ -35,4 +35,4 @@ build/%.o: src/%.c
 	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf build/*
+	rm -rf build/

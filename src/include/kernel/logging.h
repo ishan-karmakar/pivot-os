@@ -1,3 +1,5 @@
 #pragma once
 
-void init_qemu(void);
+int init_qemu(void);
+void qemu_write_char(char);
+void qemu_write_string(const char*);

@@ -2,7 +2,7 @@
 #include <io/ports.h>
 #define QEMU_LOG_SERIAL_PORT 0x3F8
 
-void init_qemu(void) {
+int init_qemu(void) {
     outportb(QEMU_LOG_SERIAL_PORT + 1, 0x0);
     outportb(QEMU_LOG_SERIAL_PORT + 3, 0x80);
     outportb(QEMU_LOG_SERIAL_PORT, 0xC);
@@ -10,9 +10,6 @@ void init_qemu(void) {
     outportb(QEMU_LOG_SERIAL_PORT + 3, 0x3);
     outportb(QEMU_LOG_SERIAL_PORT + 2, 0xC7);
     outportb(QEMU_LOG_SERIAL_PORT + 4, 0xB);
-    outportb(QEMU_LOG_SERIAL_PORT, 0xAE);
-    if (inportb(QEMU_LOG_SERIAL_PORT) != 0xAE)
-        return 1;
     outportb(QEMU_LOG_SERIAL_PORT + 4, 0x0F);
     return 0;
 }

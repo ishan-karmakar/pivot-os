@@ -1,13 +1,11 @@
 #include <stdint.h>
 #include <kernel/logging.h>
+#include <cpu/idt.h>
 
-extern uint64_t multiboot_framebuffer_data;
-extern uint64_t multiboot_mmap_data;
-extern uint64_t multiboot_basic_meminfo;
-extern uint64_t multiboot_acpi_info;
-
-void kernel_start(unsigned long addr) {
+void kernel_start(void) {
     init_qemu();
+    init_idt();
+    // qemu_write_string("Initialized IDT");
 
     while (1);
 }

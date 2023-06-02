@@ -1,16 +1,22 @@
+bits 64
+extern exception_handler
+
 %macro isr_err_stub 1
 isr_stub_%+%1:
+    mov rdi, %+%1
+    pop rsi
     call exception_handler
-    iret
+    iretq
 %endmacro
 
 %macro isr_no_err_stub 1
 isr_stub_%+%1:
+    mov rdi, %+%1
+    mov rsi, 0
     call exception_handler
-    iret
+    iretq
 %endmacro
 
-extern exception_handler
 isr_no_err_stub 0
 isr_no_err_stub 1
 isr_no_err_stub 2
