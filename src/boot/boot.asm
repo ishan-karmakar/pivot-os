@@ -1,3 +1,4 @@
+%include "src/boot/multiboot_struc.inc"
 %define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
 %define PAGE_DIR_ENTRY_FLAGS 0b11
 %define PRESENT_BIT 1
@@ -6,16 +7,22 @@
 %define PAGE_SIZE 0x200000
 %define PAGE_TABLE_ENTRY HUGEPAGE_BIT | WRITE_BIT | PRESENT_BIT
 %define LOOP_LIMIT 512
-section .multiboot.text
-global start
-global p2_table
-global p4_table
-global p3_table
-extern kernel_start
-
+[section .multiboot.text]
 [bits 32]
 
+global start
+global p4_table
+global p3_table
+global p2_table
+global multiboot_acpi_info
+global multiboot_framebuffer_data
+global multiboot_basic_meminfo
+global multiboot_mmap_data
+extern kernel_start
+
 start:
+    mov edi, ebx
+    mov esi, eax
     mov esp, stack.top - KERNEL_VIRTUAL_ADDR
     
     mov eax, p3_table - KERNEL_VIRTUAL_ADDR; Copy p3_table address in eax
@@ -94,19 +101,61 @@ kernel_jumper:
     mov es, ax  ; extra segment register
     mov fs, ax  ; extra segment register
     mov gs, ax  ; extra segment register
-
-    mov rax, higher_half
-    jmp rax
-
-higher_half:
+    mov rax, p4_table
+    mov cr3, rax
     mov rsp, stack.top
     lgdt [gdt64.pointer]
 
     push 0x8
-    push reload_cs
+    push read_multiboot
     retfq
 
-reload_cs:
+read_multiboot:
+    lea rax, [rdi + 8]
+    mov ebx, [rax + multiboot_tag.type]
+    cmp ebx, MULTIBOOT_TAG_TYPE_FRAMEBUFFER
+    je .multiboot_framebuffer
+    cmp ebx, MULTIBOOT_TAG_TYPE_MMAP
+    je .multiboot_mmap
+    cmp ebx, MULTIBOOT_TAG_TYPE_BASIC_MEMINFO
+    je .multiboot_meminfo
+    cmp ebx, MULTIBOOT_TAG_TYPE_ACPI_OLD
+    je .multiboot_acpi
+    cmp ebx, MULTIBOOT_TAG_TYPE_ACPI_NEW
+    je .multiboot_acpi
+
+    jmp .skip_item
+
+    .multiboot_framebuffer:
+        mov [multiboot_framebuffer_data], rax
+        mov rbx, [rax + multiboot_tag_framebuffer.framebuffer_addr]
+        or rbx, PAGE_TABLE_ENTRY
+        mov [p2_table + 488 * 8], rbx
+        add rbx, PAGE_SIZE
+        or rbx, PAGE_TABLE_ENTRY
+        mov [p2_table + 489 * 8], rbx
+        jmp .skip_item
+
+    .multiboot_mmap:
+        mov [multiboot_mmap_data], rax
+        jmp .skip_item
+
+    .multiboot_meminfo:
+        mov [multiboot_basic_meminfo], rax
+        jmp .skip_item
+
+    .multiboot_acpi:
+        mov [multiboot_acpi_info], rax
+
+    .skip_item:
+        mov ebx, [rax + multiboot_tag.size]
+        add rax, rbx
+        add rax, 7
+        and rax, ~7
+        cmp dword [rax + multiboot_tag.type], MULTIBOOT_TAG_TYPE_END
+        jne read_multiboot
+        cmp dword [rax + multiboot_tag.size], 8
+        jne read_multiboot
     ; Unmap lower half
     ; mov eax, 0x0
     ; mov dword [p4_table], eax
@@ -125,6 +174,14 @@ p2_table: ;PDP
 stack:
     resb 16384
     .top:
+multiboot_framebuffer_data:
+    resb 8
+multiboot_mmap_data:
+    resb 8
+multiboot_basic_meminfo:
+    resb 8
+multiboot_acpi_info:
+    resb 8
 
 section .rodata
 

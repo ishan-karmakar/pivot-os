@@ -1,7 +1,9 @@
 #include <kernel/logging.h>
+#include <cpu/idt.h>
 
 void kernel_start(void) {
     init_qemu();
-    qemu_write_string("Hello World\n");
+    init_idt();
+    asm volatile ("int $2");
     while (1);
 }
