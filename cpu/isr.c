@@ -38,11 +38,8 @@ static const char *exception_names[] = {
 };
 
 __attribute__((noreturn))
-void exception_handler(uint64_t int_no, uint64_t error_code) {
+void exception_handler(uint64_t int_no) {
     qemu_write_string(exception_names[int_no]);
-    qemu_write_char('\n');
-    char buf[10];
-    qemu_write_string(ultoa(error_code, buf, 10));
     qemu_write_char('\n');
     asm volatile ("cli");
     while (1)

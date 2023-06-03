@@ -1,11 +1,7 @@
-#include <stdint.h>
 #include <kernel/logging.h>
-#include <cpu/idt.h>
 
 void kernel_start(void) {
     init_qemu();
-    init_idt();
-    // qemu_write_string("Initialized IDT");
-
+    qemu_write_string("Hello World\n");
     while (1);
 }
