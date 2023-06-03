@@ -52,50 +52,9 @@ extern void isr29();
 extern void isr30();
 extern void isr31();
 
-// static const char *exception_names[] = {
-//   "Divide by Zero Error",
-//   "Debug",
-//   "Non Maskable Interrupt",
-//   "Breakpoint",
-//   "Overflow",
-//   "Bound Range",
-//   "Invalid Opcode",
-//   "Device Not Available",
-//   "Double Fault",
-//   "Coprocessor Segment Overrun",
-//   "Invalid TSS",
-//   "Segment Not Present",
-//   "Stack-Segment Fault",
-//   "General Protection Fault",
-//   "Page Fault",
-//   "Reserved",
-//   "x87 Floating-Point Exception",
-//   "Alignment Check",
-//   "Machine Check",
-//   "SIMD Floating-Point Exception",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Reserved",
-//   "Security Exception",
-//   "Reserved"
-// };
-
 idtr_t idtr;
 idt_desc_t idt[256];
 
-void interrupts_handler(void) {
-    qemu_write_string("Got exception");
-    qemu_write_string("\n");
-    asm volatile ("cli");
-    while (1) asm volatile ("hlt");
-}
 void set_idt_entry(uint16_t idx, uint8_t flags, uint16_t selector, uint8_t ist, void (*handler)() ){
     idt[idx].flags = flags;
     idt[idx].ist = ist;

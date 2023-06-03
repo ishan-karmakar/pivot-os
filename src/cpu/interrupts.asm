@@ -1,5 +1,5 @@
 [bits  64]
-[extern interrupts_handler]
+[extern exception_handler]
 
 %macro isr 1
 [global isr%1]
@@ -9,7 +9,7 @@ isr%1:
     push %1
     save_context
     mov rdi, rsp
-    call interrupts_handler ; Now we call the interrupt handler
+    call exception_handler ; Now we call the interrupt handler
     restore_context
     iretq ; Now we can return from the interrupt
 %endmacro
@@ -20,7 +20,7 @@ isr%1:
     push %1
     save_context
     mov rdi, rsp
-    call interrupts_handler
+    call exception_handler
     restore_context
     iretq
 %endmacro

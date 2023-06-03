@@ -101,9 +101,8 @@ kernel_jumper:
     mov es, ax  ; extra segment register
     mov fs, ax  ; extra segment register
     mov gs, ax  ; extra segment register
-    mov rax, p4_table
-    mov cr3, rax
     mov rsp, stack.top
+    lea rax, [rdi + 8]
     lgdt [gdt64.pointer]
 
     push 0x8
@@ -111,7 +110,6 @@ kernel_jumper:
     retfq
 
 read_multiboot:
-    lea rax, [rdi + 8]
     mov ebx, [rax + multiboot_tag.type]
     cmp ebx, MULTIBOOT_TAG_TYPE_FRAMEBUFFER
     je .multiboot_framebuffer
@@ -148,6 +146,7 @@ read_multiboot:
         mov [multiboot_acpi_info], rax
 
     .skip_item:
+        xor rbx, rbx
         mov ebx, [rax + multiboot_tag.size]
         add rax, rbx
         add rax, 7
