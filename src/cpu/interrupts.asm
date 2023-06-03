@@ -5,15 +5,61 @@
 [global isr%1]
 isr%1:
     ; When this macro is called the status registers are already on the stack
+    push 0
+    push %1
+    save_context
+    mov rdi, rsp
     call interrupts_handler ; Now we call the interrupt handler
+    restore_context
     iretq ; Now we can return from the interrupt
 %endmacro
 
 %macro isr_err_code 1
 [global isr%1]
 isr%1:
+    push %1
+    save_context
+    mov rdi, rsp
     call interrupts_handler
+    restore_context
     iretq
+%endmacro
+
+%macro save_context 0
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+%endmacro
+
+%macro restore_context 0
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+    add rsp, 16 ; Remove error code and interrupt number from stack
 %endmacro
 
 isr 0
