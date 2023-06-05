@@ -126,12 +126,6 @@ read_multiboot:
 
     .multiboot_framebuffer:
         mov [multiboot_framebuffer_data], rax
-        mov rbx, [rax + multiboot_tag_framebuffer.framebuffer_addr]
-        or rbx, PAGE_TABLE_ENTRY
-        mov [p2_table + 488 * 8], rbx
-        add rbx, PAGE_SIZE
-        or rbx, PAGE_TABLE_ENTRY
-        mov [p2_table + 489 * 8], rbx
         jmp .skip_item
 
     .multiboot_mmap:
@@ -156,9 +150,9 @@ read_multiboot:
         cmp dword [rax + multiboot_tag.size], 8
         jne read_multiboot
     ; Unmap lower half
-    ; mov eax, 0x0
-    ; mov dword [p4_table], eax
-    ; mov dword [p3_table], eax
+    mov rax, 0x0
+    mov [p4_table], rax
+    mov [p3_table], rax
     call kernel_start
 
 section .bss

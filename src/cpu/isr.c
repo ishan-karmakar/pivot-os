@@ -2,6 +2,8 @@
 #include <kernel/logging.h>
 #include "libc/string.h"
 
+extern void hcf(void);
+
 typedef struct {
     uint64_t r15;
     uint64_t r14;
