@@ -1,8 +1,9 @@
 #pragma once
 #include <stddef.h>
+#include <stdint.h>
 
 void
-itoa(int num, char* str, int len, int base);
+itoa(int64_t num, char* str, int len, int base);
 
 char *ultoa(unsigned long num, char *str, int radix);
 

@@ -67,11 +67,7 @@ static const char *exception_names[] = {
 };
 
 void exception_handler(cpu_status_t *status) {
-    qemu_write_string(exception_names[status->interrupt_number]);
-    qemu_write_string(", Error code: 0x");
-    char buf[10];
-    qemu_write_string(ultoa(status->error_code, buf, 16));
-    qemu_write_char('\n');
+    log(Error, "ISR", "Got exception %s, %x\n", exception_names[status->interrupt_number], status->error_code);
     if (status->interrupt_number == 8 || status->interrupt_number == 18)
         hcf();
 }

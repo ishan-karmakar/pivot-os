@@ -27,9 +27,9 @@ void handle_multiboot(uintptr_t addr) {
 
 void kernel_start(uintptr_t addr, uint64_t magic) {
     init_qemu();
-    qemu_write_string("Loaded into kernel\n");
+    log(Info, "KERNEL", "Loaded into kernel");
     init_idt();
-    qemu_write_string("Initialized IDT\n");
     handle_multiboot(addr);
+    log(Info, "KERNEL", "Initialized framebuffer");
     while (1);
 }

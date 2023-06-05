@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <kernel/multiboot.h>
+#include <stdarg.h>
 
 #define _FRAMEBUFFER_MEM_START 0xffffffffbd000000
 
@@ -37,5 +38,13 @@ typedef struct {
 extern psf_font_t _binary_fonts_default_psf_start;
 extern char _binary_fonts_default_psf_size;
 extern char _binary_fonts_default_psf_end;
+extern int FRAMEBUFFER_INITIALIZED;
+
+typedef void (*char_printer_t)(char);
+
+void voutf(const char *c, char_printer_t char_printer, va_list args);
+void outf(const char *format, char_printer_t char_printer, ...);
+void vprintf(const char *format, va_list args);
+void printf(const char *format, ...);
 
 void init_framebuffer(mb_framebuffer_data_t*);

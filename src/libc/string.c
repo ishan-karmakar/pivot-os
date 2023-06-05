@@ -1,5 +1,6 @@
-#include "libc/string.h"
+#include <libc/string.h>
 #include <stddef.h>
+#include <stdint.h>
 
 size_t strlen(const char *str) {
         const char *s;
@@ -41,10 +42,12 @@ strcmp (const char *p1, const char *p2)
 }
 
 void
-itoa(int num, char* str, int len, int base)
+itoa(int64_t num, char* str, int len, int base)
 {
-        int sum = num;
+        int64_t sum = num;
         int i = 0;
+        if (num < 0)
+            sum = -sum;
         int digit;
         if (len == 0)
                 return;
@@ -59,6 +62,8 @@ itoa(int num, char* str, int len, int base)
         }while (sum && (i < (len - 1)));
         if (i == (len - 1) && sum)
                 return;
+        if (num < 0)
+            str[i++] = '-';
         str[i] = '\0';
         strrev(str);
 }

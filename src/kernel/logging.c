@@ -1,6 +1,15 @@
 #include <kernel/logging.h>
 #include <io/ports.h>
+#include <drivers/framebuffer.h>
 #define QEMU_LOG_SERIAL_PORT 0x3F8
+
+char *log_levels[] = {
+    "ERROR",
+    "WARNING",
+    "INFO",
+    "DEBUG",
+    "TRACE"
+};
 
 int init_qemu(void) {
     outportb(QEMU_LOG_SERIAL_PORT + 1, 0x0);
@@ -14,14 +23,21 @@ int init_qemu(void) {
     return 0;
 }
 
-void qemu_write_char(const char ch){
+void qemu_write_char(char ch){
     while((inportb(QEMU_LOG_SERIAL_PORT + 5) & 0x20) == 0);
     outportb(QEMU_LOG_SERIAL_PORT, ch);
 }
 
-void qemu_write_string(const char *msg) {
-    while (*msg != '\0') {
-        qemu_write_char(*msg);
-        msg++;
+void log(log_level_t log_level, const char *target, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    outf("[%s] %s: ", qemu_write_char, log_levels[log_level], target);
+    voutf(format, qemu_write_char, args);
+    outf("\n", qemu_write_char);
+    if (FRAMEBUFFER_INITIALIZED) {
+        printf("[%s] %s: ", log_levels[log_level], target);
+        vprintf(format, args);
+        printf("\n");
     }
+    va_end(args);
 }
