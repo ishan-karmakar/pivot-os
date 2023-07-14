@@ -7,6 +7,7 @@ char *log_levels[] = {
     "ERROR",
     "WARNING",
     "INFO",
+    "VERBOSE",
     "DEBUG",
     "TRACE"
 };
@@ -34,10 +35,12 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
     outf("[%s] %s: ", qemu_write_char, log_levels[log_level], target);
     voutf(format, qemu_write_char, args);
     outf("\n", qemu_write_char);
+    va_end(args);
     if (FRAMEBUFFER_INITIALIZED) {
+        va_start(args, format);
         printf("[%s] %s: ", log_levels[log_level], target);
         vprintf(format, args);
         printf("\n");
+        va_end(args);
     }
-    va_end(args);
 }

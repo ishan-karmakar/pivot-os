@@ -3,8 +3,6 @@
 #include <kernel/multiboot.h>
 #include <stdarg.h>
 
-#define _FRAMEBUFFER_MEM_START 0xffffffffbd000000
-
 typedef struct {
     uint8_t *address;
     uint8_t bpp;

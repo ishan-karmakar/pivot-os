@@ -3,13 +3,8 @@
 #include <kernel/multiboot.h>
 #include <libc/string.h>
 #include <kernel/logging.h>
+#include <cpu/mem.h>
 #include <stdarg.h>
-#define PD_ENTRY(address)((address>>21) & 0x1ff)
-#define PAGE_SIZE 0x200000
-#define PRESENT_BIT 1
-#define WRITE_BIT 0b10
-#define HUGEPAGE_BIT 0b10000000
-#define PAGE_TABLE_ENTRY HUGEPAGE_BIT | WRITE_BIT | PRESENT_BIT
 
 extern uint64_t p2_table[512];
 framebuffer_info_t fbinfo;
@@ -23,7 +18,7 @@ inline static uint8_t *get_glyph(uint8_t sym_num) {
 }
 
 static void map_framebuffer(void) {
-    uint32_t pd = PD_ENTRY(_FRAMEBUFFER_MEM_START);
+    uint32_t pd = PD_ENTRY(FRAMEBUFFER_START);
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
@@ -127,7 +122,7 @@ void printf(const char *format, ...) {
 
 void init_framebuffer(mb_framebuffer_data_t *fbdata) {
     loaded_font = &_binary_fonts_default_psf_start;
-    fbinfo.address = (uint8_t*) _FRAMEBUFFER_MEM_START;
+    fbinfo.address = (uint8_t*) FRAMEBUFFER_START;
     fbinfo.bpp = fbdata->framebuffer_bpp;
     fbinfo.height = fbdata->framebuffer_height;
     fbinfo.pitch = fbdata->framebuffer_pitch;

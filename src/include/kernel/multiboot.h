@@ -1,7 +1,14 @@
 #pragma once
 #include <stdint.h>
 
+#define MULTIBOOT_TAG_TYPE_ACPI_OLD          14
+#define MULTIBOOT_TAG_TYPE_ACPI_NEW          15
+
 #pragma pack(1)
+typedef struct {
+    uint32_t type;
+    uint32_t size;
+} mb_tag_t;
 typedef struct {
     uint32_t type;
     uint32_t size;
@@ -23,11 +30,6 @@ typedef struct {
     uint32_t framebuffer_width;
     uint32_t framebuffer_height;
     uint8_t framebuffer_bpp;
-#define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED 0
-#define MULTIBOOT_FRAMEBUFFER_TYPE_RGB 1
-#define MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT 2
-    uint8_t framebuffer_type;
-    uint16_t reserved;
 } mb_framebuffer_data_t;
 
 typedef struct {
@@ -49,4 +51,19 @@ typedef struct {
     uint32_t entry_version;
     mb_mmap_entry_t entries[0];
 } mb_mmap_t;
+
+typedef struct {
+    uint32_t type;
+    uint32_t size;
+    uint32_t rsdp;
+} mb_acpi_t;
+
+typedef struct {
+    char signature[8];
+    uint8_t checksum;
+    char oemid[6];
+    uint8_t revision;
+    uint32_t rsdt_address;
+} rsdp_descriptor_t;
+
 #pragma pack()
