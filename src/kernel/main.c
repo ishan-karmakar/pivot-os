@@ -19,16 +19,20 @@ void hcf(void) {
 }
 
 void handle_multiboot(uintptr_t addr) {
+    uint32_t mbi_size = *(uint32_t*) (addr + KERNEL_VIRTUAL_ADDR);
     mb_basic_meminfo_t *basic_meminfo = (mb_basic_meminfo_t*)(multiboot_basic_meminfo + KERNEL_VIRTUAL_ADDR);
     mb_mmap_t *mmap = (mb_mmap_t*)(multiboot_mmap_data + KERNEL_VIRTUAL_ADDR);
-    mb_framebuffer_data_t *framebuffer = (mb_framebuffer_data_t*)(multiboot_framebuffer_data + KERNEL_VIRTUAL_ADDR);
-    mb_acpi_t *acpi_tag = (mb_acpi_t*)(multiboot_acpi_info + KERNEL_VIRTUAL_ADDR);
-    init_framebuffer(framebuffer);
-    log(Info, "KERNEL", "Initialized framebuffer");
-    log(Verbose, "KERNEL", "Basic mem info type: %x", basic_meminfo->type);
+
     log(Verbose, "KERNEL", "Memory lower: %u, Upper: %u", basic_meminfo->mem_lower, basic_meminfo->mem_upper);
     size_t memory_size = (basic_meminfo->mem_upper + 1024) * 1024;
-    init_mem(addr, *(uint32_t*) addr, memory_size);
+    mmap_parse(mmap);
+    init_mem(addr, mbi_size, memory_size);
+
+    mb_framebuffer_data_t *framebuffer = (mb_framebuffer_data_t*)(multiboot_framebuffer_data + KERNEL_VIRTUAL_ADDR);
+    init_framebuffer(framebuffer);
+    log(Info, "KERNEL", "Initialized framebuffer");
+
+    // mb_acpi_t *acpi_tag = (mb_acpi_t*)(multiboot_acpi_info + KERNEL_VIRTUAL_ADDR);
     // uint32_t num_entries = (mmap->size - sizeof(mb_mmap_t)) / mmap->entry_size;
     // mb_mmap_entry_t *best_region = NULL;
     // for (uint32_t i = 0; i < num_entries; i++) {
@@ -39,7 +43,7 @@ void handle_multiboot(uintptr_t addr) {
     // }
 }
 
-void kernel_start(uintptr_t addr, uint64_t magic) {
+void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     init_qemu();
     log(Info, "KERNEL", "Loaded into kernel");
     init_idt();

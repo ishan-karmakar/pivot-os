@@ -68,6 +68,6 @@ static const char *exception_names[] = {
 
 void exception_handler(cpu_status_t *status) {
     log(Error, "ISR", "Got exception %s, %x\n", exception_names[status->interrupt_number], status->error_code);
-    if (status->interrupt_number == 8 || status->interrupt_number == 18)
+    if (status->interrupt_number == 8 || status->interrupt_number == 0x12 || status->interrupt_number == 0xE)
         hcf();
 }

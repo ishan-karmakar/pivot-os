@@ -18,12 +18,15 @@ inline static uint8_t *get_glyph(uint8_t sym_num) {
 }
 
 static void map_framebuffer(void) {
-    uint32_t pd = PD_ENTRY(FRAMEBUFFER_START);
+    // uint32_t pd = PD_ENTRY(FRAMEBUFFER_START);
+    log(Verbose, "FB", "Framebuffer memory size: %x", fbinfo.memory_size);
+    // log(Verbose, "FB", "PD: %d", pd);
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
     for (uint32_t i = 0; i < num_pages; i++)
-        p2_table[pd + i] = (fbinfo.phys_addr + i * PAGE_SIZE) | PAGE_TABLE_ENTRY;
+        map_addr(fbinfo.phys_addr + i * PAGE_SIZE, FRAMEBUFFER_START + i * PAGE_SIZE, PRESENT_BIT | WRITE_BIT);
+        // p2_table[pd + i] = (fbinfo.phys_addr + i * PAGE_SIZE) | PAGE_TABLE_ENTRY;
 }
 
 static void putchar(char sym, screen_info_t *si) {
