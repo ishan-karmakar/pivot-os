@@ -66,7 +66,7 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
     }
 
     if (!(p4_table[pml4_e] & 1)) {
-        log(Verbose, "MEM", "Creating new PDPT table at index %d", pml4_e);
+        log(Verbose, "MEM", "Creating new PDPT table", pml4_e);
         uint64_t *new_table = alloc_frame();
         p4_table[pml4_e] = (uint64_t) new_table | mode | WRITE_BIT | PRESENT_BIT;
         clean_table(new_table);
@@ -74,15 +74,14 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
 
     uint64_t *p3_table = (uint64_t*)((p4_table[pml4_e] & PAGE_ADDR_MASK) + KERNEL_VIRTUAL_ADDR);
     if (!(p3_table[pdpt_e] & 1)) {
-        log(Verbose, "MEM", "Creating new PD table at index %d", pdpt_e);
+        log(Verbose, "MEM", "Creating new PD table", pdpt_e);
         uint64_t *new_table = (uint64_t*) alloc_frame();
         p3_table[pdpt_e] = (uint64_t) new_table | mode | WRITE_BIT | PRESENT_BIT;
         clean_table(new_table);
     }
 
     uint64_t *p2_table = (uint64_t*)((p3_table[pdpt_e] & PAGE_ADDR_MASK) + KERNEL_VIRTUAL_ADDR);
-    if (!(p2_table[pd_e] & 1))
-        p2_table[pd_e] = physical | HUGEPAGE_BIT | flags;
+    p2_table[pd_e] = physical | HUGEPAGE_BIT | flags;
     return (void*) address;
 }
 

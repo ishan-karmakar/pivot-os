@@ -6,7 +6,6 @@
 #include <cpu/mem.h>
 #include <stdarg.h>
 
-extern uint64_t p2_table[];
 framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
 screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
@@ -17,23 +16,13 @@ inline static uint8_t *get_glyph(uint8_t sym_num) {
     return (uint8_t*) loaded_font + loaded_font->headersize + sym_num * loaded_font->bytesperglyph;
 }
 
-void test(uint64_t *table) {
-    log(Verbose, "TEST", "%x", (uint64_t) table);
-}
-
 static void map_framebuffer(void) {
-    // for (int i = 0; i < PAGES_PER_TABLE; i++)
-        // log(Verbose, "FB", "Index: %d, %d", i, p2_table[i]);
-    uint32_t pd = PD_ENTRY(FRAMEBUFFER_START);
     log(Verbose, "FB", "Framebuffer memory size: %x", fbinfo.memory_size);
-    log(Verbose, "FB", "P2 Table: %x", (uint64_t) &p2_table);
-    test(p2_table);
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
     for (uint32_t i = 0; i < num_pages; i++)
         map_addr(fbinfo.phys_addr + i * PAGE_SIZE, FRAMEBUFFER_START + i * PAGE_SIZE, WRITE_BIT | PRESENT_BIT);
-        // p2_table[pd + i] = (fbinfo.phys_addr + i * PAGE_SIZE) | PAGE_TABLE_ENTRY;
 }
 
 static void putchar(char sym, screen_info_t *si) {
