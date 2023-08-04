@@ -150,9 +150,9 @@ read_multiboot:
         cmp dword [rax + multiboot_tag.size], 8
         jne read_multiboot
     ; Unmap lower half
-    mov rax, 0x0
-    mov [p4_table], rax
-    mov [p3_table], rax
+    ; mov rax, 0x0
+    ; mov [p4_table], rax
+    ; mov [p3_table], rax
     call kernel_start
 
 section .bss
