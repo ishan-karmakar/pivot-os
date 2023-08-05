@@ -3,7 +3,7 @@
 #include <kernel/multiboot.h>
 #include <libc/string.h>
 #include <kernel/logging.h>
-#include <cpu/mem.h>
+#include <mem/mem.h>
 #include <stdarg.h>
 
 framebuffer_info_t fbinfo;
@@ -21,8 +21,10 @@ static void map_framebuffer(void) {
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
-    for (uint32_t i = 0; i < num_pages; i++)
+    for (uint32_t i = 0; i < num_pages; i++) {
         map_addr(fbinfo.phys_addr + i * PAGE_SIZE, FRAMEBUFFER_START + i * PAGE_SIZE, WRITE_BIT | PRESENT_BIT);
+        bitmap_set_bit(fbinfo.phys_addr + i * PAGE_SIZE);
+    }
 }
 
 static void putchar(char sym, screen_info_t *si) {
@@ -132,4 +134,5 @@ void init_framebuffer(mb_framebuffer_data_t *fbdata) {
     screen_info.num_rows = fbinfo.height / loaded_font->height;
     map_framebuffer();
     FRAMEBUFFER_INITIALIZED = 1;
+    log(Info, "FB", "Initialized framebuffer");
 }

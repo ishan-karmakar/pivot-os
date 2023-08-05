@@ -4,7 +4,9 @@
 #include <libc/string.h>
 #include <kernel/multiboot.h>
 #include <drivers/framebuffer.h>
-#include <cpu/mem.h>
+#include <mem/mem.h>
+#include <kernel/acpi.h>
+#include <cpu/lapic.h>
 
 extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
@@ -30,17 +32,9 @@ void handle_multiboot(uintptr_t addr) {
 
     mb_framebuffer_data_t *framebuffer = (mb_framebuffer_data_t*)(multiboot_framebuffer_data + KERNEL_VIRTUAL_ADDR);
     init_framebuffer(framebuffer);
-    log(Info, "KERNEL", "Initialized framebuffer");
 
-    // mb_acpi_t *acpi_tag = (mb_acpi_t*)(multiboot_acpi_info + KERNEL_VIRTUAL_ADDR);
-    // uint32_t num_entries = (mmap->size - sizeof(mb_mmap_t)) / mmap->entry_size;
-    // mb_mmap_entry_t *best_region = NULL;
-    // for (uint32_t i = 0; i < num_entries; i++) {
-    //     log(Verbose, "KERNEL", "[%d] Address: %x, Size: %x, Type: %x", i, mmap->entries[i].addr, mmap->entries[i].len, mmap->entries[i].type);
-    //     if (best_region == NULL || 
-    //         (mmap->entries[i].type == 0x1 && mmap->entries[i].len > best_region->len))
-    //         best_region = &mmap->entries[i];
-    // }
+    mb_tag_t *acpi_tag = (mb_tag_t*)(multiboot_acpi_info + KERNEL_VIRTUAL_ADDR);
+    init_acpi(acpi_tag);
 }
 
 void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
@@ -49,5 +43,14 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     init_idt();
     log(Info, "KERNEL", "Initialized IDT");
     handle_multiboot(addr);
+
+    if (magic == 0x36d76289)
+        log(Info, "KERNEL", "Multiboot magic number verified");
+    else {
+        log(Error, "KERNEL", "Failed to verify magic number");
+        hcf();
+    }
+
+    init_apic();
     while (1);
 }

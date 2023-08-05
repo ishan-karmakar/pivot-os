@@ -1,5 +1,5 @@
 #include <stddef.h>
-#include <cpu/mem.h>
+#include <mem/mem.h>
 #include <kernel/multiboot.h>
 #include <kernel/logging.h>
 
@@ -30,7 +30,7 @@ int64_t bitmap_request_frame(void) {
     return -1;
 }
 
-inline void bitmap_set_bit(uint64_t location) {
+void bitmap_set_bit(uint64_t location) {
     memory_map[location / BITMAP_ROW_BITS] |= 1 << (location % BITMAP_ROW_BITS);
 }
 
@@ -121,7 +121,7 @@ void initialize_bitmap(uint64_t rsv_end, uint64_t mem_size) {
     uint64_t end_physical_memory = END_MEMORY - KERNEL_VIRTUAL_ADDR;
     if (mmap_phys_addr > end_physical_memory) {
         log(Verbose, "BITMAP", "The address %x is above the initially mapped memory: %x", mmap_phys_addr, end_physical_memory);
-        // map_addr(ALIGN_PHYSADDR(mmap_phys_addr), mmap_phys_addr + KERNEL_VIRTUAL_ADDR, PRESENT_BIT | WRITE_BIT);
+        // map_addr(ALIGN_ADDR(mmap_phys_addr), mmap_phys_addr + KERNEL_VIRTUAL_ADDR, PRESENT_BIT | WRITE_BIT);
     } else {
         log(Verbose, "BITMAP", "The address %x is not above the initially mapped memory: %x", mmap_phys_addr, end_physical_memory);
     }

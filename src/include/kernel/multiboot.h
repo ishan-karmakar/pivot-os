@@ -49,21 +49,6 @@ typedef struct {
     uint32_t size;
     uint32_t entry_size;
     uint32_t entry_version;
-    mb_mmap_entry_t entries[0];
+    mb_mmap_entry_t entries[];
 } mb_mmap_t;
-
-typedef struct {
-    uint32_t type;
-    uint32_t size;
-    uint32_t rsdp;
-} mb_acpi_t;
-
-typedef struct {
-    char signature[8];
-    uint8_t checksum;
-    char oemid[6];
-    uint8_t revision;
-    uint32_t rsdt_address;
-} rsdp_descriptor_t;
-
 #pragma pack()
