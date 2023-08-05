@@ -71,3 +71,7 @@ void exception_handler(cpu_status_t *status) {
     if (status->interrupt_number == 8 || status->interrupt_number == 0x12 || status->interrupt_number == 0xE)
         hcf();
 }
+
+void irq_handler(uint64_t interrupt_number) {
+    log(Info, "IRQ", "IRQ %u triggered", interrupt_number);
+}

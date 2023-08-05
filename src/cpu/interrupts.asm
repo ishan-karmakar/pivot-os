@@ -1,5 +1,6 @@
 [bits  64]
 [extern exception_handler]
+[extern irq_handler]
 
 %macro isr 1
 [global isr%1]
@@ -22,6 +23,14 @@ isr%1:
     mov rdi, rsp
     call exception_handler
     restore_context
+    iretq
+%endmacro
+
+%macro irq 1
+[global irq%1]
+irq%1:
+    mov rdi, %1
+    call irq_handler
     iretq
 %endmacro
 
@@ -94,3 +103,4 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
+irq 255

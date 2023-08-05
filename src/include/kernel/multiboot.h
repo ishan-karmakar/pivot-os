@@ -49,6 +49,5 @@ typedef struct {
     uint32_t size;
     uint32_t entry_size;
     uint32_t entry_version;
-    mb_mmap_entry_t entries[];
 } mb_mmap_t;
 #pragma pack()

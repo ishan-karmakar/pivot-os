@@ -4,7 +4,6 @@ C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
 ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
 FONT_OBJ := build/fonts/default.o
 CFLAGS := -ffreestanding \
-		-std=gnu11 \
 		-I src/include \
         -O2 \
         -Wall \

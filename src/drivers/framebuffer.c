@@ -23,7 +23,7 @@ static void map_framebuffer(void) {
         num_pages++;
     for (uint32_t i = 0; i < num_pages; i++) {
         map_addr(fbinfo.phys_addr + i * PAGE_SIZE, FRAMEBUFFER_START + i * PAGE_SIZE, WRITE_BIT | PRESENT_BIT);
-        bitmap_set_bit(fbinfo.phys_addr + i * PAGE_SIZE);
+        bitmap_set_bit_addr(fbinfo.phys_addr + i * PAGE_SIZE);
     }
 }
 

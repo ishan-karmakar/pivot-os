@@ -12,6 +12,7 @@ extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
 extern uintptr_t multiboot_acpi_info;
+size_t mem_size;
 
 __attribute__((noreturn))
 void hcf(void) {
@@ -25,10 +26,10 @@ void handle_multiboot(uintptr_t addr) {
     mb_basic_meminfo_t *basic_meminfo = (mb_basic_meminfo_t*)(multiboot_basic_meminfo + KERNEL_VIRTUAL_ADDR);
     mb_mmap_t *mmap = (mb_mmap_t*)(multiboot_mmap_data + KERNEL_VIRTUAL_ADDR);
 
-    log(Verbose, "KERNEL", "Memory lower: %u, Upper: %u", basic_meminfo->mem_lower, basic_meminfo->mem_upper);
-    size_t memory_size = (basic_meminfo->mem_upper + 1024) * 1024;
+    log(Verbose, "KERNEL", "Memory lower: %x, Upper: %x", basic_meminfo->mem_lower, basic_meminfo->mem_upper);
+    size_t mem_size = (basic_meminfo->mem_upper + 1024) * 1024;
     mmap_parse(mmap);
-    init_mem(addr, mbi_size, memory_size);
+    init_pmm(addr, mbi_size, mem_size);
 
     mb_framebuffer_data_t *framebuffer = (mb_framebuffer_data_t*)(multiboot_framebuffer_data + KERNEL_VIRTUAL_ADDR);
     init_framebuffer(framebuffer);
@@ -50,7 +51,7 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
         log(Error, "KERNEL", "Failed to verify magic number");
         hcf();
     }
-
-    init_apic();
+    init_apic(mem_size);
+    init_vmm();
     while (1);
 }

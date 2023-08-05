@@ -34,7 +34,7 @@ uint8_t validate(char *start, size_t length) {
 // Parse RSDPv1
 void parse_rsdp(rsdp_descriptor_t *rsdp) {
     map_addr(ALIGN_ADDR(rsdp->rsdt_address), MAKE_HIGHER_HALF(rsdp->rsdt_address), WRITE_BIT | PRESENT_BIT);
-    bitmap_set_bit(ALIGN_ADDR(rsdp->rsdt_address));
+    bitmap_set_bit_addr(ALIGN_ADDR(rsdp->rsdt_address));
 
     header = (sdt_header_t*) MAKE_HIGHER_HALF(rsdp->rsdt_address);
     if (validate((char*) header, header->length)) {
@@ -48,14 +48,14 @@ void parse_rsdp(rsdp_descriptor_t *rsdp) {
     for (size_t i = 1; i < pages; i++) {
         uint64_t phys_addr = rsdp->rsdt_address + i * PAGE_SIZE;
         map_addr(ALIGN_ADDR(phys_addr), MAKE_HIGHER_HALF(phys_addr), WRITE_BIT | PRESENT_BIT);
-        bitmap_set_bit(ALIGN_ADDR(phys_addr));
+        bitmap_set_bit_addr(ALIGN_ADDR(phys_addr));
     }
     size_t num_tables = (header->length - sizeof(*header)) / sizeof(uint32_t);
     log(Verbose, "ACPI", "Found %u tables", num_tables);
     uint32_t *tables = (uint32_t*) (header + 1);
     for (size_t i = 0; i < num_tables; i++) {
         map_addr(ALIGN_ADDR(tables[i]), MAKE_HIGHER_HALF(tables[i]), WRITE_BIT | PRESENT_BIT);
-        bitmap_set_bit(ALIGN_ADDR(tables[i]));
+        bitmap_set_bit_addr(ALIGN_ADDR(tables[i]));
         sdt_header_t *tbl_header = (sdt_header_t*) MAKE_HIGHER_HALF(tables[i]);
         if (validate((char*) tbl_header, tbl_header->length)) {
             log(Error, "ACPI", "Detected invalid table. Halting...");
