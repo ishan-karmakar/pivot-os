@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <kernel/multiboot.h>
+#include <stdbool.h>
 #define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
 #define HIGHER_HALF_OFFSET 0xFFFF800000000000
 #define FRAMEBUFFER_START 0xFFFFFFFFA0000000 // Framebuffer gets 16 pages
@@ -20,17 +21,53 @@
 #define MAKE_HIGHER_HALF(addr) ((addr) < HIGHER_HALF_OFFSET ? (addr) + HIGHER_HALF_OFFSET : (addr))
 #define BITMAP_ENTRY_FULL 0xfffffffffffffff
 #define BITMAP_ROW_BITS 64
-#define ALIGN_ADDR(address) (address & ~(PAGE_SIZE - 1))
+#define ALIGN_ADDR(address) ((address) & ~(PAGE_SIZE - 1))
+#define ALIGN_ADDR_UP(address) (((address) + PAGE_SIZE) / (PAGE_SIZE + 1) * PAGE_SIZE)
 #define PAGES_PER_TABLE 512
+#define VMM_RESERVED_SPACE 0x14480000000
+#define VMM_FLAGS_PRESENT 1
+#define VMM_FLAGS_WRITE_ENABLE (1 << 1)
+#define VMM_FLAGS_USER_LEVEL (1 << 2)
+#define VMM_FLAGS_ADDRESS_ONLY (1 << 7)
+#define KHEAP_ALLOC_ALIGNMENT 0x10
+#define KHEAP_ALIGN(size) ((size) / KHEAP_ALLOC_ALIGNMENT + 1) * KHEAP_ALLOC_ALIGNMENT
+#define KHEAP_MIN_ALLOC_SIZE 0x20
+#define MERGE_LEFT 0b10
+#define MERGE_RIGHT 0b1
 
 typedef enum {
-    ADDRESS_TYPE_PHYSICAL,
-    ADDRESS_TYPE_VIRTUAL
-} address_type_t;
+    Supervisor,
+    User
+} vmm_level_t;
+
+typedef struct {
+    uintptr_t data_start;
+    uintptr_t space_start;
+} vmm_info_t;
+
+typedef struct {
+    uintptr_t base;
+    size_t size;
+    size_t flags;
+} vmm_item_t;
+
+typedef struct kheap_node_t {
+    size_t size;
+    bool free;
+    struct kheap_node_t *next, *prev;
+} kheap_node_t;
+
+typedef struct vmm_container_t {
+    vmm_item_t vmm_root[(PAGE_SIZE / sizeof(vmm_item_t) - 1)];
+    struct vmm_container_t *next;
+} __attribute__((__packed__)) vmm_container_t;
 
 void mmap_parse(mb_mmap_t*);
 void init_pmm(uintptr_t addr, uint32_t size, uint64_t mem_size);
-void init_vmm(void);
+void init_kheap(void);
+void *kmalloc(size_t);
+void *alloc_frame(void);
+void pmm_map_physical_memory(void);
 void *map_addr(uint64_t physical, uint64_t address, size_t flags);
 void bitmap_set_bit_addr(uint64_t address);
 void bitmap_set_bit(uint64_t location);

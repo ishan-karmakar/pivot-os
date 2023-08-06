@@ -12,6 +12,22 @@ uint32_t mmap_num_entries;
 mb_mmap_entry_t *mmap_entries;
 uint64_t mmap_phys_addr;
 uint64_t *memory_map;
+vmm_info_t vmm_info;
+vmm_container_t *container_root;
+vmm_container_t *cur_container;
+uint64_t vmm_data_end;
+size_t next_available_addr;
+size_t vmm_items_per_page;
+size_t vmm_cur_index;
+uintptr_t hh_base;
+kheap_node_t *kheap_start;
+kheap_node_t *kheap_cur;
+kheap_node_t *kheap_end;
+
+kheap_node_t *create_kheap_node(kheap_node_t*, size_t);
+void expand_heap(size_t);
+uint8_t can_merge(kheap_node_t*);
+void merge_memory_nodes(kheap_node_t*, kheap_node_t*);
 
 const char *mmap_types[] = {
     "Invalid",
@@ -62,8 +78,8 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
     uint16_t pml4_e = PML4_ENTRY(address);
     uint16_t pdpt_e = PDPR_ENTRY(address);
     uint16_t pd_e = PD_ENTRY(address);
-    log(Verbose, "MEM", "Mapping virtual address %x to physical address %x", address, physical);
-    log(Debug, "MEM", "PML4: %u, PDPT: %u, PD: %u", pml4_e, pdpt_e, pd_e);
+    log(Verbose, "PMM", "Mapping virtual address %x to physical address %x", address, physical);
+    log(Debug, "PMM", "PML4: %u, PDPT: %u, PD: %u", pml4_e, pdpt_e, pd_e);
     uint8_t mode = 0;
 
     if (!IS_HIGHER_HALF(address)) {
@@ -71,16 +87,16 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
         flags |= MEM_FLAGS_USER_LEVEL;
     }
 
-    if (!(p4_table[pml4_e] & 1)) {
-        log(Debug, "MEM", "Creating new PDPT table", pml4_e);
+    if (!(p4_table[pml4_e] & PRESENT_BIT)) {
+        log(Debug, "PMM", "Creating new PDPT table", pml4_e);
         uint64_t *new_table = alloc_frame();
         p4_table[pml4_e] = (uint64_t) new_table | mode | WRITE_BIT | PRESENT_BIT;
         clean_table(new_table);
     }
 
     uint64_t *p3_table = (uint64_t*)((p4_table[pml4_e] & PAGE_ADDR_MASK) + KERNEL_VIRTUAL_ADDR);
-    if (!(p3_table[pdpt_e] & 1)) {
-        log(Debug, "MEM", "Creating new PD table", pdpt_e);
+    if (!(p3_table[pdpt_e] & PRESENT_BIT)) {
+        log(Debug, "PMM", "Creating new PD table", pdpt_e);
         uint64_t *new_table = (uint64_t*) alloc_frame();
         p3_table[pdpt_e] = (uint64_t) new_table | mode | WRITE_BIT | PRESENT_BIT;
         clean_table(new_table);
@@ -153,7 +169,7 @@ void initialize_bitmap(uint64_t rsv_end, uint64_t mem_size) {
     for (uint32_t i = 0; i < num_entries; i++)
         memory_map[i] = 0;
     uint32_t kernel_entries = get_kernel_entries(rsv_end);
-    log(Verbose, "MEM", "Kernel takes up %u pages", kernel_entries);
+    log(Verbose, "PMM", "Kernel takes up %u pages", kernel_entries);
     uint32_t num_bitmap_rows = kernel_entries / 64;
     uint32_t i = 0;
     for (i = 0; i < num_bitmap_rows; i++)
@@ -167,10 +183,151 @@ void init_pmm(uintptr_t addr, uint32_t size, uint64_t mem_size) {
     reserve_area(mmap_phys_addr, bitmap_size / 8 + 1);
     for (uint32_t i = 0; i < mmap_num_entries; i++) {
         if (mmap_entries[i].addr < mem_size && mmap_entries[i].type != 1) {
-            log(Verbose, "MEM", "Reserving area starting at %x, %x bytes", mmap_entries[i].addr, mmap_entries[i].len);
+            log(Verbose, "PMM", "Reserving area starting at %x, %x bytes", mmap_entries[i].addr, mmap_entries[i].len);
             reserve_area(mmap_entries[i].addr, mmap_entries[i].len);
+        }
+    }
+    next_available_addr = HIGHER_HALF_OFFSET + mem_size + PAGE_SIZE; // Add one page for padding
+}
+
+void pmm_map_physical_memory(void) {
+    for (uint64_t addr = 0, virtual_addr = HIGHER_HALF_OFFSET; addr < mem_size; addr += PAGE_SIZE, virtual_addr += PAGE_SIZE)
+        map_addr(addr, virtual_addr, WRITE_BIT | PRESENT_BIT);
+    log(Info, "PMM", "Mapped physical memory");
+}
+
+void *vmm_alloc(size_t size, size_t flags) {
+    size_t real_size = ALIGN_ADDR_UP(size);
+    uint64_t addr = next_available_addr;
+    next_available_addr += real_size;
+    size_t num_pages = real_size / PAGE_SIZE;
+    for (size_t i = 0; i < num_pages; i++)
+        map_addr((uint64_t) alloc_frame(), addr + i * PAGE_SIZE, flags);
+    return (void*) addr;
+}
+
+void vmm_map_addr(uint64_t vaddress, size_t flags, size_t num_pages) {
+    for (size_t i = 0; i < num_pages; i++)
+        map_addr((uint64_t) alloc_frame(), vaddress + i * PAGE_SIZE, flags);
+}
+
+void init_kheap(void) {
+    kheap_start = (kheap_node_t*) vmm_alloc(PAGE_SIZE, WRITE_BIT | PRESENT_BIT);
+    kheap_cur = kheap_start;
+    kheap_end = kheap_start;
+    kheap_start->size = PAGE_SIZE;
+    kheap_cur->free = true;
+    kheap_cur->next = kheap_cur->prev = NULL;
+    log(Info, "KHEAP", "Initialized kernel heap");
+}
+
+void *kmalloc(size_t size) {
+    kheap_node_t *cur_node = kheap_start;
+    if (size == 0)
+        return NULL;
+    
+    while (cur_node != NULL) {
+        size_t real_size = KHEAP_ALIGN(size + sizeof(kheap_node_t));
+        if (cur_node->free && cur_node->size >= real_size) {
+            if (cur_node->size - real_size > KHEAP_MIN_ALLOC_SIZE) {
+                create_kheap_node(cur_node, real_size);
+                cur_node->size = real_size;
+            }
+            cur_node->free = false;
+            return (void*) cur_node + sizeof(kheap_node_t);
+        }
+        if (cur_node == kheap_end) {
+            expand_heap(real_size);
+            if (cur_node->prev != NULL)
+                cur_node = cur_node->prev;
+        }
+        cur_node = cur_node->next;
+    }
+    return NULL;
+}
+
+void expand_heap(size_t required_size) {
+    size_t num_pages = ALIGN_ADDR(required_size) + PAGE_SIZE;
+    uint64_t heap_end = (uint64_t) kheap_end + kheap_end->size + sizeof(kheap_node_t);
+    if (heap_end > END_MEMORY)
+        vmm_map_addr(heap_end, WRITE_BIT | PRESENT_BIT, num_pages);
+    kheap_node_t *new_end = (kheap_node_t*) heap_end;
+    new_end->next = NULL;
+    new_end->prev = kheap_end;
+    new_end->size = PAGE_SIZE * num_pages;
+    new_end->free = true;
+    kheap_end->next = new_end;
+    kheap_end = new_end;
+
+    uint8_t available_merges = can_merge(new_end);
+    if (available_merges & MERGE_LEFT)
+        merge_memory_nodes(new_end->prev, new_end);
+}
+
+uint8_t can_merge(kheap_node_t *cur_node) {
+    kheap_node_t *prev = cur_node->prev, *next = cur_node->next;
+
+    uint8_t available_merges = 0;
+    if (prev != NULL && prev->free) {
+        uint64_t prev_address = (uint64_t) prev + sizeof(kheap_node_t) + prev->size;
+        if (prev_address == (uint64_t) cur_node)
+            available_merges |= MERGE_LEFT;
+    }
+    if (next != NULL && next->free) {
+        uint64_t next_address = (uint64_t) cur_node + sizeof(kheap_node_t) + cur_node->size;
+        if (next_address == (uint64_t) cur_node->next)
+            available_merges |= MERGE_RIGHT;
+    }
+
+    return available_merges;
+}
+
+void merge_memory_nodes(kheap_node_t *left_node, kheap_node_t *right_node) {
+    if (left_node == NULL || right_node == NULL)
+        return;
+    if (((uint64_t) left_node + left_node->size + sizeof(kheap_node_t)) == (uint64_t) right_node) {
+        left_node->size = left_node->size + right_node->size + sizeof(kheap_node_t);
+        left_node->next = right_node->next;
+        if (right_node->next != NULL) {
+            kheap_node_t *next_node = right_node->next;
+            next_node->prev = left_node;
         }
     }
 }
 
-void init_vmm(void) {}
+kheap_node_t *create_kheap_node(kheap_node_t *cur_node, size_t size) {
+    uint64_t header_size = sizeof(kheap_node_t);
+    kheap_node_t *new_node = (kheap_node_t*) ((void*) cur_node + sizeof(kheap_node_t) + size);
+    new_node->free = true;
+    new_node->size = cur_node->size - (size + header_size);
+    new_node->prev = cur_node;
+    new_node->next = cur_node->next;
+    if (cur_node->next != NULL)
+        cur_node->next->prev = new_node;
+    cur_node->next = new_node;
+    if (cur_node == kheap_end)
+        kheap_end = new_node;
+    return new_node;
+}
+
+void kfree(void *ptr) {
+    if (ptr == NULL)
+        return;
+    
+    if ((uint64_t) ptr < (uint64_t) kheap_start || (uint64_t) ptr > (uint64_t) kheap_end)
+        return;
+    
+    kheap_node_t *cur_node = kheap_start;
+    while (cur_node != NULL) {
+        if (((uint64_t) cur_node + sizeof(kheap_node_t)) == (uint64_t) ptr) {
+            cur_node->free = true;
+            uint8_t available_merges = can_merge(cur_node);
+            if (available_merges & MERGE_RIGHT)
+                merge_memory_nodes(cur_node, cur_node->next);
+            if (available_merges & MERGE_LEFT)
+                merge_memory_nodes(cur_node->prev, cur_node);
+            return;
+        }
+        cur_node = cur_node->next;
+    }
+}

@@ -3,6 +3,8 @@
 #include <drivers/framebuffer.h>
 #define QEMU_LOG_SERIAL_PORT 0x3F8
 
+extern log_level_t min_log_level;
+
 char *log_levels[] = {
     "ERROR",
     "WARNING",
@@ -30,6 +32,8 @@ void qemu_write_char(char ch){
 }
 
 void log(log_level_t log_level, const char *target, const char *format, ...) {
+    if (log_level > min_log_level)
+        return;
     va_list args;
     va_start(args, format);
     outf("[%s] %s: ", qemu_write_char, log_levels[log_level], target);

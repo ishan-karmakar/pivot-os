@@ -57,6 +57,7 @@ static void print_char(char c) {
         for (uint32_t i = 1; i < screen_info.num_rows; i++)
             memcpy(fbinfo.address + (i - 1) * row_size, fbinfo.address + i * row_size, row_size);
         memset(fbinfo.address + (screen_info.num_rows - 1) * row_size, screen_info.bg, row_size);
+        screen_info.y = screen_info.num_rows - 1;
     }
 }
 

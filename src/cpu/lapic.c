@@ -42,7 +42,7 @@ void init_apic(size_t mem_size) {
         return log(Error, "LAPIC", "APIC is disabled globally");
     
     write_apic_register(APIC_SPURIOUS_VEC_REG_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_INTERRUPT);
-
+    log(Info, "LAPIC", "Initialized APIC");
     if (apic_base_address < mem_size) {
         log(Verbose, "LAPIC", "APIC base address is in physical memory area");
         bitmap_set_bit_addr(apic_base_address);
