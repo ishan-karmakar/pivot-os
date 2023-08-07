@@ -30,6 +30,19 @@ typedef struct {
     uint32_t creator_revision;
 } sdt_header_t;
 
+typedef struct {
+    sdt_header_t header;
+    uint32_t lapic_base;
+    uint32_t flags;
+} madt_t;
+
+typedef struct {
+    uint8_t type;
+    uint8_t length;
+} madt_item_t;
+
 #pragma pack()
 
 void init_acpi(mb_tag_t*);
+sdt_header_t *get_table(char*);
+void print_madt(madt_t*);

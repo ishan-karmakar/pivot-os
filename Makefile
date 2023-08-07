@@ -16,7 +16,7 @@ all: build/os.iso
 .PHONY = run clean
 
 run: build/os.iso
-	qemu-system-x86_64 -cdrom $^ -serial stdio
+	qemu-system-x86_64 -smp 2 -cdrom $^ -serial stdio
 
 build/os.iso: build/kernel.bin grub.cfg
 	mkdir -p build/isofiles/boot/grub

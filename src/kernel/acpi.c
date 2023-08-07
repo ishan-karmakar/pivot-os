@@ -5,8 +5,22 @@
 extern void hcf(void);
 
 sdt_header_t *header;
+uint8_t rsdt_version;
+size_t num_tables;
 uint8_t validate(char *start, size_t length);
 void parse_rsdp(rsdp_descriptor_t*);
+
+char *madt_items[] = {
+    "LAPIC",
+    "I/O APIC",
+    "Interrupt Source Override",
+    "NMI",
+    "LAPIC NMI",
+    "LAPIC Address Override",
+    "I/O SAPIC",
+    "Local SAPIC"
+    // There are more, but they are probably not going to be listed
+};
 
 void init_acpi(mb_tag_t *acpi_tag) {
     log(Info, "ACPI", "Found %s RSDP", acpi_tag->type == MULTIBOOT_TAG_TYPE_ACPI_OLD ? "old" : "new");
@@ -33,6 +47,7 @@ uint8_t validate(char *start, size_t length) {
 
 // Parse RSDPv1
 void parse_rsdp(rsdp_descriptor_t *rsdp) {
+    rsdt_version = 1;
     map_addr(ALIGN_ADDR(rsdp->rsdt_address), MAKE_HIGHER_HALF(rsdp->rsdt_address), WRITE_BIT | PRESENT_BIT);
     bitmap_set_bit_addr(ALIGN_ADDR(rsdp->rsdt_address));
 
@@ -50,7 +65,7 @@ void parse_rsdp(rsdp_descriptor_t *rsdp) {
         map_addr(ALIGN_ADDR(phys_addr), MAKE_HIGHER_HALF(phys_addr), WRITE_BIT | PRESENT_BIT);
         bitmap_set_bit_addr(ALIGN_ADDR(phys_addr));
     }
-    size_t num_tables = (header->length - sizeof(*header)) / sizeof(uint32_t);
+    num_tables = (header->length - sizeof(*header)) / sizeof(uint32_t);
     log(Verbose, "ACPI", "Found %u tables", num_tables);
     uint32_t *tables = (uint32_t*) (header + 1);
     for (size_t i = 0; i < num_tables; i++) {
@@ -70,3 +85,28 @@ void parse_rsdp(rsdp_descriptor_t *rsdp) {
 
 // Parse RSDPv2
 // void parse_rsdp2(rsdp_descriptor2_t *rsdp) {}
+
+sdt_header_t *get_table(char *signature) {
+    for (uint32_t i = 0; i < num_tables; i++) {
+        sdt_header_t *table;
+        if (rsdt_version == 1)
+            table = (sdt_header_t*) MAKE_HIGHER_HALF(((uint32_t*)(header + 1))[i]);
+        else
+            table = (sdt_header_t*) MAKE_HIGHER_HALF(((uint64_t*)(header + 1))[i]);
+        if (!(memcmp(table->signature, signature, 4)))
+            return table;
+    }
+    return NULL;
+}
+
+void print_madt(madt_t *table) {
+    madt_item_t *item = (madt_item_t*)(table + 1);
+    size_t total_length = sizeof(madt_t);
+    uint32_t i = 0;
+    while (total_length < table->header.length) {
+        log(Verbose, "MADT", "Type: %s - Length: %d", madt_items[item->type], item->length);
+        item = (madt_item_t*)((uint64_t) item + item->length);
+        total_length += item->length;
+        i++;
+    }
+}
