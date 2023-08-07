@@ -17,8 +17,6 @@ char *madt_items[] = {
     "NMI",
     "LAPIC NMI",
     "LAPIC Address Override",
-    "I/O SAPIC",
-    "Local SAPIC"
     // There are more, but they are probably not going to be listed
 };
 
@@ -105,8 +103,21 @@ void print_madt(madt_t *table) {
     uint32_t i = 0;
     while (total_length < table->header.length) {
         log(Verbose, "MADT", "Type: %s - Length: %d", madt_items[item->type], item->length);
-        item = (madt_item_t*)((uint64_t) item + item->length);
         total_length += item->length;
+        item = (madt_item_t*)((uint64_t) item + item->length);
         i++;
     }
+}
+
+madt_item_t *get_madt_item(madt_t *table, uint8_t search_item, uint8_t count) {
+    madt_item_t *item = (madt_item_t*)(table + 1);
+    uint8_t counter = 0;
+    for (size_t total_length = sizeof(madt_t); total_length < table->header.length; total_length += item->length, item = (madt_item_t*)((uint64_t) item + item->length))
+        if (item->type == search_item) {
+            if (counter == count)
+                return item;
+            else
+                counter++;
+        }
+    return NULL;
 }

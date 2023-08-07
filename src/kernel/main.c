@@ -3,9 +3,10 @@
 #include <stdint.h>
 #include <libc/string.h>
 #include <kernel/multiboot.h>
-#include <drivers/framebuffer.h>
-#include <mem/mem.h>
 #include <kernel/acpi.h>
+#include <drivers/framebuffer.h>
+#include <drivers/keyboard.h>
+#include <mem/mem.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 
@@ -60,5 +61,6 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     madt_t *madt = (madt_t*) get_table("APIC");
     print_madt(madt);
     init_ioapic(madt);
+    init_Keyboard();
     while (1);
 }

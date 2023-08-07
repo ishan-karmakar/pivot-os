@@ -29,7 +29,7 @@ typedef struct {
     uint64_t rflags;
     uint64_t rsp;
     uint64_t ss;
-} __attribute__((__packed__)) cpu_status_t ;
+} __attribute__((packed)) cpu_status_t ;
 
 static const char *exception_names[] = {
     "Divide by Zero Error",

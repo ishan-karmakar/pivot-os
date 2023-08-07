@@ -1,5 +1,11 @@
 #pragma once
 #include <kernel/multiboot.h>
+#define MADT_LAPIC 0
+#define MADT_IOAPIC 1
+#define MADT_INTERRUPT_SOURCE_OVERRIDE 2
+#define MADT_NMI 3
+#define MADT_LAPIC_NMI 4
+#define MADT_LAPIC_ADDRESS_OVERRIDE 5
 #pragma pack(1)
 
 typedef struct {
@@ -46,3 +52,4 @@ typedef struct {
 void init_acpi(mb_tag_t*);
 sdt_header_t *get_table(char*);
 void print_madt(madt_t*);
+madt_item_t *get_madt_item(madt_t*, uint8_t, uint8_t);

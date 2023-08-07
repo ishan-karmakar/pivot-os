@@ -19,6 +19,7 @@
 #define END_MEMORY ((511UL << 39) | (510UL << 30) | (511 << 21))
 #define IS_HIGHER_HALF(addr) ((addr) & (11UL << 62))
 #define MAKE_HIGHER_HALF(addr) ((addr) < HIGHER_HALF_OFFSET ? (addr) + HIGHER_HALF_OFFSET : (addr))
+#define MAKE_PHYS_ADDR(addr) ((addr) >= HIGHER_HALF_OFFSET ? (addr) - HIGHER_HALF_OFFSET : (addr))
 #define BITMAP_ENTRY_FULL 0xfffffffffffffff
 #define BITMAP_ROW_BITS 64
 #define ALIGN_ADDR(address) ((address) & ~(PAGE_SIZE - 1))
@@ -35,32 +36,11 @@
 #define MERGE_LEFT 0b10
 #define MERGE_RIGHT 0b1
 
-typedef enum {
-    Supervisor,
-    User
-} vmm_level_t;
-
-typedef struct {
-    uintptr_t data_start;
-    uintptr_t space_start;
-} vmm_info_t;
-
-typedef struct {
-    uintptr_t base;
-    size_t size;
-    size_t flags;
-} vmm_item_t;
-
 typedef struct kheap_node_t {
     size_t size;
     bool free;
     struct kheap_node_t *next, *prev;
 } kheap_node_t;
-
-typedef struct vmm_container_t {
-    vmm_item_t vmm_root[(PAGE_SIZE / sizeof(vmm_item_t) - 1)];
-    struct vmm_container_t *next;
-} __attribute__((__packed__)) vmm_container_t;
 
 void mmap_parse(mb_mmap_t*);
 void init_pmm(uintptr_t addr, uint32_t size, uint64_t mem_size);
