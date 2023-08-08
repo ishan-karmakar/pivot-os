@@ -5,7 +5,7 @@
 #include <libc/string.h>
 
 static uint32_t read_register(uint8_t);
-static int read_redirect(uint8_t, ioapic_redtbl_entry*);
+static int read_redirect(uint8_t, ioapic_redtbl_entry_t*);
 static uint32_t parse_interrupt_so(madt_t*);
 
 uint64_t ioapic_base_address;
@@ -23,7 +23,7 @@ void init_ioapic(madt_t* table) {
     map_addr(ioapic->addr, ioapic_base_address, PRESENT_BIT | WRITE_BIT);
     uint32_t ioapic_version = read_register(IOAPIC_VER_OFFSET);
     log(Info, "IOAPIC", "IOAPIC Version: %x", ioapic_version);
-    ioapic_redtbl_entry entry;
+    ioapic_redtbl_entry_t entry;
     if (read_redirect(0x10, &entry) != 0)
         return log(Error, "IOAPIC", "Error reading redirection entry");
     uint8_t ioapic_max_redirections = (uint8_t) (ioapic_version >> 16);
@@ -37,12 +37,27 @@ static uint32_t read_register(uint8_t offset) {
     return *(volatile uint32_t*)(ioapic_base_address + 0x10);
 }
 
-static int read_redirect(uint8_t index, ioapic_redtbl_entry *entry) {
+static void write_register(uint8_t offset, uint32_t value) {
+    *(volatile uint32_t*) ioapic_base_address = offset;
+    *(volatile uint32_t*) (ioapic_base_address + 0x10) = value;
+}
+
+static int read_redirect(uint8_t index, ioapic_redtbl_entry_t *entry) {
     if (index < 0x10 || index > 0x3F || index % 2)
         return -1;
     uint32_t lower_part = read_register(index);
     uint32_t upper_part = read_register(index + 1);
     entry->raw = ((uint64_t) upper_part << 32) | (uint64_t) lower_part;
+    return 0;
+}
+
+static int write_redirect(uint8_t index, ioapic_redtbl_entry_t entry) {
+    if (index < 0x10 || index > 0x3F || index % 2)
+        return -1;
+    uint32_t upper_part = (uint32_t) (entry.raw >> 32);
+    uint32_t lower_part = (uint32_t) entry.raw;
+    write_register(index, lower_part);
+    write_register(index + 1, upper_part);
     return 0;
 }
 
@@ -57,4 +72,34 @@ static uint32_t parse_interrupt_so(madt_t *table) {
         item = get_madt_item(table, MADT_INTERRUPT_SOURCE_OVERRIDE, counter);
     }
     return counter;
+}
+
+void set_irq(uint8_t irq_type, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, int masked) {
+    uint8_t counter = 0;
+    uint8_t selected_pin = irq_type;
+    ioapic_redtbl_entry_t entry;
+    entry.raw = flags | idt_entry;
+    while (counter < ioapic_so_size) {
+        if (ioapic_so[counter].irq_source == irq_type) {
+            selected_pin = ioapic_so[counter].gsi_base;
+            log(Verbose, "IOAPIC", "Source override found for pin %d using apic pin %d", irq_type, selected_pin);
+            if ((ioapic_so[counter].flags & 0b11) == 1)
+                entry.pin_polarity = 1;
+            else
+                entry.pin_polarity = 0;
+            if (((ioapic_so[counter].flags >> 2) & 0b11) == 3)
+                entry.trigger_mode = 1;
+            else
+                entry.trigger_mode = 0;
+            break;
+        }
+        counter++;
+    }
+
+    entry.destination = destination_field;
+    entry.mask = masked;
+    log(Info, "IOAPIC", "Setting IRQ %u to idt entry %u at REDTBL pos: %x",
+        irq_type, idt_entry, redtbl_pos);
+    if (write_redirect(redtbl_pos, entry))
+        log(Error, "IOAPIC", "Error writing to redirection table");
 }

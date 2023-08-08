@@ -51,6 +51,8 @@ extern void isr28();
 extern void isr29();
 extern void isr30();
 extern void isr31();
+extern void irq33();
+extern void irq34();
 extern void irq255();
 
 idtr_t idtr;
@@ -99,6 +101,8 @@ void init_exceptions() {
     set_idt_entry(29, 0x8E, 0x8, 0, isr29);
     set_idt_entry(30, 0x8E, 0x8, 0, isr30);
     set_idt_entry(31, 0x8E, 0x8, 0, isr31);
+    set_idt_entry(33, 0x8E, 0x8, 0, irq33);
+    set_idt_entry(34, 0x8E, 0x8, 0, irq34);
     set_idt_entry(255, 0x8E, 0x8, 0, irq255);
 }
 

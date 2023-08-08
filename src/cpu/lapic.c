@@ -81,3 +81,5 @@ void write_apic_register(uint32_t reg_off, uint32_t val) {
     else
         *(volatile uint32_t*)(apic_hh_address + reg_off) = val;
 }
+
+void write_eoi(void) { write_apic_register(0xB0, 0); }

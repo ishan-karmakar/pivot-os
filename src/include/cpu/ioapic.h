@@ -23,7 +23,7 @@ typedef union {
         uint64_t destination:8;
     };
     uint64_t raw;
-} ioapic_redtbl_entry;
+} ioapic_redtbl_entry_t;
 
 typedef struct {
     uint8_t bus_source;
@@ -42,3 +42,4 @@ typedef struct {
 #pragma pack()
 
 void init_ioapic(madt_t*);
+void set_irq(uint8_t irq_type, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, int masked);

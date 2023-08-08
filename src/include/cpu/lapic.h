@@ -18,3 +18,4 @@
 #define ICW_4 0x01
 
 void init_apic(size_t);
+void write_eoi(void);

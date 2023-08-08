@@ -103,4 +103,6 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
+irq 33
+irq 34
 irq 255

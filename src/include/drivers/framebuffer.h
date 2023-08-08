@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <kernel/multiboot.h>
 #include <stdarg.h>
+#define TAB_SIZE 4
 
 typedef struct {
     uint8_t *address;

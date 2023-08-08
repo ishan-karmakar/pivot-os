@@ -61,6 +61,9 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     madt_t *madt = (madt_t*) get_table("APIC");
     print_madt(madt);
     init_ioapic(madt);
-    init_Keyboard();
+    init_keyboard();
+    set_irq(1, 0x12, 0x21, 0, 0, 0);
+    // set_irq(2, 0x14, 0x22, 0, 0, 1);
+    asm ("sti");
     while (1);
 }

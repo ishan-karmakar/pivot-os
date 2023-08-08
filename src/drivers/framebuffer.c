@@ -38,11 +38,47 @@ static void putchar(char sym, screen_info_t *si) {
             *((uint32_t*) (fbinfo.address + line)) = glyph[cx / 8] & (0x80 >> (cx & 7)) ? si->fg : si->bg;
 }
 
+static void find_last_char(screen_info_t *si) {
+    if (si->x == 0) {
+        if (si->y == 0)
+            return;
+        si->x = si->num_cols - 1;
+        si->y--;
+    } else
+        si->x--;
+    while (1) {
+        size_t offset = (si->y * loaded_font->height * fbinfo.pitch) +
+                        (si->x * loaded_font->width * sizeof(uint32_t));
+        for (uint32_t cy = 0, line = offset; cy < loaded_font->height;
+            cy++, offset += fbinfo.pitch, line = offset)
+            for (uint32_t cx = 0; cx < loaded_font->width; cx++, line += sizeof(fbinfo.bpp / 8))
+                if (*((uint32_t*) (fbinfo.address + line)) != si->bg)
+                    return;
+        if (si->x == 0)
+            return;
+        else
+            si->x--;
+    }
+}
+
 static void print_char(char c) {
-    if (c == '\n') {
+    switch (c) {
+    case '\n':
         screen_info.x = 0;
         screen_info.y++;
-    } else {
+        break;
+    
+    case '\b':
+        find_last_char(&screen_info);
+        putchar(' ', &screen_info);
+        break;
+
+    case '\t':
+        for (int i = 0; i < TAB_SIZE; i++)
+            print_char(' ');
+        break;
+
+    default:
         putchar(c, &screen_info);
         screen_info.x++;
         if (screen_info.x >= screen_info.num_cols) {

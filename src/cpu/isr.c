@@ -1,6 +1,8 @@
 #include <stdint.h>
+#include <cpu/lapic.h>
 #include <kernel/logging.h>
-#include "libc/string.h"
+#include <libc/string.h>
+#include <drivers/keyboard.h>
 
 extern void hcf(void);
 
@@ -73,5 +75,12 @@ void exception_handler(cpu_status_t *status) {
 }
 
 void irq_handler(uint64_t interrupt_number) {
-    log(Info, "IRQ", "IRQ %u triggered", interrupt_number);
+    switch (interrupt_number) {
+        case 33:
+            handle_keyboard();
+            write_eoi();
+            break;
+        default:
+            log(Info, "IRQ", "IRQ %u triggered", interrupt_number);
+    }
 }
