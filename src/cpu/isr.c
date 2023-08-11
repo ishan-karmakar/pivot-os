@@ -3,8 +3,11 @@
 #include <kernel/logging.h>
 #include <libc/string.h>
 #include <drivers/keyboard.h>
+#include <drivers/framebuffer.h>
 
 extern void hcf(void);
+extern volatile uint64_t pit_ticks;
+extern volatile uint64_t apic_ticks;
 
 typedef struct {
     uint64_t r15;
@@ -75,12 +78,5 @@ void exception_handler(cpu_status_t *status) {
 }
 
 void irq_handler(uint64_t interrupt_number) {
-    switch (interrupt_number) {
-        case 33:
-            handle_keyboard();
-            write_eoi();
-            break;
-        default:
-            log(Info, "IRQ", "IRQ %u triggered", interrupt_number);
-    }
+    log(Info, "IRQ", "IRQ %u triggered", interrupt_number);
 }

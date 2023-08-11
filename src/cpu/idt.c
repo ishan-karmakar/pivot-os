@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <kernel/logging.h>
 #include <cpu/idt.h>
+#define IDT_SET_ENTRY(num, handler) \
+    extern void handler(); \
+    set_idt_entry((num), 0x8E, 0x8, 0, handler);
 
 #pragma pack(1)
 typedef struct {
@@ -19,42 +22,6 @@ typedef struct {
 } idtr_t;
 #pragma pack()
 
-extern void isr0();
-extern void isr1();
-extern void isr2();
-extern void isr3();
-extern void isr4();
-extern void isr5();
-extern void isr6();
-extern void isr7();
-extern void isr8();
-extern void isr9();
-extern void isr10();
-extern void isr11();
-extern void isr12();
-extern void isr13();
-extern void isr14();
-extern void isr15();
-extern void isr16();
-extern void isr17();
-extern void isr18();
-extern void isr19();
-extern void isr20();
-extern void isr21();
-extern void isr22();
-extern void isr23();
-extern void isr24();
-extern void isr25();
-extern void isr26();
-extern void isr27();
-extern void isr28();
-extern void isr29();
-extern void isr30();
-extern void isr31();
-extern void irq33();
-extern void irq34();
-extern void irq255();
-
 idtr_t idtr;
 idt_desc_t idt[256];
 
@@ -69,41 +36,42 @@ void set_idt_entry(uint16_t idx, uint8_t flags, uint16_t selector, uint8_t ist, 
 }
 
 void init_exceptions() {
-    set_idt_entry(0, 0x8E, 0x8, 0, isr0);
-    set_idt_entry(1, 0x8E, 0x8, 0, isr1);
-    set_idt_entry(2, 0x8E, 0x8, 0, isr2);
-    set_idt_entry(3, 0x8E, 0x8, 0, isr3);
-    set_idt_entry(4, 0x8E, 0x8, 0, isr4);
-    set_idt_entry(5, 0x8E, 0x8, 0, isr5);
-    set_idt_entry(6, 0x8E, 0x8, 0, isr6);
-    set_idt_entry(7, 0x8E, 0x8, 0, isr7);
-    set_idt_entry(8, 0x8E, 0x8, 0, isr8);
-    set_idt_entry(9, 0x8E, 0x8, 0, isr9);
-    set_idt_entry(10, 0x8E, 0x8, 0, isr10);
-    set_idt_entry(11, 0x8E, 0x8, 0, isr11);
-    set_idt_entry(12, 0x8E, 0x8, 0, isr12);
-    set_idt_entry(13, 0x8E, 0x8, 0, isr13);
-    set_idt_entry(14, 0x8E, 0x8, 0, isr14);
-    set_idt_entry(15, 0x8E, 0x8, 0, isr15);
-    set_idt_entry(16, 0x8E, 0x8, 0, isr16);
-    set_idt_entry(17, 0x8E, 0x8, 0, isr17);
-    set_idt_entry(18, 0x8E, 0x8, 0, isr18);
-    set_idt_entry(19, 0x8E, 0x8, 0, isr19);
-    set_idt_entry(20, 0x8E, 0x8, 0, isr20);
-    set_idt_entry(21, 0x8E, 0x8, 0, isr21);
-    set_idt_entry(22, 0x8E, 0x8, 0, isr22);
-    set_idt_entry(23, 0x8E, 0x8, 0, isr23);
-    set_idt_entry(24, 0x8E, 0x8, 0, isr24);
-    set_idt_entry(25, 0x8E, 0x8, 0, isr25);
-    set_idt_entry(26, 0x8E, 0x8, 0, isr26);
-    set_idt_entry(27, 0x8E, 0x8, 0, isr27);
-    set_idt_entry(28, 0x8E, 0x8, 0, isr28);
-    set_idt_entry(29, 0x8E, 0x8, 0, isr29);
-    set_idt_entry(30, 0x8E, 0x8, 0, isr30);
-    set_idt_entry(31, 0x8E, 0x8, 0, isr31);
-    set_idt_entry(33, 0x8E, 0x8, 0, irq33);
-    set_idt_entry(34, 0x8E, 0x8, 0, irq34);
-    set_idt_entry(255, 0x8E, 0x8, 0, irq255);
+    IDT_SET_ENTRY(0, isr0);
+    IDT_SET_ENTRY(1, isr1);
+    IDT_SET_ENTRY(2, isr2);
+    IDT_SET_ENTRY(3, isr3);
+    IDT_SET_ENTRY(4, isr4);
+    IDT_SET_ENTRY(5, isr5);
+    IDT_SET_ENTRY(6, isr6);
+    IDT_SET_ENTRY(7, isr7);
+    IDT_SET_ENTRY(8, isr8);
+    IDT_SET_ENTRY(9, isr9);
+    IDT_SET_ENTRY(10, isr10);
+    IDT_SET_ENTRY(11, isr11);
+    IDT_SET_ENTRY(12, isr12);
+    IDT_SET_ENTRY(13, isr13);
+    IDT_SET_ENTRY(14, isr14);
+    IDT_SET_ENTRY(15, isr15);
+    IDT_SET_ENTRY(16, isr16);
+    IDT_SET_ENTRY(17, isr17);
+    IDT_SET_ENTRY(18, isr18);
+    IDT_SET_ENTRY(19, isr19);
+    IDT_SET_ENTRY(20, isr20);
+    IDT_SET_ENTRY(21, isr21);
+    IDT_SET_ENTRY(22, isr22);
+    IDT_SET_ENTRY(23, isr23);
+    IDT_SET_ENTRY(24, isr24);
+    IDT_SET_ENTRY(25, isr25);
+    IDT_SET_ENTRY(26, isr26);
+    IDT_SET_ENTRY(27, isr27);
+    IDT_SET_ENTRY(28, isr28);
+    IDT_SET_ENTRY(29, isr29);
+    IDT_SET_ENTRY(30, isr30);
+    IDT_SET_ENTRY(31, isr31);
+    IDT_SET_ENTRY(32, irq32);
+    IDT_SET_ENTRY(33, irq33);
+    IDT_SET_ENTRY(34, irq34);
+    IDT_SET_ENTRY(255, irq255);
 }
 
 void init_idt(){

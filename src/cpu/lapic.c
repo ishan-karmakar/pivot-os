@@ -4,11 +4,16 @@
 #include <kernel/logging.h>
 #include <cpuid.h>
 #include <io/ports.h>
+#include <cpu/ioapic.h>
+#include <drivers/framebuffer.h>
 #include <stdbool.h>
 extern void hcf(void);
 
 uint64_t apic_hh_address;
 bool x2mode;
+volatile uint64_t pit_ticks = 0;
+volatile uint64_t apic_ticks = 0;
+uint32_t apic_ticks_per_ms;
 
 uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
@@ -82,4 +87,32 @@ void write_apic_register(uint32_t reg_off, uint32_t val) {
         *(volatile uint32_t*)(apic_hh_address + reg_off) = val;
 }
 
-void write_eoi(void) { write_apic_register(0xB0, 0); }
+void calibrate_apic_timer(void) {
+    outportb(PIT_MODE_COMMAND_REGISTER, 0b00110100);
+    uint16_t counter = PIT_1_MS;
+    outportb(PIT_CHANNEL_0_DATA_PORT, counter & 0xFF);
+    outportb(PIT_CHANNEL_0_DATA_PORT, (counter >> 8) & 0xFF);
+
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER_2);
+
+    set_irq_mask(0x14, 0);
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, (uint32_t)-1);
+    while(pit_ticks < 100);
+    uint32_t current_apic_count = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
+    set_irq_mask(0x14, 1);
+    
+    uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
+    apic_ticks_per_ms = time_elapsed / 100;
+    log(Verbose, "APIC", "Measured %u ticks per ms", apic_ticks_per_ms);
+}
+
+void start_apic_timer(uint32_t flags) {
+    log(Info, "APIC", "Starting APIC timer");
+    write_apic_register(APIC_TIMER_LVT_OFFSET, flags | APIC_TIMER_IDT_ENTRY);
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, apic_ticks_per_ms * 10);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, 0);
+
+    asm ("sti");
+}

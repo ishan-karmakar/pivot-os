@@ -71,6 +71,35 @@ irq%1:
     add rsp, 16 ; Remove error code and interrupt number from stack
 %endmacro
 
+%macro apic_eoi 0
+    mov rdi, 0xB0
+    mov rsi, 0
+    call write_apic_register
+%endmacro
+
+[extern write_apic_register]
+
+[extern apic_ticks]
+[global irq32]
+irq32:
+    add qword [apic_ticks], 1
+    apic_eoi
+    iretq
+
+[extern handle_keyboard]
+[global irq33]
+irq33:
+    call handle_keyboard
+    apic_eoi
+    iretq
+
+[extern pit_ticks]
+[global irq34]
+irq34:
+    add qword [pit_ticks], 1
+    apic_eoi
+    iretq
+
 isr 0
 isr 1
 isr 2
@@ -103,6 +132,4 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
-irq 33
-irq 34
 irq 255

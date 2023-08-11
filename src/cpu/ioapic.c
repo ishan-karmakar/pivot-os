@@ -74,15 +74,15 @@ static uint32_t parse_interrupt_so(madt_t *table) {
     return counter;
 }
 
-void set_irq(uint8_t irq_type, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, int masked) {
+void set_irq(uint8_t irq, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, int masked) {
     uint8_t counter = 0;
-    uint8_t selected_pin = irq_type;
+    uint8_t selected_pin = irq;
     ioapic_redtbl_entry_t entry;
     entry.raw = flags | idt_entry;
     while (counter < ioapic_so_size) {
-        if (ioapic_so[counter].irq_source == irq_type) {
+        if (ioapic_so[counter].irq_source == irq) {
             selected_pin = ioapic_so[counter].gsi_base;
-            log(Verbose, "IOAPIC", "Source override found for pin %d using apic pin %d", irq_type, selected_pin);
+            log(Verbose, "IOAPIC", "Source override found for pin %d using APIC pin %d", irq, selected_pin);
             if ((ioapic_so[counter].flags & 0b11) == 1)
                 entry.pin_polarity = 1;
             else
@@ -99,7 +99,14 @@ void set_irq(uint8_t irq_type, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t de
     entry.destination = destination_field;
     entry.mask = masked;
     log(Info, "IOAPIC", "Setting IRQ %u to idt entry %u at REDTBL pos: %x",
-        irq_type, idt_entry, redtbl_pos);
+        irq, idt_entry, redtbl_pos);
     if (write_redirect(redtbl_pos, entry))
         log(Error, "IOAPIC", "Error writing to redirection table");
+}
+
+void set_irq_mask(uint8_t redtbl_pos, int masked) {
+    ioapic_redtbl_entry_t entry;
+    read_redirect(redtbl_pos, &entry);
+    entry.mask = masked;
+    write_redirect(redtbl_pos, entry);
 }

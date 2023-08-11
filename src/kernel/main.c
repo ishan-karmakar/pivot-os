@@ -14,6 +14,7 @@ extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
 extern uintptr_t multiboot_acpi_info;
+extern volatile uint64_t apic_ticks;
 size_t mem_size;
 
 log_level_t min_log_level = Verbose;
@@ -62,8 +63,10 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     print_madt(madt);
     init_ioapic(madt);
     init_keyboard();
-    set_irq(1, 0x12, 0x21, 0, 0, 0);
-    // set_irq(2, 0x14, 0x22, 0, 0, 1);
+    set_irq(1, 0x12, 0x21, 0, 0, 0); // Keyboard
+    set_irq(2, 0x14, 0x22, 0, 0, 1);
     asm ("sti");
+    calibrate_apic_timer();
+    start_apic_timer(0x20000);
     while (1);
 }
