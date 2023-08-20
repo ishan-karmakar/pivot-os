@@ -35,11 +35,11 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
     if (log_level > min_log_level)
         return;
     va_list args;
-    va_start(args, format);
-    outf("[%s] %s: ", qemu_write_char, log_levels[log_level], target);
-    voutf(format, qemu_write_char, args);
-    outf("\n", qemu_write_char);
-    va_end(args);
+    // va_start(args, format);
+    // outf("[%s] %s: ", qemu_write_char, log_levels[log_level], target);
+    // voutf(format, qemu_write_char, args);
+    // outf("\n", qemu_write_char);
+    // va_end(args);
     if (FRAMEBUFFER_INITIALIZED) {
         va_start(args, format);
         printf("[%s] %s: ", log_levels[log_level], target);

@@ -82,7 +82,7 @@ irq%1:
 [extern apic_ticks]
 [global irq32]
 irq32:
-    add qword [apic_ticks], 1
+    inc qword [apic_ticks]
     apic_eoi
     iretq
 
@@ -96,7 +96,7 @@ irq33:
 [extern pit_ticks]
 [global irq34]
 irq34:
-    add qword [pit_ticks], 1
+    inc qword [pit_ticks]
     apic_eoi
     iretq
 
@@ -132,4 +132,5 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
+irq 35
 irq 255

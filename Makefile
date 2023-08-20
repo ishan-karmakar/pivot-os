@@ -5,7 +5,7 @@ ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
 FONT_OBJ := build/fonts/default.o
 CFLAGS := -ffreestanding \
 		-I src/include \
-        -O2 \
+        -O3 \
         -Wall \
         -Wextra \
         -mno-red-zone \
@@ -16,7 +16,7 @@ all: build/os.iso
 .PHONY = run clean
 
 run: build/os.iso
-	qemu-system-x86_64 -cdrom $^ -serial stdio
+	qemu-system-x86_64 -smp 2 -cdrom $^ -serial stdio
 
 build/os.iso: build/kernel.bin grub.cfg
 	mkdir -p build/isofiles/boot/grub
@@ -33,7 +33,7 @@ build/%.o: src/%.asm
 
 build/%.o: src/%.c
 	mkdir -p $(@D)
-	x86_64-elf-gcc -O3 $(CFLAGS) -c $< -o $@
+	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
 
 build/%.o: %.psf
 	mkdir -p $(@D)

@@ -1,4 +1,4 @@
-%include "src/boot/multiboot_struc.inc"
+%include "src/asm/multiboot_struc.inc"
 %define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
 %define PAGE_DIR_ENTRY_FLAGS 0b11
 %define PRESENT_BIT 1

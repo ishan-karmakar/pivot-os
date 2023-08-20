@@ -13,7 +13,7 @@ uint64_t apic_hh_address;
 bool x2mode;
 volatile uint64_t pit_ticks = 0;
 volatile uint64_t apic_ticks = 0;
-uint32_t apic_ticks_per_ms;
+uint32_t apic_ticks_interval;
 
 uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
@@ -73,46 +73,92 @@ void disable_pic(void) {
     outportb(PIC_DATA_SLAVE, 0xFF);
 }
 
-uint32_t read_apic_register(uint32_t reg_off) {
+inline uint32_t read_apic_register(uint32_t reg_off) {
     if (x2mode)
         return (uint32_t) rdmsr((reg_off >> 4) + 0x800);
     else
         return *(volatile uint32_t*)(apic_hh_address + reg_off);
 }
 
-void write_apic_register(uint32_t reg_off, uint32_t val) {
+inline void write_apic_register(uint32_t reg_off, uint32_t val) {
     if (x2mode)
         wrmsr((reg_off >> 4) + 0x800, val);
     else
         *(volatile uint32_t*)(apic_hh_address + reg_off) = val;
 }
 
-void calibrate_apic_timer(void) {
+uint32_t get_apic_id(void) {
+    if (x2mode)
+        return read_apic_register(APIC_ID_REG_OFF);
+    return read_apic_register(APIC_ID_REG_OFF) >> 24;
+}
+
+// Timer will trigger interrupt every tenth of millisecond
+void calibrate_apic_timer(uint8_t divider) {
     outportb(PIT_MODE_COMMAND_REGISTER, 0b00110100);
     uint16_t counter = PIT_1_MS;
     outportb(PIT_CHANNEL_0_DATA_PORT, counter & 0xFF);
     outportb(PIT_CHANNEL_0_DATA_PORT, (counter >> 8) & 0xFF);
 
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
-    write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER_2);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, divider);
 
     set_irq_mask(0x14, 0);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, (uint32_t)-1);
-    while(pit_ticks < 100);
+    while(pit_ticks < 500);
     uint32_t current_apic_count = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
     set_irq_mask(0x14, 1);
     
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
-    apic_ticks_per_ms = time_elapsed / 100;
-    log(Verbose, "APIC", "Measured %u ticks per ms", apic_ticks_per_ms);
+    apic_ticks_interval = time_elapsed / 500;
+    log(Verbose, "APIC", "Measured %u ticks per ms", apic_ticks_interval);
 }
 
-void start_apic_timer(uint32_t flags) {
-    log(Info, "APIC", "Starting APIC timer");
-    write_apic_register(APIC_TIMER_LVT_OFFSET, flags | APIC_TIMER_IDT_ENTRY);
-    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, apic_ticks_per_ms * 10);
-    write_apic_register(APIC_TIMER_CONFIG_OFF, 0);
+void mdelay(size_t ms) {
+    size_t current_apic_ticks = apic_ticks;
+    while ((apic_ticks - current_apic_ticks) < ms);
+}
+
+void udelay(size_t us) {
+    size_t total_ticks = (apic_ticks_interval / 1000.) * us;
+    apic_ticks = 0;
+    size_t initial_ticks = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
+    while (total_ticks > ((apic_ticks * apic_ticks_interval) + initial_ticks - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)));
+    size_t t = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
+    log(Verbose, "TIMER", "%u, %u, %u", initial_ticks, t, initial_ticks - t);
+}
+// 156
+// 6372 6027
+
+void start_apic_timer(uint8_t divider) {
+    calibrate_apic_timer(divider);
+    write_apic_register(APIC_TIMER_LVT_OFFSET, 0x20000 | APIC_TIMER_IDT_ENTRY);
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, apic_ticks_interval);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, divider);
 
     asm ("sti");
+}
+
+void apic_startup_ap(uint8_t id, uint8_t trampoline_page) {
+    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_ASSERT | ICR_LEVEL);
+
+    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
+    log(Verbose, "LAPIC", "Processor received INIT");
+
+    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_LEVEL);
+    
+    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
+    log(Verbose, "LAPIC", "Processor received INIT Level De-assert");
+
+    mdelay(10);
+    for (int i = 0; i < 2; i++) {
+        write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+        write_apic_register(APIC_ICRLO_OFF, trampoline_page | ICR_STARTUP);
+        mdelay(1);
+        while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
+    }
+    log(Verbose, "LAPIC", "Processor received SIPI");
 }

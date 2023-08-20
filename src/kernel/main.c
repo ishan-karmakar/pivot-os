@@ -10,11 +10,11 @@
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 
+extern void ap_trampoline(void);
 extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
 extern uintptr_t multiboot_acpi_info;
-extern volatile uint64_t apic_ticks;
 size_t mem_size;
 
 log_level_t min_log_level = Verbose;
@@ -66,7 +66,21 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     set_irq(1, 0x12, 0x21, 0, 0, 0); // Keyboard
     set_irq(2, 0x14, 0x22, 0, 0, 1);
     asm ("sti");
-    calibrate_apic_timer();
-    start_apic_timer(0x20000);
+    start_apic_timer(0b1010);
+    log(Verbose, "APIC", "Started APIC timer");
+    uint32_t current_apic_id = get_apic_id();
+    log(Verbose, "LAPIC", "This processor's APIC ID is %u", current_apic_id);
+    madt_item_t *lapic = get_madt_item(madt, MADT_LAPIC, 0);
+    uint8_t count = 0;
+    memcpy((void*) 0x8000, &ap_trampoline, PAGE_SIZE);
+    while (lapic != NULL) {
+        uint8_t apic_id = *((uint8_t*)(lapic + 1) + 1);
+        if (apic_id != current_apic_id) {
+            log(Info, "LAPIC", "Starting up APIC");
+            apic_startup_ap(apic_id, 0x8);
+        }
+
+        lapic = get_madt_item(madt, MADT_LAPIC, ++count);
+    }
     while (1);
 }

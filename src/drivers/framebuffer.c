@@ -27,7 +27,7 @@ static void map_framebuffer(void) {
     }
 }
 
-static void putchar(char sym, screen_info_t *si) {
+extern void putchar(char sym, screen_info_t *si) {
     uint8_t *glyph = get_glyph(sym);
     size_t bytes_per_line = (loaded_font->width + 7) / 8;
     size_t offset = (si->y * loaded_font->height * fbinfo.pitch) +
@@ -61,7 +61,14 @@ static void find_last_char(screen_info_t *si) {
     }
 }
 
-static void print_char(char c) {
+void clear_screen(screen_info_t *si) {
+    for (size_t i = 0; i < fbinfo.memory_size / 4; i++)
+        *((uint32_t*) fbinfo.address + i) = si->bg;
+    si->x = 0;
+    si->y = 0;
+}
+
+void print_char(char c) {
     switch (c) {
     case '\n':
         screen_info.x = 0;
@@ -89,11 +96,13 @@ static void print_char(char c) {
     // Check if y is past bounds
     // If it is, then scroll
     if (screen_info.y >= screen_info.num_rows) {
-        uint32_t row_size = loaded_font->height * fbinfo.width * sizeof(uint32_t);
-        for (uint32_t i = 1; i < screen_info.num_rows; i++)
-            memcpy(fbinfo.address + (i - 1) * row_size, fbinfo.address + i * row_size, row_size);
-        memset(fbinfo.address + (screen_info.num_rows - 1) * row_size, screen_info.bg, row_size);
-        screen_info.y = screen_info.num_rows - 1;
+        // TODO: Get scrolling working reliably, for now just clearing screen
+        // uint32_t row_size = loaded_font->height * fbinfo.width * sizeof(uint32_t);
+        // for (uint32_t i = 1; i < screen_info.num_rows; i++)
+        //     memcpy(fbinfo.address + (i - 1) * row_size, fbinfo.address + i * row_size, row_size);
+        // memset(fbinfo.address + (screen_info.num_rows - 1) * row_size, screen_info.bg, row_size);
+        // screen_info.y = screen_info.num_rows - 1;
+        clear_screen(&screen_info);
     }
 }
 

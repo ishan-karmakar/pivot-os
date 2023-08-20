@@ -41,8 +41,6 @@ extern int FRAMEBUFFER_INITIALIZED;
 
 typedef void (*char_printer_t)(char);
 
-void voutf(const char *c, char_printer_t char_printer, va_list args);
-void outf(const char *format, char_printer_t char_printer, ...);
 void vprintf(const char *format, va_list args);
 void printf(const char *format, ...);
 

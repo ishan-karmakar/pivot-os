@@ -6,8 +6,6 @@
 #include <drivers/framebuffer.h>
 
 extern void hcf(void);
-extern volatile uint64_t pit_ticks;
-extern volatile uint64_t apic_ticks;
 
 typedef struct {
     uint64_t r15;
