@@ -2,6 +2,7 @@
 #include <mem/mem.h>
 #include <kernel/multiboot.h>
 #include <kernel/logging.h>
+#include <sys.h>
 
 extern uint64_t p4_table[512];
 extern size_t mem_size;
@@ -152,7 +153,7 @@ void initialize_bitmap(uint64_t rsv_end, uint64_t mem_size) {
     bitmap_size = mem_size / PAGE_SIZE + 1;
     num_entries = bitmap_size / 64 + 1;
     mmap_phys_addr = get_bitmap_region(rsv_end, bitmap_size / 8 + 1);
-    uint64_t end_physical_memory = END_MEMORY - KERNEL_VIRTUAL_ADDR;
+    uint64_t end_physical_memory = END_MAPPED_MEMORY - KERNEL_VIRTUAL_ADDR;
     if (mmap_phys_addr > end_physical_memory) {
         log(Verbose, "BITMAP", "The address %x is above the initially mapped memory: %x", mmap_phys_addr, end_physical_memory);
         // map_addr(ALIGN_ADDR(mmap_phys_addr), mmap_phys_addr + KERNEL_VIRTUAL_ADDR, PRESENT_BIT | WRITE_BIT);
@@ -243,7 +244,7 @@ void *kmalloc(size_t size) {
 void expand_heap(size_t required_size) {
     size_t num_pages = ALIGN_ADDR(required_size) + PAGE_SIZE;
     uint64_t heap_end = (uint64_t) kheap_end + kheap_end->size + sizeof(kheap_node_t);
-    if (heap_end > END_MEMORY)
+    if (heap_end > END_MAPPED_MEMORY)
         vmm_map_addr(heap_end, WRITE_BIT | PRESENT_BIT, num_pages);
     kheap_node_t *new_end = (kheap_node_t*) heap_end;
     new_end->next = NULL;

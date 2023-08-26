@@ -7,6 +7,7 @@
 #include <cpu/ioapic.h>
 #include <drivers/framebuffer.h>
 #include <stdbool.h>
+#include <sys.h>
 extern void hcf(void);
 
 uint64_t apic_hh_address;
@@ -87,7 +88,7 @@ inline void write_apic_register(uint32_t reg_off, uint32_t val) {
         *(volatile uint32_t*)(apic_hh_address + reg_off) = val;
 }
 
-uint32_t get_apic_id(void) {
+uint32_t bsp_id(void) {
     if (x2mode)
         return read_apic_register(APIC_ID_REG_OFF);
     return read_apic_register(APIC_ID_REG_OFF) >> 24;
@@ -121,7 +122,7 @@ void mdelay(size_t ms) {
 }
 
 void udelay(size_t us) {
-    size_t total_ticks = (apic_ticks_interval / 1000.) * us;
+    size_t total_ticks = (apic_ticks_interval * us) / 1000;
     apic_ticks = 0;
     size_t initial_ticks = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
     while (total_ticks > ((apic_ticks * apic_ticks_interval) + initial_ticks - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)));
@@ -138,27 +139,4 @@ void start_apic_timer(uint8_t divider) {
     write_apic_register(APIC_TIMER_CONFIG_OFF, divider);
 
     asm ("sti");
-}
-
-void apic_startup_ap(uint8_t id, uint8_t trampoline_page) {
-    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_ASSERT | ICR_LEVEL);
-
-    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
-    log(Verbose, "LAPIC", "Processor received INIT");
-
-    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_LEVEL);
-    
-    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
-    log(Verbose, "LAPIC", "Processor received INIT Level De-assert");
-
-    mdelay(10);
-    for (int i = 0; i < 2; i++) {
-        write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-        write_apic_register(APIC_ICRLO_OFF, trampoline_page | ICR_STARTUP);
-        mdelay(1);
-        while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
-    }
-    log(Verbose, "LAPIC", "Processor received SIPI");
 }

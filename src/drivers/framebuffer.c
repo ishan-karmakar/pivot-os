@@ -5,6 +5,7 @@
 #include <kernel/logging.h>
 #include <mem/mem.h>
 #include <stdarg.h>
+#include <sys.h>
 
 framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
@@ -125,45 +126,34 @@ static void print_hex(uint64_t num, char_printer_t char_printer) {
     print_string(ultoa(num, buf, 16), char_printer);
 }
 
-void voutf(const char *c, char_printer_t char_printer, va_list args) {
+void vprintf(const char *c, va_list args) {
     for (; *c != '\0'; c++)
         if (*c != '%')
-            char_printer(*c);
+            print_char(*c);
         else
             switch (*++c) {
                 case 's':
-                    print_string(va_arg(args, char*), char_printer);
+                    print_string(va_arg(args, char*), print_char);
                     break;
                 case 'c':
-                    char_printer(va_arg(args, int));
+                    print_char(va_arg(args, int));
                     break;
                 case 'd':
-                    print_num(va_arg(args, int64_t), char_printer);
+                    print_num(va_arg(args, int64_t), print_char);
                     break;
                 case 'u':
-                    print_unum(va_arg(args, uint64_t), char_printer);
+                    print_unum(va_arg(args, uint64_t), print_char);
                     break;
                 case 'x':
-                    print_hex(va_arg(args, uint64_t), char_printer);
+                    print_hex(va_arg(args, uint64_t), print_char);
                     break;
             }
-}
-
-void outf(const char *format, char_printer_t char_printer, ...) {
-    va_list args;
-    va_start(args, char_printer);
-    voutf(format, char_printer, args);
-    va_end(args);
-}
-
-void vprintf(const char *format, va_list args) {
-    voutf(format, print_char, args);
 }
 
 void printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    voutf(format, print_char, args);
+    vprintf(format, args);
     va_end(args);
 }
 

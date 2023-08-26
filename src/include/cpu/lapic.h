@@ -44,7 +44,7 @@ void init_apic(size_t);
 void calibrate_apic_timer(uint8_t);
 void write_apic_register(uint32_t, uint32_t);
 uint32_t read_apic_register(uint32_t);
-uint32_t get_apic_id(void);
+uint32_t bsp_id(void);
 void apic_startup_ap(uint8_t, uint8_t);
 void start_apic_timer(uint8_t);
 void mdelay(size_t);

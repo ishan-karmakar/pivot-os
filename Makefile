@@ -1,11 +1,13 @@
 C_SRC := $(shell find src/ -type f -name "*.c") # Change to find later
 ASM_SRC := $(shell find src/ -type f -name "*.asm")
+S_SRC := $(shell find src/ -type f -name "*.S")
 C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
 ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
+S_OBJ := $(patsubst src/%.S, build/%.o, $(S_SRC))
 FONT_OBJ := build/fonts/default.o
 CFLAGS := -ffreestanding \
 		-I src/include \
-        -O3 \
+        -O2 \
         -Wall \
         -Wextra \
         -mno-red-zone \
@@ -24,12 +26,16 @@ build/os.iso: build/kernel.bin grub.cfg
 	cp build/kernel.bin build/isofiles/boot
 	grub-mkrescue -o build/os.iso build/isofiles
 
-build/kernel.bin: $(ASM_OBJ) $(C_OBJ) $(FONT_OBJ)
+build/kernel.bin: $(ASM_OBJ) $(C_OBJ) $(S_OBJ) $(FONT_OBJ)
 	ld -n -o $@ -T linker.ld $^
 
 build/%.o: src/%.asm
 	mkdir -p $(@D)
 	nasm -f elf64 $< -o $@
+
+build/%.o: src/%.S
+	mkdir -p $(@D)
+	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
 
 build/%.o: src/%.c
 	mkdir -p $(@D)

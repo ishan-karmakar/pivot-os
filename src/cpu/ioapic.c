@@ -3,6 +3,7 @@
 #include <kernel/logging.h>
 #include <mem/mem.h>
 #include <libc/string.h>
+#include <sys.h>
 
 static uint32_t read_register(uint8_t);
 static int read_redirect(uint8_t, ioapic_redtbl_entry_t*);
@@ -17,9 +18,9 @@ void init_ioapic(madt_t* table) {
     if (item == NULL)
         return log(Error, "IOAPIC", "Couldn't find IOAPIC in MADT table");
     ioapic_t *ioapic = (ioapic_t*) (item + 1);
-    map_addr(ALIGN_ADDR(MAKE_PHYS_ADDR((uint64_t) ioapic)), (uint64_t) ioapic, WRITE_BIT | PRESENT_BIT);
+    map_addr(ALIGN_ADDR(PADDR((uint64_t) ioapic)), (uint64_t) ioapic, WRITE_BIT | PRESENT_BIT);
     log(Verbose, "IOAPIC", "I/O APIC ID: %u, Address: %x, GSI Base: %u", ioapic->id, ioapic->addr, ioapic->gsi_base);
-    ioapic_base_address = MAKE_HIGHER_HALF(ioapic->addr);
+    ioapic_base_address = VADDR(ioapic->addr);
     map_addr(ioapic->addr, ioapic_base_address, PRESENT_BIT | WRITE_BIT);
     uint32_t ioapic_version = read_register(IOAPIC_VER_OFFSET);
     log(Info, "IOAPIC", "IOAPIC Version: %x", ioapic_version);
