@@ -46,7 +46,6 @@ void handle_multiboot(uintptr_t addr) {
 }
 
 void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
-    while (1);
     log(Info, "KERNEL", "Loaded into kernel");
     init_idt();
     log(Info, "KERNEL", "Initialized IDT");
@@ -58,6 +57,7 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
         log(Error, "KERNEL", "Failed to verify magic number");
         hcf();
     }
+    while (1);
     init_apic(mem_size);
     pmm_map_physical_memory();
     init_kheap();

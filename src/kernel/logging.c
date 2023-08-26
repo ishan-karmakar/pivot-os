@@ -14,14 +14,12 @@ char *log_levels[] = {
 };
 
 void log(log_level_t log_level, const char *target, const char *format, ...) {
-    if (log_level > min_log_level)
+    if (log_level > min_log_level || !FRAMEBUFFER_INITIALIZED)
         return;
     va_list args;
-    if (FRAMEBUFFER_INITIALIZED) {
-        va_start(args, format);
-        printf("[%s] %s: ", log_levels[log_level], target);
-        vprintf(format, args);
-        printf("\n");
-        va_end(args);
-    }
+    va_start(args, format);
+    printf("[%s] %s: ", log_levels[log_level], target);
+    vprintf(format, args);
+    printf("\n");
+    va_end(args);
 }
