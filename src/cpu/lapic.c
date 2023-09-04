@@ -117,17 +117,17 @@ void calibrate_apic_timer(uint8_t divider) {
 }
 
 void mdelay(size_t ms) {
-    size_t current_apic_ticks = apic_ticks;
-    while ((apic_ticks - current_apic_ticks) < ms);
+    apic_ticks = 0;
+    printf(""); // For some reason while(apic_ticks < ms) only works if a printf comes before it
+    while (apic_ticks < ms) asm ("pause");
 }
 
 void udelay(size_t us) {
     size_t total_ticks = (apic_ticks_interval * us) / 1000;
     apic_ticks = 0;
     size_t initial_ticks = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
-    while (total_ticks > ((apic_ticks * apic_ticks_interval) + initial_ticks - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)));
-    size_t t = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
-    log(Verbose, "TIMER", "%u, %u, %u", initial_ticks, t, initial_ticks - t);
+    while (total_ticks > ((apic_ticks * apic_ticks_interval) + initial_ticks - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)))
+        asm ("pause");
 }
 // 156
 // 6372 6027

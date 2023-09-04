@@ -2,8 +2,8 @@ C_SRC := $(shell find src/ -type f -name "*.c") # Change to find later
 ASM_SRC := $(shell find src/ -type f -name "*.asm")
 S_SRC := $(shell find src/ -type f -name "*.S")
 C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
-ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
 S_OBJ := $(patsubst src/%.S, build/%.o, $(S_SRC))
+ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
 FONT_OBJ := build/fonts/default.o
 CFLAGS := -ffreestanding \
 		-I src/include \
@@ -14,11 +14,20 @@ CFLAGS := -ffreestanding \
         -mno-sse \
         -mcmodel=large
 
+ASMFLAGS := -felf64
+LDFLAGS := -n
+
 all: build/os.iso
 .PHONY = run clean
 
+run: LDFLAGS += -s
 run: build/os.iso
-	qemu-system-x86_64 -smp 2 -cdrom $^ -serial stdio
+	qemu-system-x86_64 -smp 2 -cdrom $^
+
+debug: CFLAGS += -g
+debug: ASMFLAGS += -gdwarf
+debug: build/os.iso
+	qemu-system-x86_64 -smp 2 -cdrom $^ -s -S
 
 build/os.iso: build/kernel.bin grub.cfg
 	mkdir -p build/isofiles/boot/grub
@@ -27,15 +36,11 @@ build/os.iso: build/kernel.bin grub.cfg
 	grub-mkrescue -o build/os.iso build/isofiles
 
 build/kernel.bin: $(ASM_OBJ) $(C_OBJ) $(S_OBJ) $(FONT_OBJ)
-	ld -n -o $@ -T linker.ld $^
+	ld $(LDFLAGS) -o $@ -T linker.ld $^
 
 build/%.o: src/%.asm
 	mkdir -p $(@D)
-	nasm -f elf64 $< -o $@
-
-build/%.o: src/%.S
-	mkdir -p $(@D)
-	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
+	nasm $(ASMFLAGS) $< -o $@
 
 build/%.o: src/%.c
 	mkdir -p $(@D)

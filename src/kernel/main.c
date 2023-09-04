@@ -17,6 +17,7 @@ extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
 extern uintptr_t multiboot_acpi_info;
+// extern uint64_t p4_table[512];
 size_t mem_size;
 
 log_level_t min_log_level = Verbose;
@@ -57,34 +58,22 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
         log(Error, "KERNEL", "Failed to verify magic number");
         hcf();
     }
-    while (1);
     init_apic(mem_size);
     pmm_map_physical_memory();
+    bitmap_set_bit_addr(CPU_ADDRESSES_ADDR);
+    // uint32_t *cpu_addresses = (uint32_t*) CPU_ADDRESSES_ADDR;
+    // *cpu_addresses = (uintptr_t) p4_table - KERNEL_VIRTUAL_ADDR;
     init_kheap();
     madt_t *madt = (madt_t*) get_table("APIC");
     print_madt(madt);
     init_ioapic(madt);
     init_keyboard();
     set_irq(1, 0x12, 0x21, 0, 0, 0); // Keyboard
-    set_irq(2, 0x14, 0x22, 0, 0, 1);
+    set_irq(2, 0x14, 0x22, 0, 0, 1); // PIT timer - initially masked
     asm ("sti");
     start_apic_timer(0b1010);
     log(Verbose, "APIC", "Started APIC timer");
-    while (1);
-    uint32_t current_apic_id = bsp_id();
-    log(Verbose, "LAPIC", "This processor's APIC ID is %u", current_apic_id);
-    
-    // madt_item_t *lapic = get_madt_item(madt, MADT_LAPIC, 0);
-    // uint8_t count = 0;
-    // memcpy((void*) 0x8000, &ap_trampoline, PAGE_SIZE); //PROBLEM
-    // while (lapic != NULL) {
-    //     uint8_t apic_id = *((uint8_t*)(lapic + 1) + 1);
-    //     if (apic_id != current_apic_id) {
-    //         log(Info, "LAPIC", "Starting up APIC");
-    //         start_ap(apic_id, 0x8);
-    //     }
 
-    //     lapic = get_madt_item(madt, MADT_LAPIC, ++count);
-    // }
+    start_aps(madt);
     while (1);
 }

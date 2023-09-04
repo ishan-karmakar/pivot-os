@@ -1,5 +1,5 @@
 #pragma once
+#include <kernel/acpi.h>
 #include <stdint.h>
-#define CPU0
 
-void start_ap(uint8_t, uint8_t);
+void start_aps(madt_t *madt);

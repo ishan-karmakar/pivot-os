@@ -11,6 +11,7 @@ framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
 screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
 static char buf[33];
+static char cbuf[256];
 int FRAMEBUFFER_INITIALIZED = 0;
 
 inline static uint8_t *get_glyph(uint8_t sym_num) {
@@ -132,21 +133,21 @@ void vprintf(const char *c, va_list args) {
             print_char(*c);
         else
             switch (*++c) {
-                case 's':
-                    print_string(va_arg(args, char*), print_char);
-                    break;
-                case 'c':
-                    print_char(va_arg(args, int));
-                    break;
-                case 'd':
-                    print_num(va_arg(args, int64_t), print_char);
-                    break;
-                case 'u':
-                    print_unum(va_arg(args, uint64_t), print_char);
-                    break;
-                case 'x':
-                    print_hex(va_arg(args, uint64_t), print_char);
-                    break;
+                // case 's':
+                //     print_string(va_arg(args, char*), print_char);
+                //     break;
+                // case 'c':
+                //     print_char(va_arg(args, int));
+                //     break;
+                // case 'd':
+                //     print_num(va_arg(args, int64_t), print_char);
+                //     break;
+                // case 'u':
+                //     print_unum(va_arg(args, uint64_t), print_char);
+                //     break;
+                // case 'x':
+                //     print_hex(va_arg(args, uint64_t), print_char);
+                //     break;
             }
 }
 

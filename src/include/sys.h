@@ -12,9 +12,7 @@
 #define PML4_ENTRY(address)(((address)>>39) & 0x1ff)
 #define PDPR_ENTRY(address)(((address)>>30) & 0x1ff)
 #define PD_ENTRY(address)(((address)>>21) & 0x1ff)
-#define CPU_PML4 (HIGHER_HALF_OFFSET + PAGE_SIZE)
-#define CPU_PDPT (HIGHER_HALF_OFFSET + (PAGE_SIZE * 2))
-#define CPU_PDE (HIGHER_HALF_OFFSET + (PAGE_SIZE * 3))
+#define CPU_ADDRESSES_ADDR (HIGHER_HALF_OFFSET + PAGE_SIZE)
 #define PRESENT_BIT 1
 #define WRITE_BIT 0b10
 #define HUGEPAGE_BIT 0b10000000

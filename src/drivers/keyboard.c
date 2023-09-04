@@ -2,9 +2,12 @@
 #include <io/ports.h>
 #include <kernel/logging.h>
 #include <drivers/framebuffer.h>
+#include <stddef.h>
+#include <sys.h>
 
 uint8_t translation_enabled, current_modifiers, is_pressed, extended_read, buf_pos;
 key_status_t keyboard_buffer[128];
+extern size_t apic_ticks;
 
 char keymap[] = {
     0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
@@ -105,6 +108,8 @@ char get_char(key_status_t key_status) {
 
 void handle_keyboard(void) {
     uint8_t scancode = inportb(KEYBOARD_PORT);
+    // log(Verbose, "LAPIC", "%u", (uint8_t)(*(uint8_t*) VADDR(16 * PAGE_SIZE)));
+    // return;
     key_code_t translated_scancode = translate(scancode);
     if (scancode == EXTENDED_PREFIX)
         return;

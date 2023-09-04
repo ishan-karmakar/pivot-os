@@ -1,6 +1,5 @@
 %include "src/asm/multiboot_struc.inc"
 %define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
-%define PAGE_DIR_ENTRY_FLAGS 0b11
 %define PRESENT_BIT 1
 %define WRITE_BIT 0b10
 %define HUGEPAGE_BIT 0b10000000
@@ -164,9 +163,6 @@ p3_table: ;PDPR
     resb 4096
 p2_table: ;PDP
     resb 4096
-stack:
-    resb 16384
-    .top:
 multiboot_framebuffer_data:
     resb 8
 multiboot_mmap_data:
@@ -175,6 +171,9 @@ multiboot_basic_meminfo:
     resb 8
 multiboot_acpi_info:
     resb 8
+stack:
+    resb 32768
+    .top:
 
 section .rodata
 
