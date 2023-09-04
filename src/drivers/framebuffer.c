@@ -10,8 +10,8 @@
 framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
 screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
-static char buf[33];
-static char cbuf[256];
+static char buf[256];
+static uint16_t buf_pos = 0;
 int FRAMEBUFFER_INITIALIZED = 0;
 
 inline static uint8_t *get_glyph(uint8_t sym_num) {
@@ -95,8 +95,6 @@ void print_char(char c) {
             screen_info.y++;
         }
     }
-    // Check if y is past bounds
-    // If it is, then scroll
     if (screen_info.y >= screen_info.num_rows) {
         // TODO: Get scrolling working reliably, for now just clearing screen
         // uint32_t row_size = loaded_font->height * fbinfo.width * sizeof(uint32_t);
@@ -108,47 +106,49 @@ void print_char(char c) {
     }
 }
 
-inline static void print_string(char *str, char_printer_t char_printer) {
-    for (; *str != '\0'; str++)
-        char_printer(*str);
+void flush_screen(void) {
+    for (uint16_t i = 0; i < buf_pos; i++)
+        print_char(buf[i]);
+    buf_pos = 0;
 }
 
-static void print_num(int64_t num, char_printer_t char_printer) {
-    itoa(num, buf, 21, 10);
-    print_string(buf, char_printer);
-}
-
-inline static void print_unum(uint64_t num, char_printer_t char_printer) {
-    print_string(ultoa(num, buf, 10), char_printer);
-}
-
-static void print_hex(uint64_t num, char_printer_t char_printer) {
-    print_string("0x", char_printer);
-    print_string(ultoa(num, buf, 16), char_printer);
+static inline void add_string(char* str) {
+    for (; *str != '\0'; str++) {
+        buf[buf_pos++] = *str;
+        if (*str == '\n')
+            flush_screen(); // MAKE SURE TO TEST
+    }
 }
 
 void vprintf(const char *c, va_list args) {
-    for (; *c != '\0'; c++)
+    for (; *c != '\0'; c++) {
         if (*c != '%')
-            print_char(*c);
+            buf[buf_pos++] = *c;
         else
             switch (*++c) {
-                // case 's':
-                //     print_string(va_arg(args, char*), print_char);
-                //     break;
-                // case 'c':
-                //     print_char(va_arg(args, int));
-                //     break;
-                // case 'd':
-                //     print_num(va_arg(args, int64_t), print_char);
-                //     break;
-                // case 'u':
-                //     print_unum(va_arg(args, uint64_t), print_char);
-                //     break;
-                // case 'x':
-                //     print_hex(va_arg(args, uint64_t), print_char);
-                //     break;
+                case 's':
+                    add_string(va_arg(args, char*));
+                    break;
+                case 'c':
+                    char ch = (char) va_arg(args, int);
+                    buf[buf_pos++] = ch;
+                    if (ch == '\n')
+                        flush_screen();
+                    break;
+                case 'd':
+                    buf_pos += itoa(va_arg(args, int64_t), buf + buf_pos, 21, 10);
+                    break;
+                case 'u':
+                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 10);
+                    break;
+                case 'x':
+                    add_string("0x");
+                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 16);
+                    break;
             }
+        if (*c == '\n')
+            flush_screen();
+    }
 }
 
 void printf(const char *format, ...) {

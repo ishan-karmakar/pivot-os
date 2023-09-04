@@ -47,11 +47,13 @@ void handle_multiboot(uintptr_t addr) {
 }
 
 void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
+    // TODO: These log lines should still be put into the buffer even if the framebuffer
+    // is not initialized. They will all be flushed when flush_screen() is called
     log(Info, "KERNEL", "Loaded into kernel");
     init_idt();
     log(Info, "KERNEL", "Initialized IDT");
     handle_multiboot(addr);
-
+    while (1);
     if (magic == 0x36d76289)
         log(Info, "KERNEL", "Multiboot magic number verified");
     else {

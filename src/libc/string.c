@@ -10,12 +10,11 @@ size_t strlen(const char *str) {
 }
 
 void
-strrev(char *str)
+strrev(char *str, size_t len)
 {
         int i;
         int j;
         char a;
-        unsigned len = strlen(str);
         for (i = 0, j = len - 1; i < j; i++, j--)
         {
                 a = str[i];
@@ -41,7 +40,7 @@ strcmp (const char *p1, const char *p2)
   return c1 - c2;
 }
 
-void
+int
 itoa(int64_t num, char* str, int len, int base)
 {
         int64_t sum = num;
@@ -50,7 +49,7 @@ itoa(int64_t num, char* str, int len, int base)
             sum = -sum;
         int digit;
         if (len == 0)
-                return;
+                return 0;
         do
         {
                 digit = sum % base;
@@ -61,14 +60,14 @@ itoa(int64_t num, char* str, int len, int base)
                 sum /= base;
         }while (sum && (i < (len - 1)));
         if (i == (len - 1) && sum)
-                return;
+                return i;
         if (num < 0)
             str[i++] = '-';
-        str[i] = '\0';
-        strrev(str);
+        strrev(str, i);
+        return i;
 }
 
-char *ultoa(unsigned long num, char *str, int radix) {
+int ultoa(unsigned long num, char *str, int radix) {
     char temp[33];  //an int can only be 16 bits long
                     //at radix 2 (binary) the string
                     //is at most 16 + 1 null long.
@@ -93,9 +92,8 @@ char *ultoa(unsigned long num, char *str, int radix) {
     while ( temp_loc >=0 ) {// while there are still chars
         str[str_loc++] = temp[temp_loc--];    
     }
-    str[str_loc] = 0; // add null termination.
 
-    return str;
+    return str_loc;
 }
 
 void *
