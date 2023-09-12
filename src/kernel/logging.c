@@ -14,7 +14,7 @@ char *log_levels[] = {
 };
 
 void log(log_level_t log_level, const char *target, const char *format, ...) {
-    if (log_level > min_log_level || !FRAMEBUFFER_INITIALIZED)
+    if (log_level > min_log_level)
         return;
     va_list args;
     va_start(args, format);

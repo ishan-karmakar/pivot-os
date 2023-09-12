@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <kernel/multiboot.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #define TAB_SIZE 4
 
@@ -37,7 +38,7 @@ typedef struct {
 extern psf_font_t _binary_fonts_default_psf_start;
 extern char _binary_fonts_default_psf_size;
 extern char _binary_fonts_default_psf_end;
-extern int FRAMEBUFFER_INITIALIZED;
+extern bool FRAMEBUFFER_INITIALIZED;
 
 typedef void (*char_printer_t)(char);
 

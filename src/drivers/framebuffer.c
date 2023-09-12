@@ -10,16 +10,16 @@
 framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
 screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
-static char buf[256];
-static uint16_t buf_pos = 0;
-int FRAMEBUFFER_INITIALIZED = 0;
+static char buf[1024];
+size_t buf_pos = 0;
+bool FRAMEBUFFER_INITIALIZED = false;
 
 inline static uint8_t *get_glyph(uint8_t sym_num) {
     return (uint8_t*) loaded_font + loaded_font->headersize + sym_num * loaded_font->bytesperglyph;
 }
 
 static void map_framebuffer(void) {
-    log(Verbose, "FB", "Framebuffer memory size: %x", fbinfo.memory_size);
+    log(Verbose, "FRAMEBUFFER", "Framebuffer memory size: %x", fbinfo.memory_size);
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
@@ -107,6 +107,8 @@ void print_char(char c) {
 }
 
 void flush_screen(void) {
+    if (!FRAMEBUFFER_INITIALIZED)
+        return;
     for (uint16_t i = 0; i < buf_pos; i++)
         print_char(buf[i]);
     buf_pos = 0;
@@ -116,7 +118,7 @@ static inline void add_string(char* str) {
     for (; *str != '\0'; str++) {
         buf[buf_pos++] = *str;
         if (*str == '\n')
-            flush_screen(); // MAKE SURE TO TEST
+            flush_screen();
     }
 }
 
@@ -170,6 +172,6 @@ void init_framebuffer(mb_framebuffer_data_t *fbdata) {
     screen_info.num_cols = fbinfo.width / loaded_font->width;
     screen_info.num_rows = fbinfo.height / loaded_font->height;
     map_framebuffer();
-    FRAMEBUFFER_INITIALIZED = 1;
-    log(Info, "FB", "Initialized framebuffer");
+    FRAMEBUFFER_INITIALIZED = true;
+    log(Info, "FRAMEBUFFER", "Initialized framebuffer");
 }

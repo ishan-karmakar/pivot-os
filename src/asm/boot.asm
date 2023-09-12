@@ -9,7 +9,8 @@
 [section .multiboot.text]
 [bits 32]
 
-global start
+global _start
+global gdt64
 global p4_table
 global p3_table
 global p2_table
@@ -19,7 +20,7 @@ global multiboot_basic_meminfo
 global multiboot_mmap_data
 extern kernel_start
 
-start:
+_start:
     mov edi, ebx
     mov esi, eax
     mov esp, stack.top - KERNEL_VIRTUAL_ADDR

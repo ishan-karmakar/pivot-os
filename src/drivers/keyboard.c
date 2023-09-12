@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <sys.h>
 
-uint8_t translation_enabled, current_modifiers, is_pressed, extended_read, buf_pos;
+static uint8_t current_modifiers, is_pressed, extended_read, buf_pos;
 key_status_t keyboard_buffer[128];
 extern size_t apic_ticks;
 
@@ -108,8 +108,8 @@ char get_char(key_status_t key_status) {
 
 void handle_keyboard(void) {
     uint8_t scancode = inportb(KEYBOARD_PORT);
-    // log(Verbose, "LAPIC", "%u", (uint8_t)(*(uint8_t*) VADDR(16 * PAGE_SIZE)));
-    // return;
+    log(Verbose, "LAPIC", "%u", (uint8_t)(*(uint8_t*) VADDR(16 * PAGE_SIZE)));
+    return;
     key_code_t translated_scancode = translate(scancode);
     if (scancode == EXTENDED_PREFIX)
         return;
@@ -118,6 +118,8 @@ void handle_keyboard(void) {
     keyboard_buffer[buf_pos].code = translated_scancode;
     keyboard_buffer[buf_pos].modifiers = current_modifiers;
     char key = get_char(keyboard_buffer[buf_pos]);
-    if (key != 0)
+    if (key != 0) {
         printf("%c", key);
+        flush_screen();
+    }
 }

@@ -1,12 +1,14 @@
 %define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
 %define PAGE_SIZE 0x200000
+%define HIGHER_HALF_OFFSET 0xFFFF800000000000
+%define CPU_ADDRESSES_ADDR (HIGHER_HALF_OFFSET + PAGE_SIZE)
 
 [global ap_trampoline]
 [bits 16]
 ap_trampoline:
     cli
     cld
-    jmp 0:0x8030
+    jmp 0:0x8040
 
 align 16
 gdt32: ; 0x8010
@@ -30,18 +32,23 @@ gdt32: ; 0x8010
         dd 0x8010
 
 align 16
-load_gdt: ; 0x8030
+gdt64: ; 0x8030
+    dw 0
+    dq 0
+
+align 16
+load_gdt: ; 0x8040
     xor ax, ax
     mov ds, ax
     lgdt [0x8028]
     mov eax, cr0
     or eax, 1
     mov cr0, eax
-    jmp 0x8:0x8050
+    jmp 0x8:0x8060
 
 align 32
 [bits 32]
-kernel32: ; 0x8050
+kernel32: ; 0x8060
     mov ax, 0x10
     mov ds, ax
     mov ss, ax
@@ -49,5 +56,5 @@ kernel32: ; 0x8050
     mov fs, ax
     mov gs, ax
 
-    mov byte [16 * PAGE_SIZE], 1
+    mov byte [16 * PAGE_SIZE], 2
     jmp $

@@ -26,8 +26,8 @@ typedef struct {
     
     uint64_t interrupt_number;
     uint64_t error_code;
-    
     uint64_t rip;
+
     uint64_t cs;
     uint64_t rflags;
     uint64_t rsp;
@@ -69,8 +69,22 @@ static const char *exception_names[] = {
     "Reserved"
 };
 
+inline void log_registers(cpu_status_t *status) {
+    log(Verbose, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
+        status->ss, status->rsp, status->rflags, status->cs);
+    log(Verbose, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
+        status->rip, status->rax, status->rbx, status->rcx);
+    log(Verbose, "ISR", "rdx: %x, rbp: %x, rsi: %x, rdi: %x",
+        status->rdx, status->rbp, status->rsi, status->rdi);
+    log(Verbose, "ISR", "r8: %x, r9: %x, r10: %x, r11: %x",
+        status->r8, status->r9, status->r10, status->r11);
+    log(Verbose, "ISR", "r12: %x, r13: %x, r14: %x, r15: %x",
+        status->r12, status->r13, status->r14, status->r15);
+}
+
 void exception_handler(cpu_status_t *status) {
     log(Error, "ISR", "Got exception %s, %x\n", exception_names[status->interrupt_number], status->error_code);
+    log_registers(status);
     if (status->interrupt_number == 8 || status->interrupt_number == 0x12 || status->interrupt_number == 0xE)
         hcf();
 }

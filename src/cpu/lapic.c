@@ -74,14 +74,14 @@ void disable_pic(void) {
     outportb(PIC_DATA_SLAVE, 0xFF);
 }
 
-inline uint32_t read_apic_register(uint32_t reg_off) {
+uint32_t read_apic_register(uint32_t reg_off) {
     if (x2mode)
         return (uint32_t) rdmsr((reg_off >> 4) + 0x800);
     else
         return *(volatile uint32_t*)(apic_hh_address + reg_off);
 }
 
-inline void write_apic_register(uint32_t reg_off, uint32_t val) {
+void write_apic_register(uint32_t reg_off, uint32_t val) {
     if (x2mode)
         wrmsr((reg_off >> 4) + 0x800, val);
     else
@@ -91,7 +91,7 @@ inline void write_apic_register(uint32_t reg_off, uint32_t val) {
 uint32_t bsp_id(void) {
     if (x2mode)
         return read_apic_register(APIC_ID_REG_OFF);
-    return read_apic_register(APIC_ID_REG_OFF) >> 24;
+    return read_apic_register(APIC_ID_REG_OFF) >> 23;
 }
 
 // Timer will trigger interrupt every tenth of millisecond

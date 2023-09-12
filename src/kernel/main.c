@@ -17,6 +17,7 @@ extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
 extern uintptr_t multiboot_acpi_info;
+extern void *gdt64;
 // extern uint64_t p4_table[512];
 size_t mem_size;
 
@@ -53,7 +54,6 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     init_idt();
     log(Info, "KERNEL", "Initialized IDT");
     handle_multiboot(addr);
-    while (1);
     if (magic == 0x36d76289)
         log(Info, "KERNEL", "Multiboot magic number verified");
     else {
@@ -63,8 +63,8 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     init_apic(mem_size);
     pmm_map_physical_memory();
     bitmap_set_bit_addr(CPU_ADDRESSES_ADDR);
-    // uint32_t *cpu_addresses = (uint32_t*) CPU_ADDRESSES_ADDR;
-    // *cpu_addresses = (uintptr_t) p4_table - KERNEL_VIRTUAL_ADDR;
+    uint32_t *cpu_addresses = (uint32_t*) CPU_ADDRESSES_ADDR;
+    *cpu_addresses = (uintptr_t) gdt64 - KERNEL_VIRTUAL_ADDR;
     init_kheap();
     madt_t *madt = (madt_t*) get_table("APIC");
     print_madt(madt);
@@ -77,5 +77,5 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     log(Verbose, "APIC", "Started APIC timer");
 
     start_aps(madt);
-    while (1);
+    while (1) asm ("pause");
 }
