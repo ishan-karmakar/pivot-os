@@ -30,12 +30,11 @@ void hcf(void) {
         asm volatile ("hlt");
 }
 
-void handle_multiboot(uintptr_t addr) {
+void init_system(uintptr_t addr) {
     uint32_t mbi_size = *(uint32_t*) (addr + KERNEL_VIRTUAL_ADDR);
     mb_basic_meminfo_t *basic_meminfo = (mb_basic_meminfo_t*)(multiboot_basic_meminfo + KERNEL_VIRTUAL_ADDR);
     mb_mmap_t *mmap = (mb_mmap_t*)(multiboot_mmap_data + KERNEL_VIRTUAL_ADDR);
 
-    log(Verbose, "KERNEL", "Memory lower: %x, Upper: %x", basic_meminfo->mem_lower, basic_meminfo->mem_upper);
     mem_size = (basic_meminfo->mem_upper + 1024) * 1024;
     mmap_parse(mmap);
     init_pmm(addr, mbi_size, mem_size);
@@ -50,10 +49,8 @@ void handle_multiboot(uintptr_t addr) {
 void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     // TODO: These log lines should still be put into the buffer even if the framebuffer
     // is not initialized. They will all be flushed when flush_screen() is called
-    log(Info, "KERNEL", "Loaded into kernel");
     init_idt();
-    log(Info, "KERNEL", "Initialized IDT");
-    handle_multiboot(addr);
+    init_system(addr);
     if (magic == 0x36d76289)
         log(Info, "KERNEL", "Multiboot magic number verified");
     else {

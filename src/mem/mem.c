@@ -105,10 +105,6 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
 void mmap_parse(mb_mmap_t *root) {
     mmap_num_entries = (root->size - sizeof(mb_mmap_t)) / root->entry_size;
     mmap_entries = (mb_mmap_entry_t*)(root + 1);
-    for (uint32_t i = 0; i < mmap_num_entries; i++) {
-        mb_mmap_entry_t *entry = &mmap_entries[i];
-        log(Verbose, "MMAP", "[%d] Address: %x, Len: %x, Type: %s", i, entry->addr, entry->len, mmap_types[entry->type]);
-    }
 }
 
 uint32_t get_kernel_entries(uint64_t kernel_end) {
@@ -127,12 +123,9 @@ uint64_t get_bitmap_region(uint64_t lower_limit, size_t bytes_needed) {
             continue;
         size_t entry_offset = lower_limit > entry->addr ? lower_limit - entry->addr : 0;
         size_t available_space = entry->len - entry_offset;
-        if (available_space >= bytes_needed) {
-            log(Verbose, "BITMAP", "Found space for bitmap at address: %x, size: %x", entry->addr + entry_offset, bytes_needed);
+        if (available_space >= bytes_needed)
             return entry->addr + entry_offset;
-        }
     }
-    log(Error, "BITMAP", "Couldn't find space to fit bitmap");
     return 0;
 }
 
@@ -155,16 +148,12 @@ void initialize_bitmap(uint64_t rsv_end, uint64_t mem_size) {
     mmap_phys_addr = get_bitmap_region(rsv_end, bitmap_size / 8 + 1);
     uint64_t end_physical_memory = END_MAPPED_MEMORY - KERNEL_VIRTUAL_ADDR;
     if (mmap_phys_addr > end_physical_memory) {
-        log(Verbose, "BITMAP", "The address %x is above the initially mapped memory: %x", mmap_phys_addr, end_physical_memory);
         // map_addr(ALIGN_ADDR(mmap_phys_addr), mmap_phys_addr + KERNEL_VIRTUAL_ADDR, PRESENT_BIT | WRITE_BIT);
-    } else {
-        log(Verbose, "BITMAP", "The address %x is not above the initially mapped memory: %x", mmap_phys_addr, end_physical_memory);
     }
     memory_map = (uint64_t*) (mmap_phys_addr + KERNEL_VIRTUAL_ADDR);
     for (uint32_t i = 0; i < num_entries; i++)
         memory_map[i] = 0;
     uint32_t kernel_entries = get_kernel_entries(rsv_end);
-    log(Verbose, "PMM", "Kernel takes up %u pages", kernel_entries);
     uint32_t num_bitmap_rows = kernel_entries / 64;
     uint32_t i = 0;
     for (i = 0; i < num_bitmap_rows; i++)
@@ -177,10 +166,8 @@ void init_pmm(uintptr_t addr, uint32_t size, uint64_t mem_size) {
     initialize_bitmap(addr + size, mem_size);
     reserve_area(mmap_phys_addr, bitmap_size / 8 + 1);
     for (uint32_t i = 0; i < mmap_num_entries; i++) {
-        if (mmap_entries[i].addr < mem_size && mmap_entries[i].type != 1) {
-            log(Verbose, "PMM", "Reserving area starting at %x, %x bytes", mmap_entries[i].addr, mmap_entries[i].len);
+        if (mmap_entries[i].addr < mem_size && mmap_entries[i].type != 1)
             reserve_area(mmap_entries[i].addr, mmap_entries[i].len);
-        }
     }
     next_available_addr = HIGHER_HALF_OFFSET + mem_size + PAGE_SIZE; // Add one page for padding
 }

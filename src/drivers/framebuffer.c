@@ -6,11 +6,12 @@
 #include <mem/mem.h>
 #include <stdarg.h>
 #include <sys.h>
+#define BUF_SIZE 1024
 
 framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
 screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
-static char buf[1024];
+static char buf[BUF_SIZE];
 size_t buf_pos = 0;
 bool FRAMEBUFFER_INITIALIZED = false;
 
@@ -19,7 +20,6 @@ inline static uint8_t *get_glyph(uint8_t sym_num) {
 }
 
 static void map_framebuffer(void) {
-    log(Verbose, "FRAMEBUFFER", "Framebuffer memory size: %x", fbinfo.memory_size);
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
@@ -151,6 +151,10 @@ void vprintf(const char *c, va_list args) {
                     add_string("0b");
                     buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 2);
             }
+        if (buf_pos > (BUF_SIZE - 1)) {
+            buf_pos = 0;
+            log(Error, "FB", "Buffer overflow");
+        }
         if (*c == '\n')
             flush_screen();
     }

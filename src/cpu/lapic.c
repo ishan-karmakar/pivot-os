@@ -129,14 +129,17 @@ void udelay(size_t us) {
     size_t initial_ticks = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
     register size_t t;
     log(Verbose, "TIMER", "Total ticks: %u, Initial ticks: %u", total_ticks, initial_ticks);
+    // TODO: Implement from https://github.com/tianocore/edk2/blob/master/MdePkg/Library/SecPeiDxeTimerLibCpu/X86TimerLib.c
     while (1) {
         t = (initial_ticks +
             (apic_ms_interval * (apic_ticks - 1)) +
             (apic_ms_interval - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)));
-        log(Verbose, "", "", apic_ticks); // Why does need to happen for it to run
-                                          // Maybe because it goes too fast without loop, maybe memory access
+        // Maybe because it goes too fast without loop, maybe memory access
+        // Why does need to happen for it to run
         if (t > total_ticks)
             break;
+        for (int i = 0; i < 100000; i++)
+            asm ("");
     };
 }
 
