@@ -12,9 +12,9 @@ extern void hcf(void);
 
 uint64_t apic_hh_address;
 bool x2mode;
-volatile uint64_t pit_ticks = 0;
-volatile uint64_t apic_ticks = 0;
-uint32_t apic_ticks_interval;
+volatile size_t pit_ticks = 0;
+volatile size_t apic_ticks = 0;
+uint32_t apic_ms_interval, apic_us_interval;
 
 uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
@@ -112,30 +112,38 @@ void calibrate_apic_timer(uint8_t divider) {
     set_irq_mask(0x14, 1);
     
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
-    apic_ticks_interval = time_elapsed / 500;
-    log(Verbose, "APIC", "Measured %u ticks per ms", apic_ticks_interval);
+    apic_ms_interval = time_elapsed / 500;
+    apic_us_interval = (apic_ms_interval + 500) / 1000;
+    log(Verbose, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, apic_us_interval);
 }
 
 void mdelay(size_t ms) {
     apic_ticks = 0;
-    printf(""); // For some reason while(apic_ticks < ms) only works if a printf comes before it
     while (apic_ticks < ms) asm ("pause");
 }
 
 void udelay(size_t us) {
-    size_t total_ticks = (apic_ticks_interval * us) / 1000;
+    clear_screen();
+    size_t total_ticks = (apic_ms_interval * us + 500) / 1000;
     apic_ticks = 0;
     size_t initial_ticks = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
-    while (total_ticks > ((apic_ticks * apic_ticks_interval) + initial_ticks - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)))
-        asm ("pause");
+    register size_t t;
+    log(Verbose, "TIMER", "Total ticks: %u, Initial ticks: %u", total_ticks, initial_ticks);
+    while (1) {
+        t = (initial_ticks +
+            (apic_ms_interval * (apic_ticks - 1)) +
+            (apic_ms_interval - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)));
+        log(Verbose, "", "", apic_ticks); // Why does need to happen for it to run
+                                          // Maybe because it goes too fast without loop, maybe memory access
+        if (t > total_ticks)
+            break;
+    };
 }
-// 156
-// 6372 6027
 
 void start_apic_timer(uint8_t divider) {
     calibrate_apic_timer(divider);
     write_apic_register(APIC_TIMER_LVT_OFFSET, 0x20000 | APIC_TIMER_IDT_ENTRY);
-    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, apic_ticks_interval);
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, apic_ms_interval);
     write_apic_register(APIC_TIMER_CONFIG_OFF, divider);
 
     asm ("sti");

@@ -29,45 +29,45 @@ static void map_framebuffer(void) {
     }
 }
 
-extern void putchar(char sym, screen_info_t *si) {
+extern void putchar(char sym) {
     uint8_t *glyph = get_glyph(sym);
     size_t bytes_per_line = (loaded_font->width + 7) / 8;
-    size_t offset = (si->y * loaded_font->height * fbinfo.pitch) +
-                    (si->x * loaded_font->width * sizeof(uint32_t));
+    size_t offset = (screen_info.y * loaded_font->height * fbinfo.pitch) +
+                    (screen_info.x * loaded_font->width * sizeof(uint32_t));
     for (uint32_t cy = 0, line = offset; cy < loaded_font->height;
         cy++, glyph += bytes_per_line, offset += fbinfo.pitch, line = offset)
         for (uint32_t cx = 0; cx < loaded_font->width; cx++, line += sizeof(fbinfo.bpp / 8))
-            *((uint32_t*) (fbinfo.address + line)) = glyph[cx / 8] & (0x80 >> (cx & 7)) ? si->fg : si->bg;
+            *((uint32_t*) (fbinfo.address + line)) = glyph[cx / 8] & (0x80 >> (cx & 7)) ? screen_info.fg : screen_info.bg;
 }
 
-static void find_last_char(screen_info_t *si) {
-    if (si->x == 0) {
-        if (si->y == 0)
+static void find_last_char(void) {
+    if (screen_info.x == 0) {
+        if (screen_info.y == 0)
             return;
-        si->x = si->num_cols - 1;
-        si->y--;
+        screen_info.x = screen_info.num_cols - 1;
+        screen_info.y--;
     } else
-        si->x--;
+        screen_info.x--;
     while (1) {
-        size_t offset = (si->y * loaded_font->height * fbinfo.pitch) +
-                        (si->x * loaded_font->width * sizeof(uint32_t));
+        size_t offset = (screen_info.y * loaded_font->height * fbinfo.pitch) +
+                        (screen_info.x * loaded_font->width * sizeof(uint32_t));
         for (uint32_t cy = 0, line = offset; cy < loaded_font->height;
             cy++, offset += fbinfo.pitch, line = offset)
             for (uint32_t cx = 0; cx < loaded_font->width; cx++, line += sizeof(fbinfo.bpp / 8))
-                if (*((uint32_t*) (fbinfo.address + line)) != si->bg)
+                if (*((uint32_t*) (fbinfo.address + line)) != screen_info.bg)
                     return;
-        if (si->x == 0)
+        if (screen_info.x == 0)
             return;
         else
-            si->x--;
+            screen_info.x--;
     }
 }
 
-void clear_screen(screen_info_t *si) {
+void clear_screen(void) {
     for (size_t i = 0; i < fbinfo.memory_size / 4; i++)
-        *((uint32_t*) fbinfo.address + i) = si->bg;
-    si->x = 0;
-    si->y = 0;
+        *((uint32_t*) fbinfo.address + i) = screen_info.bg;
+    screen_info.x = 0;
+    screen_info.y = 0;
 }
 
 void print_char(char c) {
@@ -78,8 +78,8 @@ void print_char(char c) {
         break;
     
     case '\b':
-        find_last_char(&screen_info);
-        putchar(' ', &screen_info);
+        find_last_char();
+        putchar(' ');
         break;
 
     case '\t':
@@ -88,7 +88,7 @@ void print_char(char c) {
         break;
 
     default:
-        putchar(c, &screen_info);
+        putchar(c);
         screen_info.x++;
         if (screen_info.x >= screen_info.num_cols) {
             screen_info.x = 0;
@@ -102,7 +102,7 @@ void print_char(char c) {
         //     memcpy(fbinfo.address + (i - 1) * row_size, fbinfo.address + i * row_size, row_size);
         // memset(fbinfo.address + (screen_info.num_rows - 1) * row_size, screen_info.bg, row_size);
         // screen_info.y = screen_info.num_rows - 1;
-        clear_screen(&screen_info);
+        clear_screen();
     }
 }
 
@@ -147,6 +147,9 @@ void vprintf(const char *c, va_list args) {
                     add_string("0x");
                     buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 16);
                     break;
+                case 'b':
+                    add_string("0b");
+                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 2);
             }
         if (*c == '\n')
             flush_screen();

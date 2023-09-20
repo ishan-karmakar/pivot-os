@@ -45,5 +45,5 @@ typedef void (*char_printer_t)(char);
 void vprintf(const char *format, va_list args);
 void printf(const char *format, ...);
 void flush_screen(void);
-
+void clear_screen(void);
 void init_framebuffer(mb_framebuffer_data_t*);

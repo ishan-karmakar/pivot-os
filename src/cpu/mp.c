@@ -5,7 +5,7 @@
 #include <sys.h>
 #include <libc/string.h>
 extern void ap_trampoline(void);
-void start_ap(uint8_t, uint8_t);
+void start_ap(uint32_t, uint8_t);
 uint8_t apsrunning;
 void start_aps(madt_t *madt) {
     uint32_t current_apic_id = bsp_id();
@@ -25,25 +25,21 @@ void start_aps(madt_t *madt) {
     }
 }
 
-void start_ap(uint8_t id, uint8_t trampoline_page) {
-    // *(uint8_t*) VADDR(16 * PAGE_SIZE) = 0;
-    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+void start_ap(uint32_t id, uint8_t trampoline_page) {
+    volatile uint8_t *processor_status = (volatile uint8_t*) VADDR(16 * PAGE_SIZE);
+    *processor_status = 0;
+    // printf("a\n");
+    log(Verbose, "MP", "Sending INIT to processor");
+    write_apic_register(APIC_ICRHI_OFF, id << 24); // This is the problem
     write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_ASSERT | ICR_LEVEL);
 
-    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
-    log(Verbose, "MP", "Processor received INIT");
-    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_LEVEL);
+    // while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
+    // mdelay(10);
+    // write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+    // write_apic_register(APIC_ICRLO_OFF, trampoline_page | ICR_STARTUP);
+    // while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
+    // log(Verbose, "MP", "Processor received SIPI");
+    // while (*processor_status != 2) asm ("pause");
+    // log(Verbose, "MP", "Processor started");
 
-    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
-    log(Verbose, "MP", "Processor received INIT Level De-assert");
-    mdelay(10);
-    for (int i = 0; i < 2; i++) {
-        write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-        write_apic_register(APIC_ICRLO_OFF, trampoline_page | ICR_STARTUP);
-        udelay(200);
-        while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
-    }
-    log(Verbose, "MP", "Processor received SIPI");
-    // log(Verbose, "LAPIC", "%u", (uint8_t)(*(uint8_t*) VADDR(16 * PAGE_SIZE)));
 }
