@@ -117,30 +117,27 @@ void calibrate_apic_timer(uint8_t divider) {
     log(Verbose, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, apic_us_interval);
 }
 
-void mdelay(size_t ms) {
-    apic_ticks = 0;
-    while (apic_ticks < ms) asm ("pause");
-}
+void mdelay(size_t ms) {}
 
 void udelay(size_t us) {
-    clear_screen();
-    size_t total_ticks = (apic_ms_interval * us + 500) / 1000;
-    apic_ticks = 0;
-    size_t initial_ticks = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
-    register size_t t;
-    log(Verbose, "TIMER", "Total ticks: %u, Initial ticks: %u", total_ticks, initial_ticks);
-    // TODO: Implement from https://github.com/tianocore/edk2/blob/master/MdePkg/Library/SecPeiDxeTimerLibCpu/X86TimerLib.c
-    while (1) {
-        t = (initial_ticks +
-            (apic_ms_interval * (apic_ticks - 1)) +
-            (apic_ms_interval - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF)));
-        // Maybe because it goes too fast without loop, maybe memory access
-        // Why does need to happen for it to run
-        if (t > total_ticks)
-            break;
-        for (int i = 0; i < 100000; i++)
-            asm ("");
-    };
+}
+
+static void delay(size_t num_ticks) {
+    int64_t ticks;
+    uint32_t init_count = read_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF);
+    uint64_t times = num_ticks / (init_count / 2);
+    num_ticks %= init_count / 2;
+    uint32_t start_tick = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
+    do {
+        do {
+            asm ("pause");
+            ticks = start_tick - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
+            if (ticks < 0)
+                ticks += init_count;
+        } while ((uint32_t) ticks < num_ticks);
+        start_tick -= (start_tick > num_ticks) ? num_ticks : (num_ticks - init_count);
+        num_ticks = init_count / 2;
+    } while (times-- > 0);
 }
 
 void start_apic_timer(uint8_t divider) {
