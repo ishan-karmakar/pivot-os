@@ -16,21 +16,21 @@ uint32_t ioapic_so_size;
 void init_ioapic(madt_t* table) {
     madt_item_t *item = (madt_item_t*) get_madt_item(table, MADT_IOAPIC, 0);
     if (item == NULL)
-        return log(Error, "IOAPIC", "Couldn't find IOAPIC in MADT table");
+        return log(Error, true, "IOAPIC", "Couldn't find IOAPIC in MADT table");
     ioapic_t *ioapic = (ioapic_t*) (item + 1);
     map_addr(ALIGN_ADDR(PADDR((uint64_t) ioapic)), (uint64_t) ioapic, WRITE_BIT | PRESENT_BIT);
-    log(Verbose, "IOAPIC", "I/O APIC ID: %u, Address: %x, GSI Base: %u", ioapic->id, ioapic->addr, ioapic->gsi_base);
+    log(Verbose, true, "IOAPIC", "I/O APIC ID: %u, Address: %x, GSI Base: %u", ioapic->id, ioapic->addr, ioapic->gsi_base);
     ioapic_base_address = VADDR(ioapic->addr);
     map_addr(ioapic->addr, ioapic_base_address, PRESENT_BIT | WRITE_BIT);
     uint32_t ioapic_version = read_register(IOAPIC_VER_OFFSET);
-    log(Info, "IOAPIC", "IOAPIC Version: %x", ioapic_version);
+    log(Info, true, "IOAPIC", "IOAPIC Version: %x", ioapic_version);
     ioapic_redtbl_entry_t entry;
     if (read_redirect(0x10, &entry) != 0)
-        return log(Error, "IOAPIC", "Error reading redirection entry");
+        return log(Error, true, "IOAPIC", "Error reading redirection entry");
     uint8_t ioapic_max_redirections = (uint8_t) (ioapic_version >> 16);
-    log(Verbose, "IOAPIC", "Max redirection entries: %d", ioapic_max_redirections);
+    log(Verbose, true, "IOAPIC", "Max redirection entries: %d", ioapic_max_redirections);
     ioapic_so_size = parse_interrupt_so(table);
-    log(Verbose, "IOAPIC", "Found %u source override entries", ioapic_so_size);
+    log(Verbose, true, "IOAPIC", "Found %u source override entries", ioapic_so_size);
 }
 
 static uint32_t read_register(uint8_t offset) {
@@ -67,7 +67,7 @@ static uint32_t parse_interrupt_so(madt_t *table) {
     madt_item_t *item = get_madt_item(table, MADT_INTERRUPT_SOURCE_OVERRIDE, 0);
     while (item != NULL) {
         memcpy(&ioapic_so[counter], item + 1, sizeof(ioapic_source_override_t));
-        log(Verbose, "IOAPIC", "SO Item: bus source: %u - irq source: %u - GSI Base: %d",
+        log(Verbose, true, "IOAPIC", "SO Item: bus source: %u - irq source: %u - GSI Base: %d",
             ioapic_so[counter].bus_source, ioapic_so[counter].irq_source, ioapic_so[counter].gsi_base);
         counter++;
         item = get_madt_item(table, MADT_INTERRUPT_SOURCE_OVERRIDE, counter);
@@ -83,7 +83,7 @@ void set_irq(uint8_t irq, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destina
     while (counter < ioapic_so_size) {
         if (ioapic_so[counter].irq_source == irq) {
             selected_pin = ioapic_so[counter].gsi_base;
-            log(Verbose, "IOAPIC", "Source override found for pin %d using APIC pin %d", irq, selected_pin);
+            log(Verbose, true, "IOAPIC", "Source override found for pin %d using APIC pin %d", irq, selected_pin);
             if ((ioapic_so[counter].flags & 0b11) == 1)
                 entry.pin_polarity = 1;
             else
@@ -99,10 +99,10 @@ void set_irq(uint8_t irq, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destina
 
     entry.destination = destination_field;
     entry.mask = masked;
-    log(Info, "IOAPIC", "Setting IRQ %u to idt entry %u at REDTBL pos: %x",
+    log(Info, true, "IOAPIC", "Setting IRQ %u to idt entry %u at REDTBL pos: %x",
         irq, idt_entry, redtbl_pos);
     if (write_redirect(redtbl_pos, entry))
-        log(Error, "IOAPIC", "Error writing to redirection table");
+        log(Error, true, "IOAPIC", "Error writing to redirection table");
 }
 
 void set_irq_mask(uint8_t redtbl_pos, int masked) {

@@ -79,10 +79,10 @@ irq%1:
 
 [extern write_apic_register]
 
-[extern apic_ticks]
+[extern apic_triggered]
 [global irq32]
 irq32:
-    inc qword [apic_ticks]
+    mov qword [apic_triggered], 1
     apic_eoi
     iretq
 

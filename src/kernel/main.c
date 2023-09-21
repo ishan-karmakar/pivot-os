@@ -52,9 +52,9 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     init_idt();
     init_system(addr);
     if (magic == 0x36d76289)
-        log(Info, "KERNEL", "Multiboot magic number verified");
+        log(Info, true, "KERNEL", "Multiboot magic number verified");
     else {
-        log(Error, "KERNEL", "Failed to verify magic number");
+        log(Error, true, "KERNEL", "Failed to verify magic number");
         hcf();
     }
     init_apic(mem_size);
@@ -70,12 +70,9 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     set_irq(1, 0x12, 0x21, 0, 0, 0); // Keyboard
     set_irq(2, 0x14, 0x22, 0, 0, 1); // PIT timer - initially masked
     asm ("sti");
-    start_apic_timer(0b1001);
-    log(Verbose, "APIC", "Started APIC timer");
-    // log(Verbose, "APIC", "Started waiting for one second");
-    // mdelay(1000);
-    // log(Verbose, "APIC", "Finished waiting for one second");
+    calibrate_apic_timer();
+    log(Verbose, true, "APIC", "Calibrated APIC timer");
     udelay(1000000);
-    log(Verbose, "APIC", "Finished waiting for 500000 microseconds");
+    log(Verbose, true, "APIC", "Finished waiting for 500000 microseconds");
     while (1) asm ("pause");
 }

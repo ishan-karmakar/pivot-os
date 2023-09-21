@@ -70,25 +70,25 @@ static const char *exception_names[] = {
 };
 
 inline void log_registers(cpu_status_t *status) {
-    log(Verbose, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
+    log(Verbose, true, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
         status->ss, status->rsp, status->rflags, status->cs);
-    log(Verbose, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
+    log(Verbose, true, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
         status->rip, status->rax, status->rbx, status->rcx);
-    log(Verbose, "ISR", "rdx: %x, rbp: %x, rsi: %x, rdi: %x",
+    log(Verbose, true, "ISR", "rdx: %x, rbp: %x, rsi: %x, rdi: %x",
         status->rdx, status->rbp, status->rsi, status->rdi);
-    log(Verbose, "ISR", "r8: %x, r9: %x, r10: %x, r11: %x",
+    log(Verbose, true, "ISR", "r8: %x, r9: %x, r10: %x, r11: %x",
         status->r8, status->r9, status->r10, status->r11);
-    log(Verbose, "ISR", "r12: %x, r13: %x, r14: %x, r15: %x",
+    log(Verbose, true, "ISR", "r12: %x, r13: %x, r14: %x, r15: %x",
         status->r12, status->r13, status->r14, status->r15);
 }
 
 void exception_handler(cpu_status_t *status) {
-    log(Error, "ISR", "Got exception %s, %x\n", exception_names[status->interrupt_number], status->error_code);
+    log(Error, true, "ISR", "Got exception %s, %x\n", exception_names[status->interrupt_number], status->error_code);
     log_registers(status);
     if (status->interrupt_number == 8 || status->interrupt_number == 0x12 || status->interrupt_number == 0xE)
         hcf();
 }
 
 void irq_handler(uint64_t interrupt_number) {
-    log(Info, "IRQ", "IRQ %u triggered", interrupt_number);
+    log(Info, true, "IRQ", "IRQ %u triggered", interrupt_number);
 }

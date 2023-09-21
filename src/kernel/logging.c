@@ -13,13 +13,14 @@ char *log_levels[] = {
     "TRACE"
 };
 
-void log(log_level_t log_level, const char *target, const char *format, ...) {
+void log_nf(log_level_t log_level, bool flush, const char *target, const char *format, ...) {
     if (log_level > min_log_level)
         return;
     va_list args;
     va_start(args, format);
     printf("[%s] %s: ", log_levels[log_level], target);
     vprintf(format, args);
-    printf("\n");
+    if (flush)
+        printf("\n");
     va_end(args);
 }

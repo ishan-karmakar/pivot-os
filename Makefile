@@ -12,7 +12,9 @@ CFLAGS := -ffreestanding \
         -Wextra \
         -mno-red-zone \
         -mno-sse \
-        -mcmodel=large
+        -mcmodel=large \
+		-Wall \
+		-Wextra
 
 ASMFLAGS := -felf64
 LDFLAGS := -n

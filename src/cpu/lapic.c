@@ -13,7 +13,7 @@ extern void hcf(void);
 uint64_t apic_hh_address;
 bool x2mode;
 volatile size_t pit_ticks = 0;
-volatile size_t apic_ticks = 0;
+volatile bool apic_triggered = false;
 uint32_t apic_ms_interval, apic_us_interval;
 
 uint32_t read_apic_register(uint32_t);
@@ -24,7 +24,7 @@ void init_apic(size_t mem_size) {
     uint64_t msr_output = rdmsr(IA32_APIC_BASE);
     uint32_t apic_base_address = msr_output & APIC_BASE_ADDRESS_MASK;
     if (apic_base_address == 0) {
-        log(Error, "LAPIC", "Cannot determine apic base address");
+        log(Error, true, "LAPIC", "Cannot determine apic base address");
         hcf();
     }
     apic_hh_address = apic_base_address + HIGHER_HALF_OFFSET;
@@ -33,28 +33,28 @@ void init_apic(size_t mem_size) {
     __get_cpuid(1, &ignored, &ignored, &x2ApicLeaf, &xApicLeaf);
 
     if (x2ApicLeaf & (1 << 21)) {
-        log(Info, "LAPIC", "x2APIC Available");
+        log(Info, true, "LAPIC", "x2APIC Available");
         x2mode = true;
         msr_output |= (1 << 10);
         wrmsr(IA32_APIC_BASE, msr_output);
     } else if (xApicLeaf & (1 << 9)) {
-        log(Info, "LAPIC", "xAPIC Available");
+        log(Info, true, "LAPIC", "xAPIC Available");
         x2mode = false;
         map_addr(apic_base_address, apic_hh_address, PRESENT_BIT | WRITE_BIT);
     } else
-        return log(Error, "LAPIC", "No LAPIC is supported by this CPU");
+        return log(Error, true, "LAPIC", "No LAPIC is supported by this CPU");
     
     if (!((msr_output >> APIC_GLOBAL_ENABLE_BIT) & 1))
-        return log(Error, "LAPIC", "APIC is disabled globally");
+        return log(Error, true, "LAPIC", "APIC is disabled globally");
     
     write_apic_register(APIC_SPURIOUS_VEC_REG_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_INTERRUPT);
-    log(Info, "LAPIC", "Initialized APIC");
+    log(Info, true, "LAPIC", "Initialized APIC");
     if (apic_base_address < mem_size) {
-        log(Verbose, "LAPIC", "APIC base address is in physical memory area");
+        log(Verbose, true, "LAPIC", "APIC base address is in physical memory area");
         bitmap_set_bit_addr(apic_base_address);
     }
     disable_pic();
-    log(Info, "LAPIC", "Disabled PIC");
+    log(Info, true, "LAPIC", "Disabled PIC");
 }
 
 void disable_pic(void) {
@@ -95,14 +95,14 @@ uint32_t bsp_id(void) {
 }
 
 // Timer will trigger interrupt every tenth of millisecond
-void calibrate_apic_timer(uint8_t divider) {
+void calibrate_apic_timer(void) {
     outportb(PIT_MODE_COMMAND_REGISTER, 0b00110100);
     uint16_t counter = PIT_1_MS;
     outportb(PIT_CHANNEL_0_DATA_PORT, counter & 0xFF);
     outportb(PIT_CHANNEL_0_DATA_PORT, (counter >> 8) & 0xFF);
 
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
-    write_apic_register(APIC_TIMER_CONFIG_OFF, divider);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER);
 
     set_irq_mask(0x14, 0);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, (uint32_t)-1);
@@ -114,37 +114,26 @@ void calibrate_apic_timer(uint8_t divider) {
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;
     apic_us_interval = (apic_ms_interval + 500) / 1000;
-    log(Verbose, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, apic_us_interval);
+    log(Verbose, true, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, apic_us_interval);
+}
+
+static void delay(size_t num_ticks) {
+    start_apic_timer(num_ticks);
+    while (!apic_triggered) asm ("pause");
 }
 
 void mdelay(size_t ms) {}
 
+// 5 microseconds -> 25 ticks
+// https://github.com/tianocore/edk2/blob/master/MdePkg/Library/SecPeiDxeTimerLibCpu/X86TimerLib.c
 void udelay(size_t us) {
+    delay(apic_ms_interval * us / 1000);
 }
 
-static void delay(size_t num_ticks) {
-    int64_t ticks;
-    uint32_t init_count = read_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF);
-    uint64_t times = num_ticks / (init_count / 2);
-    num_ticks %= init_count / 2;
-    uint32_t start_tick = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
-    do {
-        do {
-            asm ("pause");
-            ticks = start_tick - read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
-            if (ticks < 0)
-                ticks += init_count;
-        } while ((uint32_t) ticks < num_ticks);
-        start_tick -= (start_tick > num_ticks) ? num_ticks : (num_ticks - init_count);
-        num_ticks = init_count / 2;
-    } while (times-- > 0);
-}
-
-void start_apic_timer(uint8_t divider) {
-    calibrate_apic_timer(divider);
-    write_apic_register(APIC_TIMER_LVT_OFFSET, 0x20000 | APIC_TIMER_IDT_ENTRY);
-    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, apic_ms_interval);
-    write_apic_register(APIC_TIMER_CONFIG_OFF, divider);
+void start_apic_timer(size_t num_ticks) {
+    write_apic_register(APIC_TIMER_LVT_OFFSET, APIC_TIMER_IDT_ENTRY); // One shot mode
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, num_ticks);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER);
 
     asm ("sti");
 }

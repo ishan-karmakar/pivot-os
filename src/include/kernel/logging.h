@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 
 typedef enum {
     Error,
@@ -9,4 +10,4 @@ typedef enum {
     Trace
 } log_level_t;
 
-void log(log_level_t log_level, const char*, const char*, ...);
+void log(log_level_t log_level, bool flush, const char*, const char*, ...);
