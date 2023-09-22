@@ -70,13 +70,13 @@ static const char *exception_names[] = {
 };
 
 inline void log_registers(cpu_status_t *status) {
-    log(Verbose, true, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
+    log(Verbose, false, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
         status->ss, status->rsp, status->rflags, status->cs);
-    log(Verbose, true, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
+    log(Verbose, false, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
         status->rip, status->rax, status->rbx, status->rcx);
-    log(Verbose, true, "ISR", "rdx: %x, rbp: %x, rsi: %x, rdi: %x",
+    log(Verbose, false, "ISR", "rdx: %x, rbp: %x, rsi: %x, rdi: %x",
         status->rdx, status->rbp, status->rsi, status->rdi);
-    log(Verbose, true, "ISR", "r8: %x, r9: %x, r10: %x, r11: %x",
+    log(Verbose, false, "ISR", "r8: %x, r9: %x, r10: %x, r11: %x",
         status->r8, status->r9, status->r10, status->r11);
     log(Verbose, true, "ISR", "r12: %x, r13: %x, r14: %x, r15: %x",
         status->r12, status->r13, status->r14, status->r15);

@@ -67,11 +67,12 @@ static uint32_t parse_interrupt_so(madt_t *table) {
     madt_item_t *item = get_madt_item(table, MADT_INTERRUPT_SOURCE_OVERRIDE, 0);
     while (item != NULL) {
         memcpy(&ioapic_so[counter], item + 1, sizeof(ioapic_source_override_t));
-        log(Verbose, true, "IOAPIC", "SO Item: bus source: %u - irq source: %u - GSI Base: %d",
+        log(Verbose, false, "IOAPIC", "SO Item: bus source: %u - irq source: %u - GSI Base: %d",
             ioapic_so[counter].bus_source, ioapic_so[counter].irq_source, ioapic_so[counter].gsi_base);
         counter++;
         item = get_madt_item(table, MADT_INTERRUPT_SOURCE_OVERRIDE, counter);
     }
+    flush_screen();
     return counter;
 }
 

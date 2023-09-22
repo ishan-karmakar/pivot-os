@@ -103,11 +103,12 @@ void print_madt(madt_t *table) {
     size_t total_length = sizeof(madt_t);
     uint32_t i = 0;
     while (total_length < table->header.length) {
-        log(Verbose, "MADT", "Type: %s - Length: %d", madt_items[item->type], item->length);
+        log(Verbose, false, "MADT", "Type: %s - Length: %d", madt_items[item->type], item->length);
         total_length += item->length;
         item = (madt_item_t*)((uint64_t) item + item->length);
         i++;
     }
+    flush_screen();
 }
 
 madt_item_t *get_madt_item(madt_t *table, uint8_t search_item, uint8_t count) {

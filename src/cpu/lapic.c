@@ -14,7 +14,7 @@ uint64_t apic_hh_address;
 bool x2mode;
 volatile size_t pit_ticks = 0;
 volatile bool apic_triggered = false;
-uint32_t apic_ms_interval, apic_us_interval;
+uint32_t apic_ms_interval;
 
 uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
@@ -113,27 +113,28 @@ void calibrate_apic_timer(void) {
     
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;
-    apic_us_interval = (apic_ms_interval + 500) / 1000;
-    log(Verbose, true, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, apic_us_interval);
+    log(Verbose, true, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
 }
 
-static void delay(size_t num_ticks) {
-    start_apic_timer(num_ticks);
+void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry) {
+    write_apic_register(APIC_TIMER_LVT_OFFSET, idt_entry | timer_mode);
+    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, initial_count);
+    write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER);
+
+    asm ("sti");
+}
+
+static inline void delay(size_t num_ticks) {
+    start_apic_timer(0, num_ticks, APIC_TIMER_ONESHOT_IDT_ENTRY);
     while (!apic_triggered) asm ("pause");
 }
 
-void mdelay(size_t ms) {}
+void mdelay(size_t ms) {
+    delay(apic_ms_interval * ms);
+}
 
 // 5 microseconds -> 25 ticks
 // https://github.com/tianocore/edk2/blob/master/MdePkg/Library/SecPeiDxeTimerLibCpu/X86TimerLib.c
 void udelay(size_t us) {
     delay(apic_ms_interval * us / 1000);
-}
-
-void start_apic_timer(size_t num_ticks) {
-    write_apic_register(APIC_TIMER_LVT_OFFSET, APIC_TIMER_IDT_ENTRY); // One shot mode
-    write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, num_ticks);
-    write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER);
-
-    asm ("sti");
 }

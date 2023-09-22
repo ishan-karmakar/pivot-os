@@ -115,11 +115,8 @@ void flush_screen(void) {
 }
 
 static inline void add_string(char* str) {
-    for (; *str != '\0'; str++) {
+    for (; *str != '\0'; str++)
         buf[buf_pos++] = *str;
-        if (*str == '\n')
-            flush_screen();
-    }
 }
 
 void vprintf(const char *c, va_list args) {
@@ -153,7 +150,7 @@ void vprintf(const char *c, va_list args) {
             }
         if (buf_pos > (BUF_SIZE - 1)) {
             buf_pos = 0;
-            log(Error, "FB", "Buffer overflow");
+            log(Error, true, "FB", "Buffer overflow");
         }
         if (*c == '\n')
             flush_screen();
@@ -180,5 +177,5 @@ void init_framebuffer(mb_framebuffer_data_t *fbdata) {
     screen_info.num_rows = fbinfo.height / loaded_font->height;
     map_framebuffer();
     FRAMEBUFFER_INITIALIZED = true;
-    log(Info, "FRAMEBUFFER", "Initialized framebuffer");
+    log(Info, true, "FRAMEBUFFER", "Initialized framebuffer");
 }

@@ -72,7 +72,7 @@ void kernel_start(uintptr_t addr, uint64_t magic __attribute__((unused))) {
     asm ("sti");
     calibrate_apic_timer();
     log(Verbose, true, "APIC", "Calibrated APIC timer");
-    udelay(1000000);
+    udelay(5000000);
     log(Verbose, true, "APIC", "Finished waiting for 500000 microseconds");
     while (1) asm ("pause");
 }

@@ -12,7 +12,7 @@
 #define APIC_GLOBAL_ENABLE_BIT 11
 #define APIC_SOFTWARE_ENABLE (1 << 8)
 #define APIC_SPURIOUS_INTERRUPT 255
-#define APIC_TIMER_IDT_ENTRY 0x20
+#define APIC_TIMER_ONESHOT_IDT_ENTRY 0x20
 #define APIC_TIMER_LVT_OFFSET 0x320
 
 #define ICR_DEST_SHIFT 24
@@ -37,7 +37,7 @@
 #define PIT_MODE_COMMAND_REGISTER 0x43
 #define PIT_1_MS 1193
 
-#define APIC_TIMER_DIVIDER 0b1001
+#define APIC_TIMER_DIVIDER 0b1010
 
 extern volatile uint64_t apic_ticks;
 
@@ -47,7 +47,6 @@ void write_apic_register(uint32_t, uint32_t);
 uint32_t read_apic_register(uint32_t);
 uint32_t bsp_id(void);
 void apic_startup_ap(uint8_t, uint8_t);
-void start_apic_timer(size_t);
 void mdelay(size_t);
 void udelay(size_t);
 void send_ipi(uint8_t, uint8_t);

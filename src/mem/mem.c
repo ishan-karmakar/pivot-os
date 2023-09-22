@@ -73,8 +73,8 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
     uint16_t pml4_e = PML4_ENTRY(address);
     uint16_t pdpt_e = PDPR_ENTRY(address);
     uint16_t pd_e = PD_ENTRY(address);
-    log(Verbose, "PMM", "Mapping virtual address %x to physical address %x", address, physical);
-    log(Debug, "PMM", "PML4: %u, PDPT: %u, PD: %u", pml4_e, pdpt_e, pd_e);
+    log(Verbose, true, "PMM", "Mapping virtual address %x to physical address %x", address, physical);
+    log(Debug, true, "PMM", "PML4: %u, PDPT: %u, PD: %u", pml4_e, pdpt_e, pd_e);
     uint8_t mode = 0;
 
     if (!IS_HIGHER_HALF(address)) {
@@ -83,7 +83,7 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
     }
 
     if (!(p4_table[pml4_e] & PRESENT_BIT)) {
-        log(Debug, "PMM", "Creating new PDPT table", pml4_e);
+        log(Debug, true, "PMM", "Creating new PDPT table", pml4_e);
         uint64_t *new_table = alloc_frame();
         p4_table[pml4_e] = (uint64_t) new_table | mode | WRITE_BIT | PRESENT_BIT;
         clean_table(new_table);
@@ -91,7 +91,7 @@ void *map_addr(uint64_t physical, uint64_t address, size_t flags) {
 
     uint64_t *p3_table = (uint64_t*)((p4_table[pml4_e] & PAGE_ADDR_MASK) + KERNEL_VIRTUAL_ADDR);
     if (!(p3_table[pdpt_e] & PRESENT_BIT)) {
-        log(Debug, "PMM", "Creating new PD table", pdpt_e);
+        log(Debug, true, "PMM", "Creating new PD table", pdpt_e);
         uint64_t *new_table = (uint64_t*) alloc_frame();
         p3_table[pdpt_e] = (uint64_t) new_table | mode | WRITE_BIT | PRESENT_BIT;
         clean_table(new_table);
@@ -175,7 +175,7 @@ void init_pmm(uintptr_t addr, uint32_t size, uint64_t mem_size) {
 void pmm_map_physical_memory(void) {
     for (uint64_t addr = 0, virtual_addr = HIGHER_HALF_OFFSET; addr < mem_size; addr += PAGE_SIZE, virtual_addr += PAGE_SIZE)
         map_addr(addr, virtual_addr, WRITE_BIT | PRESENT_BIT);
-    log(Info, "PMM", "Mapped physical memory");
+    log(Info, true, "PMM", "Mapped physical memory");
 }
 
 void *vmm_alloc(size_t size, size_t flags) {
@@ -200,7 +200,7 @@ void init_kheap(void) {
     kheap_start->size = PAGE_SIZE;
     kheap_cur->free = true;
     kheap_cur->next = kheap_cur->prev = NULL;
-    log(Info, "KHEAP", "Initialized kernel heap");
+    log(Info, true, "KHEAP", "Initialized kernel heap");
 }
 
 void *kmalloc(size_t size) {
