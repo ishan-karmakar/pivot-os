@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <cpu/ioapic.h>
 #include <kernel/logging.h>
-#include <mem/mem.h>
+#include <mem/pmm.h>
 #include <libc/string.h>
 #include <sys.h>
 
@@ -76,12 +76,11 @@ static uint32_t parse_interrupt_so(madt_t *table) {
     return counter;
 }
 
-void set_irq(uint8_t irq, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, int masked) {
-    uint8_t counter = 0;
+void set_irq(uint8_t irq, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, bool masked) {
     uint8_t selected_pin = irq;
     ioapic_redtbl_entry_t entry;
     entry.raw = flags | idt_entry;
-    while (counter < ioapic_so_size) {
+    for (uint8_t counter = 0; counter < ioapic_so_size; counter++) {
         if (ioapic_so[counter].irq_source == irq) {
             selected_pin = ioapic_so[counter].gsi_base;
             log(Verbose, true, "IOAPIC", "Source override found for pin %d using APIC pin %d", irq, selected_pin);
@@ -95,11 +94,11 @@ void set_irq(uint8_t irq, uint8_t redtbl_pos, uint8_t idt_entry, uint8_t destina
                 entry.trigger_mode = 0;
             break;
         }
-        counter++;
     }
 
     entry.destination = destination_field;
     entry.mask = masked;
+    uint8_t redtbl_pos = 0x10 + irq * 2;
     log(Info, true, "IOAPIC", "Setting IRQ %u to idt entry %u at REDTBL pos: %x",
         irq, idt_entry, redtbl_pos);
     if (write_redirect(redtbl_pos, entry))

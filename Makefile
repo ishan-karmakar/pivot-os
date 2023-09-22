@@ -6,7 +6,7 @@ S_OBJ := $(patsubst src/%.S, build/%.o, $(S_SRC))
 ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
 FONT_OBJ := build/fonts/default.o
 CFLAGS := -ffreestanding \
-		-I src/include \
+		-I include/ \
         -O2 \
         -Wall \
         -Wextra \

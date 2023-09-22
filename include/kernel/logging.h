@@ -1,6 +1,6 @@
 #pragma once
 #include <stdbool.h>
-#include <drivers/framebuffer.h>
+#include <io/stdio.h>
 
 typedef enum {
     Error,

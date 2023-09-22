@@ -1,6 +1,7 @@
 #include <cpu/lapic.h>
 #include <cpu/cpu.h>
-#include <mem/mem.h>
+#include <mem/bitmap.h>
+#include <mem/pmm.h>
 #include <kernel/logging.h>
 #include <cpuid.h>
 #include <io/ports.h>

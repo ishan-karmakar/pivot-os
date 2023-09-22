@@ -1,18 +1,20 @@
 #include <stddef.h>
 #include <drivers/framebuffer.h>
 #include <kernel/multiboot.h>
-#include <libc/string.h>
 #include <kernel/logging.h>
-#include <mem/mem.h>
+#include <mem/bitmap.h>
+#include <mem/pmm.h>
 #include <stdarg.h>
 #include <sys.h>
-#define BUF_SIZE 1024
 
+extern psf_font_t _binary_fonts_default_psf_start;
+extern char _binary_fonts_default_psf_size;
+extern char _binary_fonts_default_psf_end;
 framebuffer_info_t fbinfo;
 psf_font_t *loaded_font;
 screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
-static char buf[BUF_SIZE];
-size_t buf_pos = 0;
+char fb_buf[BUF_SIZE];
+size_t fb_buf_pos = 0;
 bool FRAMEBUFFER_INITIALIZED = false;
 
 inline static uint8_t *get_glyph(uint8_t sym_num) {
@@ -23,10 +25,9 @@ static void map_framebuffer(void) {
     uint32_t num_pages = fbinfo.memory_size / PAGE_SIZE;
     if (fbinfo.memory_size % PAGE_SIZE)
         num_pages++;
-    for (uint32_t i = 0; i < num_pages; i++) {
+    for (uint32_t i = 0; i < num_pages; i++)
         map_addr(fbinfo.phys_addr + i * PAGE_SIZE, FRAMEBUFFER_START + i * PAGE_SIZE, WRITE_BIT | PRESENT_BIT);
-        bitmap_set_bit_addr(fbinfo.phys_addr + i * PAGE_SIZE);
-    }
+    bitmap_rsv_area(fbinfo.phys_addr, num_pages * PAGE_SIZE);
 }
 
 extern void putchar(char sym) {
@@ -63,13 +64,6 @@ static void find_last_char(void) {
     }
 }
 
-void clear_screen(void) {
-    for (size_t i = 0; i < fbinfo.memory_size / 4; i++)
-        *((uint32_t*) fbinfo.address + i) = screen_info.bg;
-    screen_info.x = 0;
-    screen_info.y = 0;
-}
-
 void print_char(char c) {
     switch (c) {
     case '\n':
@@ -95,73 +89,15 @@ void print_char(char c) {
             screen_info.y++;
         }
     }
-    if (screen_info.y >= screen_info.num_rows) {
-        // TODO: Get scrolling working reliably, for now just clearing screen
-        // uint32_t row_size = loaded_font->height * fbinfo.width * sizeof(uint32_t);
-        // for (uint32_t i = 1; i < screen_info.num_rows; i++)
-        //     memcpy(fbinfo.address + (i - 1) * row_size, fbinfo.address + i * row_size, row_size);
-        // memset(fbinfo.address + (screen_info.num_rows - 1) * row_size, screen_info.bg, row_size);
-        // screen_info.y = screen_info.num_rows - 1;
+    if (screen_info.y >= screen_info.num_rows)
         clear_screen();
-    }
 }
 
-void flush_screen(void) {
-    if (!FRAMEBUFFER_INITIALIZED)
-        return;
-    for (uint16_t i = 0; i < buf_pos; i++)
-        print_char(buf[i]);
-    buf_pos = 0;
-}
-
-static inline void add_string(char* str) {
-    for (; *str != '\0'; str++)
-        buf[buf_pos++] = *str;
-}
-
-void vprintf(const char *c, va_list args) {
-    for (; *c != '\0'; c++) {
-        if (*c != '%')
-            buf[buf_pos++] = *c;
-        else
-            switch (*++c) {
-                case 's':
-                    add_string(va_arg(args, char*));
-                    break;
-                case 'c':
-                    char ch = (char) va_arg(args, int);
-                    buf[buf_pos++] = ch;
-                    if (ch == '\n')
-                        flush_screen();
-                    break;
-                case 'd':
-                    buf_pos += itoa(va_arg(args, int64_t), buf + buf_pos, 21, 10);
-                    break;
-                case 'u':
-                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 10);
-                    break;
-                case 'x':
-                    add_string("0x");
-                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 16);
-                    break;
-                case 'b':
-                    add_string("0b");
-                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 2);
-            }
-        if (buf_pos > (BUF_SIZE - 1)) {
-            buf_pos = 0;
-            log(Error, true, "FB", "Buffer overflow");
-        }
-        if (*c == '\n')
-            flush_screen();
-    }
-}
-
-void printf(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    va_end(args);
+void clear_screen(void) {
+    for (size_t i = 0; i < fbinfo.memory_size / 4; i++)
+        *((uint32_t*) fbinfo.address + i) = screen_info.bg;
+    screen_info.x = 0;
+    screen_info.y = 0;
 }
 
 void init_framebuffer(mb_framebuffer_data_t *fbdata) {
