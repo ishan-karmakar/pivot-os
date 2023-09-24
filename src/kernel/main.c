@@ -1,16 +1,19 @@
-#include <kernel/logging.h>
-#include <cpu/idt.h>
 #include <stdint.h>
-#include <libc/string.h>
-#include <kernel/multiboot.h>
-#include <kernel/acpi.h>
-#include <drivers/framebuffer.h>
-#include <drivers/keyboard.h>
-#include <mem/pmm.h>
+#include <sys.h>
+#include <cpu/tss.h>
+#include <cpu/idt.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 #include <cpu/mp.h>
-#include <sys.h>
+#include <cpu/scheduler.h>
+#include <mem/pmm.h>
+#include <mem/kheap.h>
+#include <drivers/framebuffer.h>
+#include <drivers/keyboard.h>
+#include <libc/string.h>
+#include <kernel/multiboot.h>
+#include <kernel/acpi.h>
+#include <kernel/logging.h>
 
 extern void ap_trampoline(void);
 extern uintptr_t multiboot_framebuffer_data;
@@ -28,9 +31,11 @@ void hcf(void) {
         asm volatile ("hlt");
 }
 
+void my_task(void) {
+}
 void init_system(uintptr_t addr, uint64_t magic) {
     init_idt();
-    
+    // init_tss();
     uint32_t mbi_size = *(uint32_t*) (addr + KERNEL_VIRTUAL_ADDR);
     mb_basic_meminfo_t *basic_meminfo = (mb_basic_meminfo_t*)(multiboot_basic_meminfo + KERNEL_VIRTUAL_ADDR);
     mb_mmap_t *mmap = (mb_mmap_t*)(multiboot_mmap_data + KERNEL_VIRTUAL_ADDR);
@@ -52,6 +57,7 @@ void init_system(uintptr_t addr, uint64_t magic) {
 
     init_apic(mem_size);
     pmm_map_physical_memory();
+    init_kheap();
     madt_t *madt = (madt_t*) get_table("APIC");
     print_madt(madt);
     init_ioapic(madt);
@@ -61,7 +67,13 @@ void init_system(uintptr_t addr, uint64_t magic) {
     asm ("sti");
     calibrate_apic_timer();
     log(Verbose, true, "APIC", "Calibrated APIC timer");
+    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    size_t id = create_task(my_task, alloc_frame());
+    log(Verbose, true, "SCHEDULER", "Created task with id %u", id);
+    print_task(id);
 }
+
 
 void kernel_start(uintptr_t addr, uint64_t magic) {
     init_system(addr, magic);

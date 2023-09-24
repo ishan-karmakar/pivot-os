@@ -149,10 +149,7 @@ read_multiboot:
         jne read_multiboot
         cmp dword [rax + multiboot_tag.size], 8
         jne read_multiboot
-    ; Unmap lower half
-    ; mov rax, 0x0
-    ; mov [p4_table], rax
-    ; mov [p3_table], rax
+
     call kernel_start
 
 section .bss
@@ -182,17 +179,22 @@ section .rodata
 ;     the first entry is always null
 ;     the other two are data segment and code segment.
 gdt64:
-    dq  0	;first entry = 0
-    .code equ $ - gdt64
-        ; set the following values:
-        ; descriptor type: bit 44 has to be 1 for code and data segments
-        ; present: bit 47 has to be  1 if the entry is valid
-        ; read/write: bit 41 1 means that is readable
-        ; executable: bit 43 it has to be 1 for code segments
-        ; 64bit: bit 53 1 if this is a 64bit gdt
-        dq (1 <<44) | (1 << 47) | (1 << 41) | (1 << 43) | (1 << 53)  ;second entry=code=8
-    .data equ $ - gdt64
-        dq (1 << 44) | (1 << 47) | (1 << 41)	;third entry = data = 10
+    dq  0
+    .kernel_code equ $ - gdt64
+        dq (1 << 53) | (1 << 47) | (1 <<44) | (1 << 43) | (1 << 41)
+        ; Long mode code segment, Present, Code or data segment, Code segment, Read access
+
+    .kernel_data equ $ - gdt64
+        dq (1 << 47) | (1 << 44) | (1 << 41)
+        ; Present, Code or data segment, data segment, Read & Write
+    
+    .user_code equ $ - gdt64
+        dq (1 << 53) | (1 << 47) | (3 << 45) | (1 << 43) | (1 << 41)
+        ; Long mode code segment, User DPL, Present, Code or data segment, Code segment, Read access
+    
+    .user_data equ $ - gdt64
+        dq (1 << 47) | (3 << 45) | (1 << 44) | (1 << 41)
+        ; Present, User DPL, Code or data segment, data segment, Read & Write
 
 .pointer:
     dw .pointer - gdt64 - 1

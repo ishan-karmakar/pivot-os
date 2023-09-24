@@ -25,7 +25,7 @@ void start_aps(madt_t *madt) {
     }
 }
 
-void start_ap(uint32_t id, uint8_t trampoline_page) {
+void start_ap(uint32_t id, uint8_t trampoline_page __attribute__((unused))) {
     volatile uint8_t *processor_status = (volatile uint8_t*) VADDR(16 * PAGE_SIZE);
     *processor_status = 0;
     // printf("a\n");

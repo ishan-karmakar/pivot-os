@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <cpu/lapic.h>
+#include <cpu/cpu.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
 #include <drivers/keyboard.h>
@@ -32,7 +33,7 @@ typedef struct {
     uint64_t rflags;
     uint64_t rsp;
     uint64_t ss;
-} __attribute__((packed)) cpu_status_t ;
+} __attribute__((packed)) isr_status_t;
 
 static const char *exception_names[] = {
     "Divide by Zero Error",
@@ -69,7 +70,7 @@ static const char *exception_names[] = {
     "Reserved"
 };
 
-inline void log_registers(cpu_status_t *status) {
+inline void log_registers(isr_status_t *status) {
     log(Verbose, false, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
         status->ss, status->rsp, status->rflags, status->cs);
     log(Verbose, false, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
@@ -82,7 +83,7 @@ inline void log_registers(cpu_status_t *status) {
         status->r12, status->r13, status->r14, status->r15);
 }
 
-void exception_handler(cpu_status_t *status) {
+void exception_handler(isr_status_t *status) {
     log(Error, true, "ISR", "Got exception %s, %x\n", exception_names[status->interrupt_number], status->error_code);
     log_registers(status);
     if (status->interrupt_number == 8 || status->interrupt_number == 0x12 || status->interrupt_number == 0xE)
