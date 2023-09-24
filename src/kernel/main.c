@@ -32,7 +32,15 @@ void hcf(void) {
 }
 
 void my_task(void) {
+    while (1) {
+        printf(".\n");
+    }
 }
+
+void my_task2(void) {
+    while (1);
+}
+
 void init_system(uintptr_t addr, uint64_t magic) {
     init_idt();
     // init_tss();
@@ -67,15 +75,16 @@ void init_system(uintptr_t addr, uint64_t magic) {
     asm ("sti");
     calibrate_apic_timer();
     log(Verbose, true, "APIC", "Calibrated APIC timer");
-    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
-    // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
-    size_t id = create_task(my_task, alloc_frame());
-    log(Verbose, true, "SCHEDULER", "Created task with id %u", id);
-    print_task(id);
+    size_t id1 = create_task(&my_task, VADDR((uintptr_t) alloc_frame()));
+    log(Verbose, true, "SCHEDULER", "Created task with id %u for function at address %x", id1, &my_task);
+    size_t id2 = create_task(&my_task2, VADDR((uintptr_t) alloc_frame()));
+    log(Verbose, true, "SCHEDULER", "Created task with id %u for function at address %x", id2, &my_task2);
+    start_apic_timer(APIC_TIMER_PERIODIC, 500 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
 }
 
 
 void kernel_start(uintptr_t addr, uint64_t magic) {
     init_system(addr, magic);
-    while (1) asm ("pause");
+    while (1);
 }

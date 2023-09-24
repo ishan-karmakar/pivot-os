@@ -108,7 +108,9 @@ char get_char(key_status_t key_status) {
 
 void handle_keyboard(void) {
     uint8_t scancode = inportb(KEYBOARD_PORT);
-    log(Verbose, true, "LAPIC", "%u", (uint8_t)(*(uint8_t*) VADDR(16 * PAGE_SIZE)));
+    // log(Verbose, true, "LAPIC", "%u", (uint8_t)(*(uint8_t*) VADDR(16 * PAGE_SIZE)));
+    extern size_t return_address;
+    printf("%x\n", return_address);
     return;
     key_code_t translated_scancode = translate(scancode);
     if (scancode == EXTENDED_PREFIX)

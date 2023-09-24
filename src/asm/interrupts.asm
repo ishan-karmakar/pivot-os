@@ -103,27 +103,28 @@ irq34:
 [global irq35]
 irq35:
     apic_eoi
-    pop [return_address]
-    pop [code_segment]
-    pop [rflags]
-    pop [stack_pointer]
-    pop [stack_segment]
+    pop qword [return_address]
+    pop qword [code_segment]
+    pop qword [rflags]
+    pop qword [stack_pointer]
+    pop qword [stack_segment]
+    mov rax, [active_task]
     call save_task_state
     inc qword [active_task]
     mov rax, [num_tasks]
     cmp [active_task], rax
     jl .load
-    mov [active_task], 0
+    mov qword [active_task], 0
 .load:
     mov rax, [active_task]
     mov rax, [tasks + rax * 8]
     call load_task_state
+    push qword [stack_segment]
+    push qword [stack_pointer]
+    push qword [rflags]
+    push qword [code_segment]
+    push qword [return_address]
     mov rax, [rax_val]
-    push [stack_segment]
-    push [stack_pointer]
-    push [rflags]
-    push [code_segment]
-    push [return_address]
     iretq
 
 isr 0
@@ -188,14 +189,11 @@ struc TS
     .gs resw 1
 endstruc
 
-[extern tasks]
-[extern active_task]
-[extern num_tasks]
 [extern kmalloc]
 [global create_task]
 save_task_state:
     push r15
-    mov r15, [tasks + rax * 8]
+    mov r15, rax
     mov rax, [stack_segment]
     mov [r15 + TS.ss], rax
     mov rax, [code_segment]
@@ -233,7 +231,7 @@ save_task_state:
 
 load_task_state:
     ; rax contains address of task state
-    mov r15, [tasks + rax * 8]
+    mov r15, rax
     mov rax, [r15 + TS.ss]
     mov [stack_segment], rax
     mov rax, [r15 + TS.cs]
@@ -283,16 +281,23 @@ create_task:
     call kmalloc ; Pointer is stored in rax register
     mov rdi, [num_tasks]
     mov [tasks + rdi * 8], rax
+    mov rax, [tasks + rdi * 8]
     pop rdi
-    mov rax, [num_tasks]
     call save_task_state
-    inc qword [num_tasks]
     mov rax, [num_tasks]
+    inc qword [num_tasks]
     ret
 
+[global return_address]
 stack_segment dq 0
 stack_pointer dq 0
 rflags dq 0
 code_segment dq 0
 return_address dq 0
 rax_val dq 0
+num_tasks dq 0
+active_task dq 0
+ticks dq 0
+section .bss
+tasks:
+    resb 8 * 10
