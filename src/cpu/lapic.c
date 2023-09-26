@@ -115,6 +115,7 @@ void calibrate_apic_timer(void) {
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;
     log(Verbose, true, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
+    log(Info, true, "APIC", "Calibrated APIC timer");
 }
 
 void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry) {

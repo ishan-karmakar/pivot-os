@@ -100,6 +100,17 @@ irq34:
     apic_eoi
     iretq
 
+[extern save_ef]
+[extern load_ef]
+[extern stack_segment]
+[extern stack_pointer]
+[extern rflags]
+[extern code_segment]
+[extern return_address]
+[extern rax_val]
+[extern root_thread]
+[extern active_thread]
+[extern switch_next_ef]
 [global irq35]
 irq35:
     apic_eoi
@@ -108,17 +119,19 @@ irq35:
     pop qword [rflags]
     pop qword [stack_pointer]
     pop qword [stack_segment]
-    mov rax, [active_task]
-    call save_task_state
-    inc qword [active_task]
-    mov rax, [num_tasks]
-    cmp [active_task], rax
-    jl .load
-    mov qword [active_task], 0
-.load:
-    mov rax, [active_task]
-    mov rax, [tasks + rax * 8]
-    call load_task_state
+    mov rax, [active_thread]
+    cmp rax, 0
+    jne .thread_running
+    mov rax, [root_thread]
+    mov [active_thread], rax
+    jmp .both
+.thread_running:
+    mov rax, [rax]
+    call save_ef
+    call switch_next_ef ; Now rax contains new active thread
+.both:
+    mov rax, [rax] ; Now rax, contains address of EF
+    call load_ef
     push qword [stack_segment]
     push qword [stack_pointer]
     push qword [rflags]
@@ -160,144 +173,3 @@ isr 29
 isr_err_code 30
 isr 31
 irq 255
-
-struc TS
-    .rip resq 1
-    .rax resq 1
-    .rbx resq 1
-    .rcx resq 1
-    .rdx resq 1
-    .rbp resq 1
-    .rsi resq 1
-    .rdi resq 1
-    .rsp resq 1
-    .r8 resq 1
-    .r9 resq 1
-    .r10 resq 1
-    .r11 resq 1
-    .r12 resq 1
-    .r13 resq 1
-    .r14 resq 1
-    .r15 resq 1
-    .cr3 resq 1
-    .rflags resq 1
-    .cs resw 1
-    .ds resw 1
-    .ss resw 1
-    .es resw 1
-    .fs resw 1
-    .gs resw 1
-endstruc
-
-[extern kmalloc]
-[global create_task]
-save_task_state:
-    push r15
-    mov r15, rax
-    mov rax, [stack_segment]
-    mov [r15 + TS.ss], rax
-    mov rax, [code_segment]
-    mov [r15 + TS.cs], rax
-    mov rax, [stack_pointer]
-    mov [r15 + TS.rsp], rax
-    mov rax, [return_address]
-    mov [r15 + TS.rip], rax
-    mov rax, [rflags]
-    mov [r15 + TS.rflags], rax
-    mov rax, cr3
-    mov [r15 + TS.cr3], rax
-    mov [r15 + TS.ds], ds
-    mov [r15 + TS.es], es
-    mov [r15 + TS.fs], fs
-    mov [r15 + TS.gs], gs
-    mov rax, [rax_val]
-    mov [r15 + TS.rax], rax
-    mov [r15 + TS.rbx], rbx
-    mov [r15 + TS.rcx], rcx
-    mov [r15 + TS.rdx], rdx
-    mov [r15 + TS.rbp], rbp
-    mov [r15 + TS.rsi], rsi
-    mov [r15 + TS.rdi], rdi
-    mov [r15 + TS.r8], r8
-    mov [r15 + TS.r9], r9
-    mov [r15 + TS.r10], r10
-    mov [r15 + TS.r11], r11
-    mov [r15 + TS.r12], r12
-    mov [r15 + TS.r13], r13
-    mov [r15 + TS.r14], r14
-    pop qword [r15 + TS.r15]
-    mov r15, [r15 + TS.r15]
-    ret
-
-load_task_state:
-    ; rax contains address of task state
-    mov r15, rax
-    mov rax, [r15 + TS.ss]
-    mov [stack_segment], rax
-    mov rax, [r15 + TS.cs]
-    mov [code_segment], rax
-    mov rax, [r15 + TS.rsp]
-    mov [stack_pointer], rax
-    mov rax, [r15 + TS.rip]
-    mov [return_address], rax
-    mov rax, [r15 + TS.rflags]
-    mov [rflags], rax
-    mov rax, [r15 + TS.cr3]
-    ; mov cr3, rax
-    mov ds, [r15 + TS.ds]
-    mov es, [r15 + TS.es]
-    mov fs, [r15 + TS.fs]
-    mov gs, [r15 + TS.gs]
-    mov rax, [r15 + TS.rax]
-    mov [rax_val], rax
-    mov rbx, [r15 + TS.rbx]
-    mov rcx, [r15 + TS.rcx]
-    mov rdx, [r15 + TS.rdx]
-    mov rbp, [r15 + TS.rbp]
-    mov rsi, [r15 + TS.rsi]
-    mov rdi, [r15 + TS.rdi]
-    mov r8, [r15 + TS.r8]
-    mov r9, [r15 + TS.r9]
-    mov r10, [r15 + TS.r10]
-    mov r11, [r15 + TS.r11]
-    mov r12, [r15 + TS.r12]
-    mov r13, [r15 + TS.r13]
-    mov r14, [r15 + TS.r14]
-    mov r15, [r15 + TS.r15]
-    ret
-
-create_task:
-    ; rdi contains address of function
-    ; rsi contains stack address for task
-    mov [rax_val], rax
-    pushfq
-    pop qword [rflags]
-    mov [code_segment], cs
-    mov [stack_segment], ss
-    mov [stack_pointer], rsi
-    mov [return_address], rdi
-    push rdi
-    mov rdi, TS_size
-    call kmalloc ; Pointer is stored in rax register
-    mov rdi, [num_tasks]
-    mov [tasks + rdi * 8], rax
-    mov rax, [tasks + rdi * 8]
-    pop rdi
-    call save_task_state
-    mov rax, [num_tasks]
-    inc qword [num_tasks]
-    ret
-
-[global return_address]
-stack_segment dq 0
-stack_pointer dq 0
-rflags dq 0
-code_segment dq 0
-return_address dq 0
-rax_val dq 0
-num_tasks dq 0
-active_task dq 0
-ticks dq 0
-section .bss
-tasks:
-    resb 8 * 10

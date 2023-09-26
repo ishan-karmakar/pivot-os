@@ -20,3 +20,4 @@ typedef struct kheap_mem_node_t {
 void init_kheap(void);
 void *kmalloc(size_t);
 void kfree(void*);
+void *krealloc(void*, size_t);

@@ -31,14 +31,27 @@ void hcf(void) {
         asm volatile ("hlt");
 }
 
-void my_task(void) {
+void __attribute__((optimize("O0"))) my_task1(void) {
     while (1) {
-        printf(".\n");
+        printf("_");
+        flush_screen();
+        for (size_t i = 0; i < 10000; i++);
     }
 }
 
-void my_task2(void) {
-    while (1);
+void __attribute__((optimize("O0"))) my_task2(void) {
+    while (1) {
+        printf(".");
+        flush_screen();
+        for (size_t i = 0; i < 10000; i++);
+    }
+}
+void __attribute__((optimize("O0"))) my_task3(void) {
+    while (1) {
+        printf("|");
+        flush_screen();
+        for (size_t i = 0; i < 10000; i++);
+    }
 }
 
 void init_system(uintptr_t addr, uint64_t magic) {
@@ -74,12 +87,11 @@ void init_system(uintptr_t addr, uint64_t magic) {
     set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
     asm ("sti");
     calibrate_apic_timer();
-    log(Verbose, true, "APIC", "Calibrated APIC timer");
-    size_t id1 = create_task(&my_task, VADDR((uintptr_t) alloc_frame()));
-    log(Verbose, true, "SCHEDULER", "Created task with id %u for function at address %x", id1, &my_task);
-    size_t id2 = create_task(&my_task2, VADDR((uintptr_t) alloc_frame()));
-    log(Verbose, true, "SCHEDULER", "Created task with id %u for function at address %x", id2, &my_task2);
-    start_apic_timer(APIC_TIMER_PERIODIC, 500 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // log(Verbose, true, "SCHEDULER", "%x %x %x", &my_task1, &my_task2, &my_task3);
+    create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
+    start_apic_timer(APIC_TIMER_PERIODIC, 5 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
     log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
 }
 

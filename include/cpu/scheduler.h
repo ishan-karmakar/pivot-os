@@ -2,5 +2,9 @@
 #include <stddef.h>
 #include <cpu/cpu.h>
 
-extern size_t create_task(void (*)(void), uintptr_t);
-void print_task(size_t);
+typedef struct thread_t {
+    cpu_status_t *ef;
+    struct thread_t *next;
+} __attribute__((packed)) thread_t;
+
+extern void create_thread(void (*)(void), uintptr_t);

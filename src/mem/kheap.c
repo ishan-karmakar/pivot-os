@@ -2,7 +2,9 @@
 #include <mem/kheap.h>
 #include <mem/pmm.h>
 #include <kernel/logging.h>
+#include <libc/string.h>
 
+// To lazy to write it, so copied from https://github.com/dreamos82/Dreamos64/blob/master/src/kernel/mem/kheap.c
 kheap_mem_node_t *kernel_heap_start;
 kheap_mem_node_t *kernel_heap_current_pos;
 kheap_mem_node_t *kernel_heap_end;
@@ -204,5 +206,13 @@ void kfree(void *ptr) {
     }
 }
 
-
-
+// Frees old ptr and allocates a new one while copying data
+// Old ptr must be exactly what was returned from kmalloc (cannot be middle of memory)
+void *krealloc(void *ptr, size_t new_size) {
+    void *new_ptr = kmalloc(new_size);
+    kheap_mem_node_t *node = (kheap_mem_node_t*) (ptr - sizeof(kheap_mem_node_t));
+    size_t old_size = node->size;
+    memcpy(new_ptr, ptr, old_size);
+    kfree(ptr);
+    return new_ptr;
+}
