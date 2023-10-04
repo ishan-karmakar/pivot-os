@@ -18,7 +18,7 @@ global multiboot_acpi_info
 global multiboot_framebuffer_data
 global multiboot_basic_meminfo
 global multiboot_mmap_data
-extern kernel_start
+extern init_kernel
 
 _start:
     mov edi, ebx
@@ -150,7 +150,7 @@ read_multiboot:
         cmp dword [rax + multiboot_tag.size], 8
         jne read_multiboot
 
-    call kernel_start
+    call init_kernel
 
 section .bss
 
@@ -170,7 +170,7 @@ multiboot_basic_meminfo:
 multiboot_acpi_info:
     resb 8
 stack:
-    resb 32768
+    resb 16384
     .top:
 
 section .rodata

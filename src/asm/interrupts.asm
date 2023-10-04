@@ -110,25 +110,29 @@ irq34:
 [extern rax_val]
 [extern root_thread]
 [extern active_thread]
-[extern switch_next_ef]
+[extern get_next_thread]
+[extern printf]
+[extern flush_screen]
 [global irq35]
 irq35:
+    mov [rax_val], rax
     apic_eoi
+    call get_next_thread
+    cmp rax, [active_thread]
+    jne .different_thread
+    iretq
+.different_thread:
     pop qword [return_address]
     pop qword [code_segment]
     pop qword [rflags]
     pop qword [stack_pointer]
     pop qword [stack_segment]
-    mov rax, [active_thread]
-    cmp rax, 0
-    jne .thread_running
-    mov rax, [root_thread]
-    mov [active_thread], rax
     jmp .both
 .thread_running:
     mov rax, [rax]
     call save_ef
-    call switch_next_ef ; Now rax contains new active thread
+    mov [active_thread], rax
+    call get_next_thread ; Now rax contains new active thread
 .both:
     mov rax, [rax] ; Now rax, contains address of EF
     call load_ef
@@ -173,3 +177,5 @@ isr 29
 isr_err_code 30
 isr 31
 irq 255
+
+test_string db 'A', 0

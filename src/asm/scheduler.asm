@@ -107,6 +107,7 @@ load_ef:
     ret
 
 [extern add_thread]
+[extern thread_wrapper]
 [global create_thread]
 create_thread:
     ; rdi contains address of function
@@ -117,7 +118,7 @@ create_thread:
     mov [code_segment], cs
     mov [stack_segment], ss
     mov [stack_pointer], rsi
-    mov [return_address], rdi
+    mov qword [return_address], thread_wrapper
     push rdi
     mov rdi, EF_size
     call kmalloc ; Pointer is stored in rax register
@@ -127,17 +128,6 @@ create_thread:
     pop rax
     mov rdi, rax
     call add_thread
-    ret
-
-[global switch_next_ef]
-switch_next_ef:
-    mov rax, [active_thread]
-    mov rax, [rax + 8]
-    cmp rax, 0
-    jne .next
-    mov rax, [root_thread]
-.next:
-    mov [active_thread], rax
     ret
 
 [global stack_segment]

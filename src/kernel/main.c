@@ -16,6 +16,7 @@
 #include <kernel/logging.h>
 
 extern void ap_trampoline(void);
+void kernel_start(void);
 extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
@@ -32,7 +33,7 @@ void hcf(void) {
 }
 
 void __attribute__((optimize("O0"))) my_task1(void) {
-    while (1) {
+    for (size_t i = 0; i < 10000; i++) {
         printf("_");
         flush_screen();
         for (size_t i = 0; i < 10000; i++);
@@ -54,9 +55,8 @@ void __attribute__((optimize("O0"))) my_task3(void) {
     }
 }
 
-void init_system(uintptr_t addr, uint64_t magic) {
+void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     init_idt();
-    // init_tss();
     uint32_t mbi_size = *(uint32_t*) (addr + KERNEL_VIRTUAL_ADDR);
     mb_basic_meminfo_t *basic_meminfo = (mb_basic_meminfo_t*)(multiboot_basic_meminfo + KERNEL_VIRTUAL_ADDR);
     mb_mmap_t *mmap = (mb_mmap_t*)(multiboot_mmap_data + KERNEL_VIRTUAL_ADDR);
@@ -87,16 +87,19 @@ void init_system(uintptr_t addr, uint64_t magic) {
     set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
     asm ("sti");
     calibrate_apic_timer();
-    // log(Verbose, true, "SCHEDULER", "%x %x %x", &my_task1, &my_task2, &my_task3);
+    register void *sp asm ("sp");
+    create_thread(&kernel_start, VADDR((uintptr_t) sp));
     create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
     create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
     create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
-    start_apic_timer(APIC_TIMER_PERIODIC, 5 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
-    log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    start_apic_timer(APIC_TIMER_PERIODIC, 100 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    while (1) asm ("pause");
 }
 
-
-void kernel_start(uintptr_t addr, uint64_t magic) {
-    init_system(addr, magic);
-    while (1);
+void __attribute__((noreturn)) kernel_start(void) {
+    // Kernel is now initialized
+    // Actual work goes here now
+    // kernel_start must be here because even if there are no other tasks, this one will be running
+    while (1) asm ("pause");
 }
