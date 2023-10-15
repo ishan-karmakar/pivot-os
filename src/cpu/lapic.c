@@ -13,7 +13,7 @@ extern void hcf(void);
 
 uint64_t apic_hh_address;
 bool x2mode;
-volatile size_t pit_ticks = 0;
+volatile size_t pit_ticks = 0, apic_ticks = 0;
 volatile bool apic_triggered = false;
 uint32_t apic_ms_interval;
 
@@ -95,7 +95,6 @@ uint32_t bsp_id(void) {
     return read_apic_register(APIC_ID_REG_OFF) >> 23;
 }
 
-// Timer will trigger interrupt every tenth of millisecond
 void calibrate_apic_timer(void) {
     outportb(PIT_MODE_COMMAND_REGISTER, 0b00110100);
     uint16_t counter = PIT_1_MS;
@@ -135,8 +134,6 @@ void mdelay(size_t ms) {
     delay(apic_ms_interval * ms);
 }
 
-// 5 microseconds -> 25 ticks
-// https://github.com/tianocore/edk2/blob/master/MdePkg/Library/SecPeiDxeTimerLibCpu/X86TimerLib.c
 void udelay(size_t us) {
     delay(apic_ms_interval * us / 1000);
 }

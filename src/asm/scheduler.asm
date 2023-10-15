@@ -82,7 +82,7 @@ load_ef:
     mov [return_address], rax
     mov rax, [r15 + EF.rflags]
     mov [rflags], rax
-    mov rax, [r15 + EF.cr3]
+    ; mov rax, [r15 + EF.cr3]
     ; mov cr3, rax
     mov ds, [r15 + EF.ds]
     mov es, [r15 + EF.es]
@@ -106,10 +106,9 @@ load_ef:
     mov r15, [r15 + EF.r15]
     ret
 
-[extern add_thread]
 [extern thread_wrapper]
-[global create_thread]
-create_thread:
+[global create_thread_ef]
+create_thread_ef:
     ; rdi contains address of function
     ; rsi contains stack address for task
     mov [rax_val], rax
@@ -126,8 +125,6 @@ create_thread:
     push rax
     call save_ef
     pop rax
-    mov rdi, rax
-    call add_thread
     ret
 
 [global stack_segment]
@@ -136,9 +133,11 @@ create_thread:
 [global code_segment]
 [global return_address]
 [global rax_val]
+[global sleeping]
 stack_segment dq 0
 stack_pointer dq 0
 rflags dq 0
 code_segment dq 0
 return_address dq 0
 rax_val dq 0
+sleeping db 0

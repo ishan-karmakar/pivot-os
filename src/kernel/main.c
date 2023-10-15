@@ -33,11 +33,8 @@ void hcf(void) {
 }
 
 void __attribute__((optimize("O0"))) my_task1(void) {
-    for (size_t i = 0; i < 10000; i++) {
-        printf("_");
-        flush_screen();
-        for (size_t i = 0; i < 10000; i++);
-    }
+    printf("_\n");
+    while (1);
 }
 
 void __attribute__((optimize("O0"))) my_task2(void) {
@@ -88,10 +85,12 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     asm ("sti");
     calibrate_apic_timer();
     register void *sp asm ("sp");
+    clear_screen();
+    create_failsafe_thread(VADDR((uintptr_t) sp));
     create_thread(&kernel_start, VADDR((uintptr_t) sp));
-    create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
-    create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
-    create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
+    // create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
+    // create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
+    // create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
     start_apic_timer(APIC_TIMER_PERIODIC, 100 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
     // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
     while (1) asm ("pause");
@@ -101,5 +100,9 @@ void __attribute__((noreturn)) kernel_start(void) {
     // Kernel is now initialized
     // Actual work goes here now
     // kernel_start must be here because even if there are no other tasks, this one will be running
+    log(Info, true, "KERNEL", "Kernel setup complete");
+    thread_sleep(100 * 10);
+    log(Info, true, "KERNEL", "Slept for 1 second");
     while (1) asm ("pause");
 }
+// 
