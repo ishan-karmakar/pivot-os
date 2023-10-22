@@ -73,3 +73,9 @@ void pmm_map_physical_memory(void) {
         map_addr(addr, virtual_addr, WRITE_BIT | PRESENT_BIT);
     log(Info, true, "PMM", "Mapped physical memory");
 }
+
+void *map_range(uintptr_t start_phys, uintptr_t start_virt, size_t num_pages) {
+    for (size_t i = 0; i < num_pages; i++)
+        map_addr(start_phys + i * PAGE_SIZE, start_virt + i * PAGE_SIZE, WRITE_BIT | PRESENT_BIT);
+    return (void*) start_virt;
+}

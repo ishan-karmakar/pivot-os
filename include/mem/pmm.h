@@ -11,3 +11,4 @@ void init_pmm(uintptr_t addr, uint32_t size, mb_mmap_t*);
 void *alloc_frame(void);
 void pmm_map_physical_memory(void);
 void *map_addr(uint64_t physical, uint64_t address, size_t flags);
+void *map_range(uintptr_t start_phys, uintptr_t start_virt, size_t num_pages);

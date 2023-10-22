@@ -27,7 +27,7 @@ run: build/os.iso
 	qemu-system-x86_64 -smp 2 -cdrom $^
 
 debug: CFLAGS += -g
-debug: ASMFLAGS += -gdwarf
+debug: ASMFLAGS += -g -F dwarf
 debug: build/os.iso
 	qemu-system-x86_64 -smp 2 -cdrom $^ -s -S
 

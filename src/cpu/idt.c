@@ -71,6 +71,7 @@ void init_exceptions() {
     IDT_SET_ENTRY(32, irq32);
     IDT_SET_ENTRY(33, irq33);
     IDT_SET_ENTRY(34, irq34);
+    IDT_SET_ENTRY(35, irq35);
     IDT_SET_ENTRY(255, irq255);
 }
 

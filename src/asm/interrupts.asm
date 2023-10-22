@@ -72,9 +72,13 @@ irq%1:
 %endmacro
 
 %macro apic_eoi 0
+    push rdi
+    push rsi
     mov rdi, 0xB0
     mov rsi, 0
     call write_apic_register
+    pop rsi
+    pop rdi
 %endmacro
 
 [extern write_apic_register]
@@ -98,6 +102,98 @@ irq33:
 irq34:
     inc qword [pit_ticks]
     apic_eoi
+    iretq
+
+[extern save_ef]
+[extern load_ef]
+[extern stack_segment]
+[extern stack_pointer]
+[extern rflags]
+[extern code_segment]
+[extern return_address]
+[extern rax_val]
+[extern active_thread]
+[extern root_thread]
+[extern next_thread]
+[extern failsafe_thread]
+[extern apic_ticks]
+[extern sleeping]
+[global irq35]
+irq35:
+    mov [rax_val], rax
+    add qword [apic_ticks], 1
+    apic_eoi
+    pop qword [return_address]
+    pop qword [code_segment]
+    pop qword [rflags]
+    pop qword [stack_pointer]
+    pop qword [stack_segment]
+    cmp qword [active_thread], 0
+    jne .thread_running
+    mov rax, [root_thread]
+    mov [active_thread], rax
+    jmp .load_ef
+    
+.thread_running:
+    call next_thread
+    cmp rax, [active_thread]
+    je .active_thread
+    cmp rax, [failsafe_thread]
+    je .failsafe_thread
+    jmp .not_active_thread
+
+.same_thread:
+    push qword [stack_segment]
+    push qword [stack_pointer]
+    push qword [rflags]
+    push qword [code_segment]
+    push qword [return_address]
+    mov rax, [rax_val]
+    iretq
+
+.active_thread:
+    cmp byte [sleeping], 0
+    je .same_thread
+
+.active_thread_sleeping:
+    mov rax, [failsafe_thread]
+    mov rax, [rax]
+    call save_ef
+    mov byte [sleeping], 0
+    mov rax, [active_thread]
+    jmp .load_ef ; Keeps loading failsafe rip even when switching back
+
+.failsafe_thread:
+    cmp byte [sleeping], 1
+    je .same_thread
+
+.failsafe_thread_switch:
+    mov byte [sleeping], 1
+    mov rax, [active_thread]
+    mov rax, [rax]
+    call save_ef
+    mov rax, [failsafe_thread]
+    jmp .load_ef
+
+.not_active_thread:
+    push rax
+    mov rax, [active_thread]
+    mov rax, [rax]
+    call save_ef
+    pop rax
+    mov [active_thread], rax
+    jmp .load_ef
+
+.load_ef:
+    ; Thread pointer is in rax
+    mov rax, [rax]
+    call load_ef
+    push qword [stack_segment]
+    push qword [stack_pointer]
+    push qword [rflags]
+    push qword [code_segment]
+    push qword [return_address]
+    mov rax, [rax_val]
     iretq
 
 isr 0
@@ -132,5 +228,4 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
-irq 35
 irq 255

@@ -1,18 +1,21 @@
-#include <kernel/logging.h>
-#include <cpu/idt.h>
 #include <stdint.h>
-#include <libc/string.h>
-#include <kernel/multiboot.h>
-#include <kernel/acpi.h>
-#include <drivers/framebuffer.h>
-#include <drivers/keyboard.h>
-#include <mem/pmm.h>
+#include <sys.h>
+#include <cpu/idt.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 #include <cpu/mp.h>
-#include <sys.h>
+#include <cpu/scheduler.h>
+#include <mem/pmm.h>
+#include <mem/kheap.h>
+#include <drivers/framebuffer.h>
+#include <drivers/keyboard.h>
+#include <libc/string.h>
+#include <kernel/multiboot.h>
+#include <kernel/acpi.h>
+#include <kernel/logging.h>
 
 extern void ap_trampoline(void);
+void kernel_start(void);
 extern uintptr_t multiboot_framebuffer_data;
 extern uintptr_t multiboot_mmap_data;
 extern uintptr_t multiboot_basic_meminfo;
@@ -28,9 +31,30 @@ void hcf(void) {
         asm volatile ("hlt");
 }
 
-void init_system(uintptr_t addr, uint64_t magic) {
+void __attribute__((optimize("O0"))) my_task1(void) {
+    printf("_\n");
+    // while (1);
+}
+
+void __attribute__((optimize("O0"))) my_task2(void) {
+    printf("|\n");
+    // while (1) {
+    //     printf(".");
+    //     flush_screen();
+    //     for (size_t i = 0; i < 10000; i++);
+    // }
+}
+void __attribute__((optimize("O0"))) my_task3(void) {
+    printf(".\n");
+    // while (1) {
+    //     printf("|");
+    //     flush_screen();
+    //     for (size_t i = 0; i < 10000; i++);
+    // }
+}
+
+void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     init_idt();
-    
     uint32_t mbi_size = *(uint32_t*) (addr + KERNEL_VIRTUAL_ADDR);
     mb_basic_meminfo_t *basic_meminfo = (mb_basic_meminfo_t*)(multiboot_basic_meminfo + KERNEL_VIRTUAL_ADDR);
     mb_mmap_t *mmap = (mb_mmap_t*)(multiboot_mmap_data + KERNEL_VIRTUAL_ADDR);
@@ -52,6 +76,7 @@ void init_system(uintptr_t addr, uint64_t magic) {
 
     init_apic(mem_size);
     pmm_map_physical_memory();
+    init_kheap();
     madt_t *madt = (madt_t*) get_table("APIC");
     print_madt(madt);
     init_ioapic(madt);
@@ -60,10 +85,24 @@ void init_system(uintptr_t addr, uint64_t magic) {
     set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
     asm ("sti");
     calibrate_apic_timer();
-    log(Verbose, true, "APIC", "Calibrated APIC timer");
+    register void *sp asm ("sp");
+    clear_screen();
+    create_failsafe_thread(VADDR((uintptr_t) sp));
+    create_thread(&kernel_start, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
+    start_apic_timer(APIC_TIMER_PERIODIC, 100 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    while (1) asm ("pause");
 }
 
-void kernel_start(uintptr_t addr, uint64_t magic) {
-    init_system(addr, magic);
+void __attribute__((noreturn)) kernel_start(void) {
+    // Kernel is now initialized
+    // Actual work goes here now
+    // kernel_start must be here because even if there are no other tasks, this one will be running
+    log(Info, true, "KERNEL", "Kernel setup complete");
+    thread_sleep(1000);
+    log(Info, true, "KERNEL", "Slept for 1 second");
     while (1) asm ("pause");
 }
