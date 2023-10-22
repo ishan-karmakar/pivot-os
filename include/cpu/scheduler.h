@@ -6,9 +6,8 @@
 typedef enum {
     RUNNING,
     STOPPED,
-    SLEEPING,
     ENDED
-} thread_status_t;
+} thread_status_t; // SLEEPING is also a status, but we can check it instead by checking if wakeup_time > apic_ticks
 
 typedef struct thread_t {
     cpu_status_t *ef;

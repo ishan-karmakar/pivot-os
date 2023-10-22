@@ -16,7 +16,6 @@ void init_kheap(void) {
     kernel_heap_start = (kheap_mem_node_t *) ((uint64_t) kheap_vaddress);
     kernel_heap_current_pos = kernel_heap_start;
     kernel_heap_end = kernel_heap_start;
-    //TODO: Should we use PAGE_SIZE for the initial heap size?
     kernel_heap_current_pos->size = 0x1000;
     kernel_heap_current_pos->is_free = true;
     kernel_heap_current_pos->next = NULL;

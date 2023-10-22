@@ -58,7 +58,6 @@ thread_t *next_thread(void) {
     thread_t *thread = active_thread;
     switch (thread->status) {
     case ENDED:
-        printf("Thread status is ENDED");
         if (thread->prev)
             thread->prev->next = thread->next;
 
@@ -75,14 +74,12 @@ thread_t *next_thread(void) {
     default:
         thread = NEXT_THREAD(thread);
     }
-
+    thread_t *org_thread = thread;
     while (true) {
         if (thread->wakeup_time <= apic_ticks) {
-            printf("%x\n", thread);
             thread->status = RUNNING;
             return thread;
-        } else if (thread == active_thread) {
-            printf("Returning failsafe thread\n");
+        } else if (thread == org_thread) {
             return failsafe_thread;
         }
         thread = NEXT_THREAD(thread);
@@ -96,7 +93,6 @@ void thread_wrapper(void (*f)(void)) {
 }
 
 void thread_sleep(size_t milliseconds) {
-    active_thread->status = SLEEPING;
     active_thread->wakeup_time = apic_ticks + ((milliseconds * apic_ms_interval) / read_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF));
     scheduler_yield();
 }

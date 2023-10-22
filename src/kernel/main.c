@@ -93,7 +93,7 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
     create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
     start_apic_timer(APIC_TIMER_PERIODIC, 100 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
-    // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
     while (1) asm ("pause");
 }
 
@@ -102,8 +102,7 @@ void __attribute__((noreturn)) kernel_start(void) {
     // Actual work goes here now
     // kernel_start must be here because even if there are no other tasks, this one will be running
     log(Info, true, "KERNEL", "Kernel setup complete");
-    // thread_sleep(1000);
-    asm volatile ("int $35");
+    thread_sleep(1000);
     log(Info, true, "KERNEL", "Slept for 1 second");
     while (1) asm ("pause");
 }
