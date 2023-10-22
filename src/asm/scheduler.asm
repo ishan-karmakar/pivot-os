@@ -117,7 +117,13 @@ create_thread_ef:
     mov [code_segment], cs
     mov [stack_segment], ss
     mov [stack_pointer], rsi
+    cmp rdx, 0
+    je .no_thread_wrapper
     mov qword [return_address], thread_wrapper
+    jmp .both
+.no_thread_wrapper:
+    mov [return_address], rdi
+.both:
     push rdi
     mov rdi, EF_size
     call kmalloc ; Pointer is stored in rax register

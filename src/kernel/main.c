@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <sys.h>
-#include <cpu/tss.h>
 #include <cpu/idt.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
@@ -34,22 +33,24 @@ void hcf(void) {
 
 void __attribute__((optimize("O0"))) my_task1(void) {
     printf("_\n");
-    while (1);
+    // while (1);
 }
 
 void __attribute__((optimize("O0"))) my_task2(void) {
-    while (1) {
-        printf(".");
-        flush_screen();
-        for (size_t i = 0; i < 10000; i++);
-    }
+    printf("|\n");
+    // while (1) {
+    //     printf(".");
+    //     flush_screen();
+    //     for (size_t i = 0; i < 10000; i++);
+    // }
 }
 void __attribute__((optimize("O0"))) my_task3(void) {
-    while (1) {
-        printf("|");
-        flush_screen();
-        for (size_t i = 0; i < 10000; i++);
-    }
+    printf(".\n");
+    // while (1) {
+    //     printf("|");
+    //     flush_screen();
+    //     for (size_t i = 0; i < 10000; i++);
+    // }
 }
 
 void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
@@ -87,10 +88,10 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     register void *sp asm ("sp");
     clear_screen();
     create_failsafe_thread(VADDR((uintptr_t) sp));
-    create_thread(&kernel_start, VADDR((uintptr_t) sp));
-    // create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
-    // create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
-    // create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&kernel_start, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
+    create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
     start_apic_timer(APIC_TIMER_PERIODIC, 100 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
     // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
     while (1) asm ("pause");
@@ -101,8 +102,8 @@ void __attribute__((noreturn)) kernel_start(void) {
     // Actual work goes here now
     // kernel_start must be here because even if there are no other tasks, this one will be running
     log(Info, true, "KERNEL", "Kernel setup complete");
-    thread_sleep(100 * 10);
+    // thread_sleep(1000);
+    asm volatile ("int $35");
     log(Info, true, "KERNEL", "Slept for 1 second");
     while (1) asm ("pause");
 }
-// 
