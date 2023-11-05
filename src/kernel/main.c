@@ -5,6 +5,7 @@
 #include <cpu/ioapic.h>
 #include <cpu/mp.h>
 #include <cpu/scheduler.h>
+#include <cpu/rtc.h>
 #include <mem/pmm.h>
 #include <mem/kheap.h>
 #include <drivers/framebuffer.h>
@@ -81,19 +82,22 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     print_madt(madt);
     init_ioapic(madt);
     init_keyboard();
-    set_irq(1, 0x21, 0, 0, 0); // Keyboard
-    set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
+    // set_irq(1, 0x21, 0, 0, 0); // Keyboard
+    // set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
+    set_irq(8, 36, 0, 0, 0);
     asm ("sti");
-    calibrate_apic_timer();
+    // calibrate_apic_timer();
     register void *sp asm ("sp");
-    clear_screen();
-    create_failsafe_thread(VADDR((uintptr_t) sp));
-    create_thread(&kernel_start, VADDR((uintptr_t) alloc_frame()));
-    create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
-    create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
-    create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
-    start_apic_timer(APIC_TIMER_PERIODIC, 100 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
-    log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    // asm volatile ("int $36");
+    init_rtc();
+    // clear_screen();
+    // create_failsafe_thread(VADDR((uintptr_t) sp));
+    // create_thread(&kernel_start, VADDR((uintptr_t) alloc_frame()));
+    // create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
+    // create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
+    // create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
+    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
     while (1) asm ("pause");
 }
 

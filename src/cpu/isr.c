@@ -90,6 +90,10 @@ void exception_handler(isr_status_t *status) {
         hcf();
 }
 
+extern void rtc_handler(void);
 void irq_handler(uint64_t interrupt_number) {
     log(Info, true, "IRQ", "IRQ %u triggered", interrupt_number);
+    if (interrupt_number == 36) {
+        rtc_handler();
+    }
 }

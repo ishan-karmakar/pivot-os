@@ -228,4 +228,7 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
+irq 36
 irq 255
+
+string db 'T', 0
