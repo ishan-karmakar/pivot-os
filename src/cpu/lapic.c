@@ -25,7 +25,7 @@ void init_apic(size_t mem_size) {
     uint64_t msr_output = rdmsr(IA32_APIC_BASE);
     uint32_t apic_base_address = msr_output & APIC_BASE_ADDRESS_MASK;
     if (apic_base_address == 0) {
-        log(Error, true, "LAPIC", "Cannot determine apic base address");
+        log(Error, "LAPIC", "Cannot determine apic base address");
         hcf();
     }
     apic_hh_address = apic_base_address + HIGHER_HALF_OFFSET;
@@ -34,28 +34,28 @@ void init_apic(size_t mem_size) {
     __get_cpuid(1, &ignored, &ignored, &x2ApicLeaf, &xApicLeaf);
 
     if (x2ApicLeaf & (1 << 21)) {
-        log(Info, true, "LAPIC", "x2APIC Available");
+        log(Info, "LAPIC", "x2APIC Available");
         x2mode = true;
         msr_output |= (1 << 10);
         wrmsr(IA32_APIC_BASE, msr_output);
     } else if (xApicLeaf & (1 << 9)) {
-        log(Info, true, "LAPIC", "xAPIC Available");
+        log(Info, "LAPIC", "xAPIC Available");
         x2mode = false;
         map_addr(apic_base_address, apic_hh_address, PRESENT_BIT | WRITE_BIT);
     } else
-        return log(Error, true, "LAPIC", "No LAPIC is supported by this CPU");
+        return log(Error, "LAPIC", "No LAPIC is supported by this CPU");
     
     if (!((msr_output >> APIC_GLOBAL_ENABLE_BIT) & 1))
-        return log(Error, true, "LAPIC", "APIC is disabled globally");
+        return log(Error, "LAPIC", "APIC is disabled globally");
     
     write_apic_register(APIC_SPURIOUS_VEC_REG_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_INTERRUPT);
-    log(Info, true, "LAPIC", "Initialized APIC");
+    log(Info, "LAPIC", "Initialized APIC");
     if (apic_base_address < mem_size) {
-        log(Verbose, true, "LAPIC", "APIC base address is in physical memory area");
+        log(Verbose, "LAPIC", "APIC base address is in physical memory area");
         bitmap_set_bit_addr(apic_base_address);
     }
     disable_pic();
-    log(Info, true, "LAPIC", "Disabled PIC");
+    log(Info, "LAPIC", "Disabled PIC");
 }
 
 void disable_pic(void) {
@@ -113,8 +113,8 @@ void calibrate_apic_timer(void) {
     
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;
-    log(Verbose, true, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
-    log(Info, true, "APIC", "Calibrated APIC timer");
+    log(Verbose, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
+    log(Info, "APIC", "Calibrated APIC timer");
 }
 
 void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry) {

@@ -20,7 +20,7 @@ void init_kheap(void) {
     kernel_heap_current_pos->is_free = true;
     kernel_heap_current_pos->next = NULL;
     kernel_heap_current_pos->prev = NULL;
-    log(Info, true, "KHEAP", "Initialized kernel heap");
+    log(Info, "KHEAP", "Initialized kernel heap");
 }
 
 size_t align(size_t size) {
@@ -124,7 +124,7 @@ void *kmalloc(size_t size) {
     kheap_mem_node_t *current_node = kernel_heap_start;
     // If size is 0 we don't need to do anything
     if( size == 0 ) {
-        log(Verbose, true, "KHEAP", "Size is null");
+        log(Verbose, "KHEAP", "Size is null");
         return NULL;
     }
 

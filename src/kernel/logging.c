@@ -12,7 +12,7 @@ char *log_levels[] = {
     "TRACE"
 };
 
-void log(log_level_t log_level, bool flush, const char *target, const char *format, ...) {
+void log(log_level_t log_level, const char *target, const char *format, ...) {
     if (log_level > min_log_level)
         return;
     va_list args;
@@ -20,7 +20,5 @@ void log(log_level_t log_level, bool flush, const char *target, const char *form
     printf("[%s] %s: ", log_levels[log_level], target);
     vprintf(format, args);
     printf("\n");
-    if (flush)
-        flush_screen();
     va_end(args);
 }

@@ -104,6 +104,13 @@ irq34:
     apic_eoi
     iretq
 
+[extern rtc_handler]
+[global irq36]
+irq36:
+    call rtc_handler
+    apic_eoi
+    iretq
+
 [extern save_ef]
 [extern load_ef]
 [extern stack_segment]
@@ -228,7 +235,6 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
-irq 36
 irq 255
 
 string db 'T', 0

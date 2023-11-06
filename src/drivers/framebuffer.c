@@ -113,5 +113,5 @@ void init_framebuffer(mb_framebuffer_data_t *fbdata) {
     screen_info.num_rows = fbinfo.height / loaded_font->height;
     map_framebuffer();
     FRAMEBUFFER_INITIALIZED = true;
-    log(Info, true, "FRAMEBUFFER", "Initialized framebuffer");
+    log(Info, "FRAMEBUFFER", "Initialized framebuffer");
 }

@@ -66,9 +66,9 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     mb_framebuffer_data_t *framebuffer = (mb_framebuffer_data_t*)(multiboot_framebuffer_data + KERNEL_VIRTUAL_ADDR);
     init_framebuffer(framebuffer);
     if (magic == 0x36d76289)
-        log(Info, true, "KERNEL", "Multiboot magic number verified");
+        log(Info, "KERNEL", "Multiboot magic number verified");
     else {
-        log(Error, true, "KERNEL", "Failed to verify magic number");
+        log(Error, "KERNEL", "Failed to verify magic number");
         hcf();
     }
 
@@ -84,7 +84,7 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     init_keyboard();
     // set_irq(1, 0x21, 0, 0, 0); // Keyboard
     // set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
-    set_irq(8, 36, 0, 0, 0);
+    set_irq(8, 37, 0, 0, 0);
     asm ("sti");
     // calibrate_apic_timer();
     register void *sp asm ("sp");
@@ -105,8 +105,8 @@ void __attribute__((noreturn)) kernel_start(void) {
     // Kernel is now initialized
     // Actual work goes here now
     // kernel_start must be here because even if there are no other tasks, this one will be running
-    log(Info, true, "KERNEL", "Kernel setup complete");
+    log(Info, "KERNEL", "Kernel setup complete");
     thread_sleep(1000);
-    log(Info, true, "KERNEL", "Slept for 1 second");
+    log(Info, "KERNEL", "Slept for 1 second");
     while (1) asm ("pause");
 }

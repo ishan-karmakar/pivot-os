@@ -30,27 +30,27 @@ char shift_keymap[] = {
 
 static inline void check_ack(void) {
     if (inportb(KEYBOARD_PORT) != KEYBOARD_ACK)
-        return log(Error, true, "KEYBOARD", "Unable to communicate with keyboard");
+        return log(Error, "KEYBOARD", "Unable to communicate with keyboard");
 }
 
 void init_keyboard(void) {
     inportb(KEYBOARD_PORT);
     outportb(KEYBOARD_PORT, 0xF5); // Disable keyboard from sending scan codes
     check_ack();
-    log(Verbose, true, "KEYBOARD", "Disabled keyboard scan codes");
+    log(Verbose, "KEYBOARD", "Disabled keyboard scan codes");
     outportb(KEYBOARD_PORT, 0xF0); // Set scancode set 2
     outportb(KEYBOARD_PORT, 2);
     check_ack();
-    log(Verbose, true, "KEYBOARD", "Set keyboard scan code set 2");
+    log(Verbose, "KEYBOARD", "Set keyboard scan code set 2");
 
     outportb(0x64, 0x20);
     while ((inportb(PS2_STATUS) & 0b10) != 0);
     uint8_t configuration_byte = inportb(PS2_DATA);
     if ((configuration_byte & (1 << 6)) == 0)
-        return log(Error, true, "KEYBOARD", "Translation is not enabled");
+        return log(Error, "KEYBOARD", "Translation is not enabled");
     outportb(KEYBOARD_PORT, 0xF4);
     check_ack();
-    log(Verbose, true, "KEYBOARD", "Enabled keyboard scan codes");
+    log(Verbose, "KEYBOARD", "Enabled keyboard scan codes");
 }
 
 void update_modifiers(key_modifiers_t modifier, int is_pressed) {

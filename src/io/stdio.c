@@ -51,7 +51,7 @@ void vprintf(const char *c, va_list args) {
             }
         if (fb_buf_pos > (BUF_SIZE - 1)) {
             fb_buf_pos = 0;
-            log(Error, true, "FB", "Buffer overflow");
+            log(Error, "FB", "Buffer overflow");
         }
         if (*c == '\n')
             flush_screen();

@@ -48,7 +48,7 @@ void create_thread(void (*fn)(void), uintptr_t stack_pointer) {
         current->next = thread;
         thread->prev = current;
     }
-    log(Verbose, true, "SCHEDULER", "Created task at address %x", thread);
+    log(Verbose, "SCHEDULER", "Created task at address %x", thread);
 }
 
 thread_t *next_thread(void) {
