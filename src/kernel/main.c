@@ -38,7 +38,7 @@ void __attribute__((optimize("O0"))) my_task1(void) {
 }
 
 void __attribute__((optimize("O0"))) my_task2(void) {
-    printf("|\n");
+    printf("_\n");
     // while (1) {
     //     printf(".");
     //     flush_screen();
@@ -82,21 +82,25 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     print_madt(madt);
     init_ioapic(madt);
     init_keyboard();
-    set_irq(1, 0x21, 0, 0, 0); // Keyboard
-    set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
-    set_irq(8, 37, 0, 0, 1);
+    IDT_SET_ENTRY(34, pit_irq);
+    IDT_SET_ENTRY(35, keyboard_irq);
+    set_irq(2, 34, 0, 0, 1); // PIT timer - initially masked
+    set_irq(1, 35, 0, 0, 0); // Keyboard
     asm ("sti");
     calibrate_apic_timer();
     register void *sp asm ("sp");
+    // Change PIT timer irq to RTC timer irq since PIT is no longer used
+    IDT_SET_ENTRY(34, rtc_irq);
+    set_irq(8, 34, 0, 0, 1);
+    clear_screen();
     init_rtc();
-    // clear_screen();
     // create_failsafe_thread(VADDR((uintptr_t) sp));
     // create_thread(&kernel_start, VADDR((uintptr_t) alloc_frame()));
     // create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));
     // create_thread(&my_task2, VADDR((uintptr_t) alloc_frame()));
     // create_thread(&my_task3, VADDR((uintptr_t) alloc_frame()));
-    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
-    // log(Verbose, true, "APIC", "Started APIC timer to trigger every ms");
+    // start_apic_timer(APIC_TIMER_PERIODIC, 2 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // log(Info, "APIC", "Started APIC timer in periodic mode");
     while (1) asm ("pause");
 }
 

@@ -84,29 +84,29 @@ irq%1:
 [extern write_apic_register]
 
 [extern apic_triggered]
-[global irq32]
-irq32:
+[global apic_oneshot_irq]
+apic_oneshot_irq:
     mov qword [apic_triggered], 1
     apic_eoi
     iretq
 
 [extern handle_keyboard]
-[global irq33]
-irq33:
+[global keyboard_irq]
+keyboard_irq:
     call handle_keyboard
     apic_eoi
     iretq
 
 [extern pit_ticks]
-[global irq34]
-irq34:
+[global pit_irq]
+pit_irq:
     inc qword [pit_ticks]
     apic_eoi
     iretq
 
 [extern rtc_handler]
-[global irq36]
-irq36:
+[global rtc_irq]
+rtc_irq:
     call rtc_handler
     apic_eoi
     iretq
@@ -125,8 +125,8 @@ irq36:
 [extern failsafe_thread]
 [extern apic_ticks]
 [extern sleeping]
-[global irq35]
-irq35:
+[global apic_periodic_irq]
+apic_periodic_irq:
     mov [rax_val], rax
     add qword [apic_ticks], 1
     apic_eoi

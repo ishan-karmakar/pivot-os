@@ -1,9 +1,6 @@
 #include <stdint.h>
 #include <kernel/logging.h>
 #include <cpu/idt.h>
-#define IDT_SET_ENTRY(num, handler) \
-    extern void handler(); \
-    set_idt_entry((num), 0x8E, 0x8, 0, handler);
 
 #pragma pack(1)
 typedef struct {
@@ -25,7 +22,7 @@ typedef struct {
 idtr_t idtr;
 idt_desc_t idt[256];
 
-void set_idt_entry(uint16_t idx, uint8_t flags, uint16_t selector, uint8_t ist, void (*handler)() ){
+void set_idt_entry(uint16_t idx, uint8_t flags, uint16_t selector, uint8_t ist, void (*handler)()) {
     idt[idx].flags = flags;
     idt[idx].ist = ist;
     idt[idx].segment_selector = selector;
@@ -68,15 +65,10 @@ void init_exceptions() {
     IDT_SET_ENTRY(29, isr29);
     IDT_SET_ENTRY(30, isr30);
     IDT_SET_ENTRY(31, isr31);
-    IDT_SET_ENTRY(32, irq32);
-    IDT_SET_ENTRY(33, irq33);
-    IDT_SET_ENTRY(34, irq34);
-    IDT_SET_ENTRY(35, irq35);
-    IDT_SET_ENTRY(37, irq36);
     IDT_SET_ENTRY(255, irq255);
 }
 
-void init_idt(){
+void init_idt() {
     for (int i = 0; i < 256; i++)
         idt[i] = (idt_desc_t) {0};
     init_exceptions();

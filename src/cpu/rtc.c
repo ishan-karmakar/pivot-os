@@ -1,5 +1,6 @@
 #include <cpu/rtc.h>
 #include <io/stdio.h>
+#include <drivers/framebuffer.h>
 #include <io/ports.h>
 #include <cpu/ioapic.h>
 #include <kernel/logging.h>
@@ -15,6 +16,8 @@
 #define RTC_STATUS_A 0xA
 #define RTC_STATUS_B 0xB
 #define DISABLE_NMI 0x80
+#define TIME_LENGTH 8
+#define DATE_LENGTH 8
 
 char *months[] = { "January", "February", "March", "April", "May", "June", "July",
                    "August", "September", "October", "November", "December" };
@@ -78,8 +81,18 @@ void rtc_handler(void) {
             global_time.second = read_cmos_register(0);
         }
         global_time.dow = get_dow(global_time.century * 100 + global_time.year, global_time.month, global_time.dom);
-        log(Verbose, "RTC", "%u:%u:%u, %s, %s %u, %u%u",
-            global_time.hour, global_time.minute, global_time.second, days_of_week[global_time.dow - 1],
-            months[global_time.month - 1], global_time.dom, global_time.century, global_time.year);
+        // HH:MM:SS
+        // MM/DD/YY
+        uint32_t old_color = screen_info.fg;
+        screen_info.fg = 0x579cf7;
+        printf_at(screen_info.num_cols - TIME_LENGTH, 0, "%s%u:%s%u:%s%u",
+                    global_time.hour < 10 ? "0" : "", global_time.hour,
+                    global_time.minute < 10 ? "0" : "", global_time.minute,
+                    global_time.second < 10 ? "0" : "", global_time.second);
+        printf_at(screen_info.num_cols - DATE_LENGTH, 1, "%s%u/%s%u/%s%u",
+                    global_time.month < 10 ? "0" : "", global_time.month,
+                    global_time.dom < 10 ? "0" : "", global_time.dom,
+                    global_time.year < 10 ? "0" : "", global_time.year);
+        screen_info.fg = old_color;
     }
 }

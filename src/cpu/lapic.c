@@ -1,5 +1,6 @@
 #include <cpu/lapic.h>
 #include <cpu/cpu.h>
+#include <cpu/idt.h>
 #include <mem/bitmap.h>
 #include <mem/pmm.h>
 #include <kernel/logging.h>
@@ -56,6 +57,8 @@ void init_apic(size_t mem_size) {
     }
     disable_pic();
     log(Info, "LAPIC", "Disabled PIC");
+    IDT_SET_ENTRY(32, apic_periodic_irq);
+    IDT_SET_ENTRY(33, apic_oneshot_irq);
 }
 
 void disable_pic(void) {

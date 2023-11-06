@@ -64,3 +64,15 @@ void printf(const char *format, ...) {
     vprintf(format, args);
     va_end(args);
 }
+
+void printf_at(size_t x, size_t y, const char *format, ...) {
+    screen_info_t old_info = screen_info;
+    screen_info.x = x;
+    screen_info.y = y;
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    flush_screen();
+    screen_info = old_info;
+}

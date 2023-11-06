@@ -14,7 +14,7 @@ extern cpu_status_t *create_thread_ef(void (*)(void), uintptr_t stack_pointer, b
 thread_status_t get_thread_status(void) { return active_thread->status; }
 void set_thread_status(thread_status_t s) { active_thread->status = s; }
 void scheduler_yield(void) {
-    asm volatile ("int $35");
+    asm volatile ("int $32");
 }
 
 void failsafe_thread_fn(void) {

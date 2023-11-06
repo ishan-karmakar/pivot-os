@@ -38,6 +38,8 @@ typedef struct {
 } screen_info_t;
 
 extern bool FRAMEBUFFER_INITIALIZED;
+extern screen_info_t screen_info;
+extern framebuffer_info_t fbinfo;
 
 void clear_screen(void);
 void init_framebuffer(mb_framebuffer_data_t*);
