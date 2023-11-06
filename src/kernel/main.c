@@ -88,12 +88,12 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     set_irq(1, 35, 0, 0, 0); // Keyboard
     asm ("sti");
     calibrate_apic_timer();
-    register void *sp asm ("sp");
     // Change PIT timer irq to RTC timer irq since PIT is no longer used
     IDT_SET_ENTRY(34, rtc_irq);
     set_irq(8, 34, 0, 0, 1);
     clear_screen();
     init_rtc();
+    start_aps(madt);
     // create_failsafe_thread(VADDR((uintptr_t) sp));
     // create_thread(&kernel_start, VADDR((uintptr_t) alloc_frame()));
     // create_thread(&my_task1, VADDR((uintptr_t) alloc_frame()));

@@ -13,12 +13,12 @@ void start_aps(madt_t *madt) {
     
     madt_item_t *lapic = get_madt_item(madt, MADT_LAPIC, 0);
     uint8_t count = 0;
-    memcpy((void*) VADDR(0x8000), &ap_trampoline, PAGE_SIZE);
+    // memcpy((void*) VADDR(0x8000), &ap_trampoline, PAGE_SIZE);
     while (lapic != NULL) {
         uint8_t apic_id = *((uint8_t*)(lapic + 1) + 1);
         if (apic_id != current_apic_id) {
             log(Info, "MP", "Starting up processor %u", apic_id);
-            start_ap(apic_id, 0x8);
+            // start_ap(apic_id, 0x8);
         }
 
         lapic = get_madt_item(madt, MADT_LAPIC, ++count);
@@ -30,8 +30,8 @@ void start_ap(uint32_t id, uint8_t trampoline_page __attribute__((unused))) {
     *processor_status = 0;
     // printf("a\n");
     log(Verbose, "MP", "Sending INIT to processor");
-    write_apic_register(APIC_ICRHI_OFF, id << 24); // This is the problem
-    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_ASSERT | ICR_LEVEL);
+    // write_apic_register(APIC_ICRHI_OFF, id << 24); // This is the problem
+    // write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_ASSERT | ICR_LEVEL);
 
     // while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
     // mdelay(10);
