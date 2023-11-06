@@ -104,12 +104,12 @@ void calibrate_apic_timer(void) {
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
     write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER);
 
-    set_irq_mask(0x14, 0);
+    set_irq_mask(2, false);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, (uint32_t)-1);
     while(pit_ticks < 500);
     uint32_t current_apic_count = read_apic_register(APIC_TIMER_CURRENT_COUNT_REG_OFF);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF, 0);
-    set_irq_mask(0x14, 1);
+    set_irq_mask(2, true);
     
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;

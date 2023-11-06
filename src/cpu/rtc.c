@@ -1,6 +1,7 @@
 #include <cpu/rtc.h>
 #include <io/stdio.h>
 #include <io/ports.h>
+#include <cpu/ioapic.h>
 #include <kernel/logging.h>
 
 #define RTC_SECONDS 0
@@ -17,10 +18,10 @@
 
 char *months[] = { "January", "February", "March", "April", "May", "June", "July",
                    "August", "September", "October", "November", "December" };
+char *days_of_week[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Friday", "Saturday" };
 
 time_t global_time;
 int bcd;
-
 
 uint8_t read_cmos_register(uint8_t port_num) {
     outportb(0x70, port_num);
@@ -36,14 +37,22 @@ inline uint32_t bcd2bin(uint32_t bcd_num) {
     return ((bcd_num >> 4) * 10) + (bcd_num & 0xF);
 }
 
+// Month is 1-12
+// Copied and pasted from wikipedia article
+inline uint8_t get_dow(uint16_t y, uint8_t m, uint8_t dom) {
+    return (dom +=m < 3 ? y-- : y - 2, 23 * m / 9 + dom + 4 + y / 4 - y / 100 + y / 400) % 7 + 1;
+}
+
 void init_rtc(void) {
     uint8_t status = read_cmos_register(0xB);
     status |= 0x2 | 0x10; // 24 hour mode and update ended interrupt
-    status &= ~20 | ~0x40; // No periodic interrupt and no alarm interrupt
+    status &= ~0x20; // No periodic interrupt and no alarm interrupt
+    status &= ~0x40;
     bcd = !(status & 0x4);
     write_cmos_register(0xB, status);
-    read_cmos_register(0xC);
     log(Info, "RTC", "Initialized RTC timer (in %s mode)", bcd ? "BCD" : "binary");
+    read_cmos_register(0xC);
+    set_irq_mask(8, false);
 }
 
 void rtc_handler(void) {
@@ -55,7 +64,6 @@ void rtc_handler(void) {
             global_time.year = bcd2bin(read_cmos_register(0x9));
             global_time.month = bcd2bin(read_cmos_register(0x8));
             global_time.dom = bcd2bin(read_cmos_register(0x7));
-            global_time.dow = 0;
             global_time.hour = bcd2bin(read_cmos_register(0x4));
             global_time.minute = bcd2bin(read_cmos_register(0x2));
             global_time.second = bcd2bin(read_cmos_register(0));
@@ -65,13 +73,13 @@ void rtc_handler(void) {
             global_time.year = read_cmos_register(0x9);
             global_time.month = read_cmos_register(0x8);
             global_time.dom = read_cmos_register(0x7);
-            global_time.dow = 0; // FIX THIS
             global_time.hour = read_cmos_register(0x4);
             global_time.minute = read_cmos_register(0x2);
             global_time.second = read_cmos_register(0);
         }
-        log(Verbose, "RTC", "%u:%u:%u, %s %u, %u%u",
-            global_time.hour, global_time.minute, global_time.second,
+        global_time.dow = get_dow(global_time.century * 100 + global_time.year, global_time.month, global_time.dom);
+        log(Verbose, "RTC", "%u:%u:%u, %s, %s %u, %u%u",
+            global_time.hour, global_time.minute, global_time.second, days_of_week[global_time.dow - 1],
             months[global_time.month - 1], global_time.dom, global_time.century, global_time.year);
     }
 }

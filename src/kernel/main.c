@@ -82,13 +82,12 @@ void __attribute__((noreturn)) init_kernel(uintptr_t addr, uint64_t magic) {
     print_madt(madt);
     init_ioapic(madt);
     init_keyboard();
-    // set_irq(1, 0x21, 0, 0, 0); // Keyboard
-    // set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
-    set_irq(8, 37, 0, 0, 0);
+    set_irq(1, 0x21, 0, 0, 0); // Keyboard
+    set_irq(2, 0x22, 0, 0, 1); // PIT timer - initially masked
+    set_irq(8, 37, 0, 0, 1);
     asm ("sti");
-    // calibrate_apic_timer();
+    calibrate_apic_timer();
     register void *sp asm ("sp");
-    // asm volatile ("int $36");
     init_rtc();
     // clear_screen();
     // create_failsafe_thread(VADDR((uintptr_t) sp));

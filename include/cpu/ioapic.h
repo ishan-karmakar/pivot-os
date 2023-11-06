@@ -44,4 +44,4 @@ typedef struct {
 
 void init_ioapic(madt_t*);
 void set_irq(uint8_t irq, uint8_t idt_entry, uint8_t destination_field, uint32_t flags, bool masked);
-void set_irq_mask(uint8_t, int);
+void set_irq_mask(uint8_t, bool);

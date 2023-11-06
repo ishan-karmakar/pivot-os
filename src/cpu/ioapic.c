@@ -105,7 +105,8 @@ void set_irq(uint8_t irq, uint8_t idt_entry, uint8_t destination_field, uint32_t
         log(Error, "IOAPIC", "Error writing to redirection table");
 }
 
-void set_irq_mask(uint8_t redtbl_pos, int masked) {
+void set_irq_mask(uint8_t irq, bool masked) {
+    uint8_t redtbl_pos = 0x10 + irq * 2;
     ioapic_redtbl_entry_t entry;
     read_redirect(redtbl_pos, &entry);
     entry.mask = masked;
