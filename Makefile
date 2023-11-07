@@ -20,16 +20,18 @@ ASMFLAGS := -felf64
 LDFLAGS := -n
 
 all: build/os.iso
-.PHONY = run clean
+.PHONY = run debug-run clean
 
 run: LDFLAGS += -s
 run: build/os.iso
 	qemu-system-x86_64 -smp 2 -cdrom $^
 
+debug-run: debug
+	qemu-system-x86_64 -smp 2 -cdrom build/os.iso -s -S
+
 debug: CFLAGS += -g
 debug: ASMFLAGS += -g -F dwarf
 debug: build/os.iso
-	qemu-system-x86_64 -smp 2 -cdrom $^ -s -S
 
 build/os.iso: build/kernel.bin grub.cfg
 	mkdir -p build/isofiles/boot/grub

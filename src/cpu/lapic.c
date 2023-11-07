@@ -131,6 +131,7 @@ void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_ent
 static inline void delay(size_t num_ticks) {
     start_apic_timer(0, num_ticks, APIC_TIMER_ONESHOT_IDT_ENTRY);
     while (!apic_triggered) asm ("pause");
+    apic_triggered = false;
 }
 
 void mdelay(size_t ms) {

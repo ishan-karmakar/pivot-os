@@ -2,23 +2,6 @@
 #include <kernel/logging.h>
 #include <cpu/idt.h>
 
-#pragma pack(1)
-typedef struct {
-    uint16_t offset_low;
-    uint16_t segment_selector;
-    uint8_t ist;
-    uint8_t flags;
-    uint16_t offset_mid;
-    uint32_t offset_high;
-    uint32_t zero;
-} idt_desc_t;
-
-typedef struct {
-    uint16_t size;
-    uint64_t addr;
-} idtr_t;
-#pragma pack()
-
 idtr_t idtr;
 idt_desc_t idt[256];
 

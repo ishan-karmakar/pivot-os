@@ -26,13 +26,13 @@ SECTIONS {
 	{
 		*(.rodata)
 	}
-	.data ALIGN (4K) : AT (ADDR (.data) - _kern_virtual_offset)
-	{
-		*(.data)
-	}
 	.bss ALIGN (4K) : AT (ADDR (.bss) - _kern_virtual_offset)
 	{
 		*(.bss)
+	}
+	.data ALIGN (4K) : AT (ADDR (.data) - _kern_virtual_offset)
+	{
+		*(.data)
 	}
 
     _kernel_end = .;

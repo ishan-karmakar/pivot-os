@@ -84,8 +84,6 @@ _start:
     ; Now is time to enable paging
     mov eax, cr0    ;cr0 contains the values we want to change
     or eax, 1 << 31 ; Paging bit
-    or eax, 1 << 16 ; Write protect, cpu  can't write to read-only pages when
-                    ; privilege level is 0
     mov cr0, eax    ; write back cr0
     ; load gdt 
     lgdt [gdt64.pointer_low - KERNEL_VIRTUAL_ADDR]

@@ -8,53 +8,92 @@
 ap_trampoline:
     cli
     cld
-    jmp 0:0x8040
+
+    xor ax, ax
+    mov ds, ax
+    lgdt [0x8038]
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+    jmp 0x8:0x8040
 
 align 16
-gdt32: ; 0x8010
+gdt32: ; 0x8020
     dq 0
-    .code: ; 0x8018
+    .code: ; 0x8028
         dw 0xFFFF
         dw 0
         db 0
         db 0b10011010
         db 0b11001111
         db 0
-    .data: ; 0x8020
+    .data: ; 0x8030
         dw 0xFFFF
         dw 0
         db 0
         db 0b10010010
         db 0b11001111
         db 0
-    .pointer: ; 0x8028
+    .pointer: ; 0x8038
         dw .pointer - gdt32 - 1
-        dd 0x8010
+        dd 0x8020
 
-align 16
-gdt64: ; 0x8030
-    dw 0
-    dq 0
-
-align 16
-load_gdt: ; 0x8040
-    xor ax, ax
-    mov ds, ax
-    lgdt [0x8028]
-    mov eax, cr0
-    or eax, 1
-    mov cr0, eax
-    jmp 0x8:0x8060
-
-align 32
 [bits 32]
-kernel32: ; 0x8060
+align 8
+kernel32: ; 0x8040
     mov ax, 0x10
     mov ds, ax
     mov ss, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
+    ; mov dword [16 * PAGE_SIZE], 1
+    mov eax, [15 * PAGE_SIZE + 4]
+    mov cr3, eax
 
-    mov byte [16 * PAGE_SIZE], 2
+    mov eax, cr4
+    or eax, 1 << 5
+    mov cr4, eax
+
+    mov ecx, 0xC0000080
+    rdmsr
+    or eax, 1 << 8
+    wrmsr
+
+    mov eax, cr0
+    or eax, 1 << 31
+    mov cr0, eax
+
+    ; Load GDT
+    mov eax, [15 * PAGE_SIZE]
+    lgdt [eax]
+    ; JMP to 64 bit
+    jmp 0x8:0x8088
+
+align 8
+[bits 64]
+kernel64: ; 0x8088
+    mov bx, 0x10
+    mov ss, bx
+    mov ds, bx
+    mov es, bx
+    mov fs, bx
+    mov gs, bx
+    sub rax, 10
+    add rax, KERNEL_VIRTUAL_ADDR
+    lgdt [rax]
+    mov rax, [15 * PAGE_SIZE + 16]
+    add rax, PAGE_SIZE
+    mov rsp, rax
+    push 0x8
+    push 0x80C8
+    retfq
+
+align 8
+[extern apsrunning]
+ap_kernel:
+    mov rax, [15 * PAGE_SIZE + 8]
+    lidt [rax]
+    lock inc byte [apsrunning]
+    mov qword [16 * PAGE_SIZE], 1
     jmp $
