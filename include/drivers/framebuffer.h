@@ -1,11 +1,14 @@
 #pragma once
 #include <stdint.h>
+#include <stdatomic.h>
 #include <kernel/multiboot.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #define TAB_SIZE 4
 #define FRAMEBUFFER_START 0xFFFFFFFFA0000000
 #define BUF_SIZE 1024
+#define acquire_fb() atomic_flag_test_and_set(&FRAMEBUFFER_LOCK)
+#define release_fb() atomic_flag_clear(&FRAMEBUFFER_LOCK)
 
 typedef struct {
     uint8_t *address;
@@ -38,6 +41,7 @@ typedef struct {
 } screen_info_t;
 
 extern bool FRAMEBUFFER_INITIALIZED;
+extern atomic_flag FRAMEBUFFER_LOCK;
 extern screen_info_t screen_info;
 extern framebuffer_info_t fbinfo;
 

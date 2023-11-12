@@ -21,6 +21,7 @@ static inline void add_string(char* str) {
 }
 
 void vprintf(const char *c, va_list args) {
+    acquire_fb();
     for (; *c != '\0'; c++) {
         if (*c != '%')
             fb_buf[fb_buf_pos++] = *c;
@@ -56,6 +57,7 @@ void vprintf(const char *c, va_list args) {
         if (*c == '\n')
             flush_screen();
     }
+    release_fb();
 }
 
 void printf(const char *format, ...) {

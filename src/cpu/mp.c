@@ -15,6 +15,7 @@ extern idtr_t idtr;
 void start_ap(uint32_t, uint8_t);
 
 volatile uint8_t aps_running;
+bool ap_continue = false;
 ap_info_t *data = (ap_info_t*) VADDR(15 * PAGE_SIZE);
 
 void start_aps(madt_t *madt) {
@@ -22,7 +23,7 @@ void start_aps(madt_t *madt) {
     data->pml4 = (uintptr_t) &p4_table - KERNEL_VIRTUAL_ADDR;
     data->idtr = (uintptr_t) &idtr - KERNEL_VIRTUAL_ADDR;
     data->stack_top = (uintptr_t) alloc_frame();
-    uint32_t current_apic_id = bsp_id();
+    uint32_t current_apic_id = get_apic_id();
     log(Verbose, "MP", "This processor's APIC ID is %u", current_apic_id);
     
     madt_item_t *lapic = get_madt_item(madt, MADT_LAPIC, 0);
@@ -36,7 +37,7 @@ void start_aps(madt_t *madt) {
         lapic = get_madt_item(madt, MADT_LAPIC, ++count);
     }
     while (aps_running < (count - 1)) asm ("pause");
-    // printf("All processors started\n");
+    ap_continue = true;
 }
 
 void start_ap(uint32_t id, uint8_t trampoline_page __attribute__((unused))) {

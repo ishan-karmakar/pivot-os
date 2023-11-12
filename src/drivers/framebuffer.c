@@ -16,6 +16,7 @@ screen_info_t screen_info = { 0, 0, 0xFFFFFFFF, 0, 0, 0 };
 char fb_buf[BUF_SIZE];
 size_t fb_buf_pos = 0;
 bool FRAMEBUFFER_INITIALIZED = false;
+atomic_flag FRAMEBUFFER_LOCK = ATOMIC_FLAG_INIT;
 
 inline static uint8_t *get_glyph(uint8_t sym_num) {
     return (uint8_t*) loaded_font + loaded_font->headersize + sym_num * loaded_font->bytesperglyph;

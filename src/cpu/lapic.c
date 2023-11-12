@@ -92,10 +92,10 @@ void write_apic_register(uint32_t reg_off, uint32_t val) {
         *(volatile uint32_t*)(apic_hh_address + reg_off) = val;
 }
 
-uint32_t bsp_id(void) {
+uint32_t get_apic_id(void) {
     if (x2mode)
         return read_apic_register(APIC_ID_REG_OFF);
-    return read_apic_register(APIC_ID_REG_OFF) >> 23;
+    return read_apic_register(APIC_ID_REG_OFF) >> 24;
 }
 
 void calibrate_apic_timer(void) {

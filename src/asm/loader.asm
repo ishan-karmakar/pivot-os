@@ -90,6 +90,7 @@ kernel64: ; 0x8088
 
 align 8
 [extern aps_running]
+[extern ap_continue]
 [extern ap_start]
 ap_kernel:
     mov eax, [15 * PAGE_SIZE + 12]
@@ -97,5 +98,9 @@ ap_kernel:
     lidt [rax]
     sti
     lock inc byte [aps_running]
+.wait_for_continue:
+    pause
+    cmp byte [ap_continue], 0
+    je .wait_for_continue
     call ap_start
     jmp $
