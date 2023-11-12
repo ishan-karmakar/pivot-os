@@ -8,7 +8,6 @@
 ap_trampoline:
     cli
     cld
-
     xor ax, ax
     mov ds, ax
     lgdt [0x8038]
@@ -82,18 +81,21 @@ kernel64: ; 0x8088
     sub rax, 10
     add rax, KERNEL_VIRTUAL_ADDR
     lgdt [rax]
-    mov rax, [15 * PAGE_SIZE + 16]
+    mov eax, [15 * PAGE_SIZE + 8]
     add rax, PAGE_SIZE
     mov rsp, rax
     push 0x8
-    push 0x80C8
+    push 0x80C0
     retfq
 
 align 8
-[extern apsrunning]
+[extern aps_running]
+[extern ap_start]
 ap_kernel:
-    mov rax, [15 * PAGE_SIZE + 8]
+    mov eax, [15 * PAGE_SIZE + 12]
+    add rax, KERNEL_VIRTUAL_ADDR
     lidt [rax]
-    lock inc byte [apsrunning]
-    mov qword [16 * PAGE_SIZE], 1
+    sti
+    lock inc byte [aps_running]
+    call ap_start
     jmp $

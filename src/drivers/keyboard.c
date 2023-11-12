@@ -107,8 +107,8 @@ char get_char(key_status_t key_status) {
 
 void handle_keyboard(void) {
     uint8_t scancode = inportb(KEYBOARD_PORT);
-    extern volatile uint8_t apsrunning;
-    return log(Verbose, "LAPIC", "%x - %u", *(uint64_t*) VADDR(16 * PAGE_SIZE), apsrunning);
+    extern volatile uint8_t aps_running;
+    return log(Verbose, "LAPIC", "%x - %u", *(uint64_t*) VADDR(16 * PAGE_SIZE), aps_running);
     key_code_t translated_scancode = translate(scancode);
     if (scancode == EXTENDED_PREFIX)
         return;

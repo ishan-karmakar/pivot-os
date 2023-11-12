@@ -14,13 +14,13 @@ extern idtr_t idtr;
 
 void start_ap(uint32_t, uint8_t);
 
-volatile uint8_t apsrunning;
+volatile uint8_t aps_running;
+ap_info_t *data = (ap_info_t*) VADDR(15 * PAGE_SIZE);
 
 void start_aps(madt_t *madt) {
-    ap_info_t *data = (ap_info_t*) VADDR(15 * PAGE_SIZE);
     data->gdt64 = (uintptr_t) &gdt64 - KERNEL_VIRTUAL_ADDR + 50;
     data->pml4 = (uintptr_t) &p4_table - KERNEL_VIRTUAL_ADDR;
-    data->idtr = (uintptr_t) &idtr;
+    data->idtr = (uintptr_t) &idtr - KERNEL_VIRTUAL_ADDR;
     data->stack_top = (uintptr_t) alloc_frame();
     uint32_t current_apic_id = bsp_id();
     log(Verbose, "MP", "This processor's APIC ID is %u", current_apic_id);
@@ -35,6 +35,8 @@ void start_aps(madt_t *madt) {
 
         lapic = get_madt_item(madt, MADT_LAPIC, ++count);
     }
+    while (aps_running < (count - 1)) asm ("pause");
+    // printf("All processors started\n");
 }
 
 void start_ap(uint32_t id, uint8_t trampoline_page __attribute__((unused))) {
@@ -54,5 +56,5 @@ void start_ap(uint32_t id, uint8_t trampoline_page __attribute__((unused))) {
         while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
         udelay(200);
     }
-    log(Info, "MP", "Starting up processor %u", id);
+    // log(Info, "MP", "Starting up processor %u", id);
 }
