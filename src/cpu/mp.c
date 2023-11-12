@@ -57,5 +57,4 @@ void start_ap(uint32_t id, uint8_t trampoline_page __attribute__((unused))) {
         while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
         udelay(200);
     }
-    // log(Info, "MP", "Starting up processor %u", id);
 }
