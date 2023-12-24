@@ -1,0 +1,11 @@
+build/
+image/
+.vscode/
+*.o
+*.efi
+*.elf
+*.a
+*.so
+*.iso
+.gdb_history
+OVMF.fd

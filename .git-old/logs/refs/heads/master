@@ -1,0 +1,28 @@
+0000000000000000000000000000000000000000 bd0c37846d00715404b0ef06576bfaee214b49d6 ishank <ishank@DESKTOP-8N5S0NS> 1690795969 -0500	clone: from https://github.com/monkeswag33/pivot-os.git
+bd0c37846d00715404b0ef06576bfaee214b49d6 99b33f3a892a54e87be1eb53eef4a58761033993 Ishan Karmakar <ishan.karmakar24@gmail.com> 1691029485 -0500	commit: Working on framebuffer
+99b33f3a892a54e87be1eb53eef4a58761033993 dd657153490a8a23e8bb7ab89ad2bcdefb49aa9d Ishan Karmakar <ishan.karmakar24@gmail.com> 1691114406 -0500	commit: Working
+dd657153490a8a23e8bb7ab89ad2bcdefb49aa9d aa1b3615334a369e304f949ae7caca096746665e Ishan Karmakar <ishan.karmakar24@gmail.com> 1691171932 -0500	commit: 1. Fixed issue with paging not working
+aa1b3615334a369e304f949ae7caca096746665e b3d2a1021d65b74bfa649a08d4e04c55c44df53d Ishan Karmakar <ishan.karmakar24@gmail.com> 1691244240 -0500	commit: Starting work on LAPIC
+b3d2a1021d65b74bfa649a08d4e04c55c44df53d 0542653f322029c881039f38fdc67b5a9e31336d Ishan Karmakar <ishan.karmakar24@gmail.com> 1691279769 -0500	commit: Finished initializing APIC, fixed bugs in PMM, started working on VMM
+0542653f322029c881039f38fdc67b5a9e31336d fe4c970de3700ceca2aba374799f3b67fc224f95 Ishan Karmakar <ishan.karmakar24@gmail.com> 1691359601 -0500	commit: Got basic kernel heap working
+fe4c970de3700ceca2aba374799f3b67fc224f95 26b8935d33c4ca6ba29071f43c02f4c3b06dc0e0 Ishan Karmakar <ishan.karmakar24@gmail.com> 1691426175 -0500	commit: Starting work on IOAPIC
+26b8935d33c4ca6ba29071f43c02f4c3b06dc0e0 75213c6fe0932b7d9035a3ccea869a1304da4e69 Ishan Karmakar <ishan.karmakar24@gmail.com> 1691436622 -0500	commit: Finished IOAPIC for now, working on keyboard
+75213c6fe0932b7d9035a3ccea869a1304da4e69 f6c5472ae0b0680f4a98c62c903ecb407f70f99a Ishan Karmakar <ishan.karmakar24@gmail.com> 1691531394 -0500	commit: Finished keyboard
+f6c5472ae0b0680f4a98c62c903ecb407f70f99a 8c828e40a5f80c8da7e2dddc19f96fefcd2d3561 Ishan Karmakar <ishan.karmakar24@gmail.com> 1691758455 -0500	commit: Got timer working, starting on either RTC or multiple cores
+8c828e40a5f80c8da7e2dddc19f96fefcd2d3561 98316894af10f514d7599c563b4265872308fc24 Ishan Karmakar <ishan.karmakar24@gmail.com> 1692490582 -0500	commit: Got counting microseconds working
+98316894af10f514d7599c563b4265872308fc24 a52adad8270885cceb4c818eaa9def941e79f0c6 Ishan Karmakar <ishan.karmakar24@gmail.com> 1693048640 -0500	commit: Trying to solve problem
+a52adad8270885cceb4c818eaa9def941e79f0c6 b8c305fbf48afde04efd70b2002e28c8d5617384 Ishan Karmakar <ishan.karmakar24@gmail.com> 1693048831 -0500	commit: Trying to convert boot.asm to boot.S
+b8c305fbf48afde04efd70b2002e28c8d5617384 97019328b020bdb4222c44e64773e5ec383e2d78 Ishan Karmakar <ishan.karmakar24@gmail.com> 1693841259 -0500	commit: Working on a buffer system for printing
+97019328b020bdb4222c44e64773e5ec383e2d78 de61912db549dc1e66e23da21196067efcd38dc7 Ishan Karmakar <ishan.karmakar24@gmail.com> 1693844611 -0500	commit: Got buffering working
+de61912db549dc1e66e23da21196067efcd38dc7 df1cea96191ae4affbfa949097ae5128e815839e Ishan Karmakar <ishan.karmakar24@gmail.com> 1694514960 -0500	commit: Trying to fix page fault that only happens sometimes
+df1cea96191ae4affbfa949097ae5128e815839e 42f802897ddbe88259aa0bf1916c1ddcd1eb833a Ishan Karmakar <ishan.karmakar24@gmail.com> 1695171972 -0500	commit: Trying to fix bug with mdelay and udelay
+42f802897ddbe88259aa0bf1916c1ddcd1eb833a d605f1eaacf88bee4e1d74f70f1401b699af8fcb Ishan Karmakar <ishan.karmakar24@gmail.com> 1695172142 -0500	commit (amend): Trying to fix bug with mdelay and udelay
+d605f1eaacf88bee4e1d74f70f1401b699af8fcb 43035dafd7d3b3de1a6f42b4f9d24034449cfd2b Ishan Karmakar <ishan.karmakar24@gmail.com> 1695350294 -0500	merge timer-issue: Fast-forward
+43035dafd7d3b3de1a6f42b4f9d24034449cfd2b c4e42ae261f659bb59dba5dc0aab57edc59f5815 Ishan Karmakar <ishan.karmakar24@gmail.com> 1695384392 -0500	commit: Restructured code, time to start implementing TSS
+c4e42ae261f659bb59dba5dc0aab57edc59f5815 1ec99d7c2986f5f7dcf8a96536b2dd25e63f3187 Ishan Karmakar <ishan.karmakar24@gmail.com> 1698018630 -0500	pull: Fast-forward
+1ec99d7c2986f5f7dcf8a96536b2dd25e63f3187 444ca6145eaad19acd8e9ce8b892e34739e602f5 Ishan Karmakar <ishan.karmakar24@gmail.com> 1699215756 -0600	commit: Starting work on RTC Timer
+444ca6145eaad19acd8e9ce8b892e34739e602f5 6447fba1b53053c7255dcc3c0d1d12c572497ea2 Ishan Karmakar <ishan.karmakar24@gmail.com> 1699241547 -0600	commit: Got dates working, still working on DOW
+6447fba1b53053c7255dcc3c0d1d12c572497ea2 cc833c95c5ba4d456720b9837815857e08cdf801 Ishan Karmakar <ishan.karmakar24@gmail.com> 1699280039 -0600	commit: Got DOW working. Now need to put time in top right corner
+cc833c95c5ba4d456720b9837815857e08cdf801 52a0e529d4ad89cdf748f1a09c1242853aeebf58 Ishan Karmakar <ishan.karmakar24@gmail.com> 1699286985 -0600	commit: Have time in top right corner
+52a0e529d4ad89cdf748f1a09c1242853aeebf58 28a97738904c0d076beeb9d34d0041d99a306b86 Ishan Karmakar <ishan.karmakar24@gmail.com> 1699287258 -0600	commit: Starting work on SMP
+28a97738904c0d076beeb9d34d0041d99a306b86 cdcae02bbcb5d911a2c6ca4d473c01a3af8fa9ad Ishan Karmakar <ishan.karmakar24@gmail.com> 1699828952 -0600	merge smp: Fast-forward
