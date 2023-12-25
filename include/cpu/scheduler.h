@@ -22,3 +22,4 @@ typedef struct thread_t {
 void create_thread(thread_fn_t fn, uintptr_t);
 void create_failsafe_thread(void);
 void thread_sleep(size_t);
+void init_scheduler(thread_fn_t);

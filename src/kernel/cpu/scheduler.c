@@ -3,6 +3,7 @@
 #include <cpu/scheduler.h>
 #include <cpu/lapic.h>
 #include <mem/kheap.h>
+#include <mem/pmm.h>
 #include <kernel/logging.h>
 #define NEXT_THREAD(thread) (thread->next == NULL ? root_thread : thread->next)
 
@@ -96,4 +97,10 @@ void thread_wrapper(void (*f)(void)) {
 void thread_sleep(size_t milliseconds) {
     // active_thread->wakeup_time = apic_ticks + ((milliseconds * apic_ms_interval) / read_apic_register(APIC_TIMER_INITIAL_COUNT_REG_OFF));
     // scheduler_yield();
+}
+
+void init_scheduler(thread_fn_t kernel_fn) {
+    create_failsafe_thread();
+    create_thread(kernel_fn, VADDR((uintptr_t) alloc_frame()));
+    start_apic_timer(APIC_TIMER_PERIODIC, 50 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
 }

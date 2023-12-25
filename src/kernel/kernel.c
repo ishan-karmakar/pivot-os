@@ -21,15 +21,27 @@ void __attribute__((noreturn)) hcf(void) {
 }
 
 void __attribute__((optimize("O0"))) task1(void) {
-    printf("_\n");
+    while (1) {
+        printf("_");
+        flush_screen();
+        for (size_t i = 0; i < 10000; i++);
+    }
 }
 
 void __attribute__((optimize("O0"))) task2(void) {
-    printf("!\n");
+    // printf("_\n");
+    while (1) {
+        printf(".");
+        flush_screen();
+        for (size_t i = 0; i < 10000; i++);
+    }
 }
-
 void __attribute__((optimize("O0"))) task3(void) {
-    printf(";\n");
+    while (1) {
+        printf("|");
+        flush_screen();
+        for (size_t i = 0; i < 10000; i++);
+    }
 }
 
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
@@ -45,14 +57,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
-
-    create_failsafe_thread();
-    create_thread(kernel_main, VADDR((uintptr_t) alloc_frame()));
-    create_thread(task1, VADDR((uintptr_t) alloc_frame()));
-    create_thread(task2, VADDR((uintptr_t) alloc_frame()));
-    create_thread(task3, VADDR((uintptr_t) alloc_frame()));
-
-    start_apic_timer(APIC_TIMER_PERIODIC, 50 * apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    init_scheduler(kernel_main);
     while (1);
 }
 
