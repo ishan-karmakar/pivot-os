@@ -17,13 +17,13 @@ struc EF
     .r14 resq 1
     .r15 resq 1
     .cr3 resq 1
-    .rflags resq 1 ; 152
+    .rflags resq 1
     .cs resw 1
     .ds resw 1
     .ss resw 1
     .es resw 1
     .fs resw 1
-    .gs resw 1 ; 164
+    .gs resw 1
 endstruc
 
 [extern kmalloc]
@@ -128,9 +128,8 @@ create_thread_ef:
     mov rdi, EF_size
     call kmalloc ; Pointer is stored in rax register
     pop rdi
-    push rax
     call save_ef
-    pop rax
+    mov rax, [rax_val]
     ret
 
 [global stack_segment]
@@ -146,4 +145,3 @@ rflags dq 0
 code_segment dq 0
 return_address dq 0
 rax_val dq 0
-sleeping db 0
