@@ -1,3 +1,10 @@
+/*
+This is only used in the initial phase of init_kernel
+where framebuffer is not initialized, so data is logged
+through the qemu serial port. After framebuffer is
+initialized, the serial port is no longer used
+*/
+
 #include <drivers/qemu.h>
 #include <io/ports.h>
 #include <io/stdio.h>

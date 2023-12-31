@@ -21,27 +21,21 @@ void __attribute__((noreturn)) hcf(void) {
 }
 
 void __attribute__((optimize("O0"))) task1(void) {
-    while (1) {
-        printf("_");
-        flush_screen();
-        for (size_t i = 0; i < 10000; i++);
-    }
+    printf("|\n");
+    thread_sleep(100);
+    printf("+\n");
 }
 
 void __attribute__((optimize("O0"))) task2(void) {
-    // printf("_\n");
-    while (1) {
-        printf(".");
-        flush_screen();
-        for (size_t i = 0; i < 10000; i++);
-    }
+    printf("[\n");
+    thread_sleep(200);
+    printf("]\n");
 }
+
 void __attribute__((optimize("O0"))) task3(void) {
-    while (1) {
-        printf("|");
-        flush_screen();
-        for (size_t i = 0; i < 10000; i++);
-    }
+    printf("(\n");
+    thread_sleep(300);
+    printf(")\n");
 }
 
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
@@ -57,7 +51,13 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
+    clear_screen();
     init_scheduler(kernel_main);
+    create_thread(task1, VADDR((uintptr_t) alloc_frame()) + PAGE_SIZE);
+    create_thread(task2, VADDR((uintptr_t) alloc_frame()) + PAGE_SIZE);
+    create_thread(task3, VADDR((uintptr_t) alloc_frame()) + PAGE_SIZE);
+    print_threads();
+    start_scheduler();
     while (1);
 }
 

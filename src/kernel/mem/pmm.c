@@ -19,7 +19,7 @@ void init_pmm(boot_info_t *boot_info) {
     size_t mmap_num_entries = boot_info->mmap_size / boot_info->mmap_descriptor_size;
     mmap_descriptor_t *current_desc = boot_info->mmap;
     for (size_t i = 0; i < mmap_num_entries; i++) {
-        log(Verbose, "MMAP", "[%u] Type: %u - Address: %x - Num Pages: %u", i, current_desc->type, current_desc->physical_start, current_desc->count);
+        log(Debug, "MMAP", "[%u] Type: %u - Address: %x - Num Pages: %u", i, current_desc->type, current_desc->physical_start, current_desc->count);
         if (current_desc->type != 7)
             bitmap_rsv_area(current_desc->physical_start, current_desc->count);
         current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + boot_info->mmap_descriptor_size);

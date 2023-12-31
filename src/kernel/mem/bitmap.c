@@ -64,3 +64,12 @@ void *alloc_frame(void) {
 
     return NULL;
 }
+
+// FIXME: **I think** the problem with the scheduler is that each stack is not big enough
+// Fix: Change each stack size to 4 pages, use alloc_range(4) to actually allocate the pages
+// *REMEMBER* to make stack address the base address of alloc_range(4) + PAGE_SIZE * 4
+// TODO: Implement check_addr_free and alloc_range functions
+bool check_addr_free(uintptr_t addr) {
+}
+
+void *alloc_range(size_t pages) {}
