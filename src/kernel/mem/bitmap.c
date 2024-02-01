@@ -46,7 +46,7 @@ void bitmap_set_bit(uintptr_t address) {
     bitmap[address / BITMAP_ROW_BITS] |= 1 << (address % BITMAP_ROW_BITS);
 }
 
-static int64_t bitmap_request_frame(void) {
+int64_t bitmap_request_frame(void) {
     for (uint16_t row = 0; row < bitmap_entries; row++)
         if (bitmap[row] != 0xFFFFFFFFFFFFFFFF)
             for (uint16_t col = 0; col < BITMAP_ROW_BITS; col++)
@@ -65,11 +65,28 @@ void *alloc_frame(void) {
     return NULL;
 }
 
-// FIXME: **I think** the problem with the scheduler is that each stack is not big enough
-// Fix: Change each stack size to 4 pages, use alloc_range(4) to actually allocate the pages
-// *REMEMBER* to make stack address the base address of alloc_range(4) + PAGE_SIZE * 4
-// TODO: Implement check_addr_free and alloc_range functions
-bool check_addr_free(uintptr_t addr) {
+// FIXME: Now that I am implementing a VMM, these functions should be removed
+bool bitmap_check_bit(uintptr_t addr) {
+    addr /= PAGE_SIZE;
+    return bitmap[addr / BITMAP_ROW_BITS] & (1 << (addr % BITMAP_ROW_BITS));
 }
 
-void *alloc_range(size_t pages) {}
+// TODO: Create a VMM so that instead of looking in physical memory for contiguous blocks,
+// Just map the addresses in the page table
+void *alloc_range(size_t pages) {
+    for (size_t row = 0; row < bitmap_entries; row++)
+        if (bitmap[row] != 0xFFFFFFFFFFFFFFFF)
+            for (size_t col = 0; col < BITMAP_ROW_BITS; col++) {
+                bool valid = true;
+                for (size_t i = 0; i < pages; i++)
+                    if (bitmap_check_bit((row * BITMAP_ROW_BITS + col + i) * PAGE_SIZE)) {
+                        valid = false;
+                        break;
+                    }
+                if (valid) {
+                    bitmap_rsv_area((row * BITMAP_ROW_BITS + col) * PAGE_SIZE, pages);
+                    return (void*)((row * BITMAP_ROW_BITS + col) * PAGE_SIZE);
+                }
+            }
+    return NULL;
+}

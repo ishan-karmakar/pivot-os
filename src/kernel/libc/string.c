@@ -126,3 +126,31 @@ memcmp (const void *str1, const void *str2, size_t count)
     }
   return 0;
 }
+
+char *strcpy(char *dst, const char *src) {
+    char* output = dst;
+    while (*src != '\0') {
+        *output++ = *src++;
+    }
+    *output = '\0';
+    return dst;
+}
+
+char* strncpy(char* dest, const char* src, size_t num)
+{
+    size_t i = 0;
+    while (src[i] != 0 && i < num)
+    {
+        dest[i] = src[i];
+        i++;
+    }
+
+    //as per spec, dest should be padded with zeroes so it is *num* chars long
+    while (i < num)
+    {
+        dest[i] = 0;
+        i++;
+    }
+
+    return dest;
+}

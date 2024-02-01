@@ -3,9 +3,10 @@
 #include <cpu/idt.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
-#include <cpu/scheduler.h>
+#include <scheduler/scheduler.h>
 #include <mem/pmm.h>
 #include <mem/kheap.h>
+#include <mem/vmm.h>
 #include <drivers/qemu.h>
 #include <drivers/framebuffer.h>
 #include <kernel/acpi.h>
@@ -20,24 +21,6 @@ void __attribute__((noreturn)) hcf(void) {
         asm volatile ("hlt");
 }
 
-void __attribute__((optimize("O0"))) task1(void) {
-    printf("|\n");
-    thread_sleep(100);
-    printf("+\n");
-}
-
-void __attribute__((optimize("O0"))) task2(void) {
-    printf("[\n");
-    thread_sleep(200);
-    printf("]\n");
-}
-
-void __attribute__((optimize("O0"))) task3(void) {
-    printf("(\n");
-    thread_sleep(300);
-    printf(")\n");
-}
-
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_qemu();
     init_gdt();
@@ -45,19 +28,14 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_pmm(boot_info);
     init_framebuffer(boot_info);
     map_phys_mem();
+    init_vmm(Supervisor);
     init_kheap();
     init_acpi(boot_info);
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
-    clear_screen();
-    init_scheduler(kernel_main);
-    create_thread(task1, VADDR((uintptr_t) alloc_frame()) + PAGE_SIZE);
-    create_thread(task2, VADDR((uintptr_t) alloc_frame()) + PAGE_SIZE);
-    create_thread(task3, VADDR((uintptr_t) alloc_frame()) + PAGE_SIZE);
-    print_threads();
-    start_scheduler();
+    // init_scheduler();
     while (1);
 }
 

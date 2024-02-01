@@ -68,6 +68,7 @@ irq%1:
     pop rcx
     pop rbx
     pop rax
+    pop rax
     add rsp, 16 ; Remove error code and interrupt number from stack
 %endmacro
 
@@ -123,53 +124,12 @@ rtc_irq:
 [extern save_ef]
 [extern load_ef]
 [global apic_periodic_irq]
-[extern testt]
+[extern tests]
+[extern testl]
 ; TODO: Move some of this code into functions in threading.asm
 apic_periodic_irq:
-    mov [rax_val], rax
     inc qword [apic_ticks]
     apic_eoi
-
-    ; Get next thread
-    push rdi
-    mov rdi, rsp
-    call next_thread ; Thread address is in RAX, load type is in [load_type]
-    pop rdi
-
-    cmp byte [load_type], 0
-    je .no_switch
-
-    pop qword [return_address]
-    pop qword [code_segment]
-    pop qword [rflags_reg]
-    pop qword [stack_pointer]
-    pop qword [stack_segment]
-    cmp byte [load_type], 1
-    je .load_ef
-
-.save_ef:
-    push rax
-    mov rax, [last_thread]
-    mov rax, [rax]
-    call save_ef
-    pop rax
-
-.load_ef:
-    mov [last_thread], rax
-    mov rax, [rax]
-    call load_ef
-    push qword [stack_segment]
-    push qword [stack_pointer]
-    push qword [rflags_reg]
-    push qword [code_segment]
-    push qword [return_address]
-
-.no_switch:
-    mov rax, [rax_val]
-    ; push rdi
-    ; mov rdi, 10
-    ; call testt
-    ; pop rdi
     iretq
 
 isr 0

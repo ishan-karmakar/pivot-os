@@ -1,6 +1,6 @@
 #include <sys.h>
 #include <mem/kheap.h>
-#include <mem/pmm.h>
+#include <mem/vmm.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
 
@@ -11,9 +11,9 @@ static kheap_mem_node_t *kernel_heap_end;
 
 void init_kheap(void) {
     // Let's allocate the new heap, we rely on the vmm_alloc function for this part.
-    uint64_t *kheap_vaddress = (uint64_t*) VADDR((uintptr_t) alloc_frame());
+    uint64_t *kheap_addr = valloc(PAGE_SIZE, 0);
 
-    kernel_heap_start = (kheap_mem_node_t *) ((uint64_t) kheap_vaddress);
+    kernel_heap_start = (kheap_mem_node_t *) ((uint64_t) kheap_addr);
     kernel_heap_current_pos = kernel_heap_start;
     kernel_heap_end = kernel_heap_start;
     kernel_heap_current_pos->size = 0x1000;
