@@ -24,9 +24,9 @@ void __attribute__((noreturn)) hcf(void) {
 
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_qemu();
+    init_tss();
     init_gdt();
     init_idt();
-    init_tss();
     init_pmm(boot_info);
     init_framebuffer(boot_info);
     map_phys_mem();

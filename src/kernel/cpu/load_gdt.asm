@@ -4,14 +4,17 @@ load_gdt:
     ; Address of gdtr is in RDI
     lgdt [rdi]
     push 0x8
-    push gdt_next
+    push load_tss
     retfq
 
-gdt_next:
+load_tss:
     mov ax, 0x10
     mov ss, ax
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
+
+    mov rax, 0x18
+    ltr ax
     ret
