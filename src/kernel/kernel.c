@@ -1,6 +1,7 @@
 #include <boot.h>
 #include <cpu/gdt.h>
 #include <cpu/idt.h>
+#include <cpu/tss.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 #include <scheduler/scheduler.h>
@@ -25,6 +26,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_qemu();
     init_gdt();
     init_idt();
+    init_tss();
     init_pmm(boot_info);
     init_framebuffer(boot_info);
     map_phys_mem();

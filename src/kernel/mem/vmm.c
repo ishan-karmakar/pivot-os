@@ -4,7 +4,7 @@
 #include <kernel/logging.h>
 
 vmm_info_t vmm_kernel;
-
+// Implementation taken from Dreamos64
 void init_vmm(__attribute__((unused)) vmm_level_t level) {
     vmm_kernel.data_start = ALIGN_ADDR(HIGHER_HALF_OFFSET + (mem_pages + 1) * PAGE_SIZE);
     vmm_kernel.status.root_container = (vmm_container_t*) vmm_kernel.data_start;

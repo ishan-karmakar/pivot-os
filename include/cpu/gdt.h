@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <cpu/tss.h>
 
 #pragma pack(push, default)
 #pragma pack(1)
@@ -22,3 +23,4 @@ typedef struct {
 
 /// @brief Loads the GDT
 void init_gdt(void);
+void load_tss(tss_t*);
