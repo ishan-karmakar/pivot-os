@@ -18,5 +18,5 @@ typedef struct {
     uint32_t width;
 } __attribute__((packed)) psf_font_t;
 
-void init_framebuffer(boot_info_t *boot_info);
+void init_framebuffer(framebuffer_info_t *boot_info);
 void clear_screen(void);

@@ -42,4 +42,4 @@ typedef struct s_elf64_phdr {
 
 #pragma pack(pop)
 
-EFI_STATUS LoadKernel(boot_info_t *boot_info, EFI_PHYSICAL_ADDRESS *kernel_entry_point);
+EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_point);

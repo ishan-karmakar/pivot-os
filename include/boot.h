@@ -23,10 +23,14 @@ typedef struct {
     mmap_descriptor_t *mmap;
     uint64_t mmap_size;
     uint64_t mmap_descriptor_size;
-    framebuffer_info_t fbinfo;
-    uint64_t *kernel_entries;
     uint64_t num_kernel_entries;
+    uint64_t *kernel_entries;
     uint64_t *pml4;
+} mem_info_t;
+
+typedef struct {
+    framebuffer_info_t fb_info;
+    mem_info_t mem_info;
     uintptr_t sdt_address;
     bool xsdt;
 } boot_info_t;

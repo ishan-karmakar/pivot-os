@@ -1,6 +1,7 @@
 #include <boot/mem.h>
 #include <sys.h>
 #define MAX_MAPPED_ADDR 0x40000000
+#define NUM_MAPPED_PAGES (128 * 1024 * 1024 / PAGE_SIZE)
 
 EFI_STATUS AllocTable(UINT64 **table) {
     EFI_STATUS status;
@@ -57,15 +58,15 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
     return EFI_SUCCESS;
 }
 
-EFI_STATUS ConfigurePaging(boot_info_t *boot_info) {
+EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
     EFI_STATUS status;
     UINT64 *p4_tbl = (UINT64*) MAX_MAPPED_ADDR;
     uefi_call_wrapper(gBS->AllocatePages, 4, AllocateMaxAddress, EfiLoaderData, 1, &p4_tbl);
     uefi_call_wrapper(gBS->SetMem, 3, p4_tbl, EFI_PAGE_SIZE, 0);
-    boot_info->pml4 = p4_tbl;
+    mem_info->pml4 = p4_tbl;
     Print(L"PML4 Address: 0x%x\n", (EFI_PHYSICAL_ADDRESS) p4_tbl);
 
-    for (UINTN i = 0; i < 262144; i++) { // 64 mb
+    for (UINTN i = 0; i < NUM_MAPPED_PAGES; i++) { // 64 mb
         EFI_PHYSICAL_ADDRESS addr = i * EFI_PAGE_SIZE;
         status = MapAddr(addr, addr, p4_tbl);
         if (EFI_ERROR(status))
@@ -74,20 +75,20 @@ EFI_STATUS ConfigurePaging(boot_info_t *boot_info) {
         if (EFI_ERROR(status))
             return status;
     }
-    Print(L"Mapped first GiB of memory\n");
+    Print(L"Mapped first 128 MiB of memory\n");
 
     return EFI_SUCCESS;
 }
 
-void LoadCr3(boot_info_t *boot_info) {
+void LoadCr3(mem_info_t *mem_info) {
     asm volatile (
         "mov %0, %%rax\n\t"
         "mov %%rax, %%cr3"
-        : : "r" ((EFI_PHYSICAL_ADDRESS) boot_info->pml4) : "rax"
+        : : "r" ((EFI_PHYSICAL_ADDRESS) mem_info->pml4) : "rax"
     );
 }
 
-EFI_STATUS GetMMAP(boot_info_t *boot_info, UINTN *mmap_key) {
+EFI_STATUS GetMMAP(mem_info_t *mem_info, UINTN *mmap_key) {
     EFI_MEMORY_DESCRIPTOR *mmap = NULL;
     UINTN mmap_size = 0;
     UINTN descriptor_size = 0;
@@ -112,9 +113,9 @@ EFI_STATUS GetMMAP(boot_info_t *boot_info, UINTN *mmap_key) {
         return status;
     }
 
-    boot_info->mmap = (mmap_descriptor_t*) (mmap);
-    boot_info->mmap_size = mmap_size;
-    boot_info->mmap_descriptor_size = descriptor_size;
+    mem_info->mmap = (mmap_descriptor_t*) (mmap);
+    mem_info->mmap_size = mmap_size;
+    mem_info->mmap_descriptor_size = descriptor_size;
 
     return EFI_SUCCESS;
 }

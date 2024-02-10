@@ -6,17 +6,17 @@
 static uint64_t *bitmap;
 static size_t bitmap_entries;
 
-void init_bitmap(boot_info_t *boot_info) {
-    size_t mmap_num_entries = boot_info->mmap_size / boot_info->mmap_descriptor_size;
-    mmap_descriptor_t *current_desc = boot_info->mmap;
+void init_bitmap(mem_info_t *mem_info) {
+    size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
+    mmap_descriptor_t *current_desc = mem_info->mmap;
     for (size_t i = 0; i < mmap_num_entries; i++) {
         mem_pages += current_desc->count;
-        current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + boot_info->mmap_descriptor_size);
+        current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
 
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", mem_pages, mem_pages * PAGE_SIZE / 1048576);
 
-    current_desc = boot_info->mmap;
+    current_desc = mem_info->mmap;
     size_t bitmap_size = mem_pages / 8 + 1;
     bitmap_entries = mem_pages / 64 + 1;
     for (size_t i = 0; i < mmap_num_entries; i++) {
@@ -24,14 +24,14 @@ void init_bitmap(boot_info_t *boot_info) {
             bitmap = (uint64_t*) VADDR(current_desc->physical_start);
             break;
         }
-        current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + boot_info->mmap_descriptor_size);
+        current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
 
     for (size_t i = 0; i < bitmap_entries; i++)
         bitmap[i] = 0;
     
-    for (size_t i = 0; i < boot_info->num_kernel_entries; i++)
-        bitmap_set_bit(boot_info->kernel_entries[i]);
+    for (size_t i = 0; i < mem_info->num_kernel_entries; i++)
+        bitmap_set_bit(mem_info->kernel_entries[i]);
     
     bitmap_rsv_area(PADDR((uintptr_t) bitmap), SIZE_TO_PAGES(bitmap_size));
 }

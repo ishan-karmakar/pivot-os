@@ -27,7 +27,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     Print(L"Reset console input...\n");
 
-    status = ConfigureGraphics(&boot_info);
+    status = ConfigureGraphics(&boot_info.fb_info);
     if (EFI_ERROR(status))
         return status;
     
@@ -35,15 +35,15 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (EFI_ERROR(status))
         return status;
 
-    status = ConfigurePaging(&boot_info);
+    status = ConfigurePaging(&boot_info.mem_info);
     if (EFI_ERROR(status))
         return status;
 
-    status = LoadKernel(&boot_info, &kernel_entry_point);
+    status = LoadKernel(&boot_info.mem_info, &kernel_entry_point);
     if (EFI_ERROR(status))
         return status;
 
-    status = GetMMAP(&boot_info, &mmap_key);
+    status = GetMMAP(&boot_info.mem_info, &mmap_key);
     if (EFI_ERROR(status))
         return status;
 
@@ -53,7 +53,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         return status;
     }
 
-    LoadCr3(&boot_info);
+    LoadCr3(&boot_info.mem_info);
 
     VOID (*kernel_entry)(boot_info_t*) = (VOID (*)(boot_info_t*)) kernel_entry_point;
     kernel_entry(&boot_info);

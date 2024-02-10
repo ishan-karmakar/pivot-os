@@ -26,7 +26,7 @@ EFI_STATUS FindVideoMode(EFI_GRAPHICS_OUTPUT_PROTOCOL *const gop,
     return EFI_UNSUPPORTED;
 }
 
-EFI_STATUS ConfigureGraphics(boot_info_t *boot_info) {
+EFI_STATUS ConfigureGraphics(framebuffer_info_t *fb_info) {
     EFI_STATUS status;
     EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
     status = uefi_call_wrapper(gBS->LocateProtocol, 3, &gEfiGraphicsOutputProtocolGuid, NULL, &gop);
@@ -53,11 +53,11 @@ EFI_STATUS ConfigureGraphics(boot_info_t *boot_info) {
     }
     Print(L"Set graphics mode...\n");
 
-    boot_info->fbinfo.pointer = gop->Mode->FrameBufferBase;
-    boot_info->fbinfo.horizontal_res = gop->Mode->Info->HorizontalResolution;
-    boot_info->fbinfo.vertical_res = gop->Mode->Info->VerticalResolution;
-    boot_info->fbinfo.pixels_per_scanline = gop->Mode->Info->PixelsPerScanLine;
-    boot_info->fbinfo.bpp = sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
+    fb_info->pointer = gop->Mode->FrameBufferBase;
+    fb_info->horizontal_res = gop->Mode->Info->HorizontalResolution;
+    fb_info->vertical_res = gop->Mode->Info->VerticalResolution;
+    fb_info->pixels_per_scanline = gop->Mode->Info->PixelsPerScanLine;
+    fb_info->bpp = sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
 
     return EFI_SUCCESS;
 }

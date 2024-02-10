@@ -3,7 +3,7 @@
 #include <sys.h>
 #define KERNEL_PATH L"\\kernel.elf"
 
-EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, boot_info_t *boot_info, EFI_PHYSICAL_ADDRESS *kernel_entries_location, UINTN *total_num_pages) {
+EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entries_location, UINTN *total_num_pages) {
     EFI_STATUS status;
     VOID *segment_data = NULL;
     UINTN buffer_read_size = program_header->p_filesz;
@@ -38,11 +38,11 @@ EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, boot
         return status;
     }
     for (UINTN i = 0; i < num_pages; i++)
-        MapAddr(ALIGN_ADDR(program_header->p_vaddr + EFI_PAGE_SIZE * i), ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + EFI_PAGE_SIZE * i)), boot_info->pml4);
+        MapAddr(ALIGN_ADDR(program_header->p_vaddr + EFI_PAGE_SIZE * i), ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + EFI_PAGE_SIZE * i)), mem_info->pml4);
     return EFI_SUCCESS;
 }
 
-EFI_STATUS LoadKernel(boot_info_t *boot_info, EFI_PHYSICAL_ADDRESS *kernel_entry_point) {
+EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_point) {
     EFI_STATUS status;
     EFI_FILE *kernel_file;
     UINTN buffer_read_size;
@@ -160,7 +160,7 @@ EFI_STATUS LoadKernel(boot_info_t *boot_info, EFI_PHYSICAL_ADDRESS *kernel_entry
     UINTN idx = 0;
     for (UINT16 p = 0; p < num_program_segments; p++) {
         if (program_headers[p].p_type != 1) continue;
-        status = LoadSegment(program_headers + p, kernel_file, boot_info, kernel_entries_location + idx, &idx);
+        status = LoadSegment(program_headers + p, kernel_file, mem_info, kernel_entries_location + idx, &idx);
         if (EFI_ERROR(status))
             return status;
     }
@@ -185,8 +185,8 @@ EFI_STATUS LoadKernel(boot_info_t *boot_info, EFI_PHYSICAL_ADDRESS *kernel_entry
         return status;
     }
 
-    boot_info->kernel_entries = kernel_entries_location;
-    boot_info->num_kernel_entries = total_num_pages;
+    mem_info->kernel_entries = kernel_entries_location;
+    mem_info->num_kernel_entries = total_num_pages;
 
     return EFI_SUCCESS;
 }

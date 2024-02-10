@@ -25,7 +25,7 @@ typedef struct vmm_container {
 typedef struct {
     uintptr_t data_start;
     uintptr_t space_start;
-    uintptr_t p4_tbl;
+    uint64_t *p4_tbl;
 
     struct {
         size_t cur_index;
@@ -37,6 +37,6 @@ typedef struct {
     } status;
 } vmm_info_t;
 
-void init_vmm(vmm_level_t vmm_level);
-void *valloc(size_t size, size_t flags);
+void init_vmm(vmm_level_t vmm_level, vmm_info_t*);
+void *valloc(size_t size, size_t flags, vmm_info_t*);
 void vfree(void *addr);

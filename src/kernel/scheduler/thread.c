@@ -1,28 +1,56 @@
 #include <scheduler/thread.h>
+#include <scheduler/scheduler.h>
 #include <mem/kheap.h>
 #include <mem/pmm.h>
 #include <libc/string.h>
+#include <kernel/logging.h>
 
-thread_t *create_thread(char *name, void (*entry_point)(void)) {
-    // thread_t *new_thread = kmalloc(sizeof(thread_t));
-    // new_thread->id = next_thread_id++;
-    // new_thread->status = NEW;
-    // new_thread->wakeup_time = 0;
-    // strcpy(new_thread->name, name);
-    // new_thread->next = NULL;
-    // new_thread->next_sibling = NULL;
-    // new_thread->ticks = 0;
+size_t next_thread_id = 0;
 
-    // new_thread->ef = kmalloc(sizeof(cpu_status_t));
-    // new_thread->ef->int_no = 0x101;
-    // new_thread->ef->err_code = 0;
+void thread_wrapper(void (*entry_point)(void));
 
-    // new_thread->ef->rip = thread_wrapper;
-    // new_thread->ef->rdi = (uintptr_t) entry_point;
+void create_thread(char *name, thread_fn_t entry_point, task_t *parent_task, bool is_supervisor) {
+    thread_t *thread = kmalloc(sizeof(thread_t));
+    thread->id = next_thread_id++;
+    thread->parent_task = parent_task;
+    thread->status = NEW;
+    thread->wakeup_time = 0;
+    strcpy(thread->name, name);
+    thread->next = NULL;
+    thread->next_sibling = NULL;
+    thread->ticks = 0;
 
-    // new_thread->ef->rflags = 0x202;
-    // new_thread->ef->ss = 0x10;
-    // new_thread->ef->cs = 0x08;
+    thread->ef = kmalloc(sizeof(cpu_status_t));
+    thread->ef->int_no = 0x101;
+    thread->ef->err_code = 0;
 
-    // void *stack_pointer = alloc_range(2)
+    thread->ef->rip = (uintptr_t) thread_wrapper;
+    thread->ef->rdi = (uintptr_t) entry_point;
+
+    thread->ef->rflags = 0x202;
+    if (is_supervisor) {
+        thread->ef->ss = 0x10;
+        thread->ef->cs = 0x8;
+    }
+
+    thread->stack = (uintptr_t) valloc(THREAD_DEFAULT_STACK_SIZE, 0, &parent_task->vmm_info) + THREAD_DEFAULT_STACK_SIZE;
+    thread->ef->rsp = thread->stack;
+    thread->ef->rbp = 0;
+
+    task_add_thread(parent_task, thread);
+    scheduler_add_thread(thread);
+
+    return thread;
+}
+
+void remove_thread(thread_t *thread) {
+    kfree(thread->ef);
+    kfree(thread->stack - THREAD_DEFAULT_STACK_SIZE);
+    kfree(thread);
+}
+
+void thread_wrapper(void (*entry_point)(void)) {
+    entry_point();
+    cur_thread->status = DEAD;
+    while (1);
 }
