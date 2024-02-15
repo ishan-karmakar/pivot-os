@@ -4,6 +4,7 @@
 #include <cpu/lapic.h>
 #include <cpu/idt.h>
 #include <cpu/ioapic.h>
+#include <scheduler/scheduler.h>
 #include <kernel/logging.h>
 #include <mem/pmm.h>
 #include <io/ports.h>
@@ -40,7 +41,7 @@ void init_lapic(void) {
     } else if (xApicLeaf & (1 << 9)) {
         log(Info, "LAPIC", "xAPIC Available");
         x2mode = false;
-        map_addr(apic_base_address, apic_address, PAGE_TABLE_ENTRY);
+        map_addr(apic_base_address, apic_address, PAGE_TABLE_ENTRY, NULL);
     } else
         return log(Error, "LAPIC", "No LAPIC is supported by this CPU");
     
@@ -54,6 +55,7 @@ void init_lapic(void) {
     disable_pic();
     log(Info, "LAPIC", "Disabled PIC");
     IDT_SET_INT(32, apic_periodic_irq);
+    IDT_SET_INT(34, pit_irq);
 }
 
 void disable_pic(void) {
@@ -88,7 +90,6 @@ void write_apic_register(uint32_t reg_off, uint32_t val) {
 }
 
 void calibrate_apic_timer(void) {
-    IDT_SET_INT(34, pit_irq);
     set_irq(2, 34, 0, 0, true);
     asm ("sti");
     outb(PIT_MODE_COMMAND_REGISTER, 0b00110100);
@@ -118,4 +119,17 @@ void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_ent
     write_apic_register(APIC_TIMER_CONFIG_OFF, APIC_TIMER_DIVIDER);
 
     asm ("sti");
+}
+
+cpu_status_t *apic_periodic_handler(cpu_status_t *status) {
+    apic_ticks++;
+    status = schedule(status);
+    APIC_EOI();
+    return status;
+}
+
+cpu_status_t *pit_handler(cpu_status_t *status) {
+    pit_ticks++;
+    APIC_EOI();
+    return status;
 }

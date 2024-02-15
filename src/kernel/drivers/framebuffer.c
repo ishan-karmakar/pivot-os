@@ -92,7 +92,7 @@ void clear_screen(void) {
 
 void map_framebuffer(void) {
     size_t fb_size = fb_info->bpp * fb_info->pixels_per_scanline * fb_info->vertical_res;
-    map_range(fb_info->pointer, VADDR(fb_info->pointer), SIZE_TO_PAGES(fb_size));
+    map_range(fb_info->pointer, VADDR(fb_info->pointer), SIZE_TO_PAGES(fb_size), NULL);
     bitmap_rsv_area(fb_info->pointer, SIZE_TO_PAGES(fb_size));
 }
 

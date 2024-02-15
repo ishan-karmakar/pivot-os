@@ -9,7 +9,7 @@
 
 #define THREAD_DEFAULT_STACK_SIZE 0x10000
 
-typedef enum {
+typedef enum thread_status {
     NEW,
     INIT,
     RUN,
@@ -19,9 +19,12 @@ typedef enum {
     DEAD
 } thread_status_t;
 
+struct task;
+
 typedef struct thread {
     uint16_t id;
     char name[THREAD_NAME_MAX_LEN];
+    uintptr_t rsp0;
     uintptr_t stack;
     struct task *parent_task;
     thread_status_t status;
@@ -32,4 +35,6 @@ typedef struct thread {
     struct thread *next;
 } thread_t;
 
-void remove_thread(thread_t*);
+thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent_task, bool supervisor);
+void free_thread(thread_t*);
+void idle(void);

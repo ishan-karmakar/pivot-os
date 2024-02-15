@@ -1,8 +1,6 @@
 #include <kernel/logging.h>
 #include <io/stdio.h>
 
-static log_level_t min_log_level = Verbose;
-
 static char *log_levels[] = {
     "ERROR",
     "WARNING",

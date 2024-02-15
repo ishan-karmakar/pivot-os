@@ -2,35 +2,42 @@
 [extern exception_handler]
 ; [extern irq_handler]
 
-%macro isr 1
-[global isr%1]
-isr%1:
-    ; When this macro is called the status registers are already on the stack
-    push 0
+%macro isr_base_code 1
     push %1
     save_context
     mov rdi, rsp
+    cld
     call exception_handler ; Now we call the interrupt handler
     restore_context
     iretq ; Now we can return from the interrupt
 %endmacro
 
+%macro isr 1
+[global isr%1]
+isr%1:
+    ; When this macro is called the status registers are already on the stack
+    push 0
+    isr_base_code %1
+%endmacro
+
 %macro isr_err_code 1
 [global isr%1]
 isr%1:
-    push %1
-    save_context
-    mov rdi, rsp
-    call exception_handler
-    restore_context
-    iretq
+    isr_base_code %1
 %endmacro
 
-%macro irq 1
-[global irq%1]
-irq%1:
-    mov rdi, %1
-    call irq_handler
+%macro irq 2
+[extern %2]
+[global %1]
+%1:
+    push 0
+    push 0
+    save_context
+    mov rdi, rsp
+    cld
+    call %2
+    mov rsp, rax
+    restore_context
     iretq
 %endmacro
 
@@ -68,19 +75,7 @@ irq%1:
     pop rcx
     pop rbx
     pop rax
-    pop rax
     add rsp, 16 ; Remove error code and interrupt number from stack
-%endmacro
-
-[extern write_apic_register]
-%macro apic_eoi 0
-    push rdi
-    push rsi
-    mov rdi, 0xB0
-    mov rsi, 0
-    call write_apic_register
-    pop rsi
-    pop rdi
 %endmacro
 
 ; [extern apic_triggered]
@@ -96,41 +91,6 @@ irq%1:
 ;     call handle_keyboard
 ;     apic_eoi
 ;     iretq
-
-[extern pit_ticks]
-[global pit_irq]
-pit_irq:
-    inc qword [pit_ticks]
-    apic_eoi
-    iretq
-
-[extern rtc_handler]
-[global rtc_irq]
-rtc_irq:
-    call rtc_handler
-    apic_eoi
-    iretq
-
-[extern rax_val]
-[extern load_type]
-[extern next_thread]
-[extern last_thread]
-[extern apic_ticks]
-[extern return_address]
-[extern code_segment]
-[extern rflags_reg]
-[extern stack_pointer]
-[extern stack_segment]
-[extern save_ef]
-[extern load_ef]
-[global apic_periodic_irq]
-[extern tests]
-[extern testl]
-; TODO: Move some of this code into functions in threading.asm
-apic_periodic_irq:
-    inc qword [apic_ticks]
-    apic_eoi
-    iretq
 
 isr 0
 isr 1
@@ -164,4 +124,7 @@ isr 28
 isr 29
 isr_err_code 30
 isr 31
+irq apic_periodic_irq, apic_periodic_handler
+irq pit_irq, pit_handler
+irq rtc_irq, rtc_handler
 ; irq 255

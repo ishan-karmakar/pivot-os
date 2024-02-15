@@ -4,7 +4,7 @@
 #include <kernel/logging.h>
 #include <sys.h>
 
-uint64_t *kernel_pml4;
+mem_info_t *mem_info;
 size_t mem_pages = 0;
 
 static void clean_table(uint64_t *table) {
@@ -12,8 +12,8 @@ static void clean_table(uint64_t *table) {
         table[i] = 0;
 }
 
-void init_pmm(mem_info_t *mem_info) {
-    kernel_pml4 = (uint64_t*) VADDR((uintptr_t) mem_info->pml4);
+void init_pmm(mem_info_t *memory_info) {
+    mem_info = memory_info;
     init_bitmap(mem_info);
 
     size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
@@ -24,12 +24,17 @@ void init_pmm(mem_info_t *mem_info) {
             bitmap_rsv_area(current_desc->physical_start, current_desc->count);
         current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
+    for (size_t i = 0; i < mem_info->num_kernel_entries; i++) {
+        log(Debug, "KERNEL_ENTRY", "[%u] (Physical) %x -> (Virtual) %x - %u pages", i, mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, mem_info->kernel_entries[i].num_pages);
+        bitmap_set_bit(mem_info->kernel_entries[i].paddr);
+    }
+
     log(Info, "PMM", "Initialized Physical Memory Manager");
 }
 
 void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_tbl) {
     if (p4_tbl == NULL)
-        p4_tbl = kernel_pml4;
+        p4_tbl = (uint64_t*) VADDR((uintptr_t) mem_info->pml4);
 
     uint16_t p4_idx = P4_ENTRY(virtual);
     uint16_t p3_idx = P3_ENTRY(virtual);
@@ -69,4 +74,10 @@ void map_phys_mem(void) {
     for (size_t i = 0; i < mem_pages; i++)
         map_addr(i * PAGE_SIZE, VADDR(i * PAGE_SIZE), PAGE_TABLE_ENTRY, NULL);
     log(Info, "PMM", "Mapped physical memory to higher half");
+}
+
+// Maps the kernel entries in a new page table, used for new tasks and threads
+void map_kernel_entries(uint64_t *p4_tbl) {
+    for (size_t i = 0; i < mem_info->num_kernel_entries; i++)
+        map_addr(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, PAGE_TABLE_ENTRY, p4_tbl);
 }

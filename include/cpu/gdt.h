@@ -1,11 +1,10 @@
 #pragma once
 #include <stdint.h>
-#include <cpu/tss.h>
 
 #pragma pack(push, default)
 #pragma pack(1)
 
-typedef struct {
+typedef struct gdtr {
     uint16_t size;
     uintptr_t addr;
 } gdtr_t;

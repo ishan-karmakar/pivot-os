@@ -1,5 +1,10 @@
 #pragma once
 #include <stdint.h>
+#define APIC_TIMER_PERIODIC_IDT_ENTRY 32
+#define APIC_TIMER_ONESHOT_IDT_ENTRY 33
+#define PIT_TIMER_IDT_ENTRY 34
+#define RTC_TIMER_IDT_ENTRY 34
+
 #define IDT_SET_ENTRY(num, flags, sel, ist, handler) \
     extern void handler(); \
     set_idt_entry((num), (flags), (sel), (ist), (handler));
@@ -10,7 +15,7 @@
 #pragma pack(push, default)
 #pragma pack(1)
 
-typedef struct {
+typedef struct idt_desc {
     uint16_t offset0;
     uint16_t segment_selector;
     uint8_t ist;
@@ -20,7 +25,7 @@ typedef struct {
     uint32_t rsv;
 } idt_desc_t;
 
-typedef struct {
+typedef struct idtr {
     uint16_t size;
     uintptr_t addr;
 } idtr_t;

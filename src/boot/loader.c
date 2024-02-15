@@ -3,13 +3,12 @@
 #include <sys.h>
 #define KERNEL_PATH L"\\kernel.elf"
 
-EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entries_location, UINTN *total_num_pages) {
+EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_info_t *mem_info, kernel_entry_t *kernel_entries_location) {
     EFI_STATUS status;
     VOID *segment_data = NULL;
     UINTN buffer_read_size = program_header->p_filesz;
     UINTN page_offset = program_header->p_vaddr % EFI_PAGE_SIZE;
     UINTN num_pages = EFI_SIZE_TO_PAGES(page_offset + program_header->p_memsz);
-    *total_num_pages += num_pages;
     Print(L"Number of pages needed for segment: %u\n", num_pages);
     status = uefi_call_wrapper(kernel_file->SetPosition, 2, kernel_file, program_header->p_offset);
     if (EFI_ERROR(status)) {
@@ -21,9 +20,6 @@ EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_
     if (EFI_ERROR(status)) {
         Print(L"Error allocating pages for segment\n");
         return status;
-    }
-    for (UINTN i = 0; i < num_pages; i++) {
-        kernel_entries_location[i] = (EFI_PHYSICAL_ADDRESS) segment_data + PAGE_SIZE * i;
     }
 
     status = uefi_call_wrapper(kernel_file->Read, 3, kernel_file, &buffer_read_size, segment_data);
@@ -37,6 +33,10 @@ EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_
         Print(L"Error zero filling segment\n");
         return status;
     }
+
+    kernel_entries_location->vaddr = program_header->p_vaddr;
+    kernel_entries_location->paddr = (EFI_PHYSICAL_ADDRESS) segment_data;
+    kernel_entries_location->num_pages = num_pages;
     for (UINTN i = 0; i < num_pages; i++)
         MapAddr(ALIGN_ADDR(program_header->p_vaddr + EFI_PAGE_SIZE * i), ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + EFI_PAGE_SIZE * i)), mem_info->pml4);
     return EFI_SUCCESS;
@@ -140,29 +140,23 @@ EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_p
         return status;
     }
 
-    UINTN total_num_pages = 0;
     elf64_phdr_t *program_headers = (elf64_phdr_t*) elf_pheader_buf;
-    for (UINT16 p = 0; p < num_program_segments; p++) {
-        if (program_headers[p].p_type != 1) continue;
-        UINTN page_offset = program_headers[p].p_vaddr % EFI_PAGE_SIZE;
-        UINTN num_pages = EFI_SIZE_TO_PAGES(page_offset + program_headers[p].p_memsz);
-        total_num_pages += num_pages;
-    }
-    Print(L"Total num pages: %u\n", total_num_pages);
+    UINTN num_kernel_entries = 0;
+    for (UINT16 p = 0; p < num_program_segments; p++)
+        if (program_headers[p].p_type == 1) num_kernel_entries++;
 
-    UINT64 *kernel_entries_location;
-    status = uefi_call_wrapper(gBS->AllocatePool, 3, EfiLoaderData, total_num_pages * 4, &kernel_entries_location);
+    status = uefi_call_wrapper(gBS->AllocatePool, 3, EfiLoaderData, sizeof(kernel_entry_t) * num_kernel_entries, &mem_info->kernel_entries);
     if (EFI_ERROR(status)) {
         Print(L"Error allocating pool to store kernel entries\n");
         return status;
     }
 
-    UINTN idx = 0;
-    for (UINT16 p = 0; p < num_program_segments; p++) {
+    for (UINT16 p = 0, k = 0; p < num_program_segments; p++) {
         if (program_headers[p].p_type != 1) continue;
-        status = LoadSegment(program_headers + p, kernel_file, mem_info, kernel_entries_location + idx, &idx);
+        status = LoadSegment(program_headers + p, kernel_file, mem_info, mem_info->kernel_entries + k);
         if (EFI_ERROR(status))
             return status;
+        k++;
     }
     Print(L"Loaded program segments...\n");
 
@@ -185,8 +179,7 @@ EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_p
         return status;
     }
 
-    mem_info->kernel_entries = kernel_entries_location;
-    mem_info->num_kernel_entries = total_num_pages;
+    mem_info->num_kernel_entries = num_kernel_entries;
 
     return EFI_SUCCESS;
 }

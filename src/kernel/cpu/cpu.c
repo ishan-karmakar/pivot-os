@@ -14,3 +14,7 @@ uint64_t rdmsr(uint32_t address) {
 void wrmsr(uint32_t address, uint64_t value) {
     asm volatile ("wrmsr" : : "a" ((uint32_t) value), "d" (value >> 32), "c" (address));
 }
+
+void load_cr3(uintptr_t addr) {
+    asm volatile ("mov %0, %%cr3" :: "r" (addr) : "memory");
+}

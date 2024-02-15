@@ -1,4 +1,6 @@
+#include <cpu/cpu.h>
 #include <cpu/idt.h>
+#include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 #include <kernel/rtc.h>
 #include <kernel/logging.h>
@@ -42,10 +44,10 @@ void init_rtc(void) {
     read_register(0xC);
     set_irq_mask(8, false);
 }
-
-void rtc_handler(void) {
-    uint8_t status = read_register(0xC);
-    if (status & 0b10000) {
+// 0xFFFFFFFF80105CF8
+cpu_status_t *rtc_handler(cpu_status_t *status) {
+    uint8_t rtc_status = read_register(0xC);
+    if (rtc_status & 0b10000) {
         if (bcd) {
             uint8_t century = bcd2bin(read_register(0x32));
             global_time.century = century != 0 ? century : 20;
@@ -80,4 +82,6 @@ void rtc_handler(void) {
                     global_time.year < 10 ? "0" : "", global_time.year);
         screen_fg = old_color;
     }
+    APIC_EOI();
+    return status;
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-typedef struct {
+typedef struct tss {
     uint32_t rsv0;
 
     uint64_t rsp0;
@@ -23,5 +23,7 @@ typedef struct {
 
     uint16_t iopb;
 } __attribute__((packed)) tss_t;
+
+extern tss_t kernel_tss;
 
 void init_tss(void);

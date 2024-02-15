@@ -30,9 +30,6 @@ void init_bitmap(mem_info_t *mem_info) {
     for (size_t i = 0; i < bitmap_entries; i++)
         bitmap[i] = 0;
     
-    for (size_t i = 0; i < mem_info->num_kernel_entries; i++)
-        bitmap_set_bit(mem_info->kernel_entries[i]);
-    
     bitmap_rsv_area(PADDR((uintptr_t) bitmap), SIZE_TO_PAGES(bitmap_size));
 }
 
@@ -62,31 +59,5 @@ void *alloc_frame(void) {
         return (void*) (frame * PAGE_SIZE);
     }
 
-    return NULL;
-}
-
-// FIXME: Now that I am implementing a VMM, these functions should be removed
-bool bitmap_check_bit(uintptr_t addr) {
-    addr /= PAGE_SIZE;
-    return bitmap[addr / BITMAP_ROW_BITS] & (1 << (addr % BITMAP_ROW_BITS));
-}
-
-// TODO: Create a VMM so that instead of looking in physical memory for contiguous blocks,
-// Just map the addresses in the page table
-void *alloc_range(size_t pages) {
-    for (size_t row = 0; row < bitmap_entries; row++)
-        if (bitmap[row] != 0xFFFFFFFFFFFFFFFF)
-            for (size_t col = 0; col < BITMAP_ROW_BITS; col++) {
-                bool valid = true;
-                for (size_t i = 0; i < pages; i++)
-                    if (bitmap_check_bit((row * BITMAP_ROW_BITS + col + i) * PAGE_SIZE)) {
-                        valid = false;
-                        break;
-                    }
-                if (valid) {
-                    bitmap_rsv_area((row * BITMAP_ROW_BITS + col) * PAGE_SIZE, pages);
-                    return (void*)((row * BITMAP_ROW_BITS + col) * PAGE_SIZE);
-                }
-            }
     return NULL;
 }

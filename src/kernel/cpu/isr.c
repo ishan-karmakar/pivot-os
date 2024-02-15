@@ -1,6 +1,9 @@
 #include <stdint.h>
+#include <cpu/idt.h>
 #include <cpu/cpu.h>
+#include <cpu/lapic.h>
 #include <kernel/logging.h>
+
 extern void hcf(void);
 
 void log_registers(cpu_status_t *status) {
@@ -16,8 +19,12 @@ void log_registers(cpu_status_t *status) {
         status->r12, status->r13, status->r14, status->r15);
 }
 
-void exception_handler(cpu_status_t *status) {
-    log(Error, "ISR", "Received interrupt %u\n", status->int_no);
-    log_registers(status);
-    hcf();
+cpu_status_t *exception_handler(cpu_status_t *status) {
+    switch (status->int_no) {
+        default:
+            log(Error, "ISR", "Received interrupt number %u", status->int_no);
+            log_registers(status);
+            hcf();
+    }
+    return status;
 }

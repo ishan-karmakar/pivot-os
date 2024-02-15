@@ -12,7 +12,7 @@ uintptr_t sdt_addr;
 size_t num_tables;
 
 void init_acpi(boot_info_t *boot_info) {
-    map_addr(boot_info->sdt_address, VADDR(boot_info->sdt_address), PAGE_TABLE_ENTRY);
+    map_addr(boot_info->sdt_address, VADDR(boot_info->sdt_address), PAGE_TABLE_ENTRY, NULL);
     sdt_addr = boot_info->sdt_address;
     xsdt = boot_info->xsdt;
     validate_tables();
@@ -21,7 +21,7 @@ void init_acpi(boot_info_t *boot_info) {
 static void validate_tables(void) {
     xsdt_t *xsdt_tbl = (xsdt_t*) sdt_addr;
     rsdt_t *rsdt_tbl = (rsdt_t*) sdt_addr;
-    map_range(sdt_addr, VADDR(sdt_addr), SIZE_TO_PAGES(xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length));
+    map_range(sdt_addr, VADDR(sdt_addr), SIZE_TO_PAGES(xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length), NULL);
     bitmap_rsv_area(sdt_addr, SIZE_TO_PAGES(xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length));
 
     if (xsdt) {
@@ -42,16 +42,16 @@ static void validate_tables(void) {
     char signature[5];
     for (size_t i = 0; i < num_tables; i++) {
         if (xsdt)
-            map_addr(xsdt_tbl->tables[i], VADDR(xsdt_tbl->tables[i]), PAGE_TABLE_ENTRY);
+            map_addr(xsdt_tbl->tables[i], VADDR(xsdt_tbl->tables[i]), PAGE_TABLE_ENTRY, NULL);
         else
-            map_addr(rsdt_tbl->tables[i], VADDR(rsdt_tbl->tables[i]), PAGE_TABLE_ENTRY);
+            map_addr(rsdt_tbl->tables[i], VADDR(rsdt_tbl->tables[i]), PAGE_TABLE_ENTRY, NULL);
         uintptr_t header_addr = xsdt ? xsdt_tbl->tables[i] : rsdt_tbl->tables[i];
         sdt_header_t *header = (sdt_header_t*) VADDR(header_addr);
         if (!validate_checksum((char*) header, header->length)) {
             log(Error, "ACPI", "Detected invalid table...");
             hcf();
         }
-        map_range(header_addr, VADDR(header_addr), SIZE_TO_PAGES(header->length));
+        map_range(header_addr, VADDR(header_addr), SIZE_TO_PAGES(header->length), NULL);
         bitmap_rsv_area(header_addr, SIZE_TO_PAGES(header->length));
         memcpy(signature, header->signature, 4);
         signature[4] = 0;

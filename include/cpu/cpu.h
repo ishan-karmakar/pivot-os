@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-typedef struct {
+typedef struct cpu_status {
     uint64_t r15;
     uint64_t r14;
     uint64_t r13;
@@ -30,3 +30,4 @@ typedef struct {
 
 uint64_t rdmsr(uint32_t address);
 void wrmsr(uint32_t address, uint64_t value);
+void load_cr3(uintptr_t);

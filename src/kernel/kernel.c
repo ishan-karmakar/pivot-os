@@ -5,6 +5,8 @@
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
 #include <scheduler/task.h>
+#include <scheduler/thread.h>
+#include <scheduler/scheduler.h>
 #include <mem/pmm.h>
 #include <mem/kheap.h>
 #include <mem/vmm.h>
@@ -12,7 +14,10 @@
 #include <drivers/framebuffer.h>
 #include <kernel/acpi.h>
 #include <kernel/rtc.h>
+#include <kernel/logging.h>
 #include <io/stdio.h>
+
+log_level_t min_log_level = Debug;
 
 void __attribute__((noreturn)) kernel_main(void);
 
@@ -20,6 +25,10 @@ void __attribute__((noreturn)) hcf(void) {
     asm volatile ("cli");
     while (1)
         asm volatile ("hlt");
+}
+
+void task1(void) {
+    printf("Hello World\n");
 }
 
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
@@ -38,9 +47,12 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     calibrate_apic_timer();
     init_rtc();
 
-    task_t *task1 = create_task("task1", task1, true);
+    create_task("idle", idle, true);
+    create_task("test1", task1, true);
 
-    // init_scheduler();
+    // idle_thread = idle_task->threads;
+
+    start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
     while (1);
 }
 

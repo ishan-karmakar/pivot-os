@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <boot.h>
 
 #define MADT_LAPIC 0
 #define MADT_IOAPIC 1
@@ -9,10 +8,12 @@
 #define MADT_LAPIC_NMI 4
 #define MADT_LAPIC_ADDRESS_OVERRIDE 5
 
+struct boot_info;
+
 #pragma pack(push, default)
 #pragma pack(1)
 
-typedef struct {
+typedef struct rsdp_descriptor {
     char signature[8];
     uint8_t checksum;
     char oemid[6];
@@ -24,7 +25,7 @@ typedef struct {
     uint8_t rsv[3];
 } rsdp_descriptor_t;
 
-typedef struct {
+typedef struct sdt_header {
     char signature[4];
     uint32_t length;
     uint8_t revision;
@@ -36,22 +37,22 @@ typedef struct {
     uint32_t creator_revision;
 } sdt_header_t;
 
-typedef struct {
+typedef struct xsdt {
     sdt_header_t header;
     uintptr_t tables[0];
 } xsdt_t;
 
-typedef struct {
+typedef struct rsdt {
     sdt_header_t header;
     uint32_t tables[0];
 } rsdt_t;
 
-typedef struct {
+typedef struct madt_item {
     uint8_t type;
     uint8_t length;
 } madt_item_t;
 
-typedef struct {
+typedef struct madt {
     sdt_header_t header;
     uint32_t lapic_base;
     uint32_t flags;
@@ -59,6 +60,6 @@ typedef struct {
 
 #pragma pack(pop)
 
-void init_acpi(boot_info_t*);
+void init_acpi(struct boot_info*);
 sdt_header_t *get_table(char*);
 madt_item_t *get_madt_item(madt_t *table, uint8_t search_item, uint8_t count);

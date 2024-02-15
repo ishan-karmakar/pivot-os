@@ -8,14 +8,17 @@ vmm_info_t vmm_kernel;
 void init_vmm(__attribute__((unused)) vmm_level_t level, vmm_info_t *vmm_info) {
     if (vmm_info == NULL) {
         vmm_info = &vmm_kernel;
-        vmm_info->p4_tbl = p4_tbl; // Make sure to initialize kernel VMM before calling ANY valloc
+        vmm_info->p4_tbl = NULL; // Make sure to initialize kernel VMM before calling ANY valloc
     }
 
     vmm_info->data_start = ALIGN_ADDR(HIGHER_HALF_OFFSET + (mem_pages + 1) * PAGE_SIZE);
     vmm_info->status.root_container = (vmm_container_t*) vmm_info->data_start;
     vmm_info->status.vmm_data_end = vmm_info->data_start + VMM_RESERVED_SPACE_SIZE;
 
-    vmm_info->space_start = vmm_info->data_start + VMM_RESERVED_SPACE_SIZE + PAGE_SIZE;
+    if (level == Supervisor)
+        vmm_info->space_start = vmm_info->data_start + VMM_RESERVED_SPACE_SIZE + PAGE_SIZE;
+    else
+        vmm_info->space_start = PAGE_SIZE; // Padding to make sure *0 isn't valid
     
     vmm_info->status.next_addr = vmm_info->space_start;
     vmm_info->status.cur_index = 0;

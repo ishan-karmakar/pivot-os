@@ -15,7 +15,7 @@
 #define TIME_LENGTH 8
 #define DATE_LENGTH 8
 
-typedef struct {
+typedef struct time {
     uint8_t century; // 19 or 20
     uint8_t year; // 0-99
     uint8_t month; // 1-12

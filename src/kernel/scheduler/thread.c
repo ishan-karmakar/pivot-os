@@ -9,7 +9,7 @@ size_t next_thread_id = 0;
 
 void thread_wrapper(void (*entry_point)(void));
 
-void create_thread(char *name, thread_fn_t entry_point, task_t *parent_task, bool is_supervisor) {
+thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent_task, bool supervisor) {
     thread_t *thread = kmalloc(sizeof(thread_t));
     thread->id = next_thread_id++;
     thread->parent_task = parent_task;
@@ -28,29 +28,30 @@ void create_thread(char *name, thread_fn_t entry_point, task_t *parent_task, boo
     thread->ef->rdi = (uintptr_t) entry_point;
 
     thread->ef->rflags = 0x202;
-    if (is_supervisor) {
-        thread->ef->ss = 0x10;
-        thread->ef->cs = 0x8;
-    }
 
-    thread->stack = (uintptr_t) valloc(THREAD_DEFAULT_STACK_SIZE, 0, &parent_task->vmm_info) + THREAD_DEFAULT_STACK_SIZE;
+    thread->ef->ss = 0x10;
+    thread->ef->cs = 0x8;
+
+    thread->rsp0 = (uintptr_t) valloc(THREAD_DEFAULT_STACK_SIZE, 0, &parent_task->vmm_info);
+    thread->stack = (uintptr_t) valloc(THREAD_DEFAULT_STACK_SIZE, 0, &parent_task->vmm_info);
     thread->ef->rsp = thread->stack;
     thread->ef->rbp = 0;
 
     task_add_thread(parent_task, thread);
     scheduler_add_thread(thread);
-
     return thread;
 }
 
-void remove_thread(thread_t *thread) {
+void free_thread(thread_t *thread) {
     kfree(thread->ef);
-    kfree(thread->stack - THREAD_DEFAULT_STACK_SIZE);
+    kfree((void*) (thread->stack - THREAD_DEFAULT_STACK_SIZE));
     kfree(thread);
 }
 
-void thread_wrapper(void (*entry_point)(void)) {
+void thread_wrapper(thread_fn_t entry_point) {
     entry_point();
     cur_thread->status = DEAD;
     while (1);
 }
+
+void idle(void) { while(1); }

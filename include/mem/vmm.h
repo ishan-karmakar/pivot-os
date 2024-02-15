@@ -6,12 +6,12 @@
 #define VMM_RESERVED_SPACE_SIZE 0x14480000000
 #define VMM_ITEMS_PER_PAGE (PAGE_SIZE / sizeof(vmm_item_t))
 
-typedef enum {
+typedef enum vmm_level {
     Supervisor,
     User
 } vmm_level_t;
 
-typedef struct {
+typedef struct vmm_item {
     uintptr_t base;
     size_t size;
     size_t flags;
@@ -22,7 +22,7 @@ typedef struct vmm_container {
     struct vmm_container *next;
 } vmm_container_t;
 
-typedef struct {
+typedef struct vmm_info {
     uintptr_t data_start;
     uintptr_t space_start;
     uint64_t *p4_tbl;
