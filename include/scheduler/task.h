@@ -21,4 +21,4 @@ typedef struct task {
 
 void task_add_thread(task_t*, struct thread*);
 void task_remove_thread(struct thread*);
-task_t *create_task(char *name, thread_fn_t entry_point, bool supervisor);
+task_t *create_task(char *name, thread_fn_t entry_point, bool supervisor, bool add_scheduler_list);

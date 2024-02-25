@@ -1,5 +1,5 @@
 #pragma once
-#define SCHEDULER_THREAD_TICKS 0x200
+#define SCHEDULER_THREAD_TICKS 0x100
 
 struct cpu_status;
 struct thread;

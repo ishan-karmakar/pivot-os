@@ -35,6 +35,6 @@ typedef struct thread {
     struct thread *next;
 } thread_t;
 
-thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent_task, bool supervisor);
+thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent_task, bool supervisor, bool add_scheduler_list);
 void free_thread(thread_t*);
 void idle(void);

@@ -1,6 +1,7 @@
 #include <kernel/acpi.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
+#include <mem/bitmap.h>
 #include <mem/pmm.h>
 
 extern void hcf(void);

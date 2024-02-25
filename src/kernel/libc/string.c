@@ -66,7 +66,7 @@ itoa(int64_t num, char* str, int len, int base)
 }
 
 int ultoa(unsigned long num, char *str, int radix) {
-    char temp[33];  //an int can only be 16 bits long
+    char temp[65];  //an int can only be 16 bits long
                     //at radix 2 (binary) the string
                     //is at most 16 + 1 null long.
     int temp_loc = 0;

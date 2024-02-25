@@ -45,3 +45,4 @@ uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
 void calibrate_apic_timer(void);
 void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry);
+void map_lapic(uint64_t*);

@@ -9,7 +9,7 @@ size_t next_thread_id = 0;
 
 void thread_wrapper(void (*entry_point)(void));
 
-thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent_task, bool supervisor) {
+thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent_task, bool supervisor, bool add_scheduler_list) {
     thread_t *thread = kmalloc(sizeof(thread_t));
     thread->id = next_thread_id++;
     thread->parent_task = parent_task;
@@ -38,7 +38,8 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, struct task *parent
     thread->ef->rbp = 0;
 
     task_add_thread(parent_task, thread);
-    scheduler_add_thread(thread);
+    if (add_scheduler_list)
+        scheduler_add_thread(thread);
     return thread;
 }
 

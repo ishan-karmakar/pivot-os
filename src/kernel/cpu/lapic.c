@@ -6,6 +6,7 @@
 #include <cpu/ioapic.h>
 #include <scheduler/scheduler.h>
 #include <kernel/logging.h>
+#include <mem/bitmap.h>
 #include <mem/pmm.h>
 #include <io/ports.h>
 #include <sys.h>
@@ -41,7 +42,7 @@ void init_lapic(void) {
     } else if (xApicLeaf & (1 << 9)) {
         log(Info, "LAPIC", "xAPIC Available");
         x2mode = false;
-        map_addr(apic_base_address, apic_address, PAGE_TABLE_ENTRY, NULL);
+        map_lapic(NULL);
     } else
         return log(Error, "LAPIC", "No LAPIC is supported by this CPU");
     
@@ -54,7 +55,7 @@ void init_lapic(void) {
         bitmap_rsv_area(apic_base_address, 1);
     disable_pic();
     log(Info, "LAPIC", "Disabled PIC");
-    IDT_SET_INT(32, apic_periodic_irq);
+    IDT_SET_INT(APIC_TIMER_PERIODIC_IDT_ENTRY, apic_periodic_irq);
     IDT_SET_INT(34, pit_irq);
 }
 
@@ -132,4 +133,9 @@ cpu_status_t *pit_handler(cpu_status_t *status) {
     pit_ticks++;
     APIC_EOI();
     return status;
+}
+
+void map_lapic(uint64_t *pml4) {
+    if (!x2mode)
+        map_addr(PADDR(apic_address), apic_address, PAGE_TABLE_ENTRY, pml4);
 }

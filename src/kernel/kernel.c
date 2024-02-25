@@ -46,13 +46,12 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
-
-    create_task("idle", idle, true);
-    create_task("test1", task1, true);
-
+    clear_screen();
+    task_t *idle_task = create_task("idle", idle, true, false);
+    // create_task("test1", task1, true, true);
     // idle_thread = idle_task->threads;
 
-    start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
     while (1);
 }
 

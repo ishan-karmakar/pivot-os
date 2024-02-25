@@ -1,4 +1,5 @@
 #include <drivers/framebuffer.h>
+#include <mem/bitmap.h>
 #include <mem/pmm.h>
 #include <sys.h>
 #include <io/stdio.h>

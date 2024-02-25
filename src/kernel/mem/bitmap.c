@@ -1,6 +1,8 @@
 #include <mem/bitmap.h>
 #include <mem/pmm.h>
+#include <io/stdio.h>
 #include <kernel/logging.h>
+#include <drivers/framebuffer.h>
 #include <sys.h>
 
 static uint64_t *bitmap;
@@ -43,21 +45,12 @@ void bitmap_set_bit(uintptr_t address) {
     bitmap[address / BITMAP_ROW_BITS] |= 1 << (address % BITMAP_ROW_BITS);
 }
 
-int64_t bitmap_request_frame(void) {
-    for (uint16_t row = 0; row < bitmap_entries; row++)
+int64_t bitmap_request_frame() {
+    for (uint16_t row = 0; row < bitmap_entries; row++) {
         if (bitmap[row] != 0xFFFFFFFFFFFFFFFF)
             for (uint16_t col = 0; col < BITMAP_ROW_BITS; col++)
                 if (!(bitmap[row] & (1 << col)))
                     return row * BITMAP_ROW_BITS + col;
-    return -1;
-}
-
-void *alloc_frame(void) {
-    int64_t frame = bitmap_request_frame();
-    if (frame > 0) {
-        bitmap_set_bit(frame * PAGE_SIZE);
-        return (void*) (frame * PAGE_SIZE);
     }
-
-    return NULL;
+    return -1;
 }

@@ -5,7 +5,7 @@
 
 vmm_info_t vmm_kernel;
 // Implementation taken from Dreamos64
-void init_vmm(__attribute__((unused)) vmm_level_t level, vmm_info_t *vmm_info) {
+void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
     if (vmm_info == NULL) {
         vmm_info = &vmm_kernel;
         vmm_info->p4_tbl = NULL; // Make sure to initialize kernel VMM before calling ANY valloc
@@ -56,7 +56,7 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
         vmm_info->status.cur_container = new_container;
     }
 
-    size_t num_pages = ALIGN_ADDR_UP(size);
+    size_t num_pages = ALIGN_ADDR_UP(size) / PAGE_SIZE;
 
     uintptr_t addr = vmm_info->status.next_addr;
     vmm_item_t *item = vmm_info->status.cur_container->items + vmm_info->status.cur_index;

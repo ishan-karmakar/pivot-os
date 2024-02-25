@@ -26,7 +26,7 @@ void init_pmm(mem_info_t *memory_info) {
     }
     for (size_t i = 0; i < mem_info->num_kernel_entries; i++) {
         log(Debug, "KERNEL_ENTRY", "[%u] (Physical) %x -> (Virtual) %x - %u pages", i, mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, mem_info->kernel_entries[i].num_pages);
-        bitmap_set_bit(mem_info->kernel_entries[i].paddr);
+        bitmap_rsv_area(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].num_pages);
     }
 
     log(Info, "PMM", "Initialized Physical Memory Manager");
@@ -43,6 +43,7 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
 
     if (!(p4_tbl[p4_idx] & 1)) {
         uint64_t *table = alloc_frame();
+        map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
         clean_table(table);
         p4_tbl[p4_idx] = (uintptr_t) table | flags;
     }
@@ -50,6 +51,7 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
     uint64_t *p3_tbl = (uint64_t*) (p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
         uint64_t *table = alloc_frame();
+        map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
         clean_table(table);
         p3_tbl[p3_idx] = (uintptr_t) table | flags;
     }
@@ -57,6 +59,7 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
     uint64_t *p2_tbl = (uint64_t*) (p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
         uint64_t *table = alloc_frame();
+        map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
         clean_table(table);
         p2_tbl[p2_idx] = (uintptr_t) table | flags;
     }
@@ -80,4 +83,14 @@ void map_phys_mem(void) {
 void map_kernel_entries(uint64_t *p4_tbl) {
     for (size_t i = 0; i < mem_info->num_kernel_entries; i++)
         map_addr(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, PAGE_TABLE_ENTRY, p4_tbl);
+}
+
+void *alloc_frame(void) {
+    int64_t frame = bitmap_request_frame();
+    if (frame > 0) {
+        bitmap_set_bit(frame * PAGE_SIZE);
+        return (void*) (frame * PAGE_SIZE);
+    }
+
+    return NULL;
 }
