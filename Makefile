@@ -9,7 +9,7 @@ include src/kernel/Makefile
 run: KERNEL_LDFLAGS += -S -s
 run: BOOT_LDFLAGS += -S -s
 run: build/os.img
-	qemu-system-x86_64 -m 128M -serial stdio -bios OVMF.fd -drive file=$<,index=0,media=disk,format=raw
+	qemu-system-x86_64 -m 128M -serial stdio -bios OVMF.fd -no-reboot -no-shutdown -drive file=$<,index=0,media=disk,format=raw
 
 debug: KERNEL_CFLAGS += -g
 debug: BOOT_CFLAGS += -g

@@ -41,6 +41,8 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
     uint16_t p2_idx = P2_ENTRY(virtual);
     uint16_t p1_idx = P1_ENTRY(virtual);
 
+    log(Debug, "PMM", "Mapping %x (V) to %x (P) (4: %u, 3: %u, 2: %u, 1: %u)", virtual, physical, p4_idx, p3_idx, p2_idx, p1_idx);
+
     if (!(p4_tbl[p4_idx] & 1)) {
         uint64_t *table = alloc_frame();
         map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
