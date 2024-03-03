@@ -4,12 +4,15 @@
 #include <kernel/logging.h>
 #include <sys.h>
 
+static bool table_empty(uint64_t *table);
+
 mem_info_t *mem_info;
-size_t mem_pages = 0;
 
 void init_pmm(mem_info_t *memory_info) {
     mem_info = memory_info;
     mem_info->pml4 = (uint64_t*) VADDR((uintptr_t) mem_info->pml4);
+    mem_info->bitmap = (uint64_t*) VADDR((uintptr_t) mem_info->bitmap);
+    log(Info, "PMM", "Found %u pages of physical memory (%u mib)", mem_info->mem_pages, mem_info->mem_pages * PAGE_SIZE / 1048576);
     init_bitmap(mem_info);
 
     size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
@@ -32,9 +35,9 @@ void init_pmm(mem_info_t *memory_info) {
         unmap_addr(i * PAGE_SIZE, NULL);
     log(Verbose, "PMM", "Unmapped lower half");
 
-    for (size_t i = 0; i < mem_pages; i++)
+    for (size_t i = 0; i < mem_info->mem_pages; i++)
         map_addr(i * PAGE_SIZE, VADDR(i * PAGE_SIZE), PAGE_TABLE_ENTRY, NULL);
-    log(Info, "PMM", "Mapped higher half");
+    log(Verbose, "PMM", "Mapped higher half");
 }
 
 static void clean_table(uint64_t *table) {
@@ -100,7 +103,27 @@ void unmap_addr(uintptr_t addr, uint64_t *p4_tbl) {
     uint64_t *p1_tbl = (uint64_t*) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
     p1_tbl[p1_idx] = 0;
 
-    // TODO: Delete empty tables
+    if (table_empty(p1_tbl)) {
+        bitmap_clear_bit(PADDR((uintptr_t) p1_tbl));
+        p2_tbl[p2_idx] = 0;
+
+        if (table_empty(p2_tbl)) {
+            bitmap_clear_bit(PADDR((uintptr_t) p2_tbl));
+            p3_tbl[p3_idx] = 0;
+            
+            if (table_empty(p3_tbl)) {
+                bitmap_clear_bit(PADDR((uintptr_t) p3_tbl));
+                p4_tbl[p4_idx] = 0;
+            }
+        }
+    }
+}
+
+static bool table_empty(uint64_t *table) {
+    for (size_t i = 0; i < 512; i++)
+        if (table[i] & 1)
+            return false;
+    return true;
 }
 
 void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, uint64_t *p4_tbl) {
@@ -122,4 +145,8 @@ void *alloc_frame(void) {
     }
 
     return NULL;
+}
+
+bool addr_in_phys_mem(uintptr_t addr) {
+    return addr <= (mem_info->mem_pages * PAGE_SIZE);
 }

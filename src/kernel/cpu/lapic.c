@@ -51,7 +51,7 @@ void init_lapic(void) {
 
     write_apic_register(APIC_SPURIOUS_VEC_REG_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_INTERRUPT);
     log(Info, "LAPIC", "Initialized APIC");
-    if (apic_base_address < (mem_pages * PAGE_SIZE))
+    if (addr_in_phys_mem(apic_base_address))
         bitmap_rsv_area(apic_base_address, 1);
     disable_pic();
     log(Info, "LAPIC", "Disabled PIC");

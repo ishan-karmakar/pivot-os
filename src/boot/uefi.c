@@ -48,11 +48,25 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (EFI_ERROR(status))
         return status;
 
+    status = ParseMMAP(&boot_info.mem_info);
+    if (EFI_ERROR(status))
+        return status;
+
+    status = FreeMMAP(&boot_info.mem_info);
+    if (EFI_ERROR(status))
+        return status;
+    
+    status = GetMMAP(&boot_info.mem_info, &mmap_key);
+    if (EFI_ERROR(status))
+        return status;
+
     status = uefi_call_wrapper(gBS->ExitBootServices, 2, ImageHandle, mmap_key);
     if (EFI_ERROR(status)) {
         Print(L"Error exiting boot services\n");
         return status;
     }
+
+    // Map Addr -> Alloc Frame -> Bitmap -> MMAP
 
     LoadCr3(&boot_info.mem_info);
 

@@ -165,4 +165,43 @@ EFI_STATUS GetMMAP(mem_info_t *mem_info, UINTN *mmap_key) {
     return EFI_SUCCESS;
 }
 
-// CR2=0000000006125000
+EFI_STATUS ParseMMAP(mem_info_t *mem_info) {
+    EFI_STATUS status;
+    UINTN num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
+    mmap_descriptor_t *cur_desc = mem_info->mmap;
+    UINTN mem_pages = 0;
+    for (UINTN i = 0; i < num_entries; i++) {
+        mem_pages += cur_desc->count;
+        cur_desc = (mmap_descriptor_t*) ((UINT8*) cur_desc + mem_info->mmap_descriptor_size);
+    }
+
+    cur_desc = mem_info->mmap;
+    EFI_VIRTUAL_ADDRESS bitmap_location = 0;
+    size_t bitmap_size = mem_pages / 8 + 1;
+    for (UINTN i = 0; i < num_entries; i++) {
+        if (cur_desc->type == 7 && cur_desc->count >= SIZE_TO_PAGES(bitmap_size) && (bitmap_location == 0 || cur_desc->physical_start < bitmap_location)) {
+            bitmap_location = cur_desc->physical_start;
+        }
+        cur_desc = (mmap_descriptor_t*) ((UINT8*) cur_desc + mem_info->mmap_descriptor_size);
+    }
+
+    for (UINTN i = 0; i < SIZE_TO_PAGES(bitmap_size); i++) {
+        status = MapAddr(VADDR(bitmap_location) + i * PAGE_SIZE, bitmap_location + i * PAGE_SIZE, mem_info->pml4);
+        if (EFI_ERROR(status))
+            return status;
+    }
+    
+    mem_info->bitmap = (uint64_t*) bitmap_location;
+    mem_info->mem_pages = mem_pages;
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS FreeMMAP(mem_info_t *mem_info) {
+    EFI_STATUS status = uefi_call_wrapper(gBS->FreePool, 1, mem_info->mmap);
+    if (EFI_ERROR(status)) {
+        Print(L"Error freeing memory map\n");
+        return status;
+    }
+
+    return EFI_SUCCESS;
+}

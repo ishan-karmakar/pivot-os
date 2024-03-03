@@ -11,7 +11,7 @@ void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
         vmm_info->p4_tbl = NULL; // Make sure to initialize kernel VMM before calling ANY valloc
     }
 
-    vmm_info->data_start = ALIGN_ADDR(HIGHER_HALF_OFFSET + (mem_pages + 1) * PAGE_SIZE);
+    vmm_info->data_start = ALIGN_ADDR(HIGHER_HALF_OFFSET + (mem_info->mem_pages + 1) * PAGE_SIZE);
     vmm_info->status.root_container = (vmm_container_t*) vmm_info->data_start;
     vmm_info->status.vmm_data_end = vmm_info->data_start + VMM_RESERVED_SPACE_SIZE;
 

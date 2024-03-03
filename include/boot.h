@@ -33,6 +33,8 @@ typedef struct mem_info {
     size_t num_kernel_entries;
     kernel_entry_t *kernel_entries;
     uint64_t *pml4;
+    uint64_t *bitmap;
+    size_t mem_pages;
 } mem_info_t;
 
 typedef struct boot_info {
