@@ -33,10 +33,14 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
         if (EFI_ERROR(status))
             return status;
         p4_tbl[p4_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
-        Print(L"Identity mapping PDPT table, 0x%x\n", table);
         status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error identity mapping PDPT table\n");
+            return status;
+        }
+        status = MapAddr(VADDR((EFI_PHYSICAL_ADDRESS) table), (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
+        if (EFI_ERROR(status)) {
+            Print(L"Error mapping PDPT table in higher half\n");
             return status;
         }
     }
@@ -48,10 +52,14 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
         if (EFI_ERROR(status))
             return status;
         p3_tbl[p3_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
-        Print(L"Identity mapping PD table, 0x%x\n", table);
         status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error identity mapping PD table\n");
+            return status;
+        }
+        status = MapAddr(VADDR((EFI_PHYSICAL_ADDRESS) table), (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
+        if (EFI_ERROR(status)) {
+            Print(L"Error mapping PD table in higher half\n");
             return status;
         }
     }
@@ -63,10 +71,14 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
         if (EFI_ERROR(status))
             return status;
         p2_tbl[p2_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
-        Print(L"Identity mapping PT table, 0x%x\n", table);
         status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error identity mapping PT table\n");
+            return status;
+        }
+        status = MapAddr(VADDR((EFI_PHYSICAL_ADDRESS) table), (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
+        if (EFI_ERROR(status)) {
+            Print(L"Error mapping PT table in higher half\n");
             return status;
         }
     }
@@ -78,27 +90,40 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
 
 EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
     EFI_STATUS status;
-    UINT64 *p4_tbl = (UINT64*) MAX_MAPPED_ADDR;
-    uefi_call_wrapper(gBS->AllocatePages, 4, AllocateMaxAddress, EfiLoaderData, 1, &p4_tbl);
+    UINT64 *p4_tbl = NULL;
+    uefi_call_wrapper(gBS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, 1, &p4_tbl);
     uefi_call_wrapper(gBS->SetMem, 3, p4_tbl, EFI_PAGE_SIZE, 0);
     mem_info->pml4 = p4_tbl;
     Print(L"PML4 Address: 0x%x\n", (EFI_PHYSICAL_ADDRESS) p4_tbl);
 
-    for (UINTN i = 0; i < 32768; i++) { // 64 mb
+    for (UINTN i = 0; i < (0xFFFFFFFF / 4096); i++) { // 64 mb
         EFI_PHYSICAL_ADDRESS addr = i * EFI_PAGE_SIZE;
         status = MapAddr(addr, addr, p4_tbl);
         if (EFI_ERROR(status))
             return status;
+        
+        status = MapAddr(VADDR(addr), addr, p4_tbl);
+        if (EFI_ERROR(status))
+            return status;
     }
+
+    Print(L"Mapped first 4GB\n");
+
     status = MapAddr((uintptr_t) mem_info->pml4, (uintptr_t) mem_info->pml4, mem_info->pml4);
     if (EFI_ERROR(status)) {
         Print(L"Error identity mapping PML4\n");
         return status;
     }
-    Print(L"Identity mapped PML4\n");
+
+    status = MapAddr(VADDR((uintptr_t) mem_info->pml4), (uintptr_t) mem_info->pml4, mem_info->pml4);
+    if (EFI_ERROR(status)) {
+        Print(L"Error mapping PML4 in higher half\n");
+        return status;
+    }
+    Print(L"Mapped PML4\n");
 
     return EFI_SUCCESS;
-} // 6120000
+}
 
 void LoadCr3(mem_info_t *mem_info) {
     asm volatile (

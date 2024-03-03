@@ -35,12 +35,12 @@ void init_lapic(void) {
     __get_cpuid(1, &ignored, &ignored, &x2ApicLeaf, &xApicLeaf);
 
     if (x2ApicLeaf & (1 << 21)) {
-        log(Info, "LAPIC", "x2APIC Available");
+        log(Verbose, "LAPIC", "x2APIC Available");
         x2mode = true;
         msr_output |= (1 << 10);
         wrmsr(IA32_APIC_BASE, msr_output);
     } else if (xApicLeaf & (1 << 9)) {
-        log(Info, "LAPIC", "xAPIC Available");
+        log(Verbose, "LAPIC", "xAPIC Available");
         x2mode = false;
         map_lapic(NULL);
     } else

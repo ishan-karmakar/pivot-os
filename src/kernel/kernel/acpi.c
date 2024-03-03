@@ -12,9 +12,10 @@ bool xsdt;
 uintptr_t sdt_addr;
 size_t num_tables;
 
+// TODO: Maybe implement ACPICA
 void init_acpi(boot_info_t *boot_info) {
     map_addr(boot_info->sdt_address, VADDR(boot_info->sdt_address), PAGE_TABLE_ENTRY, NULL);
-    sdt_addr = boot_info->sdt_address;
+    sdt_addr = VADDR(boot_info->sdt_address);
     xsdt = boot_info->xsdt;
     validate_tables();
 }
@@ -22,21 +23,16 @@ void init_acpi(boot_info_t *boot_info) {
 static void validate_tables(void) {
     xsdt_t *xsdt_tbl = (xsdt_t*) sdt_addr;
     rsdt_t *rsdt_tbl = (rsdt_t*) sdt_addr;
-    map_range(sdt_addr, VADDR(sdt_addr), SIZE_TO_PAGES(xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length), NULL);
-    bitmap_rsv_area(sdt_addr, SIZE_TO_PAGES(xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length));
+    
+    size_t header_length = xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length;
+    map_range(PADDR(sdt_addr), sdt_addr, SIZE_TO_PAGES(header_length), NULL);
+    bitmap_rsv_area(PADDR(sdt_addr), SIZE_TO_PAGES(header_length));
 
-    if (xsdt) {
-        if (!validate_checksum((char*) xsdt_tbl, xsdt_tbl->header.length)) {
-            log(Error, "ACPI", "Found invalid XSDT table");
-            hcf();
-        }
-    } else {
-        if (!validate_checksum((char*) rsdt_tbl, rsdt_tbl->header.length)) {
-            log(Error, "ACPI", "Found invalid RSDT table");
-            hcf();
-        }
+    if (!validate_checksum(xsdt ? (char*) xsdt_tbl : (char*) rsdt_tbl, header_length)) {
+        log(Error, "ACPI", "Found invalid %cSDT table", xsdt ? 'X' : 'R');
+        hcf();
     }
-    log(Verbose, "ACPI", "Found valid %s table", xsdt ? "XSDT" : "RSDT");
+    log(Verbose, "ACPI", "Found valid %cSDT table", xsdt ? 'X' : 'R');
     num_tables = xsdt ? ((xsdt_tbl->header.length - sizeof(xsdt_tbl->header)) / sizeof(xsdt_tbl->tables[0])) :
                  ((rsdt_tbl->header.length - sizeof(rsdt_tbl->header)) / sizeof(rsdt_tbl->tables[0]));
     log(Verbose, "ACPI", "Found %u tables", num_tables);
@@ -49,7 +45,7 @@ static void validate_tables(void) {
         uintptr_t header_addr = xsdt ? xsdt_tbl->tables[i] : rsdt_tbl->tables[i];
         sdt_header_t *header = (sdt_header_t*) VADDR(header_addr);
         if (!validate_checksum((char*) header, header->length)) {
-            log(Error, "ACPI", "Detected invalid table...");
+            log(Error, "ACPI", "Detected invalid table");
             hcf();
         }
         map_range(header_addr, VADDR(header_addr), SIZE_TO_PAGES(header->length), NULL);

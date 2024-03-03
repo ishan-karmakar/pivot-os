@@ -38,7 +38,6 @@ EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_
     kernel_entries_location->paddr = (EFI_PHYSICAL_ADDRESS) segment_data;
     kernel_entries_location->num_pages = num_pages;
     for (UINTN i = 0; i < num_pages; i++) {
-        Print(L"Mapping 0x%x (V) to 0x%x\n", program_header->p_vaddr + EFI_PAGE_SIZE * i, segment_data + EFI_PAGE_SIZE * i);
         MapAddr(ALIGN_ADDR(program_header->p_vaddr + EFI_PAGE_SIZE * i), ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + EFI_PAGE_SIZE * i)), mem_info->pml4);
     }
     return EFI_SUCCESS;

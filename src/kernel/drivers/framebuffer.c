@@ -106,5 +106,5 @@ void init_framebuffer(framebuffer_info_t *fbinfo) {
     map_framebuffer();
     char_printer = fb_print_char;
     clear_screen();
-    log(Info, "FRAMEBUFFER", "Framebuffer is initialized");
+    log(Info, "FRAMEBUFFER", "Initialized framebuffer");
 }

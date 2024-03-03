@@ -7,13 +7,9 @@
 mem_info_t *mem_info;
 size_t mem_pages = 0;
 
-static void clean_table(uint64_t *table) {
-    for (int i = 0; i < 512; i++)
-        table[i] = 0;
-}
-
 void init_pmm(mem_info_t *memory_info) {
     mem_info = memory_info;
+    mem_info->pml4 = (uint64_t*) VADDR((uintptr_t) mem_info->pml4);
     init_bitmap(mem_info);
 
     size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
@@ -24,17 +20,31 @@ void init_pmm(mem_info_t *memory_info) {
             bitmap_rsv_area(current_desc->physical_start, current_desc->count);
         current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
+    
     for (size_t i = 0; i < mem_info->num_kernel_entries; i++) {
         log(Debug, "KERNEL_ENTRY", "[%u] (Physical) %x -> (Virtual) %x - %u pages", i, mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, mem_info->kernel_entries[i].num_pages);
         bitmap_rsv_area(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].num_pages);
     }
 
     log(Info, "PMM", "Initialized Physical Memory Manager");
+
+    for (size_t i = 0; i < (0xFFFFFFFF / 4096); i++)
+        unmap_addr(i * PAGE_SIZE, NULL);
+    log(Verbose, "PMM", "Unmapped lower half");
+
+    for (size_t i = 0; i < mem_pages; i++)
+        map_addr(i * PAGE_SIZE, VADDR(i * PAGE_SIZE), PAGE_TABLE_ENTRY, NULL);
+    log(Info, "PMM", "Mapped higher half");
+}
+
+static void clean_table(uint64_t *table) {
+    for (int i = 0; i < 512; i++)
+        table[i] = 0;
 }
 
 void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_tbl) {
     if (p4_tbl == NULL)
-        p4_tbl = (uint64_t*) VADDR((uintptr_t) mem_info->pml4);
+        p4_tbl = mem_info->pml4;
 
     uint16_t p4_idx = P4_ENTRY(virtual);
     uint16_t p3_idx = P3_ENTRY(virtual);
@@ -50,7 +60,7 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
         p4_tbl[p4_idx] = (uintptr_t) table | flags;
     }
 
-    uint64_t *p3_tbl = (uint64_t*) (p4_tbl[p4_idx] & SIGN_MASK);
+    uint64_t *p3_tbl = (uint64_t*) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
         uint64_t *table = alloc_frame();
         map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
@@ -58,7 +68,7 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
         p3_tbl[p3_idx] = (uintptr_t) table | flags;
     }
 
-    uint64_t *p2_tbl = (uint64_t*) (p3_tbl[p3_idx] & SIGN_MASK);
+    uint64_t *p2_tbl = (uint64_t*) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
         uint64_t *table = alloc_frame();
         map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
@@ -66,19 +76,36 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
         p2_tbl[p2_idx] = (uintptr_t) table | flags;
     }
 
-    uint64_t *p1_tbl = (uint64_t*) (p2_tbl[p2_idx] & SIGN_MASK);
+    uint64_t *p1_tbl = (uint64_t*) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
     p1_tbl[p1_idx] = physical | flags;
+}
+
+void unmap_addr(uintptr_t addr, uint64_t *p4_tbl) {
+    if (p4_tbl == NULL)
+        p4_tbl = mem_info->pml4;
+    
+    uint16_t p4_idx = P4_ENTRY(addr);
+    uint16_t p3_idx = P3_ENTRY(addr);
+    uint16_t p2_idx = P2_ENTRY(addr);
+    uint16_t p1_idx = P1_ENTRY(addr);
+
+    if (!(p4_tbl[p4_idx] & 1)) return;
+    
+    uint64_t *p3_tbl = (uint64_t*) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
+    if (!(p3_tbl[p3_idx] & 1)) return;
+
+    uint64_t *p2_tbl = (uint64_t*) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
+    if (!(p2_tbl[p2_idx] & 1)) return;
+
+    uint64_t *p1_tbl = (uint64_t*) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
+    p1_tbl[p1_idx] = 0;
+
+    // TODO: Delete empty tables
 }
 
 void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, uint64_t *p4_tbl) {
     for (size_t i = 0; i < num_pages; i++)
         map_addr(physical + i * PAGE_SIZE, virtual + i * PAGE_SIZE, PAGE_TABLE_ENTRY, p4_tbl);
-}
-
-void map_phys_mem(void) {
-    for (size_t i = 0; i < mem_pages; i++)
-        map_addr(i * PAGE_SIZE, VADDR(i * PAGE_SIZE), PAGE_TABLE_ENTRY, NULL);
-    log(Info, "PMM", "Mapped physical memory to higher half");
 }
 
 // Maps the kernel entries in a new page table, used for new tasks and threads

@@ -3,6 +3,7 @@
 #include <boot/loader.h>
 #include <boot/acpi.h>
 #include <boot.h>
+#include <sys.h>
 
 EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
@@ -54,9 +55,8 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
 
     LoadCr3(&boot_info.mem_info);
-    while(1);
 
-    // VOID (*kernel_entry)(boot_info_t*) = (VOID (*)(boot_info_t*)) kernel_entry_point;
-    // kernel_entry(&boot_info);
+    VOID (*kernel_entry)(boot_info_t*) = (VOID (*)(boot_info_t*)) kernel_entry_point;
+    kernel_entry(&boot_info);
     return EFI_LOAD_ERROR;
 }
