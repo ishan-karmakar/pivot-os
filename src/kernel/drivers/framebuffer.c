@@ -80,7 +80,7 @@ void fb_print_char(char c) {
             screen_y++;
         }
     }
-    // In the future, scroll the screen instead of clearing
+    // TODO: Scroll screen intead of clearing
     if (screen_y >= screen_num_rows)
         clear_screen();
 }

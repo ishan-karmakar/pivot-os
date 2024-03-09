@@ -12,7 +12,6 @@ static kheap_mem_node_t *kernel_heap_end;
 void init_kheap(void) {
     // Let's allocate the new heap, we rely on the vmm_alloc function for this part.
     uint64_t *kheap_addr = valloc(PAGE_SIZE, 0, NULL);
-
     kernel_heap_start = (kheap_mem_node_t *) ((uint64_t) kheap_addr);
     kernel_heap_current_pos = kernel_heap_start;
     kernel_heap_end = kernel_heap_start;

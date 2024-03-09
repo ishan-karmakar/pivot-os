@@ -15,6 +15,7 @@
 #include <kernel/acpi.h>
 #include <kernel/rtc.h>
 #include <kernel/logging.h>
+#include <kernel/progress.h>
 #include <io/stdio.h>
 
 log_level_t min_log_level = Verbose;
@@ -40,6 +41,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_idt();
     init_pmm(&boot_info.mem_info);
     init_framebuffer(&boot_info.fb_info);
+    cleanup_uefi();
     init_vmm(Supervisor, NULL);
     init_kheap();
     init_acpi(&boot_info);

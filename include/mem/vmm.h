@@ -30,8 +30,6 @@ typedef struct vmm_info {
     struct {
         size_t cur_index;
         size_t next_addr;
-        uint64_t vmm_data_end;
-
         vmm_container_t *root_container;
         vmm_container_t *cur_container;
     } status;

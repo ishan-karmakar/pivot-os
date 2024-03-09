@@ -2,6 +2,7 @@
 #include <mem/pmm.h>
 #include <mem/bitmap.h>
 #include <kernel/logging.h>
+#include <kernel/progress.h>
 #include <sys.h>
 
 static bool table_empty(uint64_t *table);
@@ -30,14 +31,23 @@ void init_pmm(mem_info_t *memory_info) {
     }
 
     log(Info, "PMM", "Initialized Physical Memory Manager");
+}
 
-    for (size_t i = 0; i < (0xFFFFFFFF / 4096); i++)
+void cleanup_uefi(void) {
+    log(Info, "PMM", "Unmapping lower half...");
+    size_t num_pages = 0xFFFFFFFF / 4096;
+    create_progress(num_pages);
+    for (size_t i = 0; i < num_pages; i++) {
         unmap_addr(i * PAGE_SIZE, NULL);
-    log(Verbose, "PMM", "Unmapped lower half");
+        update_progress(i + 1);
+    }
 
-    for (size_t i = 0; i < mem_info->mem_pages; i++)
+    log(Info, "PMM", "Mapping higher half...");
+    create_progress(mem_info->mem_pages);
+    for (size_t i = 0; i < mem_info->mem_pages; i++) {
         map_addr(i * PAGE_SIZE, VADDR(i * PAGE_SIZE), PAGE_TABLE_ENTRY, NULL);
-    log(Verbose, "PMM", "Mapped higher half");
+        update_progress(i + 1);
+    }
 }
 
 static void clean_table(uint64_t *table) {
@@ -58,25 +68,25 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_
 
     if (!(p4_tbl[p4_idx] & 1)) {
         uint64_t *table = alloc_frame();
+        p4_tbl[p4_idx] = (uintptr_t) table | flags;
         map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
         clean_table(table);
-        p4_tbl[p4_idx] = (uintptr_t) table | flags;
     }
 
     uint64_t *p3_tbl = (uint64_t*) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
         uint64_t *table = alloc_frame();
+        p3_tbl[p3_idx] = (uintptr_t) table | flags;
         map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
         clean_table(table);
-        p3_tbl[p3_idx] = (uintptr_t) table | flags;
     }
 
     uint64_t *p2_tbl = (uint64_t*) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
         uint64_t *table = alloc_frame();
+        p2_tbl[p2_idx] = (uintptr_t) table | flags;
         map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
         clean_table(table);
-        p2_tbl[p2_idx] = (uintptr_t) table | flags;
     }
 
     uint64_t *p1_tbl = (uint64_t*) VADDR(p2_tbl[p2_idx] & SIGN_MASK);

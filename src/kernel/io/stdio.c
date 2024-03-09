@@ -1,19 +1,20 @@
 #include <io/stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdatomic.h>
 #include <libc/string.h>
 #include <drivers/framebuffer.h>
 
 static char fb_buf[512];
 static size_t fb_buf_pos;
 char_printer_t char_printer;
+atomic_flag stdio_mutex = ATOMIC_FLAG_INIT;
 
 void flush_screen(void) {
     for (uint16_t i = 0; i < fb_buf_pos; i++)
         char_printer(fb_buf[i]);
     fb_buf_pos = 0;
 }
-
 
 static void add_string(char* str) {
     for (; *str != '\0'; str++)
@@ -55,13 +56,18 @@ void vprintf(const char *c, va_list args) {
 }
 
 void printf(const char *format, ...) {
+    while (atomic_flag_test_and_set(&stdio_mutex))
+        asm volatile ("pause");
     va_list args;
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
+    atomic_flag_clear(&stdio_mutex);
 }
 
 void printf_at(size_t x, size_t y, const char *format, ...) {
+    while (atomic_flag_test_and_set(&stdio_mutex))
+        asm volatile ("pause");
     size_t old_x = screen_x;
     size_t old_y = screen_y;
     screen_x = x;
@@ -73,4 +79,5 @@ void printf_at(size_t x, size_t y, const char *format, ...) {
     flush_screen();
     screen_x = old_x;
     screen_y = old_y;
+    atomic_flag_clear(&stdio_mutex);
 }
