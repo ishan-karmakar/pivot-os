@@ -1,99 +1,111 @@
 #include <stddef.h>
 #include <mem/pmm.h>
 #include <mem/bitmap.h>
+#include <io/stdio.h>
 #include <kernel/logging.h>
 #include <kernel/progress.h>
 #include <sys.h>
 
-static bool table_empty(uint64_t *table);
+static bool table_empty(page_table_t);
 
 mem_info_t *mem_info;
 
 void init_pmm(mem_info_t *memory_info) {
     mem_info = memory_info;
-    mem_info->pml4 = (uint64_t*) VADDR((uintptr_t) mem_info->pml4);
-    mem_info->bitmap = (uint64_t*) VADDR((uintptr_t) mem_info->bitmap);
+    mem_info->pml4 = (page_table_t) VADDR(mem_info->pml4);
+    log(Info, "PMM", "PML4 addr: %x", (uintptr_t) mem_info->pml4);
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", mem_info->mem_pages, mem_info->mem_pages * PAGE_SIZE / 1048576);
-    init_bitmap(mem_info);
-
+    init_bitmap();
     size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
     mmap_descriptor_t *current_desc = mem_info->mmap;
     for (size_t i = 0; i < mmap_num_entries; i++) {
         log(Debug, "MMAP", "[%u] Type: %u - Address: %x - Num Pages: %u", i, current_desc->type, current_desc->physical_start, current_desc->count);
-        if (current_desc->type != 7)
-            bitmap_rsv_area(current_desc->physical_start, current_desc->count);
+        uint8_t type = current_desc->type;
+        if ((type == 3 || type == 4 || type == 7) && current_desc->physical_start != 0)
+            bitmap_clear_area(current_desc->physical_start, current_desc->count);
         current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
-    
-    for (size_t i = 0; i < mem_info->num_kernel_entries; i++) {
-        log(Debug, "KERNEL_ENTRY", "[%u] (Physical) %x -> (Virtual) %x - %u pages", i, mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, mem_info->kernel_entries[i].num_pages);
-        bitmap_rsv_area(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].num_pages);
+
+    current_desc = mem_info->mmap;
+    for (size_t i = 0; i < mmap_num_entries; i++) {
+        uint8_t type = current_desc->type;
+        if (type == 2 || type == 3 || type == 4 || type == 7)
+            map_range(current_desc->physical_start, VADDR(current_desc->physical_start), current_desc->count, NULL);
+        current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
 
+    map_range((uintptr_t) mem_info->kernel_entries, VADDR(mem_info->kernel_entries), SIZE_TO_PAGES(mem_info->num_kernel_entries * sizeof(kernel_entry_t)), NULL);
+    mem_info->kernel_entries = (kernel_entry_t*) VADDR(mem_info->kernel_entries);
     log(Info, "PMM", "Initialized Physical Memory Manager");
 }
 
+/*
+State at the end of function:
+- All addresses in lower half are unmapped except for page tables
+- All physical memory is mapped in the higher half
+*/
 void cleanup_uefi(void) {
     log(Info, "PMM", "Unmapping lower half...");
     size_t num_pages = 0xFFFFFFFF / 4096;
     create_progress(num_pages);
     for (size_t i = 0; i < num_pages; i++) {
-        unmap_addr(i * PAGE_SIZE, NULL);
-        update_progress(i + 1);
-    }
-
-    log(Info, "PMM", "Mapping higher half...");
-    create_progress(mem_info->mem_pages);
-    for (size_t i = 0; i < mem_info->mem_pages; i++) {
-        map_addr(i * PAGE_SIZE, VADDR(i * PAGE_SIZE), PAGE_TABLE_ENTRY, NULL);
+        if (i * PAGE_SIZE != (uintptr_t) mem_info->pml4)
+            unmap_addr(i * PAGE_SIZE, NULL);
         update_progress(i + 1);
     }
 }
 
-static void clean_table(uint64_t *table) {
-    for (int i = 0; i < 512; i++)
-        table[i] = 0;
+// Maps the kernel entries in a new page table, used for new tasks and threads
+void map_kernel_entries(page_table_t p4_tbl) {
+    for (size_t i = 0; i < mem_info->num_kernel_entries; i++)
+        map_addr(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, PAGE_TABLE_ENTRY, p4_tbl);
 }
 
-void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, uint64_t *p4_tbl) {
+void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, page_table_t p4_tbl) {
+    for (size_t i = 0; i < num_pages; i++)
+        map_addr(physical + i * PAGE_SIZE, virtual + i * PAGE_SIZE, PAGE_TABLE_ENTRY, p4_tbl);
+}
+
+void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, page_table_t p4_tbl) {
     if (p4_tbl == NULL)
         p4_tbl = mem_info->pml4;
+
+    physical = ALIGN_ADDR(physical);
+    virtual = ALIGN_ADDR(virtual);
 
     uint16_t p4_idx = P4_ENTRY(virtual);
     uint16_t p3_idx = P3_ENTRY(virtual);
     uint16_t p2_idx = P2_ENTRY(virtual);
     uint16_t p1_idx = P1_ENTRY(virtual);
 
-    log(Debug, "PMM", "Mapping %x (V) to %x (P) (4: %u, 3: %u, 2: %u, 1: %u)", virtual, physical, p4_idx, p3_idx, p2_idx, p1_idx);
-
     if (!(p4_tbl[p4_idx] & 1)) {
-        uint64_t *table = alloc_frame();
+        page_table_t table = alloc_frame();
         p4_tbl[p4_idx] = (uintptr_t) table | flags;
-        map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
-        clean_table(table);
+        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
+        clean_table((page_table_t) VADDR(table));
     }
 
-    uint64_t *p3_tbl = (uint64_t*) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
+    page_table_t p3_tbl = (page_table_t) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
-        uint64_t *table = alloc_frame();
+        page_table_t table = alloc_frame();
         p3_tbl[p3_idx] = (uintptr_t) table | flags;
-        map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
-        clean_table(table);
+        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
+        clean_table((page_table_t) VADDR(table));
     }
 
-    uint64_t *p2_tbl = (uint64_t*) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
+    page_table_t p2_tbl = (page_table_t) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
-        uint64_t *table = alloc_frame();
+        page_table_t table = alloc_frame();
         p2_tbl[p2_idx] = (uintptr_t) table | flags;
-        map_addr((uintptr_t) table, (uintptr_t) table, PAGE_TABLE_ENTRY, p4_tbl);
-        clean_table(table);
+        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
+        clean_table((page_table_t) VADDR(table));
     }
-
-    uint64_t *p1_tbl = (uint64_t*) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
+    page_table_t p1_tbl = (page_table_t) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
+    // log(Verbose, "PMM", "T: %x", (uintptr_t) p1_tbl);
     p1_tbl[p1_idx] = physical | flags;
 }
 
-void unmap_addr(uintptr_t addr, uint64_t *p4_tbl) {
+void unmap_addr(uintptr_t addr, page_table_t p4_tbl) {
     if (p4_tbl == NULL)
         p4_tbl = mem_info->pml4;
     
@@ -104,47 +116,38 @@ void unmap_addr(uintptr_t addr, uint64_t *p4_tbl) {
 
     if (!(p4_tbl[p4_idx] & 1)) return;
     
-    uint64_t *p3_tbl = (uint64_t*) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
+    page_table_t p3_tbl = (page_table_t) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) return;
 
-    uint64_t *p2_tbl = (uint64_t*) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
+    page_table_t p2_tbl = (page_table_t) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) return;
 
-    uint64_t *p1_tbl = (uint64_t*) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
+    page_table_t p1_tbl = (page_table_t) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
     p1_tbl[p1_idx] = 0;
-
+    invlpg(addr);
+    return;
+    // TODO: Cleanup all tables after unmapping lower half, instead of each iteration
+    // This part slows down unmapping a lot, yet to find a better solution though
     if (table_empty(p1_tbl)) {
         bitmap_clear_bit(PADDR((uintptr_t) p1_tbl));
+        unmap_addr((uintptr_t) p1_tbl, p4_tbl);
+        unmap_addr(VADDR(p1_tbl), p4_tbl);
         p2_tbl[p2_idx] = 0;
 
         if (table_empty(p2_tbl)) {
             bitmap_clear_bit(PADDR((uintptr_t) p2_tbl));
+            unmap_addr((uintptr_t) p2_tbl, p4_tbl);
+            unmap_addr(VADDR(p2_tbl), p4_tbl);
             p3_tbl[p3_idx] = 0;
             
             if (table_empty(p3_tbl)) {
                 bitmap_clear_bit(PADDR((uintptr_t) p3_tbl));
+                unmap_addr((uintptr_t) p3_tbl, p4_tbl);
+                unmap_addr(VADDR(p3_tbl), p4_tbl);
                 p4_tbl[p4_idx] = 0;
             }
         }
     }
-}
-
-static bool table_empty(uint64_t *table) {
-    for (size_t i = 0; i < 512; i++)
-        if (table[i] & 1)
-            return false;
-    return true;
-}
-
-void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, uint64_t *p4_tbl) {
-    for (size_t i = 0; i < num_pages; i++)
-        map_addr(physical + i * PAGE_SIZE, virtual + i * PAGE_SIZE, PAGE_TABLE_ENTRY, p4_tbl);
-}
-
-// Maps the kernel entries in a new page table, used for new tasks and threads
-void map_kernel_entries(uint64_t *p4_tbl) {
-    for (size_t i = 0; i < mem_info->num_kernel_entries; i++)
-        map_addr(mem_info->kernel_entries[i].paddr, mem_info->kernel_entries[i].vaddr, PAGE_TABLE_ENTRY, p4_tbl);
 }
 
 void *alloc_frame(void) {
@@ -153,8 +156,24 @@ void *alloc_frame(void) {
         bitmap_set_bit(frame * PAGE_SIZE);
         return (void*) (frame * PAGE_SIZE);
     }
-
+    log(Error, "ALLOC_FRAME", "alloc_frame() returned NULL");
     return NULL;
+}
+
+void invlpg(uintptr_t addr) {
+    asm volatile ("invlpg (%0)" : : "r" (addr) : "memory");
+}
+
+void clean_table(page_table_t table) {
+    for (int i = 0; i < 512; i++)
+        table[i] = 0;
+}
+
+static bool table_empty(page_table_t table) {
+    for (size_t i = 0; i < 512; i++)
+        if (table[i] & 1)
+            return false;
+    return true;
 }
 
 bool addr_in_phys_mem(uintptr_t addr) {

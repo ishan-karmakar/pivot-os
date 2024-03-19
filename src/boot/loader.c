@@ -38,7 +38,7 @@ EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_
     kernel_entries_location->paddr = (EFI_PHYSICAL_ADDRESS) segment_data;
     kernel_entries_location->num_pages = num_pages;
     for (UINTN i = 0; i < num_pages; i++) {
-        MapAddr(ALIGN_ADDR(program_header->p_vaddr + EFI_PAGE_SIZE * i), ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + EFI_PAGE_SIZE * i)), mem_info->pml4);
+        MapAddr(ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + PAGE_SIZE * i)), ALIGN_ADDR(program_header->p_vaddr + PAGE_SIZE * i), mem_info->pml4);
     }
     return EFI_SUCCESS;
 }
@@ -181,6 +181,5 @@ EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_p
     }
 
     mem_info->num_kernel_entries = num_kernel_entries;
-
     return EFI_SUCCESS;
 }

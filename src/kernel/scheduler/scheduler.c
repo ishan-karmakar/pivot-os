@@ -6,6 +6,7 @@
 #include <scheduler/task.h>
 #include <scheduler/scheduler.h>
 #include <kernel/logging.h>
+#include <io/stdio.h>
 
 thread_t *scheduler_next_thread(thread_t*);
 void scheduler_remove_thread(thread_t*);

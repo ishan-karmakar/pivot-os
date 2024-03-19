@@ -22,7 +22,7 @@ BOOT_LDFLAGS := -shared \
 
 build/BOOTX64.efi: $(BOOT_C_OBJ)
 	ld $(BOOT_LDFLAGS) $^ -o build/main.so -lgnuefi -lefi
-	objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym  -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --target efi-app-x86_64 --subsystem=10 build/main.so $@
+	objcopy -g -R .hash -R .gnu.hash -R .eh_frame -R .comment --target efi-app-x86_64 --subsystem=10 build/main.so $@
 
 build/boot/%.o: src/boot/%.c
 	@mkdir -p $(@D)

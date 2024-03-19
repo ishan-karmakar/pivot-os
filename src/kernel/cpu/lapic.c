@@ -51,8 +51,7 @@ void init_lapic(void) {
 
     write_apic_register(APIC_SPURIOUS_VEC_REG_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_INTERRUPT);
     log(Info, "LAPIC", "Initialized APIC");
-    if (addr_in_phys_mem(apic_base_address))
-        bitmap_rsv_area(apic_base_address, 1);
+    bitmap_rsv_area(apic_base_address, 1);
     disable_pic();
     log(Info, "LAPIC", "Disabled PIC");
     IDT_SET_INT(APIC_TIMER_PERIODIC_IDT_ENTRY, apic_periodic_irq);
@@ -110,7 +109,7 @@ void calibrate_apic_timer(void) {
     
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;
-    log(Verbose, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
+    log(Debug, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
     log(Info, "APIC", "Calibrated APIC timer");
 }
 

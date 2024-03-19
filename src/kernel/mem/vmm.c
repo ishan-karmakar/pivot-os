@@ -4,6 +4,7 @@
 #include <kernel/logging.h>
 
 vmm_info_t vmm_kernel;
+
 // Implementation taken from Dreamos64
 void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
     if (vmm_info == NULL) {
@@ -26,11 +27,10 @@ void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
     if (vmm_root == NULL)
         return log(Error, "VMM", "Cannot allocate frame for start of VMM space");
 
-    map_addr((uintptr_t) vmm_root, vmm_info->data_start, PAGE_TABLE_ENTRY, NULL);
+    map_addr((uintptr_t) vmm_root, vmm_info->data_start, PAGE_TABLE_ENTRY, vmm_info->p4_tbl);
 
     vmm_info->status.root_container->next = NULL;
     vmm_info->status.cur_container = vmm_info->status.root_container;
-
     log(Info, "VMM", "Initialized virtual memory manager");
 }
 
@@ -40,7 +40,6 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
     
     if (vmm_info == NULL)
         vmm_info = &vmm_kernel;
-    
     if (vmm_info->status.cur_index >= VMM_ITEMS_PER_PAGE) {
         void *container_phys_addr = alloc_frame();
         if (!container_phys_addr) {
@@ -63,12 +62,11 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
     item->size = num_pages;
     vmm_info->status.next_addr += num_pages * PAGE_SIZE;
     vmm_info->status.cur_index++;
-
     for (size_t i = 0; i < num_pages; i++) {
         uintptr_t f = (uintptr_t) alloc_frame();
         map_addr(f, addr + i * PAGE_SIZE, flags | PAGE_TABLE_ENTRY, vmm_info->p4_tbl);
     }
-    
+
     return (void*) addr;
 }
 

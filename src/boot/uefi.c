@@ -43,6 +43,8 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     status = LoadKernel(&boot_info.mem_info, &kernel_entry_point);
     if (EFI_ERROR(status))
         return status;
+    
+    Print(L"Current RIP is %x\n", (uintptr_t) __builtin_return_address(0));
 
     status = GetMMAP(&boot_info.mem_info, &mmap_key);
     if (EFI_ERROR(status))
@@ -69,7 +71,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     // Map Addr -> Alloc Frame -> Bitmap -> MMAP
 
     LoadCr3(&boot_info.mem_info);
-
+    // while(1);
     VOID (*kernel_entry)(boot_info_t*) = (VOID (*)(boot_info_t*)) kernel_entry_point;
     kernel_entry(&boot_info);
     return EFI_LOAD_ERROR;

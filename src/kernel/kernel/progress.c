@@ -2,6 +2,7 @@
 #include <drivers/framebuffer.h>
 #include <io/stdio.h>
 
+// TODO: Save screen y instead of just decrementing it
 size_t length, bar_length, clength;
 
 void create_progress(size_t plength) {
@@ -27,5 +28,3 @@ void update_progress(size_t completed) {
     printf("]");
     flush_screen();
 }
-
-// Completed / Total Length -> Bar Completed / Bar Length

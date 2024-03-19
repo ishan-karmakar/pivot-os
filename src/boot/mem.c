@@ -21,7 +21,7 @@ EFI_STATUS AllocTable(UINT64 **table) {
     return EFI_SUCCESS;
 }
 
-EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr, UINT64 *p4_tbl) {
+EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr, UINT64 *p4_tbl) {
     EFI_STATUS status;
     UINTN p4_idx = P4_ENTRY(virt_addr);
     UINTN p3_idx = P3_ENTRY(virt_addr);
@@ -33,12 +33,7 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
         if (EFI_ERROR(status))
             return status;
         p4_tbl[p4_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
-        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
-        if (EFI_ERROR(status)) {
-            Print(L"Error identity mapping PDPT table\n");
-            return status;
-        }
-        status = MapAddr(VADDR((EFI_PHYSICAL_ADDRESS) table), (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
+        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PDPT table in higher half\n");
             return status;
@@ -52,12 +47,7 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
         if (EFI_ERROR(status))
             return status;
         p3_tbl[p3_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
-        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
-        if (EFI_ERROR(status)) {
-            Print(L"Error identity mapping PD table\n");
-            return status;
-        }
-        status = MapAddr(VADDR((EFI_PHYSICAL_ADDRESS) table), (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
+        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PD table in higher half\n");
             return status;
@@ -71,12 +61,7 @@ EFI_STATUS MapAddr(EFI_VIRTUAL_ADDRESS virt_addr, EFI_PHYSICAL_ADDRESS phys_addr
         if (EFI_ERROR(status))
             return status;
         p2_tbl[p2_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
-        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
-        if (EFI_ERROR(status)) {
-            Print(L"Error identity mapping PT table\n");
-            return status;
-        }
-        status = MapAddr(VADDR((EFI_PHYSICAL_ADDRESS) table), (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
+        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PT table in higher half\n");
             return status;
@@ -97,16 +82,11 @@ EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
     Print(L"PML4 Address: 0x%x\n", (EFI_PHYSICAL_ADDRESS) p4_tbl);
 
     for (UINTN i = 0; i < (0xFFFFFFFF / 4096); i++) { // 64 mb
-        EFI_PHYSICAL_ADDRESS addr = i * EFI_PAGE_SIZE;
-        status = MapAddr(addr, addr, p4_tbl);
-        if (EFI_ERROR(status))
-            return status;
-        
-        status = MapAddr(VADDR(addr), addr, p4_tbl);
-        if (EFI_ERROR(status))
-            return status;
+        // EFI_PHYSICAL_ADDRESS addr = i * EFI_PAGE_SIZE;
+        // status = MapAddr(addr, addr, p4_tbl);
+        // if (EFI_ERROR(status))
+        //     return status;
     }
-
     Print(L"Mapped first 4GB\n");
 
     status = MapAddr((uintptr_t) mem_info->pml4, (uintptr_t) mem_info->pml4, mem_info->pml4);
@@ -115,7 +95,7 @@ EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
         return status;
     }
 
-    status = MapAddr(VADDR((uintptr_t) mem_info->pml4), (uintptr_t) mem_info->pml4, mem_info->pml4);
+    status = MapAddr((uintptr_t) mem_info->pml4, VADDR(mem_info->pml4), mem_info->pml4);
     if (EFI_ERROR(status)) {
         Print(L"Error mapping PML4 in higher half\n");
         return status;
@@ -169,29 +149,40 @@ EFI_STATUS ParseMMAP(mem_info_t *mem_info) {
     EFI_STATUS status;
     UINTN num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
     mmap_descriptor_t *cur_desc = mem_info->mmap;
-    UINTN mem_pages = 0;
+    EFI_PHYSICAL_ADDRESS max_addr = 0;
     for (UINTN i = 0; i < num_entries; i++) {
-        mem_pages += cur_desc->count;
+        EFI_PHYSICAL_ADDRESS new_max_addr = cur_desc->physical_start + cur_desc->count * PAGE_SIZE;
+        if (new_max_addr > max_addr)
+            max_addr = new_max_addr;
         cur_desc = (mmap_descriptor_t*) ((UINT8*) cur_desc + mem_info->mmap_descriptor_size);
     }
 
+    UINTN mem_pages = max_addr / PAGE_SIZE;
     cur_desc = mem_info->mmap;
     EFI_VIRTUAL_ADDRESS bitmap_location = 0;
-    size_t bitmap_size = mem_pages / 8 + 1;
+    size_t bitmap_size = DIV_CEIL(mem_pages, 64) * 8;
+    Print(L"Bitmap size: %u\n", bitmap_size);
     for (UINTN i = 0; i < num_entries; i++) {
         if (cur_desc->type == 7 && cur_desc->count >= SIZE_TO_PAGES(bitmap_size) && (bitmap_location == 0 || cur_desc->physical_start < bitmap_location)) {
             bitmap_location = cur_desc->physical_start;
         }
+        else if (cur_desc->type == 1 || cur_desc->type == 2 || cur_desc->type == 3 || cur_desc->type == 4) {
+            for (size_t i = 0; i < cur_desc->count; i++) {
+                // Print(L"Mapping 0x%x\n", cur_desc->physical_start + i * PAGE_SIZE);
+                MapAddr(cur_desc->physical_start + i * PAGE_SIZE, cur_desc->physical_start + i * PAGE_SIZE, mem_info->pml4);
+            }
+        }
         cur_desc = (mmap_descriptor_t*) ((UINT8*) cur_desc + mem_info->mmap_descriptor_size);
     }
-
     for (UINTN i = 0; i < SIZE_TO_PAGES(bitmap_size); i++) {
-        status = MapAddr(VADDR(bitmap_location) + i * PAGE_SIZE, bitmap_location + i * PAGE_SIZE, mem_info->pml4);
+        status = MapAddr(bitmap_location + i * PAGE_SIZE, VADDR(bitmap_location) + i * PAGE_SIZE, mem_info->pml4);
         if (EFI_ERROR(status))
             return status;
     }
+    Print(L"Mapped bitmap...\n");
     
-    mem_info->bitmap = (uint64_t*) bitmap_location;
+    mem_info->bitmap = (uint64_t*) VADDR(bitmap_location);
+    mem_info->bitmap_entries = bitmap_size / 8;
     mem_info->mem_pages = mem_pages;
     return EFI_SUCCESS;
 }
