@@ -39,7 +39,7 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     }
     
     thread_t *thread_to_execute = NULL;
-    thread_t *prev_thread = cur_thread;
+    // thread_t *prev_thread = cur_thread;
     thread_t *tmp_thread = scheduler_next_thread(cur_thread);
 
     // First check if any sleeping threads wakeup now
@@ -76,12 +76,11 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     thread_to_execute->status = RUN;
     thread_to_execute->ticks = 0;
     cur_thread = thread_to_execute;
+    kernel_tss.rsp0 = cur_thread->rsp0;
     task_t *task = cur_thread->parent_task;
-
-    printf("CR3: %x\n", task->vmm_info.p4_tbl);
-    load_cr3((uintptr_t) task->vmm_info.p4_tbl);
-    // kernel_tss.rsp0 = cur_thread->rsp0;
-    return cur_thread->ef;
+    cpu_status_t *thread_ef = cur_thread->ef;
+    load_cr3(PADDR(task->vmm_info.p4_tbl));
+    return thread_ef;
 }
 
 thread_t *scheduler_next_thread(thread_t *thread) {

@@ -91,9 +91,9 @@ void clear_screen(void) {
     screen_x = screen_y = 0;
 }
 
-void map_framebuffer(void) {
+void map_framebuffer(page_table_t p4_tbl) {
     size_t fb_size = fb_info->bpp * fb_info->pixels_per_scanline * fb_info->vertical_res;
-    map_range(fb_info->pointer, VADDR(fb_info->pointer), SIZE_TO_PAGES(fb_size), NULL);
+    map_range(fb_info->pointer, VADDR(fb_info->pointer), SIZE_TO_PAGES(fb_size), p4_tbl);
     bitmap_rsv_area(fb_info->pointer, SIZE_TO_PAGES(fb_size));
 }
 
@@ -103,7 +103,7 @@ void init_framebuffer(framebuffer_info_t *fbinfo) {
     screen_num_cols = fb_info->horizontal_res / loaded_font->width;
     screen_num_rows = fb_info->vertical_res / loaded_font->height;
     fb_buffer = (char*) VADDR(fb_info->pointer);
-    map_framebuffer();
+    map_framebuffer(NULL);
     char_printer = fb_print_char;
     clear_screen();
     log(Info, "FB", "Initialized framebuffer");

@@ -79,15 +79,6 @@ EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
     uefi_call_wrapper(gBS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, 1, &p4_tbl);
     uefi_call_wrapper(gBS->SetMem, 3, p4_tbl, EFI_PAGE_SIZE, 0);
     mem_info->pml4 = p4_tbl;
-    Print(L"PML4 Address: 0x%x\n", (EFI_PHYSICAL_ADDRESS) p4_tbl);
-
-    for (UINTN i = 0; i < (0xFFFFFFFF / 4096); i++) { // 64 mb
-        // EFI_PHYSICAL_ADDRESS addr = i * EFI_PAGE_SIZE;
-        // status = MapAddr(addr, addr, p4_tbl);
-        // if (EFI_ERROR(status))
-        //     return status;
-    }
-    Print(L"Mapped first 4GB\n");
 
     status = MapAddr((uintptr_t) mem_info->pml4, (uintptr_t) mem_info->pml4, mem_info->pml4);
     if (EFI_ERROR(status)) {
@@ -183,6 +174,7 @@ EFI_STATUS ParseMMAP(mem_info_t *mem_info) {
     
     mem_info->bitmap = (uint64_t*) VADDR(bitmap_location);
     mem_info->bitmap_entries = bitmap_size / 8;
+    mem_info->bitmap_size = SIZE_TO_PAGES(bitmap_size);
     mem_info->mem_pages = mem_pages;
     return EFI_SUCCESS;
 }

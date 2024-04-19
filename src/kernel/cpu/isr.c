@@ -21,6 +21,14 @@ void log_registers(cpu_status_t *status) {
 
 cpu_status_t *exception_handler(cpu_status_t *status) {
     switch (status->int_no) {
+        case 14:
+            log(Error, "ISR", "Received interrupt number 14");
+            uint64_t cr2 = 0;
+            asm volatile ("mov %%cr2, %0" : "=r" (cr2));
+            log(Verbose, "ISR", "cr2: %x", cr2);
+            log_registers(status);
+            hcf();
+            break;
         default:
             log(Error, "ISR", "Received interrupt number %u", status->int_no);
             log_registers(status);

@@ -35,6 +35,7 @@ typedef struct mem_info {
     uint64_t *pml4;
     uint64_t *bitmap;
     size_t bitmap_entries;
+    size_t bitmap_size;
     size_t mem_pages;
 } mem_info_t;
 

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <mem/pmm.h>
 #define HEAP_ALLOC_ALIGNMENT 0x10
 #define KHEAP_MINIMUM_ALLOCABLE_SIZE 0x20
 
@@ -21,3 +22,4 @@ void init_kheap(void);
 void *kmalloc(size_t);
 void kfree(void*);
 void *krealloc(void*, size_t);
+void map_kheap(page_table_t);

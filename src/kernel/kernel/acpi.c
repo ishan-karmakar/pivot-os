@@ -14,27 +14,28 @@ size_t num_tables;
 
 // TODO: Maybe implement ACPICA
 void init_acpi(boot_info_t *boot_info) {
-    map_addr(boot_info->sdt_address, VADDR(boot_info->sdt_address), PAGE_TABLE_ENTRY, NULL);
+    bitmap_set_bit(boot_info->sdt_address);
     sdt_addr = VADDR(boot_info->sdt_address);
+    map_addr(boot_info->sdt_address, sdt_addr, PAGE_TABLE_ENTRY, NULL);
     xsdt = boot_info->xsdt;
     validate_tables();
+    log(Info, "ACPI", "Initialized ACPI tables");
 }
 
 static void validate_tables(void) {
     xsdt_t *xsdt_tbl = (xsdt_t*) sdt_addr;
     rsdt_t *rsdt_tbl = (rsdt_t*) sdt_addr;
     
-    size_t header_length = xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length;
-    map_range(PADDR(sdt_addr), sdt_addr, SIZE_TO_PAGES(header_length), NULL);
-    bitmap_rsv_area(PADDR(sdt_addr), SIZE_TO_PAGES(header_length));
-
+    uint32_t header_length = xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length;
+    size_t num_pages = SIZE_TO_PAGES(sdt_addr - ALIGN_ADDR(sdt_addr) + header_length);
+    bitmap_rsv_area(PADDR(sdt_addr), num_pages);
+    map_range(PADDR(sdt_addr), sdt_addr, num_pages, NULL);
     if (!validate_checksum(xsdt ? (char*) xsdt_tbl : (char*) rsdt_tbl, header_length)) {
         log(Error, "ACPI", "Found invalid %cSDT table", xsdt ? 'X' : 'R');
         hcf();
     }
     log(Verbose, "ACPI", "Found valid %cSDT table", xsdt ? 'X' : 'R');
-    num_tables = xsdt ? ((xsdt_tbl->header.length - sizeof(xsdt_tbl->header)) / sizeof(xsdt_tbl->tables[0])) :
-                 ((rsdt_tbl->header.length - sizeof(rsdt_tbl->header)) / sizeof(rsdt_tbl->tables[0]));
+    num_tables = xsdt ? ((xsdt_tbl->header.length - sizeof(xsdt_tbl->header)) / sizeof(xsdt_tbl->tables[0])) : ((rsdt_tbl->header.length - sizeof(rsdt_tbl->header)) / sizeof(rsdt_tbl->tables[0]));
     log(Verbose, "ACPI", "Found %u tables", num_tables);
     char signature[5];
     for (size_t i = 0; i < num_tables; i++) {

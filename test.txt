@@ -1,0 +1,7 @@
+gcc -Iinclude/ -ffreestanding -nostdlib -Wall -Wextra -mno-red-zone -mno-sse -mcmodel=large -nostdlib -fno-stack-protector -fno-stack-check -g -c src/kernel/scheduler/task.c -o build/kernel/scheduler/task.o
+gcc -Iinclude/ -ffreestanding -nostdlib -Wall -Wextra -mno-red-zone -mno-sse -mcmodel=large -nostdlib -fno-stack-protector -fno-stack-check -g -c src/kernel/drivers/framebuffer.c -o build/kernel/drivers/framebuffer.o
+ld -T src/kernel/linker.ld -n -nostdlib -z max-page-size=0x1000 -o build/kernel.elf build/kernel/kernel/progress.o build/kernel/kernel/rtc.o build/kernel/kernel/logging.o build/kernel/kernel/acpi.o build/kernel/mem/bitmap.o build/kernel/mem/vmm.o build/kernel/mem/kheap.o build/kernel/mem/pmm.o build/kernel/scheduler/task.o build/kernel/scheduler/scheduler.o build/kernel/scheduler/thread.o build/kernel/io/stdio.o build/kernel/io/ports.o build/kernel/cpu/ioapic.o build/kernel/cpu/cpu.o build/kernel/cpu/isr.o build/kernel/cpu/gdt.o build/kernel/cpu/idt.o build/kernel/cpu/lapic.o build/kernel/cpu/tss.o build/kernel/libc/string.o build/kernel/kernel.o build/kernel/drivers/framebuffer.o build/kernel/drivers/qemu.o build/kernel/cpu/load_gdt.o build/kernel/cpu/interrupts.o build/kernel/trampoline.o build/fonts/default.o
+./efi2img.sh build/BOOTX64.efi build/kernel.elf build/os.img
+mkfs.fat 4.2 (2021-01-31)
+qemu-system-x86_64 -m 128M -serial stdio -bios OVMF.fd -no-reboot -no-shutdown -drive file=build/os.img,index=0,media=disk,format=raw
+[2J[01;01H[=3h[2J[01;01H

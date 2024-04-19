@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <mem/pmm.h>
 
 extern size_t screen_num_cols, screen_num_rows;
 extern size_t screen_x, screen_y;
@@ -20,4 +21,5 @@ typedef struct psf_font {
 } __attribute__((packed)) psf_font_t;
 
 void init_framebuffer(struct framebuffer_info *boot_info);
+void map_framebuffer(page_table_t);
 void clear_screen(void);
