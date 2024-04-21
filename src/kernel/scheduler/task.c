@@ -59,14 +59,17 @@ void task_remove_thread(thread_t *thread) {
 */
 void init_task_vmm(task_t *task) {
     task->vmm_info.p4_tbl = (page_table_t) VADDR(alloc_frame());
+    log(Verbose, "TASK", "%x", (uintptr_t) task->vmm_info.p4_tbl);
+    clean_table(task->vmm_info.p4_tbl);
     map_addr(PADDR(task->vmm_info.p4_tbl), (uintptr_t) task->vmm_info.p4_tbl, PAGE_TABLE_ENTRY, task->vmm_info.p4_tbl);
     map_addr(PADDR(task->vmm_info.p4_tbl), PADDR(task->vmm_info.p4_tbl), PAGE_TABLE_ENTRY, task->vmm_info.p4_tbl);
 
-    clean_table(task->vmm_info.p4_tbl);
     init_vmm(User, &task->vmm_info);
     map_kernel_entries(task->vmm_info.p4_tbl);
     map_framebuffer(task->vmm_info.p4_tbl);
     map_lapic(task->vmm_info.p4_tbl);
     map_kheap(task->vmm_info.p4_tbl);
-    valloc(PAGE_SIZE * 512, 0, &task->vmm_info);
+    map_threading(task->vmm_info.p4_tbl);
+
+    // valloc(PAGE_SIZE * 512, 0, &task->vmm_info);
 }

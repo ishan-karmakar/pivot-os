@@ -33,6 +33,10 @@ void task1(void) {
     printf("Hello World\n");
 }
 
+void task2(void) {
+    printf("Hello World 2\n");
+}
+
 void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     boot_info = *binfo; // Copy over boot info to higher half
     init_qemu();
@@ -49,12 +53,13 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
-    clear_screen();
-    task_t *idle_task = create_task("idle", idle, true, false);
-    create_task("test1", task1, true, true);
-    // create_task("test2", idle, true, true);
-    idle_thread = idle_task->threads;
-    start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    // clear_screen();
+    // task_t *idle_task = create_task("idle", idle, true, false);
+    // log(Verbose, "KERNEL", "%x", create_task("test1", task1, true, true)->threads);
+    // log(Verbose, "KERNEL", "%x", create_task("test2", task2, true, true)->threads);
+    // idle_thread = idle_task->threads;
+    // printf("\n");
+    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
     while (1);
 }
 

@@ -16,22 +16,37 @@ void init_pmm(mem_info_t *memory_info) {
     log(Info, "PMM", "PML4 addr: %x", (uintptr_t) mem_info->pml4);
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", mem_info->mem_pages, mem_info->mem_pages * PAGE_SIZE / 1048576);
     init_bitmap();
-    map_higher_half();
+    map_higher_half(NULL);
     log(Info, "PMM", "Initialized Physical Memory Manager");
 }
 
-void map_higher_half(void) {
+void map_higher_half(page_table_t p4_tbl) {
     size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
     mmap_descriptor_t *current_desc = mem_info->mmap;
     for (size_t i = 0; i < mmap_num_entries; i++) {
         uint8_t type = current_desc->type;
         if ((type == 2 || type == 3 || type == 4 || type == 7) && current_desc->physical_start != 0)
-            map_range(current_desc->physical_start, VADDR(current_desc->physical_start), current_desc->count, NULL);
+            map_range(current_desc->physical_start, VADDR(current_desc->physical_start), current_desc->count, p4_tbl);
         current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
     }
 
-    map_range((uintptr_t) mem_info->kernel_entries, VADDR(mem_info->kernel_entries), SIZE_TO_PAGES(mem_info->num_kernel_entries * sizeof(kernel_entry_t)), NULL);
+    map_range((uintptr_t) mem_info->kernel_entries, VADDR(mem_info->kernel_entries), SIZE_TO_PAGES(mem_info->num_kernel_entries * sizeof(kernel_entry_t)), p4_tbl);
     mem_info->kernel_entries = (kernel_entry_t*) VADDR(mem_info->kernel_entries);
+}
+
+void map_threading(page_table_t p4_tbl) {
+    size_t mmap_num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
+    mmap_descriptor_t *current_desc = mem_info->mmap;
+    for (size_t i = 0; i < mmap_num_entries; i++) {
+        uint8_t type = current_desc->type;
+        if ((type == 2 || type == 3 || type == 4 || type == 7) && current_desc->physical_start != 0) {
+            map_range(current_desc->physical_start, current_desc->physical_start, current_desc->count, p4_tbl);
+            map_range(current_desc->physical_start, VADDR(current_desc->physical_start), current_desc->count, p4_tbl);
+        }
+        current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
+    }
+
+    map_range((uintptr_t) mem_info->kernel_entries, VADDR(mem_info->kernel_entries), SIZE_TO_PAGES(mem_info->num_kernel_entries * sizeof(kernel_entry_t)), p4_tbl);
 }
 
 /*
@@ -76,25 +91,25 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, page_table_t 
 
     if (!(p4_tbl[p4_idx] & 1)) {
         page_table_t table = alloc_frame();
-        p4_tbl[p4_idx] = (uintptr_t) table | flags;
-        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
+        p4_tbl[p4_idx] = (uintptr_t) table | PAGE_TABLE_ENTRY;
         clean_table((page_table_t) VADDR(table));
+        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
     }
 
     page_table_t p3_tbl = (page_table_t) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
         page_table_t table = alloc_frame();
-        p3_tbl[p3_idx] = (uintptr_t) table | flags;
-        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
+        p3_tbl[p3_idx] = (uintptr_t) table | PAGE_TABLE_ENTRY;
         clean_table((page_table_t) VADDR(table));
+        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
     }
 
     page_table_t p2_tbl = (page_table_t) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
         page_table_t table = alloc_frame();
-        p2_tbl[p2_idx] = (uintptr_t) table | flags;
-        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
+        p2_tbl[p2_idx] = (uintptr_t) table | PAGE_TABLE_ENTRY;
         clean_table((page_table_t) VADDR(table));
+        map_addr((uintptr_t) table, VADDR(table), PAGE_TABLE_ENTRY, p4_tbl);
     }
     page_table_t p1_tbl = (page_table_t) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
     p1_tbl[p1_idx] = physical | flags;

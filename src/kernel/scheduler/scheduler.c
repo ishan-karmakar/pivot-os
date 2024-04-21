@@ -30,6 +30,7 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     if (cur_thread->ticks++ < SCHEDULER_THREAD_TICKS) {
         return cur_status;
     }
+
     if (cur_thread->status != NEW) {
         cur_thread->ef = cur_status;
     }
@@ -57,11 +58,10 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
 
         tmp_thread = scheduler_next_thread(tmp_thread);
     }
-    
     if (thread_to_execute == NULL) {
         tmp_thread = scheduler_next_thread(cur_thread);
         while (tmp_thread != cur_thread) {
-            if (tmp_thread->status == READY) {
+            if (tmp_thread->status == READY || tmp_thread->status == NEW) {
                 thread_to_execute = tmp_thread;
                 break;
             }
@@ -79,6 +79,7 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     kernel_tss.rsp0 = cur_thread->rsp0;
     task_t *task = cur_thread->parent_task;
     cpu_status_t *thread_ef = cur_thread->ef;
+    log(Verbose, "SCHEDULER", "%x", *task->vmm_info.p4_tbl);
     load_cr3(PADDR(task->vmm_info.p4_tbl));
     return thread_ef;
 }
