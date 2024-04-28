@@ -82,6 +82,7 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     thread_to_execute->ticks = 0;
     cpu_status_t *thread_ef = thread_to_execute->ef;
     load_cr3(PADDR(thread_to_execute->vmm_info.p4_tbl));
+    set_heap(&thread_to_execute->heap_info);
     return thread_ef;
 }
 

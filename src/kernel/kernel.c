@@ -7,7 +7,7 @@
 #include <scheduler/thread.h>
 #include <scheduler/scheduler.h>
 #include <mem/pmm.h>
-#include <mem/kheap.h>
+#include <mem/heap.h>
 #include <mem/vmm.h>
 #include <drivers/qemu.h>
 #include <drivers/framebuffer.h>
@@ -19,6 +19,7 @@
 
 log_level_t min_log_level = Debug;
 boot_info_t boot_info;
+heap_info_t kheap_info;
 
 void __attribute__((noreturn)) kernel_main(void);
 
@@ -51,7 +52,8 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_framebuffer(&boot_info.fb_info);
     // while(1);
     init_vmm(Supervisor, NULL);
-    init_kheap();
+    init_heap(&kheap_info, NULL);
+    set_heap(&kheap_info);
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();

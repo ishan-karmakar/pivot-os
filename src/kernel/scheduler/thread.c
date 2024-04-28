@@ -1,6 +1,6 @@
 #include <scheduler/thread.h>
 #include <scheduler/scheduler.h>
-#include <mem/kheap.h>
+#include <mem/heap.h>
 #include <mem/pmm.h>
 #include <mem/vmm.h>
 #include <drivers/framebuffer.h>
@@ -14,7 +14,8 @@ void thread_wrapper(void (*entry_point)(void));
 void init_thread_vmm(thread_t*);
 
 thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_list) {
-    thread_t *thread = kmalloc(sizeof(thread_t));
+    thread_t *thread = malloc(sizeof(thread_t));
+    thread->ef = malloc(sizeof(cpu_status_t));
     init_thread_vmm(thread);
     thread->id = next_thread_id++;
     thread->status = NEW;
@@ -23,7 +24,6 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_
     thread->next = NULL;
     thread->ticks = 0;
 
-    thread->ef = kmalloc(sizeof(cpu_status_t));
     thread->ef->int_no = 0x101;
     thread->ef->err_code = 0;
 
@@ -46,15 +46,14 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_
 }
 
 void free_thread(thread_t *thread) {
-    kfree(thread->ef);
-    kfree((void*) (thread->stack - THREAD_DEFAULT_STACK_SIZE));
-    kfree(thread);
+    free(thread->ef);
+    free((void*) (thread->stack - THREAD_DEFAULT_STACK_SIZE));
+    free(thread);
 }
 
 void init_thread_vmm(thread_t *thread) {
     thread->vmm_info.p4_tbl = (page_table_t) VADDR(alloc_frame());
     page_table_t p4_tbl = thread->vmm_info.p4_tbl;
-    log(Verbose, "THREAD", "%x", (uintptr_t) p4_tbl);
     clean_table(p4_tbl);
     map_addr(PADDR(p4_tbl), (uintptr_t) p4_tbl, KERNEL_PT_ENTRY, p4_tbl);
     map_addr(PADDR(p4_tbl), PADDR(p4_tbl), KERNEL_PT_ENTRY, p4_tbl);
@@ -65,7 +64,7 @@ void init_thread_vmm(thread_t *thread) {
     map_lapic(p4_tbl);
     map_addr(get_phys_addr((uintptr_t) thread, NULL), (uintptr_t) thread, USER_PT_ENTRY, p4_tbl);
 
-    valloc(PAGE_SIZE * 16, 0, &thread->vmm_info);
+    init_heap(&thread->heap_info, &thread->vmm_info);
 }
 
 void thread_wrapper(thread_fn_t entry_point) {

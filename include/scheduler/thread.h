@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <cpu/cpu.h>
 #include <mem/vmm.h>
+#include <mem/heap.h>
 
 #define THREAD_NAME_MAX_LEN 32
 #define THREAD_MAX_ID (uint16_t - 1)
@@ -33,6 +34,7 @@ typedef struct thread {
     cpu_status_t *ef;
     size_t wakeup_time;
     vmm_info_t vmm_info;
+    heap_info_t heap_info;
     struct thread *next;
 } thread_t;
 

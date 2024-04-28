@@ -17,7 +17,7 @@ void init_bitmap(void) {
         if ((type == 3 || type == 4 || type == 7) && current_desc->physical_start != 0)
             bitmap_clear_area(current_desc->physical_start, current_desc->count);
         current_desc = (mmap_descriptor_t*) ((uint8_t*) current_desc + mem_info->mmap_descriptor_size);
-    } // IDX: 3, Col: 2
+    }
 
     bitmap_rsv_area(PADDR((uintptr_t) mem_info->bitmap), mem_info->bitmap_size);
     log(Info, "BITMAP", "Initialized bitmap");
