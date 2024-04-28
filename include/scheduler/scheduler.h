@@ -11,3 +11,4 @@ extern struct task *root_task;
 
 struct cpu_status *schedule(struct cpu_status*);
 void scheduler_add_thread(struct thread*);
+void scheduler_yield(void);

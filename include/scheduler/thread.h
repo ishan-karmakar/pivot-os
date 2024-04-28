@@ -41,3 +41,4 @@ typedef struct thread {
 thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_list);
 void free_thread(thread_t*);
 void idle(void);
+void thread_sleep(size_t);

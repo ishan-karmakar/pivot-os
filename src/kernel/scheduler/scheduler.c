@@ -10,20 +10,18 @@
 thread_t *scheduler_next_thread(thread_t*);
 void scheduler_remove_thread(thread_t*);
 
-size_t scheduler_ticks = 0;
-
 thread_t *thread_list = NULL;
 thread_t *cur_thread = NULL;
 thread_t *idle_thread = NULL;
 
 cpu_status_t *schedule(cpu_status_t *cur_status) {
-    if (cur_thread == NULL)
+    if (thread_list == NULL)
         return idle_thread->ef;
 
     if (cur_thread->status == SLEEP)
         cur_thread->ticks = SCHEDULER_THREAD_TICKS; // Act like the thread went for full duration
 
-    if (cur_thread->ticks++ < SCHEDULER_THREAD_TICKS) {
+    if (cur_thread->ticks++ < SCHEDULER_THREAD_TICKS && cur_thread->status != DEAD) {
         return cur_status;
     }
 
@@ -36,7 +34,6 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     }
     
     thread_t *thread_to_execute = NULL;
-    // thread_t *prev_thread = cur_thread;
     thread_t *tmp_thread = cur_thread;
 
     do {

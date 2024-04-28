@@ -35,6 +35,8 @@ void task1(void) {
 
 void task2(void) {
     printf("Hello World 2\n");
+    thread_sleep(500);
+    printf("Hello World after thread_sleep\n");
 }
 
 void user_function(void) {
@@ -57,7 +59,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();
-    // init_rtc();
+    init_rtc();
     // clear_screen();
     idle_thread = create_thread("idle", idle, false);
     create_thread("test1", task1, true);

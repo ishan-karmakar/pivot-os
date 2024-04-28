@@ -71,7 +71,14 @@ void thread_wrapper(thread_fn_t entry_point) {
     entry_point();
     // TODO: Move this to an interrupt so that cur_thread cannot be accessed by user thread
     cur_thread->status = DEAD;
+    scheduler_yield();
     while (1);
+}
+
+void thread_sleep(size_t ms) {
+    cur_thread->status = SLEEP;
+    cur_thread->wakeup_time = apic_ticks + ms;
+    scheduler_yield();
 }
 
 void idle(void) { while(1); }
