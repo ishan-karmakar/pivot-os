@@ -21,5 +21,5 @@ typedef struct psf_font {
 } __attribute__((packed)) psf_font_t;
 
 void init_framebuffer(struct framebuffer_info *boot_info);
-void map_framebuffer(page_table_t);
+void map_framebuffer(page_table_t, size_t);
 void clear_screen(void);

@@ -15,6 +15,6 @@ load_tss:
     mov fs, ax
     mov gs, ax
 
-    mov rax, 0x18
+    mov rax, 0x28
     ltr ax
     ret

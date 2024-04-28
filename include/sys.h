@@ -14,5 +14,6 @@
 #define P2_ENTRY(addr) (((addr) >> 21) & 0x1FF)
 #define P1_ENTRY(addr) (((addr) >> 12) & 0x1FF)
 #define SIGN_MASK 0x000ffffffffff000
-#define PAGE_TABLE_ENTRY 0b11
+#define KERNEL_PT_ENTRY 0b11
+#define USER_PT_ENTRY 0b111
 #define TASK_PAGES 4 // Number of pages that each task gets

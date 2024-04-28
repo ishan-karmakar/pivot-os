@@ -22,4 +22,3 @@ void init_kheap(void);
 void *kmalloc(size_t);
 void kfree(void*);
 void *krealloc(void*, size_t);
-void map_kheap(page_table_t);

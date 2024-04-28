@@ -12,6 +12,7 @@ void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
         vmm_info->p4_tbl = NULL; // Make sure to initialize kernel VMM before calling ANY valloc
     }
 
+    vmm_info->flags = level == Supervisor ? KERNEL_PT_ENTRY : USER_PT_ENTRY;
     vmm_info->data_start = HIGHER_HALF_OFFSET + (mem_info->mem_pages + 1) * PAGE_SIZE;
     vmm_info->status.root_container = (vmm_container_t*) vmm_info->data_start;
 
@@ -27,7 +28,7 @@ void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
     if (vmm_root == NULL)
         return log(Error, "VMM", "Cannot allocate frame for start of VMM space");
 
-    map_addr((uintptr_t) vmm_root, vmm_info->data_start, PAGE_TABLE_ENTRY, vmm_info->p4_tbl);
+    map_addr((uintptr_t) vmm_root, vmm_info->data_start, vmm_info->flags, vmm_info->p4_tbl);
 
     vmm_info->status.root_container->next = NULL;
     vmm_info->status.cur_container = vmm_info->status.root_container;
@@ -47,7 +48,7 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
             return NULL;
         }
         vmm_container_t *new_container = (vmm_container_t*) ALIGN_ADDR_UP((uintptr_t) vmm_info->status.cur_container + sizeof(vmm_container_t));
-        map_addr((uintptr_t) container_phys_addr, (uintptr_t) new_container, PAGE_TABLE_ENTRY, vmm_info->p4_tbl);
+        map_addr((uintptr_t) container_phys_addr, (uintptr_t) new_container, vmm_info->flags, vmm_info->p4_tbl);
         vmm_info->status.cur_index = 0;
         new_container->next = NULL;
         vmm_info->status.cur_container->next = new_container;
@@ -64,7 +65,7 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
     vmm_info->status.cur_index++;
     for (size_t i = 0; i < num_pages; i++) {
         uintptr_t f = (uintptr_t) alloc_frame();
-        map_addr(f, addr + i * PAGE_SIZE, flags | PAGE_TABLE_ENTRY, vmm_info->p4_tbl);
+        map_addr(f, addr + i * PAGE_SIZE, flags | vmm_info->flags, vmm_info->p4_tbl);
     }
 
     return (void*) addr;

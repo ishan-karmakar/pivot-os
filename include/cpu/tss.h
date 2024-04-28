@@ -27,3 +27,4 @@ typedef struct tss {
 extern tss_t kernel_tss;
 
 void init_tss(void);
+void set_rsp0(uintptr_t);

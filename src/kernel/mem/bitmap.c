@@ -5,7 +5,6 @@
 #include <drivers/framebuffer.h>
 #include <sys.h>
 
-// TODO: Find another way to store this data to save space
 void init_bitmap(void) {
     for (size_t i = 0; i < mem_info->bitmap_entries; i++)
         mem_info->bitmap[i] = BITMAP_ROW_FULL;

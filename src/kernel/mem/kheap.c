@@ -9,17 +9,12 @@
 static kheap_mem_node_t *kernel_heap_start;
 static kheap_mem_node_t *kernel_heap_end;
 
-void init_kheap(void) {
+void init_heap(void) {
     // Let's allocate the new heap, we rely on the vmm_alloc function for this part.
     uint64_t *kheap_addr = valloc(PAGE_SIZE, 0, NULL);
     kernel_heap_start = (kheap_mem_node_t *) ((uint64_t) kheap_addr);
     kernel_heap_end = kernel_heap_start;
     log(Info, "KHEAP", "Initialized kernel heap");
-}
-
-// TODO: make this better
-void map_kheap(page_table_t p4_tbl) {
-    map_addr(get_phys_addr((uintptr_t) kernel_heap_start, NULL), (uintptr_t) kernel_heap_start, PAGE_TABLE_ENTRY, p4_tbl);
 }
 
 static size_t align(size_t size) {

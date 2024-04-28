@@ -23,6 +23,7 @@ typedef struct vmm_container {
 } vmm_container_t;
 
 typedef struct vmm_info {
+    size_t flags;
     uintptr_t data_start;
     uintptr_t space_start;
     uint64_t *p4_tbl;

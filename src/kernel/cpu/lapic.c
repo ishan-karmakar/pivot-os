@@ -136,5 +136,5 @@ cpu_status_t *pit_handler(cpu_status_t *status) {
 
 void map_lapic(uint64_t *pml4) {
     if (!x2mode)
-        map_addr(PADDR(apic_address), apic_address, PAGE_TABLE_ENTRY, pml4);
+        map_addr(PADDR(apic_address), apic_address, KERNEL_PT_ENTRY, pml4);
 }

@@ -23,6 +23,7 @@ cpu_status_t *exception_handler(cpu_status_t *status) {
     switch (status->int_no) {
         case 14:
             log(Error, "ISR", "Received interrupt number 14");
+            log(Verbose, "ISR", "Error code: %b", status->err_code);
             uint64_t cr2 = 0;
             asm volatile ("mov %%cr2, %0" : "=r" (cr2));
             log(Verbose, "ISR", "cr2: %x", cr2);

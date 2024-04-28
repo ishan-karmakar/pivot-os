@@ -1,5 +1,6 @@
 [bits  64]
 [extern exception_handler]
+[extern set_rsp0]
 ; [extern irq_handler]
 
 %macro isr_base_code 1

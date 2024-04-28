@@ -20,10 +20,10 @@ void init_ioapic(void) {
     if (item == NULL)
         return log(Error, "IOAPIC", "Couldn't find IOAPIC in MADT table");
     ioapic_t *ioapic = (ioapic_t*) (item + 1);
-    map_addr(ALIGN_ADDR(PADDR((uint64_t) ioapic)), (uint64_t) ioapic, PAGE_TABLE_ENTRY, NULL);
+    map_addr(ALIGN_ADDR(PADDR((uint64_t) ioapic)), (uint64_t) ioapic, KERNEL_PT_ENTRY, NULL);
     log(Verbose, "IOAPIC", "I/O APIC ID: %u, Address: %x, GSI Base: %u", ioapic->id, ioapic->addr, ioapic->gsi_base);
     ioapic_base_address = VADDR(ioapic->addr);
-    map_addr(ioapic->addr, ioapic_base_address, PAGE_TABLE_ENTRY, NULL);
+    map_addr(ioapic->addr, ioapic_base_address, KERNEL_PT_ENTRY, NULL);
     uint32_t ioapic_version = read_register(IOAPIC_VER_OFFSET);
     log(Info, "IOAPIC", "IOAPIC Version: %x", ioapic_version);
     ioapic_redtbl_entry_t entry;

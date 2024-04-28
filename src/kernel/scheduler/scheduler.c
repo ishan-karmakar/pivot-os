@@ -3,7 +3,6 @@
 #include <cpu/lapic.h>
 #include <cpu/tss.h>
 #include <scheduler/thread.h>
-#include <scheduler/task.h>
 #include <scheduler/scheduler.h>
 #include <kernel/logging.h>
 #include <io/stdio.h>
@@ -16,9 +15,6 @@ size_t scheduler_ticks = 0;
 thread_t *thread_list = NULL;
 thread_t *cur_thread = NULL;
 thread_t *idle_thread = NULL;
-task_t *root_task;
-
-size_t thread_list_size = 0;
 
 cpu_status_t *schedule(cpu_status_t *cur_status) {
     if (cur_thread == NULL)
@@ -41,10 +37,9 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     
     thread_t *thread_to_execute = NULL;
     // thread_t *prev_thread = cur_thread;
-    thread_t *tmp_thread = scheduler_next_thread(cur_thread);
+    thread_t *tmp_thread = cur_thread;
 
-    // First check if any sleeping threads wakeup now
-    while (tmp_thread != cur_thread) {
+    do {
         if (tmp_thread->status == SLEEP) {
             if (apic_ticks > tmp_thread->wakeup_time) {
                 tmp_thread->status = READY;
@@ -52,12 +47,17 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
                 break;
             }
         } else if (tmp_thread->status == DEAD) {
-            task_remove_thread(tmp_thread);
             scheduler_remove_thread(tmp_thread);
+            free_thread(tmp_thread);
+            if (tmp_thread == cur_thread)
+                cur_thread = scheduler_next_thread(NULL);
+
+            // REMOVE TASK
         }
 
         tmp_thread = scheduler_next_thread(tmp_thread);
-    }
+    } while (tmp_thread != cur_thread);
+    
     if (thread_to_execute == NULL) {
         tmp_thread = scheduler_next_thread(cur_thread);
         while (tmp_thread != cur_thread) {
@@ -70,22 +70,23 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
         }
     }
 
-    if (thread_to_execute == NULL)
-        thread_to_execute = cur_thread;
-
+    if (thread_to_execute == NULL) {
+        if (scheduler_next_thread(NULL) == NULL) {
+            thread_to_execute = idle_thread;
+            cur_thread = NULL;
+        } else
+            thread_to_execute = cur_thread;
+    } else
+        cur_thread = thread_to_execute;
     thread_to_execute->status = RUN;
     thread_to_execute->ticks = 0;
-    cur_thread = thread_to_execute;
-    kernel_tss.rsp0 = cur_thread->rsp0;
-    task_t *task = cur_thread->parent_task;
-    cpu_status_t *thread_ef = cur_thread->ef;
-    log(Verbose, "SCHEDULER", "%x", *task->vmm_info.p4_tbl);
-    load_cr3(PADDR(task->vmm_info.p4_tbl));
+    cpu_status_t *thread_ef = thread_to_execute->ef;
+    load_cr3(PADDR(thread_to_execute->vmm_info.p4_tbl));
     return thread_ef;
 }
 
 thread_t *scheduler_next_thread(thread_t *thread) {
-    if (thread_list_size == 0 || thread_list == NULL)
+    if (thread_list == NULL)
         return NULL;
     
     if (thread == NULL)
@@ -97,14 +98,8 @@ thread_t *scheduler_next_thread(thread_t *thread) {
     return thread->next;
 }
 
-void scheduler_add_task(task_t *task) {
-    task->next = root_task;
-    root_task = task;
-}
-
 void scheduler_add_thread(thread_t *thread) {
     thread->next = thread_list;
-    thread_list_size++;
     thread_list = thread;
     if (cur_thread == NULL)
         cur_thread = thread;
@@ -126,9 +121,6 @@ void scheduler_remove_thread(thread_t *thread) {
         thread_list = thread_list->next;
     else
         prev_item->next = item->next;
-    
-    thread_list_size--;
-    free_thread(item);
 }
 
 void scheduler_yield(void) {

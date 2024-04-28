@@ -32,7 +32,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
         status = AllocTable(&table);
         if (EFI_ERROR(status))
             return status;
-        p4_tbl[p4_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
+        p4_tbl[p4_idx] = (EFI_PHYSICAL_ADDRESS) table | KERNEL_PT_ENTRY;
         status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PDPT table in higher half\n");
@@ -46,7 +46,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
         status = AllocTable(&table);
         if (EFI_ERROR(status))
             return status;
-        p3_tbl[p3_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
+        p3_tbl[p3_idx] = (EFI_PHYSICAL_ADDRESS) table | KERNEL_PT_ENTRY;
         status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PD table in higher half\n");
@@ -60,7 +60,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
         status = AllocTable(&table);
         if (EFI_ERROR(status))
             return status;
-        p2_tbl[p2_idx] = (EFI_PHYSICAL_ADDRESS) table | 0b11;
+        p2_tbl[p2_idx] = (EFI_PHYSICAL_ADDRESS) table | KERNEL_PT_ENTRY;
         status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PT table in higher half\n");
@@ -69,7 +69,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
     }
 
     UINT64 *p1_tbl = (UINT64*)(p2_tbl[p2_idx] & SIGN_MASK);
-    p1_tbl[p1_idx] = phys_addr | 0b11;
+    p1_tbl[p1_idx] = phys_addr | KERNEL_PT_ENTRY;
     return EFI_SUCCESS;
 }
 
