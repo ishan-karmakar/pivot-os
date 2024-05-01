@@ -2,6 +2,7 @@
 #include <cpu/idt.h>
 #include <cpu/cpu.h>
 #include <cpu/lapic.h>
+#include <scheduler/thread.h>
 #include <kernel/logging.h>
 
 extern void hcf(void);
@@ -34,6 +35,19 @@ cpu_status_t *exception_handler(cpu_status_t *status) {
             log(Error, "ISR", "Received interrupt number %u", status->int_no);
             log_registers(status);
             hcf();
+    }
+    return status;
+}
+
+cpu_status_t *syscall_handler(cpu_status_t *status) {
+    uint64_t id = status->rax;
+    switch (id) {
+    case 1:
+        thread_sleep_syscall(status);
+        break;
+    case 2:
+        thread_dead_syscall();
+        break;
     }
     return status;
 }

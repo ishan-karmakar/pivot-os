@@ -3,6 +3,7 @@
 #define APIC_TIMER_PERIODIC_IDT_ENTRY 32
 #define APIC_TIMER_ONESHOT_IDT_ENTRY 33
 #define PIT_TIMER_IDT_ENTRY 34
+#define PIT_TIMER_IDT_ENTRY 34
 #define RTC_TIMER_IDT_ENTRY 34
 
 #define IDT_SET_ENTRY(num, flags, sel, ist, handler) \
@@ -10,7 +11,7 @@
     set_idt_entry((num), (flags), (sel), (ist), (handler));
 
 #define IDT_SET_INT(num, handler) IDT_SET_ENTRY((num), 0x8E, 0x8, 0, (handler))
-#define IDT_SET_TRAP(num, handler) IDT_SET_ENTRY((num), 0x8F, 0x8, 0, (handler))
+#define IDT_SET_TRAP(num, handler) IDT_SET_ENTRY((num), 0xEF, 0x8, 0, (handler))
 
 #pragma pack(push, default)
 #pragma pack(1)

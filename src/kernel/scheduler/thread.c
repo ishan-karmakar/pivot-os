@@ -7,16 +7,18 @@
 #include <cpu/lapic.h>
 #include <libc/string.h>
 #include <kernel/logging.h>
+#include <cpu/cpu.h>
 
 size_t next_thread_id = 0;
 
 void thread_wrapper(void (*entry_point)(void));
 void init_thread_vmm(thread_t*);
 
-thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_list) {
+thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety, bool add_scheduler_list) {
     thread_t *thread = malloc(sizeof(thread_t));
     thread->ef = malloc(sizeof(cpu_status_t));
     init_thread_vmm(thread);
+
     thread->id = next_thread_id++;
     thread->status = NEW;
     thread->wakeup_time = 0;
@@ -27,8 +29,12 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_
     thread->ef->int_no = 0x101;
     thread->ef->err_code = 0;
 
-    thread->ef->rip = (uintptr_t) thread_wrapper;
-    thread->ef->rdi = (uintptr_t) entry_point;
+    if (safety) {
+        init_heap(&thread->heap_info, &thread->vmm_info);
+        thread->ef->rip = (uintptr_t) thread_wrapper;
+        thread->ef->rdi = (uintptr_t) entry_point;
+    } else
+        thread->ef->rip = (uintptr_t) entry_point;
 
     thread->ef->rflags = 0x202;
 
@@ -46,9 +52,12 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_
 }
 
 void free_thread(thread_t *thread) {
-    free(thread->ef);
-    free((void*) (thread->stack - THREAD_DEFAULT_STACK_SIZE));
-    free(thread);
+    load_cr3(PADDR(mem_info->pml4));
+    free_page_table(thread->vmm_info.p4_tbl, 4);
+    vfree(thread->heap_info.heap_start);
+    vfree(thread->ef);
+    vfree((void*) thread->stack);
+    vfree(thread);
 }
 
 void init_thread_vmm(thread_t *thread) {
@@ -62,23 +71,28 @@ void init_thread_vmm(thread_t *thread) {
     map_kernel_entries(p4_tbl);
     map_framebuffer(p4_tbl, USER_PT_ENTRY);
     map_lapic(p4_tbl);
-    map_addr(get_phys_addr((uintptr_t) thread, NULL), (uintptr_t) thread, USER_PT_ENTRY, p4_tbl);
-
-    init_heap(&thread->heap_info, &thread->vmm_info);
+    map_addr(get_phys_addr((uintptr_t) thread, NULL), (uintptr_t) thread, KERNEL_PT_ENTRY, p4_tbl);
 }
 
 void thread_wrapper(thread_fn_t entry_point) {
     entry_point();
-    // TODO: Move this to an interrupt so that cur_thread cannot be accessed by user thread
-    cur_thread->status = DEAD;
+    syscall(2, 0);
     scheduler_yield();
-    while (1);
+    while (1) asm ("pause");
 }
 
 void thread_sleep(size_t ms) {
-    cur_thread->status = SLEEP;
-    cur_thread->wakeup_time = apic_ticks + ms;
+    syscall(1, 1, ms);
     scheduler_yield();
 }
 
-void idle(void) { while(1); }
+void thread_sleep_syscall(cpu_status_t *status) {
+    cur_thread->status = SLEEP;
+    cur_thread->wakeup_time = apic_ticks + status->rdi;
+}
+
+void thread_dead_syscall(void) {
+    cur_thread->status = DEAD;
+}
+
+void idle(void) { while(1) asm ("pause"); }

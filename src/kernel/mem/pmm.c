@@ -164,6 +164,16 @@ uintptr_t get_phys_addr(uintptr_t virtual, page_table_t p4_tbl) {
     return p1_tbl[p1_idx] & SIGN_MASK;
 }
 
+void free_page_table(page_table_t table, uint8_t level) {
+    if (level > 1) {
+        for (size_t i = 0; i < 512; i++)
+            if (table[i] & 1)
+                free_page_table((page_table_t) VADDR(table[i] & SIGN_MASK), level - 1);
+    }
+
+    bitmap_clear_bit(PADDR(table));
+}
+
 void *alloc_frame(void) {
     int64_t frame = bitmap_request_frame();
     if (frame > 0) {

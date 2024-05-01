@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct cpu_status {
@@ -31,3 +32,4 @@ typedef struct cpu_status {
 uint64_t rdmsr(uint32_t address);
 void wrmsr(uint32_t address, uint64_t value);
 void load_cr3(uintptr_t);
+void syscall(size_t, size_t, ...);

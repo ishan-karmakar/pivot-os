@@ -38,7 +38,9 @@ typedef struct thread {
     struct thread *next;
 } thread_t;
 
-thread_t *create_thread(char *name, thread_fn_t entry_point, bool add_scheduler_list);
+thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety, bool add_scheduler_list);
 void free_thread(thread_t*);
 void idle(void);
 void thread_sleep(size_t);
+void thread_sleep_syscall(cpu_status_t*);
+void thread_dead_syscall(void);

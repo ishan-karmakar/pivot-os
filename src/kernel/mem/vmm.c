@@ -72,5 +72,5 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
 }
 
 // TODO: Implement this function
-void vmm_free(__attribute__((unused)) void *addr) {
+void vfree(__attribute__((unused)) void *addr) {
 }

@@ -35,7 +35,7 @@ void task1(void) {
 
 void task2(void) {
     printf("Hello World 2\n");
-    thread_sleep(500);
+    thread_sleep(1000);
     printf("Hello World after thread_sleep\n");
 }
 
@@ -49,6 +49,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_tss();
     init_gdt();
     init_idt();
+    IDT_SET_TRAP(0x80, syscall_irq);
     init_pmm(&boot_info.mem_info);
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);
@@ -60,11 +61,10 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
-    // clear_screen();
-    idle_thread = create_thread("idle", idle, false);
-    create_thread("test1", task1, true);
-    create_thread("test2", task2, true);
-    printf("\n");
+    clear_screen();
+    idle_thread = create_thread("idle", idle, false, false);
+    create_thread("test1", task1, true, true);
+    create_thread("test2", task2, true, true);
     uintptr_t rsp;
     asm volatile ("mov %%rsp, %0" : "=r" (rsp));
     set_rsp0(rsp);

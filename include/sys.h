@@ -16,4 +16,3 @@
 #define SIGN_MASK 0x000ffffffffff000
 #define KERNEL_PT_ENTRY 0b11
 #define USER_PT_ENTRY 0b111
-#define TASK_PAGES 4 // Number of pages that each task gets

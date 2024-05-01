@@ -19,3 +19,4 @@ void cleanup_uefi(void);
 void clean_table(uint64_t*);
 void invlpg(uintptr_t);
 uintptr_t get_phys_addr(uintptr_t, page_table_t);
+void free_page_table(page_table_t, uint8_t);
