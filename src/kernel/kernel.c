@@ -11,6 +11,7 @@
 #include <mem/vmm.h>
 #include <drivers/qemu.h>
 #include <drivers/framebuffer.h>
+#include <drivers/keyboard.h>
 #include <kernel/acpi.h>
 #include <kernel/rtc.h>
 #include <kernel/logging.h>
@@ -49,7 +50,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_tss();
     init_gdt();
     init_idt();
-    IDT_SET_TRAP(0x80, syscall_irq);
+    IDT_SET_TRAP(0x80, 3, syscall_irq);
     init_pmm(&boot_info.mem_info);
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);
@@ -61,7 +62,7 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
-    clear_screen();
+    init_keyboard();
     idle_thread = create_thread("idle", idle, false, false);
     create_thread("test1", task1, true, true);
     create_thread("test2", task2, true, true);

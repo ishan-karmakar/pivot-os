@@ -5,7 +5,7 @@
 #include <libc/string.h>
 #include <drivers/framebuffer.h>
 
-static char fb_buf[512];
+static char fb_buf[128];
 static size_t fb_buf_pos;
 char_printer_t char_printer;
 atomic_flag stdio_mutex = ATOMIC_FLAG_INIT;

@@ -55,8 +55,8 @@ void init_lapic(void) {
     disable_pic();
     log(Info, "LAPIC", "Disabled PIC");
     // APIC needs to be accessible from userspace
-    IDT_SET_ENTRY(APIC_TIMER_PERIODIC_IDT_ENTRY, 0xEE, 0x8, 0, apic_periodic_irq);
-    IDT_SET_INT(PIT_TIMER_IDT_ENTRY, pit_irq);
+    IDT_SET_INT(APIC_TIMER_PERIODIC_IDT_ENTRY, 3, apic_periodic_irq);
+    IDT_SET_INT(PIT_TIMER_IDT_ENTRY, 0, pit_irq);
 }
 
 void disable_pic(void) {

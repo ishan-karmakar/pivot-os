@@ -32,7 +32,7 @@ static uint8_t get_dow(uint16_t y, uint8_t m, uint8_t dom) {
 }
 
 void init_rtc(void) {
-    IDT_SET_INT(34, rtc_irq);
+    IDT_SET_INT(34, 0, rtc_irq);
     set_irq(8, 34, 0, 0, true);
     uint8_t status = read_register(0xB);
     status |= 0x2 | 0x10; // 24 hour mode and update ended interrupt

@@ -10,8 +10,8 @@
     extern void handler(); \
     set_idt_entry((num), (flags), (sel), (ist), (handler));
 
-#define IDT_SET_INT(num, handler) IDT_SET_ENTRY((num), 0x8E, 0x8, 0, (handler))
-#define IDT_SET_TRAP(num, handler) IDT_SET_ENTRY((num), 0xEF, 0x8, 0, (handler))
+#define IDT_SET_INT(num, ring, handler) IDT_SET_ENTRY((num), 0x8E | ((ring) << 5), 0x8, 0, (handler))
+#define IDT_SET_TRAP(num, ring, handler) IDT_SET_ENTRY((num), 0x8F | ((ring) << 5), 0x8, 0, (handler))
 
 #pragma pack(push, default)
 #pragma pack(1)
