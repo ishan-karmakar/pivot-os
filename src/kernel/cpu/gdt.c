@@ -1,22 +1,20 @@
 #include <cpu/gdt.h>
 #include <kernel/logging.h>
 extern void load_gdt(uintptr_t);
+uint16_t gdt_entries = 5;
 
-gdt_desc_t gdt[] = {
+gdt_desc_t gdt[MAX_GDT_ENTRIES] = {
     { { 0 } },
-    { { 0, 0, 0, 0b10011011, 0b00100000, 0 } }, // Kernel Code
-    { { 0, 0, 0, 0b10010011, 0, 0 } },           // Kernel Data
-    { { 0, 0, 0, 0b11111011, 0b00100000, 0 } }, // User Code
-    { { 0, 0, 0, 0b11110011, 0, 0 } }, // User Data
-    { { 0 } }, // TSS Low
-    { { 0 } }  // TSS High
+    { { 0xFFFF, 0, 0, 0b10011011, 0xF | 0b00100000, 0 } }, // Kernel Code
+    { { 0xFFFF, 0, 0, 0b10010011, 0xF, 0 } },           // Kernel Data
+    { { 0xFFFF, 0, 0, 0b11111011, 0xF | 0b00100000, 0 } }, // User Code
+    { { 0xFFFF, 0, 0, 0b11110011, 0xF, 0 } }, // User Data
 };
 
-gdtr_t gdtr;
+gdtr_t gdtr = { 0, (uintptr_t) &gdt };
 
 void init_gdt(void) {
-    gdtr.size = sizeof(gdt) - 1;
-    gdtr.addr = (uintptr_t) &gdt;
+    gdtr.size = gdt_entries * sizeof(gdt_desc_t) - 1;
     log(Info, "GDT", "Initialized GDT");
 
     load_gdt((uintptr_t) &gdtr);
@@ -25,4 +23,8 @@ void init_gdt(void) {
 
 void set_gdt_desc(uint16_t idx, uint64_t entry) {
     gdt[idx].raw = entry;
+    if (idx >= gdt_entries) {
+        gdt_entries = idx + 1;
+        gdtr.size = gdt_entries * sizeof(gdt_desc_t) - 1;
+    }
 }

@@ -1,13 +1,11 @@
 #pragma once
 #include <stdint.h>
-
-#pragma pack(push, default)
-#pragma pack(1)
+#define MAX_GDT_ENTRIES 10
 
 typedef struct gdtr {
     uint16_t size;
     uintptr_t addr;
-} gdtr_t;
+} __attribute__((packed)) gdtr_t;
 
 typedef union {
     struct {
@@ -19,10 +17,12 @@ typedef union {
         uint8_t base2;
     } fields;
     uint64_t raw;
-} gdt_desc_t;
+} __attribute__((packed)) gdt_desc_t;
 
-#pragma pack(pop)
+extern uint16_t gdt_entries;
+extern gdtr_t gdtr;
 
 /// @brief Loads the GDT
 void init_gdt(void);
 void set_gdt_desc(uint16_t, uint64_t);
+extern void load_gdt(uintptr_t);

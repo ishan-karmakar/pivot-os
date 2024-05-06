@@ -14,5 +14,5 @@ section .bss
 align 4096
 global stack
 stack:
-    resb 16384
+    resb 4096
     .top:

@@ -11,10 +11,20 @@
 #define APIC_SOFTWARE_ENABLE (1 << 8)
 #define APIC_SPURIOUS_INTERRUPT 255
 #define APIC_SPURIOUS_VEC_REG_OFF 0xF0
+#define APIC_ID_REG_OFF 0x20
 #define APIC_TIMER_INITIAL_COUNT_REG_OFF 0x380
 #define APIC_TIMER_CURRENT_COUNT_REG_OFF 0x390
+#define APIC_ICRLO_OFF 0x300
+#define APIC_ICRHI_OFF 0x310
 #define APIC_TIMER_CONFIG_OFF 0x3E0
 #define APIC_TIMER_LVT_OFFSET 0x320
+
+#define ICR_DEST_SHIFT 24
+#define ICR_INIT 0x500
+#define ICR_SEND_PENDING 0x1000
+#define ICR_ASSERT 0x4000
+#define ICR_LEVEL 0x8000
+#define ICR_STARTUP 0x600
 
 #define APIC_TIMER_PERIODIC 0x20000
 
@@ -46,3 +56,5 @@ void write_apic_register(uint32_t, uint32_t);
 void calibrate_apic_timer(void);
 void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry);
 void map_lapic(uint64_t*);
+uint32_t get_apic_id(void);
+void delay(size_t);

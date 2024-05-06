@@ -18,6 +18,7 @@ uintptr_t apic_address;
 bool x2mode;
 uint32_t apic_ms_interval;
 volatile size_t pit_ticks = 0, apic_ticks = 0;
+volatile bool apic_triggered = false;
 
 void init_lapic(void) {
     uint64_t msr_output = rdmsr(IA32_APIC_BASE);
@@ -56,6 +57,7 @@ void init_lapic(void) {
     log(Info, "LAPIC", "Disabled PIC");
     // APIC needs to be accessible from userspace
     IDT_SET_INT(APIC_TIMER_PERIODIC_IDT_ENTRY, 3, apic_periodic_irq);
+    IDT_SET_INT(APIC_TIMER_ONESHOT_IDT_ENTRY, 0, apic_oneshot_irq);
     IDT_SET_INT(PIT_TIMER_IDT_ENTRY, 0, pit_irq);
 }
 
@@ -88,6 +90,18 @@ void write_apic_register(uint32_t reg_off, uint32_t val) {
         wrmsr((reg_off >> 4) + 0x800, val);
     else
         *(volatile uint32_t*)(apic_address + reg_off) = val;
+}
+
+uint32_t get_apic_id(void) {
+    if (x2mode)
+        return read_apic_register(APIC_ID_REG_OFF);
+    return read_apic_register(APIC_ID_REG_OFF) >> 24;
+}
+
+void delay(size_t num_ticks) {
+    start_apic_timer(0, num_ticks, APIC_TIMER_ONESHOT_IDT_ENTRY);
+    while (!apic_triggered) asm ("pause");
+    apic_triggered = false;
 }
 
 void calibrate_apic_timer(void) {
@@ -125,6 +139,12 @@ void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_ent
 cpu_status_t *apic_periodic_handler(cpu_status_t *status) {
     apic_ticks++;
     status = schedule(status);
+    APIC_EOI();
+    return status;
+}
+
+cpu_status_t *apic_oneshot_handler(cpu_status_t *status) {
+    apic_triggered = true;
     APIC_EOI();
     return status;
 }

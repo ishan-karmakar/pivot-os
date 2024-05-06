@@ -14,9 +14,13 @@ void init_tss(void) {
                          ((kernel_tss_addr >> 16) & 0xFF) << 32 |
                          (uint64_t) 0b10001001 << 40 |
                          ((kernel_tss_addr >> 24) & 0xFF) << 56;
-    set_gdt_desc(5, gdt_entry);
+    uint16_t tss_reg = gdt_entries * 8;
+    set_gdt_desc(gdt_entries, gdt_entry);
     gdt_entry = ((kernel_tss_addr >> 32) & 0xFFFFFFFF);
-    set_gdt_desc(6, gdt_entry);
+    set_gdt_desc(gdt_entries, gdt_entry);
+
+    load_gdt((uintptr_t) &gdtr);
+    asm volatile ("ltr %0" : : "r" (tss_reg));
 
     log(Info, "TSS", "Initialized TSS");
 }
