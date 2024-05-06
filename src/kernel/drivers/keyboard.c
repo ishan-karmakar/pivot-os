@@ -54,7 +54,7 @@ void init_keyboard(void) {
     check_ack();
     log(Verbose, "KEYBOARD", "Enabled keyboard scan codes");
     IDT_SET_INT(35, 0, keyboard_irq);
-    set_irq(1, 35, 0, 0, false);
+    set_irq(1, 35, 0, IOAPIC_LOW_PRIORITY, false);
 }
 
 void update_modifiers(key_modifiers_t modifier, int is_pressed) {
@@ -112,11 +112,6 @@ char get_char(uint8_t scancode) {
 
 cpu_status_t *keyboard_handler(cpu_status_t *status) {
     uint8_t scancode = inb(KEYBOARD_PORT);
-    extern volatile uint8_t aps_running;
-    printf("%u, %u\n", *(volatile uint8_t*)(0x4000), aps_running);
-    APIC_EOI();
-    return status;
-    // return log(Verbose, "LAPIC", "%x - %u", *(uint64_t*) VADDR(16 * PAGE_SIZE), aps_running);
     key_code_t translated_scancode = translate(scancode);
     if (scancode == EXTENDED_PREFIX) {
         APIC_EOI();

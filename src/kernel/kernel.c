@@ -50,20 +50,19 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     boot_info = *binfo; // Copy over boot info to higher half
     init_qemu();
     init_gdt();
-    init_tss();
     init_idt();
     IDT_SET_TRAP(0x80, 3, syscall_irq);
     init_pmm(&boot_info.mem_info);
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);
-    // while(1);
-    // init_vmm(Supervisor, NULL);
-    // init_heap(&kheap_info, NULL);
-    // set_heap(&kheap_info);
+    init_vmm(Supervisor, NULL);
+    init_heap(&kheap_info, NULL);
+    set_heap(&kheap_info);
+    init_tss();
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();
-    // init_rtc();
+    init_rtc();
     init_keyboard();
     start_aps();
     // idle_thread = create_thread("idle", idle, false, false);

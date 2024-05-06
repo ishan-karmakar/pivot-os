@@ -81,6 +81,8 @@ void set_irq(uint8_t irq, uint8_t idt_entry, uint8_t destination_field, uint32_t
     uint8_t selected_pin = irq;
     ioapic_redtbl_entry_t entry;
     entry.raw = flags | idt_entry;
+    entry.destination = destination_field;
+    entry.mask = masked;
     for (uint8_t counter = 0; counter < ioapic_so_size; counter++) {
         if (ioapic_so[counter].irq_source == irq) {
             selected_pin = ioapic_so[counter].gsi_base;
@@ -97,8 +99,6 @@ void set_irq(uint8_t irq, uint8_t idt_entry, uint8_t destination_field, uint32_t
         }
     }
 
-    entry.destination = destination_field;
-    entry.mask = masked;
     uint8_t redtbl_pos = 0x10 + irq * 2;
     log(Info, "IOAPIC", "Setting IRQ %u to idt entry %u at REDTBL pos: %x",
         irq, idt_entry, redtbl_pos);

@@ -6,6 +6,8 @@
 #define IOAPIC_ARB_OFFSET 2
 #define IOAPIC_REDTBL_START_OFFSET 0x10
 
+#define IOAPIC_LOW_PRIORITY (1 << 8)
+
 #define IOAPIC_MAX_SOURCE_OVERRIDE 9
 
 #pragma pack(push, default)

@@ -17,6 +17,7 @@ ap_info_t *data = (ap_info_t*) 0x9000;
 volatile uint8_t aps_running = 0;
 
 void start_aps(void) {
+    // TODO: Directly inject GDTR, IDTR, and PML4 into data section in ap_trampoline
     map_addr(0x8000, 0x8000, KERNEL_PT_ENTRY, NULL);
     map_addr(0x9000, 0x9000, KERNEL_PT_ENTRY, NULL);
     data->gdtr = (uintptr_t) &gdtr;

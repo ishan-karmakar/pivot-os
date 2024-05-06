@@ -1,6 +1,7 @@
 #include <io/stdio.h>
+#include <cpu/tss.h>
 
 void ap_kernel(void) {
-    printf("test\n");
+    init_tss();
     while(1);
 }

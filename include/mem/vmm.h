@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <sys.h>
 
-#define VMM_RESERVED_SPACE_SIZE 0x14480000000
+#define VMM_RESERVED_SPACE_SIZE (20 * PAGE_SIZE)
 #define VMM_ITEMS_PER_PAGE (PAGE_SIZE / sizeof(vmm_item_t))
 
 typedef enum vmm_level {

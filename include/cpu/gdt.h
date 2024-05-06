@@ -21,6 +21,7 @@ typedef union {
 
 extern uint16_t gdt_entries;
 extern gdtr_t gdtr;
+extern gdt_desc_t gdt[MAX_GDT_ENTRIES];
 
 /// @brief Loads the GDT
 void init_gdt(void);
