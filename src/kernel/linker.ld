@@ -2,12 +2,10 @@ ENTRY (_start)
 
 SECTIONS
 {
+    _kern_virt_offset = 0xFFFFFFFF80000000;
 	. = 1M;
     _kern_phys_start = .;
-    # _kern_virt_offset = 0;
-    _kern_virt_offset = 0xFFFFFFFF80000000;
     . += _kern_virt_offset;
-    _kern_virt_start = .;
 
 	.text ALIGN (4K) : AT (ADDR (.text) - _kern_virt_offset)
 	{
@@ -29,7 +27,4 @@ SECTIONS
 	{
 		*(.data*)
 	}
-
-	_kern_end = .;
-    _kern_phys_end = . - _kern_virt_offset;
 }

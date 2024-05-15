@@ -11,7 +11,7 @@ ap_trampoline:
     jmp 0:TRAMPOLINE_ADDR(kernel16)
 
 align 16
-pml4: dd 0
+pml4: dq 0
 stack_top: dd 0
 kgdtr: dq 0
 kidtr: dq 0

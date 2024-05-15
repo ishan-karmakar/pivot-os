@@ -44,6 +44,7 @@ void start_aps(void) {
     }
 
     bitmap_clear_bit(0x8000);
+    ap_info = (ap_info_t*) VADDR(ap_info);
     log(Info, "SMP", "All CPUs booted up");
 }
 
@@ -69,4 +70,18 @@ void start_ap(uint32_t id, uint8_t trampoline_page) {
 
 void set_ap_ready(void) {
     ap_info->ready = 1;
+}
+
+cpu_status_t *icr_handler(cpu_status_t *status) {
+    switch (ap_info->action) {
+    case 1:
+        load_cr3(PADDR(ap_info->pml4));
+        break;
+    
+    case 2:
+        asm ("invlpg %0" : : "m" (ap_info->invl_page));
+        break;
+    }
+
+    return status;
 }

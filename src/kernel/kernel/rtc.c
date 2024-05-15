@@ -46,7 +46,6 @@ void init_rtc(void) {
 }
 
 cpu_status_t *rtc_handler(cpu_status_t *status) {
-    log(Verbose, "RTC", "Got interrupt");
     uint8_t rtc_status = read_register(0xC);
     if (rtc_status & 0b10000) {
         if (bcd) {
