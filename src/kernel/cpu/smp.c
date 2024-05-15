@@ -72,7 +72,7 @@ void set_ap_ready(void) {
     ap_info->ready = 1;
 }
 
-cpu_status_t *icr_handler(cpu_status_t *status) {
+cpu_status_t *ipi_handler(cpu_status_t *status) {
     switch (ap_info->action) {
     case 1:
         load_cr3(PADDR(ap_info->pml4));
