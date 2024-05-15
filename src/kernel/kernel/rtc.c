@@ -12,12 +12,12 @@ static int bcd;
 static time_t global_time;
 
 static uint8_t read_register(uint8_t port_num) {
-    outb(0x70, port_num);
+    outb(0x70, port_num | 0x80);
     return inb(0x71);
 }
 
 static void write_register(uint8_t port_num, uint8_t val) {
-    outb(0x70, port_num);
+    outb(0x70, port_num | 0x80);
     outb(0x71, val);
 }
 
@@ -33,7 +33,7 @@ static uint8_t get_dow(uint16_t y, uint8_t m, uint8_t dom) {
 
 void init_rtc(void) {
     IDT_SET_INT(34, 0, rtc_irq);
-    set_irq(8, 34, 0, IOAPIC_LOW_PRIORITY, true);
+    set_irq(8, 34, 0xFF, IOAPIC_LOW_PRIORITY, true);
     uint8_t status = read_register(0xB);
     status |= 0x2 | 0x10; // 24 hour mode and update ended interrupt
     status &= ~0x20; // No periodic interrupt and no alarm interrupt
@@ -44,8 +44,9 @@ void init_rtc(void) {
     read_register(0xC);
     set_irq_mask(8, false);
 }
-// 0xFFFFFFFF80105CF8
+
 cpu_status_t *rtc_handler(cpu_status_t *status) {
+    log(Verbose, "RTC", "Got interrupt");
     uint8_t rtc_status = read_register(0xC);
     if (rtc_status & 0b10000) {
         if (bcd) {

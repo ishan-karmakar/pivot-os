@@ -13,11 +13,9 @@ mem_info_t *mem_info;
 void init_pmm(mem_info_t *memory_info) {
     mem_info = memory_info;
     mem_info->pml4 = (page_table_t) VADDR(mem_info->pml4);
-    log(Info, "PMM", "PML4 addr: %x", (uintptr_t) mem_info->pml4);
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", mem_info->mem_pages, mem_info->mem_pages * PAGE_SIZE / 1048576);
     init_bitmap();
-    bitmap_set_bit(0x8000);
-    bitmap_set_bit(0x9000);
+    bitmap_set_bit(0x8000); // Needed for SMP
     map_higher_half(NULL);
     log(Info, "PMM", "Initialized Physical Memory Manager");
 }

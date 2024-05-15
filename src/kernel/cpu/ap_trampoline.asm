@@ -2,27 +2,20 @@
 %define PAGE_SIZE 0x1000
 %define HIGHER_HALF_OFFSET 0xFFFF800000000000
 %define TRAMPOLINE_ADDR(addr) (0x8000 + (addr) - ap_trampoline)
-%define CPUINFO 0x9000
 section .text
 
 align 4096
 [global ap_trampoline]
 [bits 16]
 ap_trampoline:
-    ; Clear flags and stuff
-    cli
-    cld
+    jmp 0:TRAMPOLINE_ADDR(kernel16)
 
-    ; Load 32 bit GDT
-    lgdt [TRAMPOLINE_ADDR(gdt32.pointer)]
-
-    ; Enable 32 bit
-    mov eax, cr0
-    or eax, 1
-    mov cr0, eax
-
-    ; Set CS and jump to 32 bit code
-    jmp 0x8:TRAMPOLINE_ADDR(kernel32)
+align 16
+pml4: dd 0
+stack_top: dd 0
+kgdtr: dq 0
+kidtr: dq 0
+ready: db 0
 
 gdt32: ; 0x8010
     dq 0
@@ -64,6 +57,21 @@ gdt64:
         dw .pointer - gdt64 - 1
         dq TRAMPOLINE_ADDR(gdt64)
 
+kernel16:
+    cld
+    cli
+
+    ; Load 32 bit GDT
+    lgdt [TRAMPOLINE_ADDR(gdt32.pointer)]
+
+    ; Enable 32 bit
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    ; Set CS and jump to 32 bit code
+    jmp 0x8:TRAMPOLINE_ADDR(kernel32)
+
 [bits 32]
 kernel32: ; 0x8050
     ; Set segment registers to data descriptor
@@ -75,7 +83,7 @@ kernel32: ; 0x8050
     mov gs, ax
 
     ; Load PML4 into CR3
-    mov eax, [CPUINFO + 0]
+    mov eax, [TRAMPOLINE_ADDR(pml4)]
     mov cr3, eax
 
     ; Enable PAE paging
@@ -100,7 +108,7 @@ kernel32: ; 0x8050
 [bits 64]
 kernel32c: ; 32-bit compatibility until we load GDT64
     ; Load stack
-    mov esp, [CPUINFO + 4]
+    mov esp, [TRAMPOLINE_ADDR(stack_top)]
 
     ; Load OUR 64 bit GDT
     lgdt [TRAMPOLINE_ADDR(gdt64.pointer)]
@@ -123,18 +131,17 @@ kernel64: ; NOW we are in real 64 bit
     mov rax, HIGHER_HALF_OFFSET
     add rsp, rax
 
-    mov rax, [CPUINFO + 8]
+    mov rax, [TRAMPOLINE_ADDR(kgdtr)]
     lgdt [rax]
     
     push 0x8
     push ap_start
     retfq
 
-[extern aps_running]
 [extern ap_kernel]
 ap_start:
-    mov rax, [CPUINFO + 16]
+    mov rax, [TRAMPOLINE_ADDR(kidtr)]
     lidt [rax]
-
+    sti
     call ap_kernel
     jmp $

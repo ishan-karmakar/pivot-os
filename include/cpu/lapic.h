@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #define IA32_APIC_BASE 0x1B
 #define APIC_BASE_ADDRESS_MASK 0xFFFFF000
 #define APIC_GLOBAL_ENABLE_BIT 11
@@ -9,15 +10,19 @@
 #define PIC_DATA_MASTER 0x21
 #define PIC_DATA_SLAVE 0xA1
 #define APIC_SOFTWARE_ENABLE (1 << 8)
-#define APIC_SPURIOUS_INTERRUPT 255
-#define APIC_SPURIOUS_VEC_REG_OFF 0xF0
-#define APIC_ID_REG_OFF 0x20
-#define APIC_TIMER_INITIAL_COUNT_REG_OFF 0x380
-#define APIC_TIMER_CURRENT_COUNT_REG_OFF 0x390
+
+#define APIC_ID_OFF 0x20
+#define APIC_TPR_OFF 0x80
+#define APIC_APR_OFF 0x90
+#define APIC_PPR_OFF 0xA0
+#define APIC_SPURIOUS_VEC_OFF 0xF0
+#define APIC_ISR_OFF 0x100
 #define APIC_ICRLO_OFF 0x300
 #define APIC_ICRHI_OFF 0x310
-#define APIC_TIMER_CONFIG_OFF 0x3E0
 #define APIC_TIMER_LVT_OFFSET 0x320
+#define APIC_TIMER_INITIAL_COUNT_OFF 0x380
+#define APIC_TIMER_CURRENT_COUNT_OFF 0x390
+#define APIC_TIMER_CONFIG_OFF 0x3E0
 
 #define ICR_DEST_SHIFT 24
 #define ICR_INIT 0x500
@@ -43,14 +48,15 @@
 #define PIT_MODE_COMMAND_REGISTER 0x43
 #define PIT_1_MS 1193
 
-#define APIC_EOI_REG_OFF 0xB0
+#define APIC_EOI_OFF 0xB0
 
-#define APIC_EOI() write_apic_register(APIC_EOI_REG_OFF, 0);
+#define APIC_EOI() write_apic_register(APIC_EOI_OFF, 0);
 
 extern volatile size_t pit_ticks, apic_ticks;
 extern uint32_t apic_ms_interval;
 
 void init_lapic(void);
+void init_lapic_ap(void);
 uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
 void calibrate_apic_timer(void);
@@ -58,3 +64,4 @@ void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_ent
 void map_lapic(uint64_t*);
 uint32_t get_apic_id(void);
 void delay(size_t);
+bool apic_initialized(void);

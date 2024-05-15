@@ -3,10 +3,10 @@
 
 #define MADT_LAPIC 0
 #define MADT_IOAPIC 1
-#define MADT_INTERRUPT_SOURCE_OVERRIDE 2
+#define MADT_INT_SO_OVRD 2
 #define MADT_NMI 3
 #define MADT_LAPIC_NMI 4
-#define MADT_LAPIC_ADDRESS_OVERRIDE 5
+#define MADT_LAPIC_ADDR_OVRD 5
 
 struct boot_info;
 

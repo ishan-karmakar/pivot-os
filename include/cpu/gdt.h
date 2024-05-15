@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#define MAX_GDT_ENTRIES 10
+#define MAX_GDT_ENTRIES 37 // Regular segments plus TSS for 16 CPUs
 
 typedef struct gdtr {
     uint16_t size;

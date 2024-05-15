@@ -48,7 +48,6 @@ void load_exceptions(void) {
     IDT_SET_INT(29, 0, isr29);
     IDT_SET_INT(30, 0, isr30);
     IDT_SET_INT(31, 0, isr31);
-    // IDT_SET_INT(255, irq255);
 }
 
 void init_idt(void) {
@@ -58,6 +57,6 @@ void init_idt(void) {
     idtr.size = 256 * sizeof(idt_desc_t) - 1;
     idtr.addr = (uintptr_t) &idt;
 
-    asm volatile ("lidt %0" : : "m" (idtr));
+    asm volatile ("lidt %0\nsti" : : "m" (idtr));
     log(Info, "IDT", "Initialized IDT");
 }

@@ -19,7 +19,7 @@
 #include <kernel/progress.h>
 #include <io/stdio.h>
 
-log_level_t min_log_level = Debug;
+log_level_t min_log_level = Verbose;
 boot_info_t boot_info;
 heap_info_t kheap_info;
 extern uint64_t *stack;
@@ -46,12 +46,14 @@ void user_function(void) {
     while(1);
 }
 
+// TODO: Support booting with BIOS and UEFI
 void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     boot_info = *binfo; // Copy over boot info to higher half
     init_qemu();
     init_gdt();
     init_idt();
     IDT_SET_TRAP(0x80, 3, syscall_irq);
+    IDT_SET_TRAP(36, 0, icr_irq);
     init_pmm(&boot_info.mem_info);
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);

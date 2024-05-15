@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <kernel/acpi.h>
 #define IOAPIC_ID_OFFSET 0
 #define IOAPIC_VER_OFFSET 1
 #define IOAPIC_ARB_OFFSET 2
@@ -29,19 +30,28 @@ typedef union {
     uint64_t raw;
 } ioapic_redtbl_entry_t;
 
-typedef struct ioapic_source_override {
+typedef struct ioapic_so {
+    madt_item_t header;
     uint8_t bus_source;
     uint8_t irq_source;
     uint32_t gsi_base;
     uint16_t flags;
-} ioapic_source_override_t;
+} ioapic_so_t;
 
 typedef struct ioapic {
+    madt_item_t header;
     uint8_t id;
     uint8_t rsv;
     uint32_t addr;
     uint32_t gsi_base;
 } ioapic_t;
+
+typedef struct ioapic_nmi_src {
+    madt_item_t header;
+    uint8_t id;
+    uint16_t flags;
+    uint8_t lint;
+} ioapic_nmi_src_t;
 
 #pragma pack(pop)
 

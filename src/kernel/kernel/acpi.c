@@ -36,7 +36,6 @@ static void validate_tables(void) {
     }
     log(Verbose, "ACPI", "Found valid %cSDT table", xsdt ? 'X' : 'R');
     num_tables = xsdt ? ((xsdt_tbl->header.length - sizeof(xsdt_tbl->header)) / sizeof(xsdt_tbl->tables[0])) : ((rsdt_tbl->header.length - sizeof(rsdt_tbl->header)) / sizeof(rsdt_tbl->tables[0]));
-    log(Verbose, "ACPI", "Found %u tables", num_tables);
     char signature[5];
     for (size_t i = 0; i < num_tables; i++) {
         if (xsdt)
@@ -53,7 +52,7 @@ static void validate_tables(void) {
         bitmap_rsv_area(header_addr, SIZE_TO_PAGES(header->length));
         memcpy(signature, header->signature, 4);
         signature[4] = 0;
-        log(Info, "ACPI", "[%u] %s", i, signature);
+        log(Verbose, "ACPI", "[%u] %s", i, signature);
     }
 }
 

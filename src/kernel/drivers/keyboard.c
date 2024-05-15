@@ -53,8 +53,8 @@ void init_keyboard(void) {
     outb(KEYBOARD_PORT, 0xF4);
     check_ack();
     log(Verbose, "KEYBOARD", "Enabled keyboard scan codes");
-    IDT_SET_INT(35, 0, keyboard_irq);
-    set_irq(1, 35, 0, IOAPIC_LOW_PRIORITY, false);
+    IDT_SET_INT(KEYBOARD_IDT_ENTRY, 0, keyboard_irq);
+    set_irq(1, KEYBOARD_IDT_ENTRY, 0xFF, IOAPIC_LOW_PRIORITY, false);
 }
 
 void update_modifiers(key_modifiers_t modifier, int is_pressed) {

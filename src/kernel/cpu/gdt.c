@@ -15,10 +15,9 @@ gdtr_t gdtr = { 0, (uintptr_t) &gdt };
 
 void init_gdt(void) {
     gdtr.size = gdt_entries * sizeof(gdt_desc_t) - 1;
-    log(Info, "GDT", "Initialized GDT");
 
     load_gdt((uintptr_t) &gdtr);
-    log(Info, "GDT", "Loaded GDT and TSS");
+    log(Info, "GDT", "Initialized GDT");
 }
 
 void set_gdt_desc(uint16_t idx, uint64_t entry) {

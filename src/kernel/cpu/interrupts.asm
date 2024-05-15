@@ -1,7 +1,6 @@
 [bits  64]
 [extern exception_handler]
 [extern set_rsp0]
-; [extern irq_handler]
 
 %macro isr_base_code 1
     push %1
@@ -79,13 +78,6 @@ isr%1:
     add rsp, 16 ; Remove error code and interrupt number from stack
 %endmacro
 
-; [extern apic_triggered]
-; [global apic_oneshot_irq]
-; apic_oneshot_irq:
-;     mov qword [apic_triggered], 1
-;     apic_eoi
-;     iretq
-
 isr 0
 isr 1
 isr 2
@@ -124,4 +116,5 @@ irq pit_irq, pit_handler
 irq rtc_irq, rtc_handler
 irq syscall_irq, syscall_handler
 irq keyboard_irq, keyboard_handler
-; irq 255
+irq icr_irq, icr_handler
+irq spurious_irq, spurious_handler

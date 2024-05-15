@@ -21,6 +21,7 @@ SECTIONS
 
 	.bss ALIGN(4K) : AT (ADDR (.bss) - _kern_virt_offset)
 	{
+        *(COMMON)
 		*(.bss*)
 	}
 

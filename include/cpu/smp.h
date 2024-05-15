@@ -6,6 +6,8 @@ typedef struct {
     uint32_t stack_top; // +4
     uint64_t gdtr; // +8
     uint64_t idtr; // +16
+    uint8_t ready;
 } __attribute__((packed)) ap_info_t;
 
 void start_aps(void);
+void set_ap_ready(void);
