@@ -1,4 +1,4 @@
-QEMU_FLAGS := -m 128M -smp 2 -serial stdio -bios OVMF.fd -no-reboot -no-shutdown
+QEMU_FLAGS := -m 128M -smp 4 -serial stdio -bios OVMF.fd -no-reboot -no-shutdown
 
 ifeq ($(INIT_STOP), 1)
 	QEMU_FLAGS += -s -S

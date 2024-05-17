@@ -48,9 +48,9 @@ void init_lapic(void) {
     bitmap_set_bit(PADDR(apic_addr));
     disable_pic();
     // APIC needs to be accessible from userspace
-    IDT_SET_INT(APIC_TIMER_PERIODIC_IDT_ENTRY, 3, apic_periodic_irq);
-    IDT_SET_INT(APIC_TIMER_ONESHOT_IDT_ENTRY, 0, apic_oneshot_irq);
-    IDT_SET_INT(PIT_TIMER_IDT_ENTRY, 0, pit_irq);
+    IDT_SET_INT(APIC_PERIODIC_IDT_ENTRY, 3, apic_periodic_irq);
+    IDT_SET_INT(APIC_ONESHOT_IDT_ENTRY, 0, apic_oneshot_irq);
+    IDT_SET_INT(PIT_IDT_ENTRY, 0, pit_irq);
     IDT_SET_INT(APIC_SPURIOUS_IDT_ENTRY, 0, spurious_irq);
 
     apic_address = apic_addr;
@@ -90,13 +90,13 @@ uint32_t get_apic_id(void) {
 }
 
 void delay(size_t num_ticks) {
-    start_apic_timer(0, num_ticks, APIC_TIMER_ONESHOT_IDT_ENTRY);
+    start_apic_timer(0, num_ticks, APIC_ONESHOT_IDT_ENTRY);
     while (!apic_triggered) asm ("pause");
     apic_triggered = false;
 }
 
 void calibrate_apic_timer(void) {
-    set_irq(0, 34, 0, 0, true);
+    set_irq(0, PIT_IDT_ENTRY, 0, 0, true);
     outb(PIT_MODE_COMMAND_REGISTER, 0b00110100);
     uint16_t counter = PIT_1_MS;
     outb(PIT_CHANNEL_0_DATA_PORT, counter & 0xFF);
@@ -107,14 +107,15 @@ void calibrate_apic_timer(void) {
 
     set_irq_mask(0, false);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_OFF, (uint32_t)-1);
-    while(pit_ticks < 500);
+    while(pit_ticks < 500) asm ("pause");
     uint32_t current_apic_count = read_apic_register(APIC_TIMER_CURRENT_COUNT_OFF);
     write_apic_register(APIC_TIMER_INITIAL_COUNT_OFF, 0);
     set_irq_mask(0, true);
+    pit_ticks = 0;
 
     uint32_t time_elapsed = ((uint32_t)-1) - current_apic_count;
     apic_ms_interval = time_elapsed / 500;
-    log(Debug, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
+    log(Verbose, "APIC", "Measured %u ticks per ms, %u ticks per us", apic_ms_interval, (apic_ms_interval + 500) / 1000);
     log(Info, "APIC", "Calibrated APIC timer");
 }
 

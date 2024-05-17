@@ -1,6 +1,7 @@
 #include <kernel/logging.h>
 #include <io/stdio.h>
 #include <cpu/lapic.h>
+#include <stdatomic.h>
 
 static char *log_levels[] = {
     "ERROR",
@@ -11,7 +12,11 @@ static char *log_levels[] = {
     "TRACE"
 };
 
+static atomic_flag mutex = ATOMIC_FLAG_INIT;
+
 void log(log_level_t log_level, const char *target, const char *format, ...) {
+    while (atomic_flag_test_and_set(&mutex))
+        asm ("pause");
     if (log_level > min_log_level)
         return;
     va_list args;
@@ -20,4 +25,5 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
     vprintf(format, args);
     printf("\n");
     va_end(args);
+    atomic_flag_clear(&mutex);
 }

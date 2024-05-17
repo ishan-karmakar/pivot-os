@@ -8,7 +8,7 @@
 static char fb_buf[128];
 static size_t fb_buf_pos;
 char_printer_t char_printer;
-atomic_flag stdio_mutex = ATOMIC_FLAG_INIT;
+static atomic_flag mutex = ATOMIC_FLAG_INIT;
 
 void flush_screen(void) {
     for (uint16_t i = 0; i < fb_buf_pos; i++)
@@ -56,17 +56,17 @@ void vprintf(const char *c, va_list args) {
 }
 
 void printf(const char *format, ...) {
-    while (atomic_flag_test_and_set(&stdio_mutex))
-        asm volatile ("pause");
+    while (atomic_flag_test_and_set(&mutex))
+        asm ("pause");
     va_list args;
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
-    atomic_flag_clear(&stdio_mutex);
+    atomic_flag_clear(&mutex);
 }
 
 void printf_at(size_t x, size_t y, const char *format, ...) {
-    while (atomic_flag_test_and_set(&stdio_mutex))
+    while (atomic_flag_test_and_set(&mutex))
         asm volatile ("pause");
     size_t old_x = screen_x;
     size_t old_y = screen_y;
@@ -79,5 +79,5 @@ void printf_at(size_t x, size_t y, const char *format, ...) {
     flush_screen();
     screen_x = old_x;
     screen_y = old_y;
-    atomic_flag_clear(&stdio_mutex);
+    atomic_flag_clear(&mutex);
 }

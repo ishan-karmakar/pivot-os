@@ -18,6 +18,7 @@ void start_ap(uint32_t, uint8_t);
 volatile ap_info_t *ap_info = (ap_info_t*) 0x8010;
 
 void start_aps(void) {
+    IDT_SET_INT(IPI_IDT_ENTRY, 0, ipi_irq);
     map_addr(0x8000, 0x8000, KERNEL_PT_ENTRY, NULL);
     memcpy((void*) 0x8000, &ap_trampoline, PAGE_SIZE);
     ap_info->gdtr = (uintptr_t) &gdtr;
@@ -45,6 +46,7 @@ void start_aps(void) {
 
     bitmap_clear_bit(0x8000);
     ap_info = (ap_info_t*) VADDR(ap_info);
+    ap_info->action = 3;
     log(Info, "SMP", "All CPUs booted up");
 }
 
@@ -80,6 +82,10 @@ cpu_status_t *ipi_handler(cpu_status_t *status) {
     
     case 2:
         asm ("invlpg %0" : : "m" (ap_info->invl_page));
+        break;
+    
+    case 3:
+        log(Verbose, "IPI", "Received IPI");
         break;
     }
 

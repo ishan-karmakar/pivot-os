@@ -1,11 +1,12 @@
 #pragma once
 #include <stdint.h>
-#define APIC_TIMER_PERIODIC_IDT_ENTRY 32
-#define APIC_TIMER_ONESHOT_IDT_ENTRY 33
-#define PIT_TIMER_IDT_ENTRY 34
-#define RTC_TIMER_IDT_ENTRY 34
-#define KEYBOARD_IDT_ENTRY 35
+#define APIC_PERIODIC_IDT_ENTRY 32
+#define APIC_ONESHOT_IDT_ENTRY 33
+#define PIT_IDT_ENTRY 34
+#define RTC_IDT_ENTRY 35
+#define KEYBOARD_IDT_ENTRY 36
 #define SYSCALL_IDT_ENTRY 0x80
+#define IPI_IDT_ENTRY 0x81
 #define APIC_SPURIOUS_IDT_ENTRY 255
 
 #define IDT_SET_ENTRY(num, flags, sel, ist, handler) \

@@ -18,6 +18,7 @@
 #include <kernel/logging.h>
 #include <kernel/progress.h>
 #include <io/stdio.h>
+#include <cpuid.h>
 
 log_level_t min_log_level = Verbose;
 boot_info_t boot_info;
@@ -66,6 +67,8 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_rtc();
     init_keyboard();
     start_aps();
+    write_apic_register(APIC_ICRLO_OFF, IPI_IDT_ENTRY | (2 << 18));
+    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING);
     // idle_thread = create_thread("idle", idle, false, false);
     // create_thread("test1", task1, true, true);
     // create_thread("test2", task2, true, true);
@@ -79,4 +82,4 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
 void __attribute__((noreturn)) kernel_main(void) {
     // Kernel should now be completely initialized
     while (1);
-} // 0xffffffff80114000
+}
