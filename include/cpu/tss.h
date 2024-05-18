@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <mem/heap.h>
 
 typedef struct tss {
     uint32_t rsv0;
@@ -24,5 +25,5 @@ typedef struct tss {
     uint16_t iopb;
 } __attribute__((packed)) tss_t;
 
-void init_tss(void);
+void init_tss(heap_info_t*);
 void set_rsp0(uintptr_t);

@@ -14,9 +14,9 @@ size_t next_thread_id = 0;
 void thread_wrapper(void (*entry_point)(void));
 void init_thread_vmm(thread_t*);
 
-thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety, bool add_scheduler_list) {
-    thread_t *thread = malloc(sizeof(thread_t));
-    thread->ef = malloc(sizeof(cpu_status_t));
+thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety, heap_info_t *hi) {
+    thread_t *thread = halloc(sizeof(thread_t), hi);
+    thread->ef = halloc(sizeof(cpu_status_t), hi);
     init_thread_vmm(thread);
 
     thread->id = next_thread_id++;
@@ -45,9 +45,6 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety, bool a
     thread->ef->rsp = thread->stack + THREAD_DEFAULT_STACK_SIZE; // Stack top
     thread->ef->rbp = 0;
 
-
-    if (add_scheduler_list)
-        scheduler_add_thread(thread);
     return thread;
 }
 
@@ -93,6 +90,18 @@ void thread_sleep_syscall(cpu_status_t *status) {
 
 void thread_dead_syscall(void) {
     cur_thread->status = DEAD;
+}
+
+void *malloc(size_t size) {
+    return halloc(size, &cur_thread->heap_info);
+}
+
+void free(void *ptr) {
+    return hfree(ptr, &cur_thread->heap_info);
+}
+
+void *realloc(void *ptr, size_t size) {
+    return hrealloc(ptr, size, &cur_thread->heap_info);
 }
 
 void idle(void) { while(1) asm ("pause"); }

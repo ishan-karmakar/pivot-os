@@ -26,6 +26,6 @@ typedef struct {
 
 void init_heap(heap_info_t*, vmm_info_t*);
 void set_heap(heap_info_t*);
-void *malloc(size_t);
-void free(void*);
-void *realloc(void*, size_t);
+void *halloc(size_t, heap_info_t*);
+void hfree(void*, heap_info_t*);
+void *hrealloc(void*, size_t, heap_info_t*);

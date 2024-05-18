@@ -5,8 +5,8 @@
 
 extern uint64_t stack[];
 
-void init_tss(void) {
-    uintptr_t kernel_tss_addr = (uintptr_t) malloc(sizeof(tss_t));
+void init_tss(heap_info_t *hi) {
+    uintptr_t kernel_tss_addr = (uintptr_t) halloc(sizeof(tss_t), hi);
     uint64_t gdt_entry = (uint16_t) sizeof(tss_t) |
                          (kernel_tss_addr & 0xFFFF) << 16 |
                          ((kernel_tss_addr >> 16) & 0xFF) << 32 |

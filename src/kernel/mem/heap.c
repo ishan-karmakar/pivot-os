@@ -6,8 +6,7 @@
 #include <libc/string.h>
 
 // To lazy to write it, so copied from https://github.com/dreamos82/Dreamos64/blob/master/src/kernel/mem/heap.c
-static heap_info_t *heap_info;
-
+// TODO: Remake this so I actually understand what I'm doing
 void init_heap(heap_info_t *hi, vmm_info_t *vmm_info) {
     // Let's allocate the new heap, we rely on the vmm_alloc function for this part.
     uint64_t *heap_addr = valloc(PAGE_SIZE, 0, vmm_info);
@@ -16,13 +15,11 @@ void init_heap(heap_info_t *hi, vmm_info_t *vmm_info) {
     log(Info, "HEAP", "Initialized heap");
 }
 
-void set_heap(heap_info_t *hi) { heap_info = hi; }
-
 static size_t align(size_t size) {
     return (size / HEAP_ALLOC_ALIGNMENT + 1) * HEAP_ALLOC_ALIGNMENT;
 }
 
-static heap_mem_node_t* create_heap_node( heap_mem_node_t *current_node, size_t size ) {
+static heap_mem_node_t* create_heap_node( heap_mem_node_t *current_node, size_t size, heap_info_t *hi ) {
     // Here we create a new node for the heap.
     // We basically take the current node and split it in two.
     // The new node will be placed just after the space used by current_node
@@ -40,15 +37,15 @@ static heap_mem_node_t* create_heap_node( heap_mem_node_t *current_node, size_t 
 
     current_node->next = new_node;
 
-    if( current_node == heap_info->heap_end) {
-        heap_info->heap_end = new_node;
+    if( current_node == hi->heap_end) {
+        hi->heap_end = new_node;
     }
 
     return new_node;
 }
 
-static uint64_t compute_heap_end() {
-    return (uint64_t) heap_info->heap_end + heap_info->heap_end->size + sizeof(heap_mem_node_t);
+static uint64_t compute_heap_end(heap_info_t *hi) {
+    return (uint64_t) hi->heap_end + hi->heap_end->size + sizeof(heap_mem_node_t);
 }
 
 static uint8_t can_merge(heap_mem_node_t *cur_node) {
@@ -94,19 +91,19 @@ static void merge_memory_nodes(heap_mem_node_t *left_node, heap_mem_node_t *righ
     }
 }
 
-static void expand_heap(size_t required_size) {
+static void expand_heap(size_t required_size, heap_info_t *hi) {
     //size_t number_of_pages = required_size / KERNEL_PAGE_SIZE + 1;
     size_t number_of_pages = required_size / PAGE_SIZE;
     if (required_size % PAGE_SIZE)
         number_of_pages++;
-    uint64_t heap_end = compute_heap_end();
+    uint64_t heap_end = compute_heap_end(hi);
     heap_mem_node_t *new_tail = (heap_mem_node_t *) heap_end;
     new_tail->next = NULL;
-    new_tail->prev = heap_info->heap_end;
+    new_tail->prev = hi->heap_end;
     new_tail->size = PAGE_SIZE * number_of_pages;
     new_tail->is_free = true;
-    heap_info->heap_end->next = new_tail;
-    heap_info->heap_end = new_tail;
+    hi->heap_end->next = new_tail;
+    hi->heap_end = new_tail;
     // After updating the new tail, we check if it can be merged with previous node
     uint8_t available_merges = can_merge(new_tail);
     if ( available_merges & MERGE_LEFT) {
@@ -115,8 +112,8 @@ static void expand_heap(size_t required_size) {
 
 }
 
-void *malloc(size_t size) {
-    heap_mem_node_t *current_node = heap_info->heap_start;
+void *halloc(size_t size, heap_info_t *hi) {
+    heap_mem_node_t *current_node = hi->heap_start;
     // If size is 0 we don't need to do anything
     if( size == 0 ) {
         log(Verbose, "heap", "Size is null");
@@ -137,7 +134,7 @@ void *malloc(size_t size) {
                 if( current_node->size - real_size > HEAP_MINIMUM_ALLOCABLE_SIZE ) {
                     // We can keep shrinking the heap, since we still have enough space!
                     // But we need a new node for the allocated area
-                    create_heap_node(current_node, real_size);
+                    create_heap_node(current_node, real_size, hi);
                     // Let's update current_node status
                     current_node->is_free = false;
                     current_node->size = real_size;
@@ -151,8 +148,8 @@ void *malloc(size_t size) {
             }
         }
 
-        if( current_node == heap_info->heap_end ) {
-            expand_heap(real_size);
+        if( current_node == hi->heap_end ) {
+            expand_heap(real_size, hi);
             if( current_node->prev != NULL) {
                 // If we are here it means that we were at the end of the heap and needed an expansion
                 // So after the expansion there are chances that we reach the end of the heap, and the
@@ -169,18 +166,18 @@ void *malloc(size_t size) {
 
 
 
-void free(void *ptr) {
+void hfree(void *ptr, heap_info_t *hi) {
     // Before doing anything let's check that the address provided is valid: not null, and within the heap space
     if(ptr == NULL) {
         return;
     }
 
-    if ( (uint64_t) ptr < (uint64_t) heap_info->heap_start || (uint64_t) ptr > (uint64_t) heap_info->heap_end) {
+    if ( (uint64_t) ptr < (uint64_t) hi->heap_start || (uint64_t) ptr > (uint64_t) hi->heap_end) {
         return;
     }
 
     // Now we can search for the node containing our address
-    heap_mem_node_t *current_node = heap_info->heap_start;
+    heap_mem_node_t *current_node = hi->heap_start;
     while( current_node != NULL ) {
         if( ((uint64_t) current_node + sizeof(heap_mem_node_t)) == (uint64_t) ptr) {
             current_node->is_free = true;
@@ -202,11 +199,11 @@ void free(void *ptr) {
 
 // Frees old ptr and allocates a new one while copying data
 // Old ptr must be exactly what was returned from kmalloc (cannot be middle of memory)
-void *realloc(void *ptr, size_t new_size) {
-    void *new_ptr = malloc(new_size);
+void *hrealloc(void *ptr, size_t new_size, heap_info_t *hi) {
+    void *new_ptr = halloc(new_size, hi);
     heap_mem_node_t *node = (heap_mem_node_t*) (ptr - sizeof(heap_mem_node_t));
     size_t old_size = node->size;
     memcpy(new_ptr, ptr, old_size);
-    free(ptr);
+    hfree(ptr, hi);
     return new_ptr;
 }

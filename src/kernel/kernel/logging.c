@@ -15,10 +15,10 @@ static char *log_levels[] = {
 static atomic_flag mutex = ATOMIC_FLAG_INIT;
 
 void log(log_level_t log_level, const char *target, const char *format, ...) {
-    while (atomic_flag_test_and_set(&mutex))
-        asm ("pause");
     if (log_level > min_log_level)
         return;
+    while (atomic_flag_test_and_set(&mutex))
+        asm ("pause");
     va_list args;
     va_start(args, format);
     printf("[%s][%u] %s: ", log_levels[log_level], apic_initialized() ? get_apic_id() : 0, target);

@@ -68,7 +68,6 @@ cpu_status_t *ready_thread(thread_t *thread, bool safety) {
         cur_thread = thread;
         thread->status = READY;
         thread->ticks = 0;
-        set_heap(&thread->heap_info);
     }
 
     load_cr3(PADDR(thread->vmm_info.p4_tbl));
