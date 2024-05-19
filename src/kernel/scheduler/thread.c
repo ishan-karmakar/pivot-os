@@ -50,7 +50,7 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety, heap_t
 void free_thread(thread_t *thread) {
     load_cr3(PADDR(mem_info->pml4));
     free_page_table(thread->vmm_info.p4_tbl, 4);
-    vfree((void*) thread->stack, THREAD_STACK_PAGES, &thread->vmm_info);
+    vfree((void*) thread->stack, &thread->vmm_info);
     heap_t heap = thread->heap;
     hfree(thread->ef, heap);
     hfree(thread, heap);

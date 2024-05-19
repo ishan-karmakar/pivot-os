@@ -119,5 +119,5 @@ void *hrealloc(void *old, size_t size, heap_t heap) {
 
 void free_heap(vmm_info_t *vmm_info, heap_t heap) {
     for (heap_region_t *b = heap; b; b = b->next)
-        vfree(b, DIV_CEIL(b->size, PAGE_SIZE), vmm_info);
+        vfree(b, vmm_info);
 }
