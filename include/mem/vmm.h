@@ -11,31 +11,16 @@ typedef enum vmm_level {
     User
 } vmm_level_t;
 
-typedef struct vmm_item {
-    uintptr_t base;
-    size_t size;
-    size_t flags;
-} vmm_item_t;
-
-typedef struct vmm_container {
-    vmm_item_t items[VMM_ITEMS_PER_PAGE];
-    struct vmm_container *next;
-} vmm_container_t;
-
 typedef struct vmm_info {
     size_t flags;
-    uintptr_t data_start;
-    uintptr_t space_start;
-    uint64_t *p4_tbl;
-
-    struct {
-        size_t cur_index;
-        size_t next_addr;
-        vmm_container_t *root_container;
-        vmm_container_t *cur_container;
-    } status;
+    uintptr_t *p4_tbl;
+    size_t max_pages;
+    uintptr_t start;
+    size_t used;
+    size_t ffa;
+    uint8_t *bm;
 } vmm_info_t;
 
-void init_vmm(vmm_level_t vmm_level, vmm_info_t*);
+void init_vmm(vmm_level_t vmm_level, size_t max_pages, vmm_info_t*);
 void *valloc(size_t pages, size_t flags, vmm_info_t*);
 void vfree(void *addr, size_t pages, vmm_info_t*);

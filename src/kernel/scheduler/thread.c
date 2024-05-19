@@ -65,7 +65,7 @@ void init_thread_vmm(thread_t *thread) {
     map_addr(PADDR(p4_tbl), (uintptr_t) p4_tbl, KERNEL_PT_ENTRY, p4_tbl);
     map_addr(PADDR(p4_tbl), PADDR(p4_tbl), KERNEL_PT_ENTRY, p4_tbl);
 
-    init_vmm(User, &thread->vmm_info);
+    init_vmm(User, 1, &thread->vmm_info);
     heap_add(1, DEFAULT_BS, &thread->vmm_info, &thread->heap);
     map_kernel_entries(p4_tbl);
     map_framebuffer(p4_tbl, USER_PT_ENTRY);

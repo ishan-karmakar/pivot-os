@@ -12,10 +12,9 @@ bool xsdt;
 uintptr_t sdt_addr;
 size_t num_tables;
 
-// TODO: Maybe implement ACPICA
 void init_acpi(boot_info_t *boot_info) {
     bitmap_set_bit(boot_info->sdt_address);
-    sdt_addr = VADDR(boot_info->sdt_address);
+    sdt_addr = boot_info->sdt_address;
     map_addr(boot_info->sdt_address, sdt_addr, KERNEL_PT_ENTRY, NULL);
     xsdt = boot_info->xsdt;
     validate_tables();
@@ -28,8 +27,8 @@ static void validate_tables(void) {
     
     uint32_t header_length = xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length;
     size_t num_pages = SIZE_TO_PAGES(sdt_addr - ALIGN_ADDR(sdt_addr) + header_length);
-    bitmap_rsv_area(PADDR(sdt_addr), num_pages);
-    map_range(PADDR(sdt_addr), sdt_addr, num_pages, KERNEL_PT_ENTRY, NULL);
+    bitmap_rsv_area(sdt_addr, num_pages);
+    map_range(sdt_addr, sdt_addr, num_pages, KERNEL_PT_ENTRY, NULL);
     if (!validate_checksum(xsdt ? (char*) xsdt_tbl : (char*) rsdt_tbl, header_length)) {
         log(Error, "ACPI", "Found invalid %cSDT table", xsdt ? 'X' : 'R');
         hcf();
@@ -39,16 +38,16 @@ static void validate_tables(void) {
     char signature[5];
     for (size_t i = 0; i < num_tables; i++) {
         if (xsdt)
-            map_addr(xsdt_tbl->tables[i], VADDR(xsdt_tbl->tables[i]), KERNEL_PT_ENTRY, NULL);
+            map_addr(xsdt_tbl->tables[i], xsdt_tbl->tables[i], KERNEL_PT_ENTRY, NULL);
         else
-            map_addr(rsdt_tbl->tables[i], VADDR(rsdt_tbl->tables[i]), KERNEL_PT_ENTRY, NULL);
+            map_addr(rsdt_tbl->tables[i], rsdt_tbl->tables[i], KERNEL_PT_ENTRY, NULL);
         uintptr_t header_addr = xsdt ? xsdt_tbl->tables[i] : rsdt_tbl->tables[i];
-        sdt_header_t *header = (sdt_header_t*) VADDR(header_addr);
+        sdt_header_t *header = (sdt_header_t*) header_addr;
         if (!validate_checksum((char*) header, header->length)) {
             log(Error, "ACPI", "Detected invalid table");
             hcf();
         }
-        map_range(header_addr, VADDR(header_addr), SIZE_TO_PAGES(header->length), KERNEL_PT_ENTRY, NULL);
+        map_range(header_addr, header_addr, SIZE_TO_PAGES(header->length), KERNEL_PT_ENTRY, NULL);
         bitmap_rsv_area(header_addr, SIZE_TO_PAGES(header->length));
         memcpy(signature, header->signature, 4);
         signature[4] = 0;
@@ -69,9 +68,9 @@ sdt_header_t *get_table(char *signature) {
     for (size_t i = 0; i < num_tables; i++) {
         sdt_header_t *table;
         if (xsdt)
-            table = (sdt_header_t*) VADDR(xsdt_tbl->tables[i]);
+            table = (sdt_header_t*) xsdt_tbl->tables[i];
         else
-            table = (sdt_header_t*) VADDR(rsdt_tbl->tables[i]);
+            table = (sdt_header_t*)(uintptr_t) rsdt_tbl->tables[i];
         
         if (!memcmp(table->signature, signature, 4))
             return table;

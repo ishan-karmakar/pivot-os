@@ -23,8 +23,8 @@ volatile bool apic_triggered = false;
 
 void init_lapic(void) {
     madt_t *madt = (madt_t*) get_table("APIC");
-    uintptr_t apic_addr = VADDR(madt->lapic_base);
-    map_addr(PADDR(apic_addr), apic_addr, KERNEL_PT_ENTRY, NULL);
+    uintptr_t apic_addr = madt->lapic_base;
+    // map_addr(PADDR(apic_addr), apic_addr, KERNEL_PT_ENTRY, NULL);
 
     uint64_t msr_output = rdmsr(IA32_APIC_BASE);
     uint32_t ignored, xApicLeaf = 0, x2ApicLeaf = 0;

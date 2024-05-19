@@ -58,9 +58,11 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_pmm(&boot_info.mem_info);
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);
-    init_vmm(Supervisor, NULL);
-    heap_add(1, DEFAULT_BS, NULL, &heap);
-    init_tss(heap);
+    init_vmm(Supervisor, mem_info->mem_pages, NULL);
+    log(Verbose, "KERNEL", "%x", valloc(3, 0, NULL));
+    log(Verbose, "KERNEL", "%x", valloc(3, 0, NULL));
+    // heap_add(1, DEFAULT_BS, NULL, &heap);
+    // init_tss(heap);
     // init_lapic();
     // init_ioapic();
     // calibrate_apic_timer();
