@@ -109,7 +109,10 @@ void *hrealloc(void *old, size_t size, heap_t heap) {
     uint8_t id = bm[sblock];
     size_t blocks = 0;
     for (; bm[sblock + blocks] == id && (sblock + blocks) < (b->size / b->bsize); blocks++);
-    memcpy(new, old, blocks * b->bsize);
+    size_t cpysize = blocks * b->bsize;
+    if (size < cpysize)
+        cpysize = size;
+    memcpy(new, old, size);
     hfree(old, heap);
     return new;
 }
