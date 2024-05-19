@@ -48,8 +48,8 @@ void user_function(void) {
 
 // TODO: Support booting with BIOS and UEFI
 void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
-    heap_info_t heap_info;
     boot_info = *binfo; // Copy over boot info to higher half
+    heap_t heap = NULL;
     init_qemu();
     init_gdt();
     init_idt();
@@ -59,14 +59,14 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);
     init_vmm(Supervisor, NULL);
-    init_heap(&heap_info, NULL);
-    init_tss(&heap_info);
-    init_lapic();
-    init_ioapic();
-    calibrate_apic_timer();
-    init_rtc();
-    init_keyboard();
-    start_aps();
+    heap_add(1, DEFAULT_BS, NULL, &heap);
+    init_tss(heap);
+    // init_lapic();
+    // init_ioapic();
+    // calibrate_apic_timer();
+    // init_rtc();
+    // init_keyboard();
+    // start_aps();
     // idle_thread = create_thread("idle", idle, false, false);
     // create_thread("test1", task1, true, true);
     // create_thread("test2", task2, true, true);

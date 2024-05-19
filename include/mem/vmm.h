@@ -37,5 +37,5 @@ typedef struct vmm_info {
 } vmm_info_t;
 
 void init_vmm(vmm_level_t vmm_level, vmm_info_t*);
-void *valloc(size_t size, size_t flags, vmm_info_t*);
-void vfree(void *addr);
+void *valloc(size_t pages, size_t flags, vmm_info_t*);
+void vfree(void *addr, size_t pages, vmm_info_t*);

@@ -4,28 +4,21 @@
 #include <stdbool.h>
 #include <mem/pmm.h>
 #include <mem/vmm.h>
-#define HEAP_ALLOC_ALIGNMENT 0x10
-#define HEAP_MINIMUM_ALLOCABLE_SIZE 0x20
 
-#define MERGE_RIGHT 0b01
-#define MERGE_LEFT  0b10
-#define MERGE_BOTH  0b11
-#define MERGE_NONE  0b00
+#define DEFAULT_BS 16
 
-typedef struct heap_mem_node {
-    uint64_t size;
-    bool is_free;
-    struct heap_mem_node *next;
-    struct heap_mem_node *prev;
-} heap_mem_node_t;
+typedef struct heap_block {
+    uint32_t size;
+    uint32_t used;
+    uint32_t bsize;
+    uint32_t ela; // Block after ELA (end of last alloc)
+    struct heap_block *next;
+} heap_region_t;
 
-typedef struct {
-    heap_mem_node_t *heap_start;
-    heap_mem_node_t *heap_end;
-} heap_info_t;
+typedef heap_region_t* heap_t;
 
-void init_heap(heap_info_t*, vmm_info_t*);
-void set_heap(heap_info_t*);
-void *halloc(size_t, heap_info_t*);
-void hfree(void*, heap_info_t*);
-void *hrealloc(void*, size_t, heap_info_t*);
+void heap_add(size_t pages, size_t bsize, vmm_info_t *vmm_info, heap_t *heap);
+void *halloc(size_t size, heap_t);
+void hfree(void *ptr, heap_t);
+void *hrealloc(void *old, size_t size, heap_t);
+void free_heap(vmm_info_t *vmm_info, heap_t);

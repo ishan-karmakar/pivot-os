@@ -35,8 +35,8 @@ void init_vmm(vmm_level_t level, vmm_info_t *vmm_info) {
     log(Info, "VMM", "Initialized virtual memory manager");
 }
 
-void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
-    if (size == 0)
+void *valloc(size_t pages, size_t flags, vmm_info_t *vmm_info) {
+    if (pages == 0)
         return NULL;
     
     if (vmm_info == NULL)
@@ -55,15 +55,14 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
         vmm_info->status.cur_container = new_container;
     }
 
-    size_t num_pages = ALIGN_ADDR_UP(size) / PAGE_SIZE;
     uintptr_t addr = vmm_info->status.next_addr;
     vmm_item_t *item = vmm_info->status.cur_container->items + vmm_info->status.cur_index;
     item->base = addr;
     item->flags = flags;
-    item->size = num_pages;
-    vmm_info->status.next_addr += num_pages * PAGE_SIZE;
+    item->size = pages;
+    vmm_info->status.next_addr += pages * PAGE_SIZE;
     vmm_info->status.cur_index++;
-    for (size_t i = 0; i < num_pages; i++) {
+    for (size_t i = 0; i < pages; i++) {
         uintptr_t f = (uintptr_t) alloc_frame();
         map_addr(f, addr + i * PAGE_SIZE, flags | vmm_info->flags, vmm_info->p4_tbl);
     }
@@ -71,6 +70,5 @@ void *valloc(size_t size, size_t flags, vmm_info_t *vmm_info) {
     return (void*) addr;
 }
 
-// TODO: Implement this function
-void vfree(__attribute__((unused)) void *addr) {
+void vfree(void *addr, size_t pages, vmm_info_t *vmm_info) {
 }

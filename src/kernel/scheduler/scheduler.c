@@ -109,7 +109,3 @@ void scheduler_remove_thread(thread_t *thread) {
     else
         prev_item->next = item->next;
 }
-
-void scheduler_yield(void) {
-    asm ("int $0x20");
-}
