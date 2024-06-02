@@ -1,5 +1,4 @@
 #include <drivers/framebuffer.h>
-#include <mem/bitmap.h>
 #include <mem/pmm.h>
 #include <sys.h>
 #include <io/stdio.h>
@@ -94,7 +93,7 @@ void clear_screen(void) {
 void map_framebuffer(page_table_t p4_tbl, size_t flags) {
     size_t fb_size = fb_info->bpp * fb_info->pixels_per_scanline * fb_info->vertical_res;
     map_range(fb_info->pointer, fb_info->pointer, SIZE_TO_PAGES(fb_size), flags, p4_tbl);
-    bitmap_rsv_area(fb_info->pointer, SIZE_TO_PAGES(fb_size));
+    pmm_set_area(fb_info->pointer, SIZE_TO_PAGES(fb_size));
 }
 
 void init_framebuffer(framebuffer_info_t *fbinfo) {

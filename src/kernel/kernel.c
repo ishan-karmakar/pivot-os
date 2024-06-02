@@ -20,7 +20,6 @@
 #include <io/stdio.h>
 #include <cpuid.h>
 
-log_level_t min_log_level = Verbose;
 boot_info_t boot_info;
 extern uint64_t *stack;
 
@@ -49,27 +48,27 @@ void user_function(void) {
 // TODO: Support booting with BIOS and UEFI
 void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
     boot_info = *binfo; // Copy over boot info to higher half
-    heap_t heap = NULL;
     init_qemu();
     init_gdt();
     init_idt();
     IDT_SET_TRAP(SYSCALL_IDT_ENTRY, 3, syscall_irq);
     IDT_SET_INT(IPI_IDT_ENTRY, 0, ipi_irq);
     init_pmm(&boot_info.mem_info);
+    while(1);
     init_acpi(&boot_info);
     init_framebuffer(&boot_info.fb_info);
     init_vmm(Supervisor, mem_info->mem_pages, NULL);
-    // heap_add(1, DEFAULT_BS, NULL, &heap);
-    // init_tss(heap);
-    // init_lapic();
-    // init_ioapic();
-    // calibrate_apic_timer();
-    // init_rtc();
-    // init_keyboard();
+    heap_t *heap = heap_add(1, HEAP_DEFAULT_BS, NULL, NULL);
+    init_tss(heap);
+    init_lapic();
+    init_ioapic();
+    calibrate_apic_timer();
+    init_rtc();
+    init_keyboard();
     // start_aps();
-    // idle_thread = create_thread("idle", idle, false, false);
-    // create_thread("test1", task1, true, true);
-    // create_thread("test2", task2, true, true);
+    idle_thread = create_thread("idle", idle, false, heap);
+    // scheduler_add_thread(create_thread("test1", task1, true, heap));
+    // scheduler_add_thread(create_thread("test2", task2, true, heap));
     // uintptr_t rsp;
     // asm volatile ("mov %%rsp, %0" : "=r" (rsp));
     // set_rsp0(rsp);

@@ -1,7 +1,6 @@
 #include <kernel/acpi.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
-#include <mem/bitmap.h>
 #include <mem/pmm.h>
 
 extern void hcf(void);
@@ -13,7 +12,7 @@ uintptr_t sdt_addr;
 size_t num_tables;
 
 void init_acpi(boot_info_t *boot_info) {
-    bitmap_set_bit(boot_info->sdt_address);
+    pmm_set_bit(boot_info->sdt_address);
     sdt_addr = boot_info->sdt_address;
     map_addr(boot_info->sdt_address, sdt_addr, KERNEL_PT_ENTRY, NULL);
     xsdt = boot_info->xsdt;
@@ -27,7 +26,7 @@ static void validate_tables(void) {
     
     uint32_t header_length = xsdt ? xsdt_tbl->header.length : rsdt_tbl->header.length;
     size_t num_pages = SIZE_TO_PAGES(sdt_addr - ALIGN_ADDR(sdt_addr) + header_length);
-    bitmap_rsv_area(sdt_addr, num_pages);
+    pmm_set_area(sdt_addr, num_pages);
     map_range(sdt_addr, sdt_addr, num_pages, KERNEL_PT_ENTRY, NULL);
     if (!validate_checksum(xsdt ? (char*) xsdt_tbl : (char*) rsdt_tbl, header_length)) {
         log(Error, "ACPI", "Found invalid %cSDT table", xsdt ? 'X' : 'R');
@@ -48,7 +47,7 @@ static void validate_tables(void) {
             hcf();
         }
         map_range(header_addr, header_addr, SIZE_TO_PAGES(header->length), KERNEL_PT_ENTRY, NULL);
-        bitmap_rsv_area(header_addr, SIZE_TO_PAGES(header->length));
+        pmm_set_area(header_addr, SIZE_TO_PAGES(header->length));
         memcpy(signature, header->signature, 4);
         signature[4] = 0;
         log(Verbose, "ACPI", "[%u] %s", i, signature);

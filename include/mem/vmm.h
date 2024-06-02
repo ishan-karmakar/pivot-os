@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include <mem/bitmap.h>
+#include <mem/pmm.h>
 #include <sys.h>
 
 #define VMM_RESERVED_SPACE_SIZE (20 * PAGE_SIZE)
@@ -13,14 +15,10 @@ typedef enum vmm_level {
 
 typedef struct vmm_info {
     size_t flags;
-    uintptr_t *p4_tbl;
-    size_t max_pages;
-    uintptr_t start;
-    size_t used;
-    size_t ffa;
-    uint8_t *bm;
-} vmm_info_t;
+    page_table_t p4_tbl;
+    bitmap_t bm;
+} vmm_t;
 
-void init_vmm(vmm_level_t vmm_level, size_t max_pages, vmm_info_t*);
-void *valloc(size_t pages, size_t flags, vmm_info_t*);
-void vfree(void *addr, vmm_info_t*);
+void init_vmm(vmm_level_t vmm_level, size_t max_pages, vmm_t*);
+void *valloc(size_t pages, vmm_t*);
+void vfree(void *addr, vmm_t*);

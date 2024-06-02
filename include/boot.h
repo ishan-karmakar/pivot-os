@@ -33,7 +33,7 @@ typedef struct mem_info {
     size_t num_kernel_entries;
     kernel_entry_t *kernel_entries;
     uint64_t *pml4;
-    uint64_t *bitmap;
+    volatile uint64_t *bitmap;
     size_t bitmap_entries;
     size_t bitmap_size;
     size_t mem_pages;

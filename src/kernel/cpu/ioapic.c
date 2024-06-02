@@ -19,7 +19,7 @@ void init_ioapic(void) {
     map_addr((uintptr_t) ioapic, (uintptr_t) ioapic, KERNEL_PT_ENTRY, NULL);
     log(Verbose, "IOAPIC", "ID: %u, Address: %x, GSI Base: %u", ioapic->id, ioapic->addr, ioapic->gsi_base);
     ioapic_base_address = ioapic->addr;
-    // map_addr(ioapic->addr, ioapic_base_address, KERNEL_PT_ENTRY, NULL);
+    map_addr(ioapic->addr, ioapic_base_address, KERNEL_PT_ENTRY, NULL);
     uint32_t ioapic_version = read_register(IOAPIC_VER_OFFSET);
     ioapic_redtbl_entry_t entry;
     if (read_redirect(0x10, &entry) != 0)

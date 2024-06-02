@@ -1,12 +1,16 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#define BITMAP_ROW_BITS 64
-#define BITMAP_ROW_FULL UINT64_MAX
 
-void init_bitmap(void);
-void bitmap_set_bit(uintptr_t);
-void bitmap_clear_bit(uintptr_t);
-void bitmap_rsv_area(uintptr_t start, size_t num_pages);
-void bitmap_clear_area(uintptr_t start, size_t num_pages);
-int64_t bitmap_request_frame(void);
+typedef struct {
+    size_t size;
+    size_t bsize;
+    size_t used; // Used blocks
+    size_t ffa;
+    uint8_t *bm;
+} bitmap_t;
+
+void init_bitmap(bitmap_t*, size_t size, size_t bsize);
+void *bm_alloc(size_t size, bitmap_t*);
+size_t bm_free(void *ptr, bitmap_t*);
+uint8_t bm_unique_id(uint8_t a, uint8_t b);

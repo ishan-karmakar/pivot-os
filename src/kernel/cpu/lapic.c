@@ -6,7 +6,6 @@
 #include <cpu/ioapic.h>
 #include <scheduler/scheduler.h>
 #include <kernel/logging.h>
-#include <mem/bitmap.h>
 #include <mem/pmm.h>
 #include <io/ports.h>
 #include <sys.h>
@@ -24,7 +23,7 @@ volatile bool apic_triggered = false;
 void init_lapic(void) {
     madt_t *madt = (madt_t*) get_table("APIC");
     uintptr_t apic_addr = madt->lapic_base;
-    // map_addr(PADDR(apic_addr), apic_addr, KERNEL_PT_ENTRY, NULL);
+    map_addr(PADDR(apic_addr), apic_addr, KERNEL_PT_ENTRY, NULL);
 
     uint64_t msr_output = rdmsr(IA32_APIC_BASE);
     uint32_t ignored, xApicLeaf = 0, x2ApicLeaf = 0;
@@ -45,7 +44,7 @@ void init_lapic(void) {
 
     write_apic_register(APIC_SPURIOUS_VEC_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_IDT_ENTRY);
     log(Info, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
-    bitmap_set_bit(PADDR(apic_addr));
+    pmm_set_bit(PADDR(apic_addr));
     disable_pic();
     // APIC needs to be accessible from userspace
     IDT_SET_INT(APIC_PERIODIC_IDT_ENTRY, 3, apic_periodic_irq);

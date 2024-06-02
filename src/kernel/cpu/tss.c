@@ -5,7 +5,7 @@
 
 extern uint64_t stack[];
 
-void init_tss(heap_t heap) {
+void init_tss(heap_t *heap) {
     uintptr_t kernel_tss_addr = (uintptr_t) halloc(sizeof(tss_t), heap);
     uint64_t gdt_entry = (uint16_t) sizeof(tss_t) |
                          (kernel_tss_addr & 0xFFFF) << 16 |

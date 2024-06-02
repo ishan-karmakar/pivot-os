@@ -5,7 +5,6 @@
 #include <cpu/lapic.h>
 #include <cpu/cpu.h>
 #include <mem/pmm.h>
-#include <mem/bitmap.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
 
@@ -37,13 +36,13 @@ void start_aps(void) {
             map_addr(ap_info->stack_top - PAGE_SIZE, ap_info->stack_top - PAGE_SIZE, KERNEL_PT_ENTRY, NULL);
             start_ap(apic_id, 0x8);
             while (!ap_info->ready) asm ("pause");
-            bitmap_clear_bit(ap_info->stack_top - PAGE_SIZE);
+            pmm_clear_bit(ap_info->stack_top - PAGE_SIZE);
         }
         
         lapic = get_madt_item(madt, MADT_LAPIC, ++count);
     }
 
-    bitmap_clear_bit(0x8000);
+    pmm_clear_bit(0x8000);
     ap_info = (ap_info_t*) VADDR(ap_info);
     ap_info->action = 3;
     log(Info, "SMP", "All CPUs booted up");

@@ -2,6 +2,7 @@
 #include <io/stdio.h>
 #include <cpu/lapic.h>
 #include <stdatomic.h>
+#include <sys.h>
 
 static char *log_levels[] = {
     "ERROR",
@@ -15,7 +16,7 @@ static char *log_levels[] = {
 static atomic_flag mutex = ATOMIC_FLAG_INIT;
 
 void log(log_level_t log_level, const char *target, const char *format, ...) {
-    if (log_level > min_log_level)
+    if (log_level > MIN_LOG_LEVEL)
         return;
     while (atomic_flag_test_and_set(&mutex))
         asm ("pause");

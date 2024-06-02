@@ -25,5 +25,5 @@ typedef struct tss {
     uint16_t iopb;
 } __attribute__((packed)) tss_t;
 
-void init_tss(heap_t);
+void init_tss(heap_t*);
 void set_rsp0(uintptr_t);
