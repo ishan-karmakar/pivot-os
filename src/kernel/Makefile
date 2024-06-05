@@ -20,9 +20,9 @@ KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -n -nostdlib -z max-page-size=0x1000
 build/kernel.elf: $(KERNEL_C_OBJ) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
 	ld $(KERNEL_LDFLAGS) -o $@ $^
 
-build/kernel/%.o: src/kernel/%.c
+build/kernel/%.o: src/kernel/%.c $(HEADER_FILES)
 	@mkdir -p $(@D)
-	gcc $(KERNEL_CFLAGS) -c $< -o $@
+	gcc $(KERNEL_CFLAGS) -c $(filter %.c,$^) -o $@
 
 build/kernel/%.o: src/kernel/%.asm
 	@mkdir -p $(@D)

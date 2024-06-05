@@ -20,7 +20,7 @@ void init_tss(heap_t *heap) {
     load_gdt((uintptr_t) &gdtr);
     asm volatile ("ltr %0" : : "r" (tss_reg));
 
-    log(Info, "TSS", "Initialized task state segment");
+    log(Info, "TSS", "Initialized TSS");
 }
 
 void set_rsp0(uintptr_t addr) {

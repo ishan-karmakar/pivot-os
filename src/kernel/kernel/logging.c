@@ -2,7 +2,7 @@
 #include <io/stdio.h>
 #include <cpu/lapic.h>
 #include <stdatomic.h>
-#include <sys.h>
+#include <kernel.h>
 
 static char *log_levels[] = {
     "ERROR",

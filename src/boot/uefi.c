@@ -2,14 +2,13 @@
 #include <boot/mem.h>
 #include <boot/loader.h>
 #include <boot/acpi.h>
-#include <boot.h>
-#include <sys.h>
+#include <kernel.h>
 
 EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
     EFI_STATUS status;
     EFI_PHYSICAL_ADDRESS kernel_entry_point = 0;
-    boot_info_t boot_info;
+    kernel_info_t kinfo;
     UINTN mmap_key = 0;
 
     InitializeLib(ImageHandle, SystemTable);
@@ -21,6 +20,12 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     Print(L"Disabled watchdog timer...\n");
 
+    status = uefi_call_wrapper(gBS->SetMem, 3, &kinfo, sizeof(kernel_info_t), 0);
+    if (EFI_ERROR(status)) {
+        Print(L"Error zeroing kernel info struct\n");
+        return status;
+    }
+
     status = uefi_call_wrapper(gST->ConIn->Reset, 2, gST->ConIn, FALSE);
     if (EFI_ERROR(status)) {
         Print(L"Error resetting console input");
@@ -28,35 +33,35 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     Print(L"Reset console input...\n");
 
-    status = ConfigureGraphics(&boot_info.fb_info);
+    status = ConfigureGraphics(&kinfo);
     if (EFI_ERROR(status))
         return status;
     
-    status = FindRSDP(&boot_info);
+    status = FindRSDP(&kinfo);
     if (EFI_ERROR(status))
         return status;
 
-    status = ConfigurePaging(&boot_info.mem_info);
+    status = ConfigurePaging(&kinfo);
     if (EFI_ERROR(status))
         return status;
 
-    status = LoadKernel(&boot_info.mem_info, &kernel_entry_point);
+    status = LoadKernel(&kinfo, &kernel_entry_point);
     if (EFI_ERROR(status))
         return status;
     
-    status = GetMMAP(&boot_info.mem_info, &mmap_key);
+    status = GetMMAP(&kinfo, &mmap_key);
     if (EFI_ERROR(status))
         return status;
 
-    status = ParseMMAP(&boot_info.mem_info);
+    status = ParseMMAP(&kinfo);
     if (EFI_ERROR(status))
         return status;
 
-    status = FreeMMAP(&boot_info.mem_info);
+    status = FreeMMAP(&kinfo);
     if (EFI_ERROR(status))
         return status;
     
-    status = GetMMAP(&boot_info.mem_info, &mmap_key);
+    status = GetMMAP(&kinfo, &mmap_key);
     if (EFI_ERROR(status))
         return status;
 
@@ -65,10 +70,10 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         Print(L"Error exiting boot services\n");
         return status;
     }
+    KMEM.pml4 = (UINT64*) VADDR(KMEM.pml4);
 
-    LoadCr3(&boot_info.mem_info);
-    
-    VOID (*kernel_entry)(boot_info_t*) = (VOID (*)(boot_info_t*)) kernel_entry_point;
-    kernel_entry(&boot_info);
+    LoadCr3(&kinfo);
+    VOID (*kernel_entry)(kernel_info_t*) = (VOID (*)(kernel_info_t*)) kernel_entry_point;
+    kernel_entry(&kinfo);
     return EFI_LOAD_ERROR;
 }

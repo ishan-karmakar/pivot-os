@@ -1,4 +1,4 @@
-#include <boot.h>
+#include <kernel.h>
 #include <cpu/gdt.h>
 #include <cpu/idt.h>
 #include <cpu/tss.h>
@@ -18,10 +18,8 @@
 #include <kernel/logging.h>
 #include <kernel/progress.h>
 #include <io/stdio.h>
-#include <cpuid.h>
 
-boot_info_t boot_info;
-extern uint64_t *stack;
+kernel_info_t kinfo;
 
 void __attribute__((noreturn)) kernel_main(void);
 
@@ -37,8 +35,14 @@ void task1(void) {
 
 void task2(void) {
     printf("Hello World 2\n");
-    thread_sleep(1000);
+    thread_sleep(2000);
     printf("Hello World after thread_sleep\n");
+}
+
+void task3(void) {
+    printf("Hello World 3\n");
+    thread_sleep(1000);
+    printf("Hello World after thread_sleep3\n");
 }
 
 void user_function(void) {
@@ -46,33 +50,34 @@ void user_function(void) {
 }
 
 // TODO: Support booting with BIOS and UEFI
-void __attribute__((noreturn)) init_kernel(boot_info_t *binfo) {
-    boot_info = *binfo; // Copy over boot info to higher half
+void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info) {
+    kinfo = *kernel_info; // Copy over boot info to higher half
     init_qemu();
     init_gdt();
     init_idt();
     IDT_SET_TRAP(SYSCALL_IDT_ENTRY, 3, syscall_irq);
     IDT_SET_INT(IPI_IDT_ENTRY, 0, ipi_irq);
-    init_pmm(&boot_info.mem_info);
-    while(1);
-    init_acpi(&boot_info);
-    init_framebuffer(&boot_info.fb_info);
-    init_vmm(Supervisor, mem_info->mem_pages, NULL);
-    heap_t *heap = heap_add(1, HEAP_DEFAULT_BS, NULL, NULL);
-    init_tss(heap);
+    init_pmm();
+    init_framebuffer();
+    init_vmm(Supervisor, KMEM.mem_pages, &KVMM);
+    KHEAP = heap_add(1, HEAP_DEFAULT_BS, &KVMM, NULL);
+    init_acpi();
+    init_tss(KHEAP);
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
     init_keyboard();
     // start_aps();
-    idle_thread = create_thread("idle", idle, false, heap);
-    // scheduler_add_thread(create_thread("test1", task1, true, heap));
-    // scheduler_add_thread(create_thread("test2", task2, true, heap));
-    // uintptr_t rsp;
-    // asm volatile ("mov %%rsp, %0" : "=r" (rsp));
-    // set_rsp0(rsp);
-    // start_apic_timer(APIC_TIMER_PERIODIC, apic_ms_interval, APIC_TIMER_PERIODIC_IDT_ENTRY);
+    clear_screen();
+    KSCHED.idle = create_thread("idle", idle, false);
+    scheduler_add_thread(create_thread("test1", task1, true));
+    scheduler_add_thread(create_thread("test3", task3, true));
+    scheduler_add_thread(create_thread("test2", task2, true));
+    uintptr_t rsp;
+    asm volatile ("mov %%rsp, %0" : "=r" (rsp));
+    set_rsp0(rsp);
+    start_apic_timer(APIC_TIMER_PERIODIC, KLAPIC.ms_interval, APIC_PERIODIC_IDT_ENTRY);
     while (1);
 }
 

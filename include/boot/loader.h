@@ -1,7 +1,7 @@
 #pragma once
 #include <efi.h>
 #include <efilib.h>
-#include <boot.h>
+#include <kernel.h>
 
 #pragma pack(push, default)
 #pragma pack(1)
@@ -42,4 +42,4 @@ typedef struct s_elf64_phdr {
 
 #pragma pack(pop)
 
-EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_point);
+EFI_STATUS LoadKernel(kernel_info_t *kinfo, EFI_PHYSICAL_ADDRESS *kernel_entry_point);

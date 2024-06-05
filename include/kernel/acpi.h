@@ -8,10 +8,7 @@
 #define MADT_LAPIC_NMI 4
 #define MADT_LAPIC_ADDR_OVRD 5
 
-struct boot_info;
-
-#pragma pack(push, default)
-#pragma pack(1)
+#pragma pack(push, 1)
 
 typedef struct rsdp_descriptor {
     char signature[8];
@@ -60,6 +57,6 @@ typedef struct madt {
 
 #pragma pack(pop)
 
-void init_acpi(struct boot_info*);
+void init_acpi(void);
 sdt_header_t *get_table(char*);
 madt_item_t *get_madt_item(madt_t *table, uint8_t search_item, uint8_t count);

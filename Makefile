@@ -1,4 +1,5 @@
 QEMU_FLAGS := -m 128M -smp 4 -serial stdio -bios OVMF.fd -no-reboot -no-shutdown
+HEADER_FILES := $(shell find include -type f -name "*.h")
 
 ifeq ($(INIT_STOP), 1)
 	QEMU_FLAGS += -s -S

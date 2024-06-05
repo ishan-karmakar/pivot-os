@@ -5,9 +5,5 @@ struct cpu_status;
 struct thread;
 struct task;
 
-extern struct thread *cur_thread;
-extern struct thread *idle_thread;
-extern struct task *root_task;
-
 struct cpu_status *schedule(struct cpu_status*);
 void scheduler_add_thread(struct thread*);

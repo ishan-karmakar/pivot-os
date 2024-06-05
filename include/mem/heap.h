@@ -18,3 +18,4 @@ void *halloc(size_t size, heap_t*);
 void hfree(void *ptr, heap_t*);
 void *hrealloc(void *old, size_t size, heap_t);
 void free_heap(vmm_t *vmm_info, heap_t*);
+void copy_heap(heap_t*, page_table_t, page_table_t);

@@ -7,8 +7,6 @@ extern size_t screen_num_cols, screen_num_rows;
 extern size_t screen_x, screen_y;
 extern uint32_t screen_fg, screen_bg;
 
-struct framebuffer_info;
-
 typedef struct psf_font {
     uint32_t magic;
     uint32_t version;
@@ -20,6 +18,6 @@ typedef struct psf_font {
     uint32_t width;
 } __attribute__((packed)) psf_font_t;
 
-void init_framebuffer(struct framebuffer_info *boot_info);
+void init_framebuffer(void);
 void map_framebuffer(page_table_t, size_t);
 void clear_screen(void);

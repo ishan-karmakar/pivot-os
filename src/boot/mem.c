@@ -1,5 +1,4 @@
 #include <boot/mem.h>
-#include <sys.h>
 #define MAX_MAPPED_ADDR 0x40000000
 #define NUM_MAPPED_PAGES (128 * 1024 * 1024 / PAGE_SIZE)
 
@@ -73,20 +72,30 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
     return EFI_SUCCESS;
 }
 
-EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
+EFI_STATUS MapRange(EFI_PHYSICAL_ADDRESS phys, EFI_VIRTUAL_ADDRESS virt, UINTN pages, UINT64 *p4_tbl) {
+    EFI_STATUS status;
+    for (UINTN i = 0; i < pages; i++) {
+        status = MapAddr(phys + i * PAGE_SIZE, virt + i * PAGE_SIZE, p4_tbl);
+        if (EFI_ERROR(status))
+            return status;
+    }
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS ConfigurePaging(kernel_info_t *kinfo) {
     EFI_STATUS status;
     UINT64 *p4_tbl = NULL;
     uefi_call_wrapper(gBS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, 1, &p4_tbl);
     uefi_call_wrapper(gBS->SetMem, 3, p4_tbl, EFI_PAGE_SIZE, 0);
-    mem_info->pml4 = p4_tbl;
+    kinfo->mem.pml4 = p4_tbl;
 
-    status = MapAddr((uintptr_t) mem_info->pml4, (uintptr_t) mem_info->pml4, mem_info->pml4);
+    status = MapAddr((uintptr_t) kinfo->mem.pml4, (uintptr_t) kinfo->mem.pml4, kinfo->mem.pml4);
     if (EFI_ERROR(status)) {
         Print(L"Error identity mapping PML4\n");
         return status;
     }
 
-    status = MapAddr((uintptr_t) mem_info->pml4, VADDR(mem_info->pml4), mem_info->pml4);
+    status = MapAddr((uintptr_t) kinfo->mem.pml4, VADDR(kinfo->mem.pml4), kinfo->mem.pml4);
     if (EFI_ERROR(status)) {
         Print(L"Error mapping PML4 in higher half\n");
         return status;
@@ -96,15 +105,15 @@ EFI_STATUS ConfigurePaging(mem_info_t *mem_info) {
     return EFI_SUCCESS;
 }
 
-void LoadCr3(mem_info_t *mem_info) {
+void LoadCr3(kernel_info_t *kinfo) {
     asm volatile (
         "mov %0, %%rax\n\t"
         "mov %%rax, %%cr3"
-        : : "r" ((EFI_PHYSICAL_ADDRESS) mem_info->pml4) : "rax"
+        : : "r" (PADDR(kinfo->mem.pml4)) : "rax"
     );
 }
 
-EFI_STATUS GetMMAP(mem_info_t *mem_info, UINTN *mmap_key) {
+EFI_STATUS GetMMAP(kernel_info_t *kinfo, UINTN *mmap_key) {
     EFI_MEMORY_DESCRIPTOR *mmap = NULL;
     UINTN mmap_size = 0;
     UINTN descriptor_size = 0;
@@ -129,58 +138,56 @@ EFI_STATUS GetMMAP(mem_info_t *mem_info, UINTN *mmap_key) {
         return status;
     }
 
-    mem_info->mmap = (mmap_descriptor_t*) (mmap);
-    mem_info->mmap_size = mmap_size;
-    mem_info->mmap_descriptor_size = descriptor_size;
+    kinfo->mem.mmap = (mmap_desc_t*) (mmap);
+    kinfo->mem.mmap_size = mmap_size;
+    kinfo->mem.mmap_desc_size = descriptor_size;
 
     return EFI_SUCCESS;
 }
 
-EFI_STATUS ParseMMAP(mem_info_t *mem_info) {
+EFI_STATUS ParseMMAP(kernel_info_t *kinfo) {
     EFI_STATUS status;
-    UINTN num_entries = mem_info->mmap_size / mem_info->mmap_descriptor_size;
-    mmap_descriptor_t *cur_desc = mem_info->mmap;
+    UINTN num_entries = kinfo->mem.mmap_size / kinfo->mem.mmap_desc_size;
+    EFI_MEMORY_DESCRIPTOR *cur_desc = (EFI_MEMORY_DESCRIPTOR*) kinfo->mem.mmap;
     EFI_PHYSICAL_ADDRESS max_addr = 0;
     for (UINTN i = 0; i < num_entries; i++) {
-        EFI_PHYSICAL_ADDRESS new_max_addr = cur_desc->physical_start + cur_desc->count * PAGE_SIZE;
+        EFI_PHYSICAL_ADDRESS new_max_addr = cur_desc->PhysicalStart + cur_desc->NumberOfPages * PAGE_SIZE;
+        UINT32 type = cur_desc->Type;
         if (new_max_addr > max_addr)
             max_addr = new_max_addr;
-        cur_desc = (mmap_descriptor_t*) ((UINT8*) cur_desc + mem_info->mmap_descriptor_size);
+        if (type == 1 || type == 2 || type == 3 || type == 4)
+            MapRange(cur_desc->PhysicalStart, cur_desc->PhysicalStart, cur_desc->NumberOfPages, kinfo->mem.pml4);
+        if (type == 2 || type == 3 || type == 4 || type == 7) {
+            if (cur_desc->PhysicalStart == 0)
+                MapRange(PAGE_SIZE, VADDR(PAGE_SIZE), cur_desc->NumberOfPages - 1, kinfo->mem.pml4);
+            else
+                MapRange(cur_desc->PhysicalStart, VADDR(cur_desc->PhysicalStart), cur_desc->NumberOfPages, kinfo->mem.pml4);
+        } else if (type == 9)
+            MapRange(cur_desc->PhysicalStart, cur_desc->PhysicalStart, cur_desc->NumberOfPages, kinfo->mem.pml4);
+        cur_desc = NextMemoryDescriptor(cur_desc, kinfo->mem.mmap_desc_size);
     }
 
     UINTN mem_pages = max_addr / PAGE_SIZE;
-    cur_desc = mem_info->mmap;
-    EFI_VIRTUAL_ADDRESS bitmap_location = 0;
     size_t bitmap_size = DIV_CEIL(mem_pages, 64) * 8;
     Print(L"Bitmap size: %u\n", bitmap_size);
-    for (UINTN i = 0; i < num_entries; i++) {
-        if (cur_desc->type == 7 && cur_desc->count >= SIZE_TO_PAGES(bitmap_size) && (bitmap_location == 0 || cur_desc->physical_start < bitmap_location)) {
-            bitmap_location = cur_desc->physical_start;
-        }
-        else if (cur_desc->type == 1 || cur_desc->type == 2 || cur_desc->type == 3 || cur_desc->type == 4) {
-            for (size_t i = 0; i < cur_desc->count; i++) {
-                // Print(L"Mapping 0x%x\n", cur_desc->physical_start + i * PAGE_SIZE);
-                MapAddr(cur_desc->physical_start + i * PAGE_SIZE, cur_desc->physical_start + i * PAGE_SIZE, mem_info->pml4);
-            }
-        }
-        cur_desc = (mmap_descriptor_t*) ((UINT8*) cur_desc + mem_info->mmap_descriptor_size);
-    }
+    uefi_call_wrapper(gBS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, EFI_SIZE_TO_PAGES(bitmap_size), &kinfo->mem.bitmap);
+    EFI_PHYSICAL_ADDRESS bitmap_location = (EFI_PHYSICAL_ADDRESS) kinfo->mem.bitmap;
     for (UINTN i = 0; i < SIZE_TO_PAGES(bitmap_size); i++) {
-        status = MapAddr(bitmap_location + i * PAGE_SIZE, VADDR(bitmap_location) + i * PAGE_SIZE, mem_info->pml4);
+        status = MapAddr(bitmap_location + i * PAGE_SIZE, VADDR(bitmap_location) + i * PAGE_SIZE, kinfo->mem.pml4);
         if (EFI_ERROR(status))
             return status;
     }
     Print(L"Mapped bitmap...\n");
-    
-    mem_info->bitmap = (uint64_t*) VADDR(bitmap_location);
-    mem_info->bitmap_entries = bitmap_size / 8;
-    mem_info->bitmap_size = SIZE_TO_PAGES(bitmap_size);
-    mem_info->mem_pages = mem_pages;
+
+    kinfo->mem.bitmap = (uint64_t*) VADDR(bitmap_location);
+    kinfo->mem.bitmap_entries = bitmap_size / 8;
+    kinfo->mem.bitmap_size = SIZE_TO_PAGES(bitmap_size);
+    kinfo->mem.mem_pages = mem_pages;
     return EFI_SUCCESS;
 }
 
-EFI_STATUS FreeMMAP(mem_info_t *mem_info) {
-    EFI_STATUS status = uefi_call_wrapper(gBS->FreePool, 1, mem_info->mmap);
+EFI_STATUS FreeMMAP(kernel_info_t *kinfo) {
+    EFI_STATUS status = uefi_call_wrapper(gBS->FreePool, 1, kinfo->mem.mmap);
     if (EFI_ERROR(status)) {
         Print(L"Error freeing memory map\n");
         return status;

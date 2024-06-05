@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <mem/pmm.h>
 #define IA32_APIC_BASE 0x1B
 #define APIC_BASE_ADDRESS_MASK 0xFFFFF000
 #define APIC_GLOBAL_ENABLE_BIT 11
@@ -52,16 +53,13 @@
 
 #define APIC_EOI() write_apic_register(APIC_EOI_OFF, 0);
 
-extern volatile size_t pit_ticks, apic_ticks;
-extern uint32_t apic_ms_interval;
-
 void init_lapic(void);
 void init_lapic_ap(void);
 uint32_t read_apic_register(uint32_t);
 void write_apic_register(uint32_t, uint32_t);
 void calibrate_apic_timer(void);
 void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry);
-void map_lapic(uint64_t*);
+void map_lapic(page_table_t);
 uint32_t get_apic_id(void);
 void delay(size_t);
 bool apic_initialized(void);

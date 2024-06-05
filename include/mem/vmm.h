@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <mem/bitmap.h>
 #include <mem/pmm.h>
-#include <sys.h>
 
 #define VMM_RESERVED_SPACE_SIZE (20 * PAGE_SIZE)
 #define VMM_ITEMS_PER_PAGE (PAGE_SIZE / sizeof(vmm_item_t))

@@ -24,6 +24,6 @@ build/BOOTX64.efi: $(BOOT_C_OBJ)
 	ld $(BOOT_LDFLAGS) $^ -o build/main.so -lgnuefi -lefi
 	objcopy -g -R .hash -R .gnu.hash -R .eh_frame -R .comment --target efi-app-x86_64 --subsystem=10 build/main.so $@
 
-build/boot/%.o: src/boot/%.c
+build/boot/%.o: src/boot/%.c $(HEADER_FILES)
 	@mkdir -p $(@D)
-	gcc $(BOOT_CFLAGS) -c $< -o $@
+	gcc $(BOOT_CFLAGS) -c $(filter %.c,$^) -o $@

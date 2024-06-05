@@ -17,7 +17,7 @@ BOOLEAN ValidateTable(UINT8 *table, UINTN length) {
     return sum == 0;
 }
 
-EFI_STATUS FindRSDP(boot_info_t *boot_info) {
+EFI_STATUS FindRSDP(kernel_info_t *kinfo) {
     EFI_GUID acpi20guid = ACPI_20_TABLE_GUID;
     INTN index = FindGuid(&acpi20guid);
     // index = -1; // Use this to test for RSDPv1
@@ -47,13 +47,14 @@ EFI_STATUS FindRSDP(boot_info_t *boot_info) {
             Print(L"RSDP was not valid\n");
             return EFI_NOT_FOUND;
         }
-        boot_info->sdt_address = rsdp->xsdt_address;
-        boot_info->xsdt = true;
+        kinfo->acpi.sdt_addr = rsdp->xsdt_address;
+        kinfo->acpi.xsdt = true;
         Print(L"Found a valid RSDPv2\n");
     } else {
-        boot_info->sdt_address = rsdp->rsdt_address;
-        boot_info->xsdt = false;
+        kinfo->acpi.sdt_addr = rsdp->rsdt_address;
+        kinfo->acpi.xsdt = false;
         Print(L"Found a valid RSDPv1\n");
     }
+
     return EFI_SUCCESS;
 }

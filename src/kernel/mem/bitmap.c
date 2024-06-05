@@ -1,6 +1,7 @@
 #include <mem/bitmap.h>
 #include <kernel/logging.h>
-#include <sys.h>
+#include <kernel.h>
+
 void init_bitmap(bitmap_t *b, size_t size, size_t bsize) {
     b->bsize = bsize;
     b->size = size;
@@ -14,7 +15,6 @@ void init_bitmap(bitmap_t *b, size_t size, size_t bsize) {
     blocks = DIV_CEIL(blocks, b->bsize);
     for (size_t i = 0; i < blocks; i++)
         bm[i] = 1;
-    
     b->ffa = blocks;
     b->used = blocks;
 
@@ -72,7 +72,7 @@ size_t bm_free(void *ptr, bitmap_t *b) {
 }
 
 uint8_t bm_unique_id(uint8_t a, uint8_t b) {
-    uint8_t c;	
+    uint8_t c;
 	for (c = 1; c == a || c == b; c++);
 	return c;
 }

@@ -3,7 +3,6 @@
 #include <kernel/logging.h>
 #include <io/stdio.h>
 #include <stddef.h>
-#include <sys.h>
 #include <cpu/idt.h>
 #include <cpu/ioapic.h>
 #include <cpu/lapic.h>
@@ -39,11 +38,9 @@ void init_keyboard(void) {
     inb(KEYBOARD_PORT);
     outb(KEYBOARD_PORT, 0xF5); // Disable keyboard from sending scan codes
     check_ack();
-    log(Verbose, "KEYBOARD", "Disabled keyboard scan codes");
     outb(KEYBOARD_PORT, 0xF0); // Set scancode set 2
     outb(KEYBOARD_PORT, 2);
     check_ack();
-    log(Verbose, "KEYBOARD", "Set keyboard scan code set 2");
 
     outb(0x64, 0x20);
     while ((inb(PS2_STATUS) & 0b10) != 0);
@@ -52,9 +49,9 @@ void init_keyboard(void) {
         return log(Error, "KEYBOARD", "Translation is not enabled");
     outb(KEYBOARD_PORT, 0xF4);
     check_ack();
-    log(Verbose, "KEYBOARD", "Enabled keyboard scan codes");
     IDT_SET_INT(KEYBOARD_IDT_ENTRY, 0, keyboard_irq);
     set_irq(1, KEYBOARD_IDT_ENTRY, 0xFF, IOAPIC_LOW_PRIORITY, false);
+    log(Info, "KEYBOARD", "Initialized keyboard");
 }
 
 void update_modifiers(key_modifiers_t modifier, int is_pressed) {

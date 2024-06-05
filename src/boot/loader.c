@@ -1,9 +1,8 @@
 #include <boot/loader.h>
 #include <boot/mem.h>
-#include <sys.h>
 #define KERNEL_PATH L"\\kernel.elf"
 
-EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_info_t *mem_info, kernel_entry_t *kernel_entries_location) {
+EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, UINT64* p4_tbl, kernel_entry_t *kernel_entries_location) {
     EFI_STATUS status;
     VOID *segment_data = NULL;
     UINTN buffer_read_size = program_header->p_filesz;
@@ -38,12 +37,12 @@ EFI_STATUS LoadSegment(elf64_phdr_t *program_header, EFI_FILE *kernel_file, mem_
     kernel_entries_location->paddr = (EFI_PHYSICAL_ADDRESS) segment_data;
     kernel_entries_location->num_pages = num_pages;
     for (UINTN i = 0; i < num_pages; i++) {
-        MapAddr(ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + PAGE_SIZE * i)), ALIGN_ADDR(program_header->p_vaddr + PAGE_SIZE * i), mem_info->pml4);
+        MapAddr(ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) (segment_data + PAGE_SIZE * i)), ALIGN_ADDR(program_header->p_vaddr + PAGE_SIZE * i), p4_tbl);
     }
     return EFI_SUCCESS;
 }
 
-EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_point) {
+EFI_STATUS LoadKernel(kernel_info_t *kinfo, EFI_PHYSICAL_ADDRESS *kernel_entry_point) {
     EFI_STATUS status;
     EFI_FILE *kernel_file;
     UINTN buffer_read_size;
@@ -146,15 +145,22 @@ EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_p
     for (UINT16 p = 0; p < num_program_segments; p++)
         if (program_headers[p].p_type == 1) num_kernel_entries++;
 
-    status = uefi_call_wrapper(gBS->AllocatePool, 3, EfiLoaderData, sizeof(kernel_entry_t) * num_kernel_entries, &mem_info->kernel_entries);
+    status = uefi_call_wrapper(gBS->AllocatePool, 3, EfiLoaderData, sizeof(kernel_entry_t) * num_kernel_entries, &kinfo->mem.ke);
     if (EFI_ERROR(status)) {
         Print(L"Error allocating pool to store kernel entries\n");
         return status;
     }
 
+    EFI_PHYSICAL_ADDRESS ke_addr = ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) kinfo->mem.ke);
+    status = MapRange(ke_addr, VADDR(ke_addr), EFI_SIZE_TO_PAGES(num_kernel_entries * sizeof(kernel_entry_t)), kinfo->mem.pml4);
+    if (EFI_ERROR(status)) {
+        Print(L"Error mapping kernel entries to higher half\n");
+        return status;
+    }
+
     for (UINT16 p = 0, k = 0; p < num_program_segments; p++) {
         if (program_headers[p].p_type != 1) continue;
-        status = LoadSegment(program_headers + p, kernel_file, mem_info, mem_info->kernel_entries + k);
+        status = LoadSegment(program_headers + p, kernel_file, kinfo->mem.pml4, kinfo->mem.ke + k);
         if (EFI_ERROR(status))
             return status;
         k++;
@@ -180,6 +186,7 @@ EFI_STATUS LoadKernel(mem_info_t *mem_info, EFI_PHYSICAL_ADDRESS *kernel_entry_p
         return status;
     }
 
-    mem_info->num_kernel_entries = num_kernel_entries;
+    kinfo->mem.num_ke = num_kernel_entries;
+    kinfo->mem.ke = (kernel_entry_t*) VADDR(kinfo->mem.ke);
     return EFI_SUCCESS;
 }
