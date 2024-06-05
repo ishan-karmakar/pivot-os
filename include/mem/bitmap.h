@@ -1,11 +1,16 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <kernel/multiboot.h>
 
-#define BITMAP_ENTRY_FULL 0xfffffffffffffff
-#define BITMAP_ROW_BITS 64
+typedef struct {
+    size_t size;
+    size_t bsize;
+    size_t used; // Used blocks
+    size_t ffa;
+    uint8_t *bm;
+} bitmap_t;
 
-void initialize_bitmap(uint64_t rsv_end, mb_mmap_entry_t*, uint32_t);
-void bitmap_set_bit_addr(uint64_t address);
-void bitmap_rsv_area(uint64_t start, size_t size);
+void init_bitmap(bitmap_t*, size_t size, size_t bsize);
+void *bm_alloc(size_t size, bitmap_t*);
+size_t bm_free(void *ptr, bitmap_t*);
+uint8_t bm_unique_id(uint8_t a, uint8_t b);

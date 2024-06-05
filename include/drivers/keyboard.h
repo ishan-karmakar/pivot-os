@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <cpu/cpu.h>
 
 #define KEYBOARD_PORT 0x60
 #define KEYBOARD_ACK 0xFA
@@ -124,4 +125,4 @@ typedef struct {
 } key_status_t;
 
 void init_keyboard(void);
-void handle_keyboard(void);
+cpu_status_t *keyboard_handler(cpu_status_t*);

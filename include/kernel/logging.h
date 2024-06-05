@@ -1,8 +1,6 @@
 #pragma once
-#include <stdbool.h>
-#include <io/stdio.h>
 
-typedef enum {
+typedef enum log_level {
     Error,
     Warning,
     Info,

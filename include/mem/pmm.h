@@ -1,14 +1,26 @@
 #pragma once
-#include <stdint.h>
 #include <stddef.h>
-#include <kernel/multiboot.h>
+#include <stdint.h>
 #include <stdbool.h>
-#define PAGE_ADDR_MASK 0x000ffffffffff000
-#define MEM_FLAGS_USER_LEVEL (1 << 2)
+#define BITMAP_ROW_FULL 0xFFFFFFFFFFFFFFFF
+#define BITMAP_ROW_BITS 64
 
-void mmap_parse(mb_mmap_t*);
-void init_pmm(uintptr_t addr, uint32_t size, mb_mmap_t*);
+typedef uint64_t* page_table_t;
+
+void init_pmm(void);
 void *alloc_frame(void);
-void pmm_map_physical_memory(void);
-void *map_addr(uint64_t physical, uint64_t address, size_t flags);
-void *map_range(uintptr_t start_phys, uintptr_t start_virt, size_t num_pages);
+void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, page_table_t p4_tbl);
+void unmap_addr(uintptr_t virtual, page_table_t p4_tbl);
+void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, size_t flags, page_table_t p4_tbl);
+void map_kernel_entries(uint64_t*);
+void clean_table(uint64_t*);
+void invlpg(uintptr_t);
+uintptr_t get_phys_addr(uintptr_t, page_table_t);
+void free_page_table(page_table_t, uint8_t);
+void map_pmm(page_table_t);
+
+void pmm_set_bit(uintptr_t);
+void pmm_clear_bit(uintptr_t);
+bool pmm_check_bit(uintptr_t);
+void pmm_set_area(uintptr_t start, size_t num_pages);
+void pmm_clear_area(uintptr_t start, size_t num_pages);

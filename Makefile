@@ -1,58 +1,30 @@
-C_SRC := $(shell find src/ -type f -name "*.c") # Change to find later
-ASM_SRC := $(shell find src/ -type f -name "*.asm")
-S_SRC := $(shell find src/ -type f -name "*.S")
-C_OBJ := $(patsubst src/%.c, build/%.o, $(C_SRC))
-S_OBJ := $(patsubst src/%.S, build/%.o, $(S_SRC))
-ASM_OBJ := $(patsubst src/%.asm, build/%.o, $(ASM_SRC))
-FONT_OBJ := build/fonts/default.o
-CFLAGS := -ffreestanding \
-		-I include/ \
-        -O2 \
-        -Wall \
-        -Wextra \
-        -mno-red-zone \
-        -mno-sse \
-        -mcmodel=large \
-		-Wall \
-		-Wextra
+QEMU_FLAGS := -m 128M -smp 4 -serial stdio -bios OVMF.fd -no-reboot -no-shutdown
+HEADER_FILES := $(shell find include -type f -name "*.h")
 
-ASMFLAGS := -felf64
-LDFLAGS := -n
+ifeq ($(INIT_STOP), 1)
+	QEMU_FLAGS += -s -S
+endif
 
-all: build/os.iso
-.PHONY = run debug-run clean
+all: KERNEL_LDFLAGS += -S -s
+all: BOOT_LDFLAGS += -S -s
+all: build/os.img
+include src/boot/Makefile
+include src/kernel/Makefile
 
-run: LDFLAGS += -s
-run: build/os.iso
-	qemu-system-x86_64 -smp 2 -cdrom $^
+.PHONY = run debug clean
 
-debug-run: debug
-	qemu-system-x86_64 -smp 2 -cdrom build/os.iso -s -S
+run: KERNEL_LDFLAGS += -S -s
+run: BOOT_LDFLAGS += -S -s
+run: base-run
 
-debug: CFLAGS += -g
-debug: ASMFLAGS += -g -F dwarf
-debug: build/os.iso
+debug: KERNEL_CFLAGS += -g
+debug: base-run
 
-build/os.iso: build/kernel.bin grub.cfg
-	mkdir -p build/isofiles/boot/grub
-	cp grub.cfg build/isofiles/boot/grub
-	cp build/kernel.bin build/isofiles/boot
-	grub-mkrescue -o build/os.iso build/isofiles
+base-run: build/os.img
+	qemu-system-x86_64 $(QEMU_FLAGS) -drive file=$<,index=0,media=disk,format=raw
 
-build/kernel.bin: $(ASM_OBJ) $(C_OBJ) $(S_OBJ) $(FONT_OBJ)
-	ld $(LDFLAGS) -o $@ -T linker.ld $^
-
-build/%.o: src/%.asm
-	mkdir -p $(@D)
-	nasm $(ASMFLAGS) $< -o $@
-
-build/%.o: src/%.c
-	mkdir -p $(@D)
-	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
-
-build/%.o: %.psf
-	mkdir -p $(@D)
-	objcopy -O elf64-x86-64 -B i386 -I binary $< $@
+build/os.img: build/BOOTX64.efi build/kernel.elf
+	./efi2img.sh $^ $@
 
 clean:
 	rm -rf build/

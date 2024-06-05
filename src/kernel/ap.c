@@ -1,12 +1,17 @@
-#include <io/stdio.h>
-#include <cpu/lapic.h>
-#include <cpu/mp.h>
-#include <cpu/idt.h>
-#include <sys.h>
 #include <kernel/logging.h>
-extern idtr_t idtr;
+#include <cpu/tss.h>
+#include <cpu/lapic.h>
+#include <cpu/ioapic.h>
+#include <cpu/idt.h>
+#include <cpu/smp.h>
+#include <mem/heap.h>
 
-void __attribute__((noreturn)) ap_start(void) {
-    log(Info, "AP", "Processor %u started", get_apic_id());
-    while (1) asm ("pause");
+void ap_kernel(void) {
+    heap_t *heap_info;
+    init_lapic_ap();
+    // No need to calibrate APIC timer again, will run at very similar frequency
+    // init_heap(&heap_info, NULL);
+    // init_tss(heap_info);
+    set_ap_ready();
+    while(1);
 }
