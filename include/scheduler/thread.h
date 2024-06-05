@@ -7,8 +7,6 @@
 #include <mem/heap.h>
 
 #define THREAD_NAME_MAX_LEN 32
-#define THREAD_MAX_ID (uint16_t - 1)
-
 #define THREAD_STACK_PAGES 1
 
 typedef void (*thread_fn_t)(void);
@@ -26,7 +24,6 @@ typedef enum thread_status {
 struct task;
 
 typedef struct thread {
-    uint16_t id;
     char name[THREAD_NAME_MAX_LEN];
     uintptr_t stack;
     thread_status_t status;
