@@ -13,7 +13,7 @@
 #include <drivers/qemu.h>
 #include <drivers/framebuffer.h>
 #include <drivers/keyboard.h>
-#include <kernel/acpi.h>
+#include <acpi/acpi.h>
 #include <kernel/rtc.h>
 #include <kernel/logging.h>
 #include <kernel/progress.h>
@@ -50,7 +50,8 @@ void user_function(void) {
 }
 
 // TODO: Support booting with BIOS and UEFI
-void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info) {
+void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info, uintptr_t stack) {
+    CPU = 0;
     kinfo = *kernel_info; // Copy over boot info to higher half
     init_qemu();
     init_gdt();
@@ -62,22 +63,21 @@ void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info) {
     init_vmm(Supervisor, KMEM.mem_pages, &KVMM);
     KHEAP = heap_add(1, HEAP_DEFAULT_BS, &KVMM, NULL);
     init_acpi();
-    init_tss(KHEAP);
+    init_tss();
+    set_rsp0();
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();
     init_rtc();
     init_keyboard();
-    // start_aps();
-    clear_screen();
-    KSCHED.idle = create_thread("idle", idle, false);
-    scheduler_add_thread(create_thread("test1", task1, true));
-    scheduler_add_thread(create_thread("test3", task3, true));
-    scheduler_add_thread(create_thread("test2", task2, true));
-    uintptr_t rsp;
-    asm volatile ("mov %%rsp, %0" : "=r" (rsp));
-    set_rsp0(rsp);
-    start_apic_timer(APIC_TIMER_PERIODIC, KLAPIC.ms_interval, APIC_PERIODIC_IDT_ENTRY);
+    // clear_screen();
+    KCPUS[CPU].stack = stack;
+    KSMP.idle = create_thread("idle", idle, false);
+    start_aps();
+    // scheduler_add_thread(create_thread("test1", task1, true));
+    // scheduler_add_thread(create_thread("test3", task3, true));
+    // scheduler_add_thread(create_thread("test2", task2, true));
+    // start_apic_timer(APIC_TIMER_PERIODIC, KLAPIC.ms_interval * 50, APIC_PERIODIC_IDT_ENTRY);
     while (1);
 }
 

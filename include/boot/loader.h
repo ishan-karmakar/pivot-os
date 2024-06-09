@@ -3,8 +3,7 @@
 #include <efilib.h>
 #include <kernel.h>
 
-#pragma pack(push, default)
-#pragma pack(1)
+#pragma pack(push, 1)
 
 /**
  * @brief The 64-bit ELF header.

@@ -44,19 +44,6 @@ typedef struct rsdt {
     uint32_t tables[0];
 } rsdt_t;
 
-typedef struct madt_item {
-    uint8_t type;
-    uint8_t length;
-} madt_item_t;
-
-typedef struct madt {
-    sdt_header_t header;
-    uint32_t lapic_base;
-    uint32_t flags;
-} madt_t;
-
 #pragma pack(pop)
 
 void init_acpi(void);
-sdt_header_t *get_table(char*);
-madt_item_t *get_madt_item(madt_t *table, uint8_t search_item, uint8_t count);

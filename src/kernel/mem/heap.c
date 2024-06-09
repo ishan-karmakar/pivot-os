@@ -32,28 +32,17 @@ void hfree(void *ptr, heap_t *heap) {
     log(Warning, "HEAP", "Pointer was not from any known region");
 }
 
-void *hrealloc(void *old, size_t size, heap_t heap) {
-    // void *new = halloc(size, heap);
-    // heap_region_t *b = get_region(old, heap);
-    // if (!b) {
-    //     log(Warning, "HEAP", "Old pointer was not from any known region");
-    //     return NULL;
-    // }
-    // uint8_t *bm = (uint8_t*) &b[1];
-    // size_t sblock = ((uintptr_t) old - (uintptr_t) bm) / b->bsize;
-    // uint8_t id = bm[sblock];
-    // size_t blocks = 0;
-    // for (; bm[sblock + blocks] == id && (sblock + blocks) < (b->size / b->bsize); blocks++);
-    // size_t cpysize = blocks * b->bsize;
-    // if (size < cpysize)
-    //     cpysize = size;
-    // memcpy(new, old, size);
-    // hfree(old, heap);
-    // return new;
+void *hrealloc(void *old, size_t size, heap_t *heap) {
+    for (heap_t *b = heap; b; b = b->next) {
+        void *a = bm_realloc(old, size, &heap->bm);
+        if (a)
+            return a;
+    }
+    log(Warning, "HEAP", "Pointer was not from any known region");
     return NULL;
 }
 
-void copy_heap(heap_t *src, page_table_t src_vmm, page_table_t dest) {
+void map_heap(heap_t *src, page_table_t src_vmm, page_table_t dest) {
     for (heap_t *b = src; b; b = b->next) {
         size_t num_pages = DIV_CEIL(b->bm.size + sizeof(heap_t), PAGE_SIZE);
         uintptr_t start = (uintptr_t) b->bm.bm - sizeof(heap_t);
@@ -62,7 +51,7 @@ void copy_heap(heap_t *src, page_table_t src_vmm, page_table_t dest) {
     }
 }
 
-void free_heap(vmm_t *vmm_info, heap_t *heap) {
+void free_heap(vmm_t *vmm, heap_t *heap) {
     for (heap_t *b = heap; b; b = b->next)
-        vfree(b, vmm_info);
+        vfree(b, vmm);
 }

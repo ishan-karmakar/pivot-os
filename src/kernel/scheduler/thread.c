@@ -9,6 +9,8 @@
 #include <kernel/logging.h>
 #include <io/stdio.h>
 #include <cpu/cpu.h>
+#include <cpu/idt.h>
+#include <cpu/smp.h>
 #include <kernel.h>
 
 void thread_wrapper(thread_fn_t);
@@ -46,26 +48,27 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety) {
 }
 
 void free_thread(thread_t *thread) {
-    vfree((void*) thread->stack, &thread->vmm_info);
+    vfree((void*) thread->stack, &thread->vmm);
     load_cr3(PADDR(KMEM.pml4));
-    free_page_table(thread->vmm_info.p4_tbl, 4);
-    free_heap(&thread->vmm_info, thread->heap);
+    free_page_table(thread->vmm.p4_tbl, 4);
+    free_heap(&thread->vmm, thread->heap);
 }
 
 void init_thread_vmm(thread_t *thread) {
-    thread->vmm_info.p4_tbl = (page_table_t) VADDR(alloc_frame());
-    clean_table(thread->vmm_info.p4_tbl);
-    map_addr(PADDR(thread->vmm_info.p4_tbl), PADDR(thread->vmm_info.p4_tbl), KERNEL_PT_ENTRY, thread->vmm_info.p4_tbl);
-    map_addr(PADDR(thread->vmm_info.p4_tbl), (uintptr_t) thread->vmm_info.p4_tbl, KERNEL_PT_ENTRY, thread->vmm_info.p4_tbl);
-    map_kernel_entries(thread->vmm_info.p4_tbl);
-    map_framebuffer(thread->vmm_info.p4_tbl, USER_PT_ENTRY);
-    map_lapic(thread->vmm_info.p4_tbl);
-    copy_heap(KHEAP, KMEM.pml4, thread->vmm_info.p4_tbl);
-    map_pmm(thread->vmm_info.p4_tbl);
-    load_cr3(PADDR(thread->vmm_info.p4_tbl));
-    init_vmm(User, 32, &thread->vmm_info);
-    thread->heap = heap_add(1, HEAP_DEFAULT_BS, &thread->vmm_info, NULL);
-    thread->stack = (uintptr_t) valloc(THREAD_STACK_PAGES, &thread->vmm_info);
+    thread->vmm.p4_tbl = (page_table_t) VADDR(alloc_frame());
+    clean_table(thread->vmm.p4_tbl);
+    map_addr(PADDR(thread->vmm.p4_tbl), PADDR(thread->vmm.p4_tbl), KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
+    map_addr(PADDR(thread->vmm.p4_tbl), (uintptr_t) thread->vmm.p4_tbl, KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
+    map_addr(KCPUS[CPU].stack, VADDR(KCPUS[CPU].stack), KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
+    map_kernel_entries(thread->vmm.p4_tbl);
+    map_framebuffer(thread->vmm.p4_tbl, USER_PT_ENTRY);
+    map_lapic(thread->vmm.p4_tbl);
+    map_heap(KHEAP, KMEM.pml4, thread->vmm.p4_tbl);
+    map_pmm(thread->vmm.p4_tbl);
+    load_cr3(PADDR(thread->vmm.p4_tbl));
+    init_vmm(User, 32, &thread->vmm);
+    thread->heap = heap_add(1, HEAP_DEFAULT_BS, &thread->vmm, NULL);
+    thread->stack = (uintptr_t) valloc(THREAD_STACK_PAGES, &thread->vmm);
     load_cr3(PADDR(KMEM.pml4));
 }
 
@@ -77,15 +80,15 @@ void thread_wrapper(thread_fn_t entry_point) {
 }
 
 void *malloc(size_t size) {
-    return halloc(size, KSCHED.cur->heap);
+    return halloc(size, KCPUS[CPU].cur->heap);
 }
 
 void free(void *ptr) {
-    return hfree(ptr, KSCHED.cur->heap);
+    return hfree(ptr, KCPUS[CPU].cur->heap);
 }
 
 void *realloc(void *ptr, size_t size) {
-    return hrealloc(ptr, size, *KSCHED.cur->heap);
+    return hrealloc(ptr, size, KCPUS[CPU].cur->heap);
 }
 
 void idle(void) { while(1) asm ("pause"); }
@@ -96,14 +99,14 @@ void thread_sleep(size_t ms) {
 }
 
 void thread_yield(void) {
-    asm volatile ("int $0x20");
+    asm volatile ("int %0" : : "n" (APIC_PERIODIC_IDT_ENTRY));
 }
 
 void thread_sleep_syscall(cpu_status_t *status) {
-    KSCHED.cur->status = SLEEP;
-    KSCHED.cur->wakeup_time = KLAPIC.apic_ticks + status->rdi;
+    KCPUS[CPU].cur->status = SLEEP;
+    KCPUS[CPU].cur->wakeup_time = KCPUS[CPU].ticks + status->rdi;
 }
 
 void thread_dead_syscall(void) {
-    KSCHED.cur->status = DEAD;
+    KCPUS[CPU].cur->status = DEAD;
 }

@@ -3,83 +3,80 @@
 #include <cpu/idt.h>
 #include <cpu/lapic.h>
 #include <cpu/cpu.h>
+#include <acpi/madt.h>
 #include <mem/pmm.h>
+#include <mem/heap.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
+#include <scheduler/thread.h>
 #include <kernel.h>
 
 extern void ap_trampoline(void);
 extern gdtr_t gdtr;
 extern idtr_t idtr;
 
-void start_ap(uint32_t, uint8_t);
+void start_ap(uint64_t, uint8_t);
 
-volatile ap_info_t *ap_info = (ap_info_t*) 0x8010;
-
+volatile ap_info_t *ap_boot = (ap_info_t*) 0x8010;
 void start_aps(void) {
-    // map_addr(0x8000, 0x8000, KERNEL_PT_ENTRY, KMEM.pml4);
-    // memcpy((void*) 0x8000, &ap_trampoline, PAGE_SIZE);
-    // ap_info->gdtr = (uintptr_t) &gdtr;
-    // ap_info->idtr = (uintptr_t) &idtr;
-    // ap_info->pml4 = PADDR(KMEM.pml4);
-    // madt_t *madt = (madt_t*) get_table("APIC");
-    // uint32_t cur_id = get_apic_id();
-    // log(Verbose, "SMP", "Current processor id: %u", cur_id);
+    map_addr(0x8000, 0x8000, KERNEL_PT_ENTRY, KMEM.pml4);
+    memcpy((void*) 0x8000, &ap_trampoline, PAGE_SIZE);
+    ap_boot->gdtr = (uintptr_t) &gdtr;
+    ap_boot->idtr = (uintptr_t) &idtr;
+    ap_boot->pml4 = PADDR(KMEM.pml4);
+    log(Verbose, "SMP", "%u", CPU);
+    for (size_t id = 0; id < KSMP.num_cpus; id++) {
+        if (id == CPU)
+            continue;
+        ap_boot->stack_top = (uintptr_t) alloc_frame() + PAGE_SIZE;
+        KCPUS[id].stack = ap_boot->stack_top - PAGE_SIZE;
+        map_addr(KCPUS[id].stack, VADDR(KCPUS[id].stack), KERNEL_PT_ENTRY, KSMP.idle->vmm.p4_tbl);
+        map_addr(ap_boot->stack_top - PAGE_SIZE, ap_boot->stack_top - PAGE_SIZE, KERNEL_PT_ENTRY, KMEM.pml4);
+        start_ap(id, 0x8);
+        while (!ap_boot->ready) asm ("pause");
+        pmm_clear_bit(ap_boot->stack_top - PAGE_SIZE);
+    }
 
-    // madt_item_t *lapic = get_madt_item(madt, MADT_LAPIC, 0);
-    // uint8_t count = 0;
-
-    // while (lapic != NULL) {
-    //     uint8_t apic_id = *((uint8_t*) (lapic + 1) + 1);
-    //     if (apic_id != cur_id) {
-    //         ap_info->stack_top = (uintptr_t) alloc_frame() + PAGE_SIZE;
-    //         map_addr(ap_info->stack_top - PAGE_SIZE, ap_info->stack_top - PAGE_SIZE, KERNEL_PT_ENTRY, KMEM.pml4);
-    //         start_ap(apic_id, 0x8);
-    //         while (!ap_info->ready) asm ("pause");
-    //         pmm_clear_bit(ap_info->stack_top - PAGE_SIZE);
-    //     }
-        
-    //     lapic = get_madt_item(madt, MADT_LAPIC, ++count);
-    // }
-
-    // pmm_clear_bit(0x8000);
-    // ap_info = (ap_info_t*) VADDR(ap_info);
-    // ap_info->action = 3;
+    pmm_clear_bit(0x8000);
     // log(Info, "SMP", "All CPUs booted up");
 }
 
-void start_ap(uint32_t id, uint8_t trampoline_page) {
-    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_ASSERT | ICR_LEVEL);
-    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
+void start_ap(uint64_t id, uint8_t trampoline_page) {
+    // write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+    write_apic_register(APIC_ICRLO_OFF, (id << 32) | ICR_INIT | ICR_ASSERT | ICR_LEVEL);
+    // while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
 
-    write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-    write_apic_register(APIC_ICRLO_OFF, ICR_INIT | ICR_LEVEL);
-    while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
+    // write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+    write_apic_register(APIC_ICRLO_OFF, (id << 32) | ICR_INIT | ICR_LEVEL);
+    // while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
 
-    delay(10 * KLAPIC.ms_interval);
+    // delay(10 * KLAPIC.ms_interval);
 
     for (int i = 0; i < 2; i++) {
-        write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
-        write_apic_register(APIC_ICRLO_OFF, trampoline_page | ICR_STARTUP);
-        while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
+        // write_apic_register(APIC_ICRHI_OFF, id << ICR_DEST_SHIFT);
+        write_apic_register(APIC_ICRLO_OFF, (id << 32) | trampoline_page | ICR_STARTUP);
+        // while (read_apic_register(APIC_ICRLO_OFF) & ICR_SEND_PENDING) asm ("pause");
         delay(KLAPIC.ms_interval * 200 / 1000);
     }
     
 }
 
 void set_ap_ready(void) {
-    ap_info->ready = 1;
+    ap_boot->ready = 1;
 }
 
 cpu_status_t *ipi_handler(cpu_status_t *status) {
-    switch (ap_info->action) {
+    switch (KIPC.action) {
     case 1:
-        load_cr3(PADDR(ap_info->pml4));
+        load_cr3(PADDR(KIPC.addr));
         break;
     
     case 2:
-        asm ("invlpg %0" : : "m" (ap_info->invl_page));
+        asm ("invlpg %0" : : "m" (KIPC.addr));
+        break;
+
+    case 3:
+        log(Verbose, "SMP", "Test");
         break;
     }
 

@@ -3,9 +3,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <mem/pmm.h>
+#include <acpi/acpi.h>
 #define IA32_APIC_BASE 0x1B
 #define APIC_BASE_ADDRESS_MASK 0xFFFFF000
-#define APIC_GLOBAL_ENABLE_BIT 11
+#define APIC_GLOBAL_ENABLE_BIT (1 << 11)
 #define PIC_COMMAND_MASTER 0x20
 #define PIC_COMMAND_SLAVE 0xA0
 #define PIC_DATA_MASTER 0x21
@@ -27,11 +28,11 @@
 #define APIC_TIMER_CONFIG_OFF 0x3E0
 
 #define ICR_DEST_SHIFT 24
-#define ICR_INIT 0x500
+#define ICR_INIT (0b101 << 8)
 #define ICR_SEND_PENDING 0x1000
-#define ICR_ASSERT 0x4000
-#define ICR_LEVEL 0x8000
-#define ICR_STARTUP 0x600
+#define ICR_ASSERT (1 << 14)
+#define ICR_LEVEL (1 << 15)
+#define ICR_STARTUP (0b110 << 8)
 
 #define APIC_TIMER_PERIODIC (1 << 17)
 #define APIC_TIMER_TSC (1 << 18)
@@ -55,11 +56,10 @@
 
 void init_lapic(void);
 void init_lapic_ap(void);
-uint32_t read_apic_register(uint32_t);
-void write_apic_register(uint32_t, uint32_t);
+uint64_t read_apic_register(uint32_t);
+void write_apic_register(uint32_t, uint64_t);
 void calibrate_apic_timer(void);
 void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_entry);
 void map_lapic(page_table_t);
 uint32_t get_apic_id(void);
 void delay(size_t);
-bool apic_initialized(void);

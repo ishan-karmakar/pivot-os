@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <cpu/ioapic.h>
 #include <kernel/logging.h>
-#include <kernel/acpi.h>
+#include <acpi/madt.h>
 #include <mem/pmm.h>
 #include <libc/string.h>
 #include <kernel.h>

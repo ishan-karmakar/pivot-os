@@ -1,5 +1,5 @@
 #include <boot/acpi.h>
-#include <kernel/acpi.h>
+#include <acpi/acpi.h>
 
 INTN FindGuid(EFI_GUID *tableGuid) {
     for (UINTN i = 0; i < gST->NumberOfTableEntries; i++) {

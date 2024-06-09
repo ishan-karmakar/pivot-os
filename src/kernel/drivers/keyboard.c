@@ -50,7 +50,7 @@ void init_keyboard(void) {
     outb(KEYBOARD_PORT, 0xF4);
     check_ack();
     IDT_SET_INT(KEYBOARD_IDT_ENTRY, 0, keyboard_irq);
-    set_irq(1, KEYBOARD_IDT_ENTRY, 0xFF, IOAPIC_LOW_PRIORITY, false);
+    set_irq(1, KEYBOARD_IDT_ENTRY, 0, IOAPIC_LOW_PRIORITY, false);
     log(Info, "KEYBOARD", "Initialized keyboard");
 }
 

@@ -126,7 +126,7 @@ kernel64: ; NOW we are in real 64 bit
     mov es, ax
     mov fs, ax
     mov gs, ax
-
+    
     ; Set stack to higher half
     mov rax, HIGHER_HALF_OFFSET
     add rsp, rax

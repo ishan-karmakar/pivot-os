@@ -2,11 +2,12 @@
 #include <cpu/gdt.h>
 #include <kernel/logging.h>
 #include <mem/heap.h>
+#include <kernel.h>
 
 extern uint64_t stack[];
 
-void init_tss(heap_t *heap) {
-    uintptr_t kernel_tss_addr = (uintptr_t) halloc(sizeof(tss_t), heap);
+void init_tss(void) {
+    uintptr_t kernel_tss_addr = (uintptr_t) halloc(sizeof(tss_t), KHEAP);
     uint64_t gdt_entry = (uint16_t) sizeof(tss_t) |
                          (kernel_tss_addr & 0xFFFF) << 16 |
                          ((kernel_tss_addr >> 16) & 0xFF) << 32 |
@@ -21,16 +22,4 @@ void init_tss(heap_t *heap) {
     asm volatile ("ltr %0" : : "r" (tss_reg));
 
     log(Info, "TSS", "Initialized TSS");
-}
-
-void set_rsp0(uintptr_t addr) {
-    uint16_t tr;
-    asm volatile ("str %0" : "=rm" (tr));
-    gdt_desc_t *entry0 = &gdt[tr / 8];
-    gdt_desc_t *entry1 = &gdt[tr / 8 + 1];
-    tss_t *tss = (tss_t*) (entry0->fields.base0 |
-                          (entry0->fields.base1 << 16) |
-                          (entry0->fields.base2 << 24) |
-                          ((entry1->raw & 0xFFFFFFFF) << 32));
-    tss->rsp0 = addr;
 }

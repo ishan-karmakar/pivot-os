@@ -1,42 +1,46 @@
 #include <stddef.h>
 #include <cpu/cpu.h>
 #include <cpu/lapic.h>
+#include <acpi/madt.h>
 #include <cpu/tss.h>
 #include <libc/string.h>
 #include <scheduler/thread.h>
 #include <scheduler/scheduler.h>
 #include <kernel/logging.h>
 #include <io/stdio.h>
+#include <cpu/smp.h>
 #include <kernel.h>
 
 thread_t *scheduler_next_thread(thread_t*);
-void scheduler_remove_thread(thread_t**, thread_t*);
+void scheduler_remove_thread(thread_t * volatile*, thread_t*);
 cpu_status_t *ready_thread(thread_t*, bool);
 
 cpu_status_t *schedule(cpu_status_t *cur_status) {
-    if (!KSCHED.threads && !KSCHED.wakeups)
-        return KSCHED.idle->ef; // CR3 will already be set to idle_thread's
+    log(Verbose, "SMP", "%x", read_apic_register(APIC_TIMER_LVT_OFFSET));
+    return ready_thread(KSMP.idle, false);
+    if (!KCPUS[CPU].threads && !KCPUS[CPU].wakeups)
+        return ready_thread(KSMP.idle, false); // CR3 will already be set to idle_thread's
 
-    if (KSCHED.cur != NULL) {
-        if ((KSCHED.wakeups && KSCHED.wakeups->wakeup_time > KLAPIC.apic_ticks) &&
-            KSCHED.cur->ticks++ < SCHEDULER_THREAD_TICKS &&
-            KSCHED.cur->status != DEAD && KSCHED.cur->status != SLEEP)
+    if (KCPUS[CPU].cur != NULL) {
+        if ((KCPUS[CPU].wakeups && KCPUS[CPU].wakeups->wakeup_time > KCPUS[CPU].ticks) &&
+            KCPUS[CPU].cur->ticks++ < SCHEDULER_THREAD_TICKS &&
+            KCPUS[CPU].cur->status != DEAD && KCPUS[CPU].cur->status != SLEEP)
             return cur_status;
 
-        if (KSCHED.cur->status != DEAD && KSCHED.cur->status != SLEEP)
-            KSCHED.cur->status = READY;
+        if (KCPUS[CPU].cur->status != DEAD && KCPUS[CPU].cur->status != SLEEP)
+            KCPUS[CPU].cur->status = READY;
 
-        memcpy(KSCHED.cur->ef, cur_status, sizeof(cpu_status_t));
+        memcpy(KCPUS[CPU].cur->ef, cur_status, sizeof(cpu_status_t));
 
-        if (KSCHED.cur->status == DEAD) {
-            scheduler_remove_thread(&KSCHED.threads, KSCHED.cur);
-            KSCHED.cur = NULL;
-        } else if (KSCHED.cur->status == SLEEP) {
-            thread_t *thread = KSCHED.cur;
-            KSCHED.cur = NULL;
-            scheduler_remove_thread(&KSCHED.threads, thread);
+        if (KCPUS[CPU].cur->status == DEAD) {
+            scheduler_remove_thread(&KCPUS[CPU].threads, KCPUS[CPU].cur);
+            KCPUS[CPU].cur = NULL;
+        } else if (KCPUS[CPU].cur->status == SLEEP) {
+            thread_t *thread = KCPUS[CPU].cur;
+            KCPUS[CPU].cur = NULL;
+            scheduler_remove_thread(&KCPUS[CPU].threads, thread);
             thread_t *prev = NULL;
-            thread_t *item = KSCHED.wakeups;
+            thread_t *item = KCPUS[CPU].wakeups;
             while (item != NULL && item->wakeup_time < thread->wakeup_time) {
                 prev = item;
                 item = item->next;
@@ -44,76 +48,64 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
             if (prev)
                 prev->next = thread;
             else
-                KSCHED.wakeups = thread;
+                KCPUS[CPU].wakeups = thread;
             thread->next = item;
         }
     }
 
-    if (KSCHED.wakeups && KSCHED.wakeups->wakeup_time <= KLAPIC.apic_ticks) {
-        thread_t *next_wakeup = KSCHED.wakeups->next;
-        thread_t *thread = KSCHED.wakeups;
+    if (KCPUS[CPU].wakeups && KCPUS[CPU].wakeups->wakeup_time <= KCPUS[CPU].ticks) {
+        thread_t *next_wakeup = KCPUS[CPU].wakeups->next;
+        thread_t *thread = KCPUS[CPU].wakeups;
         scheduler_add_thread(thread);
-        KSCHED.wakeups = next_wakeup;
+        KCPUS[CPU].wakeups = next_wakeup;
         return ready_thread(thread, true);
     }
 
-    // thread_t *tmp_thread = KSCHED.threads;
-    // do {
-    //     if (tmp_thread->status == SLEEP && tmp_thread->wakeup_time <= KLAPIC.apic_ticks) {
-    //         return ready_thread(tmp_thread, true);
-    //     } else if (tmp_thread->status == DEAD) {
-    //         thread_t *thread_to_delete = tmp_thread;
-    //         tmp_thread = scheduler_next_thread(tmp_thread);
-    //         scheduler_remove_thread(thread_to_delete);
-    //         // free_thread(thread_to_delete);
-    //         if (thread_to_delete == KSCHED.cur) {
-    //             KSCHED.cur = NULL;
-    //             if (KSCHED.threads == NULL)
-    //                 return ready_thread(KSCHED.idle, false);
-    //         }
-    //         continue;
-    //     }
-
-    //     tmp_thread = scheduler_next_thread(tmp_thread);
-    // } while (tmp_thread != KSCHED.threads);
-
-    thread_t *thread = scheduler_next_thread(KSCHED.cur);
+    thread_t *thread = scheduler_next_thread(KCPUS[CPU].cur);
     if (thread)
         return ready_thread(thread, true);
     
-    return ready_thread(KSCHED.idle, false);
+    return ready_thread(KSMP.idle, false);
 }
 
 cpu_status_t *ready_thread(thread_t *thread, bool safety) {
-    if (safety) {
-        KSCHED.cur = thread;
-        thread->status = READY;
-        thread->ticks = 0;
-    }
-
-    load_cr3(PADDR(thread->vmm_info.p4_tbl));
+    if (safety)
+        KCPUS[CPU].cur = thread;
+    
+    thread->status = READY;
+    thread->ticks = 0;
+    load_cr3(PADDR(thread->vmm.p4_tbl));
     return thread->ef;
 }
 
 thread_t *scheduler_next_thread(thread_t *thread) {
-    if (KSCHED.threads == NULL)
+    if (KCPUS[CPU].threads == NULL)
         return NULL;
     
     if (thread == NULL)
-        return KSCHED.threads;
+        return KCPUS[CPU].threads;
     
     if (thread->next == NULL)
-        return KSCHED.threads;
+        return KCPUS[CPU].threads;
     
     return thread->next;
 }
 
 void scheduler_add_thread(thread_t *thread) {
-    thread->next = KSCHED.threads;
-    KSCHED.threads = thread;
+    size_t cpu = 0;
+    size_t threads = KCPUS[0].num_threads;
+    for (size_t i = 1; i < KSMP.num_cpus; i++) {
+        if (KCPUS[i].num_threads < threads) {
+            cpu = i;
+            threads = KCPUS[i].num_threads;
+        }
+    }
+    KCPUS[cpu].num_threads++;
+    thread->next = KCPUS[cpu].threads;
+    KCPUS[cpu].threads = thread;
 }
 
-void scheduler_remove_thread(thread_t **list, thread_t *thread) {
+void scheduler_remove_thread(thread_t * volatile *list, thread_t *thread) {
     thread_t *item = *list;
     thread_t *prev_item = NULL;
 

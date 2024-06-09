@@ -101,16 +101,7 @@ EFI_STATUS ConfigurePaging(kernel_info_t *kinfo) {
         return status;
     }
     Print(L"Mapped PML4\n");
-
     return EFI_SUCCESS;
-}
-
-void LoadCr3(kernel_info_t *kinfo) {
-    asm volatile (
-        "mov %0, %%rax\n\t"
-        "mov %%rax, %%cr3"
-        : : "r" (PADDR(kinfo->mem.pml4)) : "rax"
-    );
 }
 
 EFI_STATUS GetMMAP(kernel_info_t *kinfo, UINTN *mmap_key) {

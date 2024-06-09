@@ -9,6 +9,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     EFI_STATUS status;
     EFI_PHYSICAL_ADDRESS kernel_entry_point = 0;
     kernel_info_t kinfo;
+    EFI_PHYSICAL_ADDRESS stack;
     UINTN mmap_key = 0;
 
     InitializeLib(ImageHandle, SystemTable);
@@ -49,6 +50,17 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     if (EFI_ERROR(status))
         return status;
     
+    status = uefi_call_wrapper(gBS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, 1, &stack);
+    if (EFI_ERROR(status))
+        return status;
+    Print(L"Allocated stack\n");
+
+    status = MapRange(stack, VADDR(stack), 1, kinfo.mem.pml4);
+    if (EFI_ERROR(status))
+        return status;
+
+    stack += PAGE_SIZE;
+
     status = GetMMAP(&kinfo, &mmap_key);
     if (EFI_ERROR(status))
         return status;
@@ -72,8 +84,11 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     KMEM.pml4 = (UINT64*) VADDR(KMEM.pml4);
 
-    LoadCr3(&kinfo);
-    VOID (*kernel_entry)(kernel_info_t*) = (VOID (*)(kernel_info_t*)) kernel_entry_point;
-    kernel_entry(&kinfo);
+    asm volatile (
+        "mov %0, %%cr3\n"
+        "mov %1, %%rsp\n"
+        : : "r" (PADDR(kinfo.mem.pml4)), "g" (VADDR(stack)));
+    VOID (*kernel_entry)(kernel_info_t*, uintptr_t) = (VOID (*)(kernel_info_t*, uintptr_t)) kernel_entry_point;
+    kernel_entry(&kinfo, stack - PAGE_SIZE);
     return EFI_LOAD_ERROR;
 }

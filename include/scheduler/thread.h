@@ -30,7 +30,7 @@ typedef struct thread {
     size_t ticks;
     cpu_status_t *ef;
     size_t wakeup_time;
-    vmm_t vmm_info;
+    vmm_t vmm;
     heap_t *heap;
     struct thread *next;
 } thread_t;

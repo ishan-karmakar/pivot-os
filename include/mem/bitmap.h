@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#define BITS_PER_ID 2
+#define BLOCKS_PER_INT (8 / BITS_PER_ID)
 
 typedef struct {
     size_t size;
@@ -13,4 +15,4 @@ typedef struct {
 void init_bitmap(bitmap_t*, size_t size, size_t bsize);
 void *bm_alloc(size_t size, bitmap_t*);
 size_t bm_free(void *ptr, bitmap_t*);
-uint8_t bm_unique_id(uint8_t a, uint8_t b);
+void *bm_realloc(void*, size_t, bitmap_t*);

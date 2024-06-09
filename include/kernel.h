@@ -4,9 +4,6 @@
 #include <stddef.h>
 #include <mem/pmm.h>
 #include <mem/vmm.h>
-#include <mem/heap.h>
-#include <cpu/ioapic.h>
-#include <scheduler/thread.h>
 #define KMEM kinfo.mem
 #define KFB kinfo.fb
 #define KACPI kinfo.acpi
@@ -14,7 +11,9 @@
 #define KIOAPIC kinfo.ioapic
 #define KVMM kinfo.vmm
 #define KHEAP kinfo.heap
-#define KSCHED kinfo.scheduler
+#define KIPC kinfo.ipc
+#define KSMP kinfo.smp
+#define KCPUS kinfo.smp.cpus
 
 #define MIN_LOG_LEVEL Verbose
 #define PAGE_SIZE 4096
@@ -49,6 +48,16 @@ typedef struct kernel_entry {
     size_t num_pages;
 } kernel_entry_t;
 
+typedef struct cpu_data {
+    struct thread * volatile threads;
+    struct thread *wakeups;
+    struct thread *cur;
+    size_t num_threads;
+    volatile size_t ticks;
+    volatile bool trig;
+    uintptr_t stack; // Stack bottom
+} cpu_data_t;
+
 typedef struct kernel_info {
     struct {
         mmap_desc_t *mmap;
@@ -79,29 +88,31 @@ typedef struct kernel_info {
 
     struct {
         uintptr_t addr;
-        int8_t x2mode; // -1 for no x2apic, 1 for yes x2apic, and 0 for uninitialized
+        bool x2mode;
         size_t ms_interval;
         volatile size_t pit_ticks;
-        volatile size_t apic_ticks;
-        volatile bool oneshot_trig;
     } lapic;
 
     struct {
         uintptr_t addr;
         uint32_t gsi_base;
         size_t num_ovrds;
-        ioapic_so_t *ovrds;
+        struct ioapic_so *ovrds;
     } ioapic;
 
-    struct {
-        thread_t *threads;
-        thread_t *wakeups;
-        thread_t *idle;
-        thread_t *cur;
-    } scheduler;
+    volatile struct {
+        uint8_t action;
+        uintptr_t addr;
+    } ipc;
 
+    struct {
+        struct thread *idle;
+        size_t num_cpus;
+        cpu_data_t *cpus;
+    } smp;
     vmm_t vmm;
-    heap_t *heap;
+    struct heap *heap;
 } kernel_info_t;
 
 extern struct kernel_info kinfo;
+register uint8_t CPU asm("r14");

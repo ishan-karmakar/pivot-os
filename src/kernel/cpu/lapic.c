@@ -14,24 +14,23 @@ extern void hcf(void);
 void disable_pic(void);
 
 void init_lapic(void) {
-    map_addr(KLAPIC.addr, KLAPIC.addr, KERNEL_PT_ENTRY, KMEM.pml4);
+    uint64_t msr = rdmsr(IA32_APIC_BASE);
+    if (!(msr & APIC_GLOBAL_ENABLE_BIT))
+        log(Warning, "LAPIC", "APIC is disabled globally");
 
-    uint64_t msr_output = rdmsr(IA32_APIC_BASE);
     uint32_t ignored, xApicLeaf = 0, x2ApicLeaf = 0;
     __get_cpuid(1, &ignored, &ignored, &x2ApicLeaf, &xApicLeaf);
 
     if (x2ApicLeaf & (1 << 21)) {
-        KLAPIC.x2mode = 1;
-        msr_output |= (1 << 10);
-        wrmsr(IA32_APIC_BASE, msr_output);
+        KLAPIC.x2mode = true;
+        msr |= (1 << 10);
     } else if (xApicLeaf & (1 << 9)) {
-        KLAPIC.x2mode = -1;
-        map_lapic(NULL);
+        KLAPIC.x2mode = false;
+        map_lapic(KMEM.pml4);
     } else
         return log(Error, "LAPIC", "No LAPIC is supported by this CPU");
-    
-    if (!((msr_output >> APIC_GLOBAL_ENABLE_BIT)) & 1)
-        return log(Error, "LAPIC", "APIC is disabled globally");
+
+    wrmsr(IA32_APIC_BASE, msr);
 
     write_apic_register(APIC_SPURIOUS_VEC_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_IDT_ENTRY);
     pmm_set_bit(KLAPIC.addr);
@@ -42,11 +41,20 @@ void init_lapic(void) {
     IDT_SET_INT(APIC_ONESHOT_IDT_ENTRY, 0, apic_oneshot_irq);
     IDT_SET_INT(PIT_IDT_ENTRY, 0, pit_irq);
     IDT_SET_INT(APIC_SPURIOUS_IDT_ENTRY, 0, spurious_irq);
-    log(Info, "LAPIC", "Initialized %sAPIC", KLAPIC.x2mode == 1 ? "x2" : "x");
+    CPU = get_apic_id();
+    log(Info, "LAPIC", "Initialized %sAPIC", KLAPIC.x2mode ? "x2" : "x");
 }
 
 void init_lapic_ap(void) {
+    uint64_t msr = rdmsr(IA32_APIC_BASE);
+    if (!(msr & APIC_GLOBAL_ENABLE_BIT))
+        log(Warning, "LAPIC", "APIC is disabled globally");
+    if (KLAPIC.x2mode)
+        msr |= (1 << 10);
+    wrmsr(IA32_APIC_BASE, msr);
+
     write_apic_register(APIC_SPURIOUS_VEC_OFF, APIC_SOFTWARE_ENABLE | APIC_SPURIOUS_IDT_ENTRY);
+    CPU = get_apic_id();
     log(Info, "LAPIC", "Initialized %sAPIC", KLAPIC.x2mode ? "x2" : "x");
 }
 
@@ -56,32 +64,30 @@ void disable_pic(void) {
     log(Verbose, "LAPIC", "Disabled PIC");
 }
 
-uint32_t read_apic_register(uint32_t reg_off) {
-    if (KLAPIC.x2mode == 1)
-        return (uint32_t) rdmsr((reg_off >> 4) + 0x800);
+uint64_t read_apic_register(uint32_t reg_off) {
+    if (KLAPIC.x2mode)
+        return rdmsr((reg_off >> 4) + 0x800);
     else
         return *(volatile uint32_t*) (KLAPIC.addr + reg_off);
 }
 
-void write_apic_register(uint32_t reg_off, uint32_t val) {
-    if (KLAPIC.x2mode == 1)
+void write_apic_register(uint32_t reg_off, uint64_t val) {
+    if (KLAPIC.x2mode)
         wrmsr((reg_off >> 4) + 0x800, val);
     else
         *(volatile uint32_t*)(KLAPIC.addr + reg_off) = val;
 }
 
-bool apic_initialized(void) { return KLAPIC.x2mode; }
-
 uint32_t get_apic_id(void) {
-    if (KLAPIC.x2mode == 1)
+    if (KLAPIC.x2mode)
         return read_apic_register(APIC_ID_OFF);
     return read_apic_register(APIC_ID_OFF) >> 24;
 }
 
 void delay(size_t num_ticks) {
     start_apic_timer(0, num_ticks, APIC_ONESHOT_IDT_ENTRY);
-    while (!KLAPIC.oneshot_trig) asm ("pause");
-    KLAPIC.oneshot_trig = false;
+    while (!KCPUS[CPU].trig) asm ("pause");
+    KCPUS[CPU].trig = false;
 }
 
 void calibrate_apic_timer(void) {
@@ -118,14 +124,14 @@ void start_apic_timer(uint32_t timer_mode, size_t initial_count, uint8_t idt_ent
 }
 
 cpu_status_t *apic_periodic_handler(cpu_status_t *status) {
-    KLAPIC.apic_ticks++;
+    KCPUS[CPU].ticks++;
     status = schedule(status);
     APIC_EOI();
     return status;
 }
 
 cpu_status_t *apic_oneshot_handler(cpu_status_t *status) {
-    KLAPIC.oneshot_trig = true;
+    KCPUS[CPU].trig = true;
     APIC_EOI();
     return status;
 }
@@ -139,6 +145,6 @@ cpu_status_t *pit_handler(cpu_status_t *status) {
 cpu_status_t *spurious_handler(cpu_status_t *status) { return status; }
 
 void map_lapic(page_table_t pml4) {
-    if (KLAPIC.x2mode == -1)
-        map_addr(KLAPIC.addr, KLAPIC.addr, KERNEL_PT_ENTRY, pml4);
+    if (!KLAPIC.x2mode)
+        map_addr(KLAPIC.addr, KLAPIC.addr, KERNEL_PT_ENTRY | (1 << 4), pml4);
 }

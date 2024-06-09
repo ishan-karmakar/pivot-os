@@ -29,7 +29,23 @@ typedef struct cpu_status {
     uint64_t ss;
 } __attribute__((packed)) cpu_status_t;
 
-uint64_t rdmsr(uint32_t address);
-void wrmsr(uint32_t address, uint64_t value);
-void load_cr3(uintptr_t);
+static inline uint64_t rdmsr(uint32_t address) {
+    uint32_t low = 0, high = 0;
+    asm volatile (
+        "rdmsr"
+        : "=a" (low), "=d" (high)
+        : "c" (address)
+    );
+    return (uint64_t) low | ((uint64_t) high << 32);
+}
+
+static inline void wrmsr(uint32_t address, uint64_t value) {
+    asm volatile ("wrmsr" : : "a" ((uint32_t) value), "d" (value >> 32), "c" (address));
+}
+
+__attribute__((always_inline))
+static inline void load_cr3(uintptr_t addr) {
+    asm volatile ("mov %0, %%cr3" :: "r" (addr) : "memory");
+}
+
 void syscall(size_t, size_t, ...);

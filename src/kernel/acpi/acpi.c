@@ -1,8 +1,10 @@
-#include <kernel/acpi.h>
+#include <acpi/acpi.h>
 #include <kernel/logging.h>
 #include <libc/string.h>
 #include <cpu/ioapic.h>
 #include <mem/pmm.h>
+#include <mem/heap.h>
+#include <acpi/madt.h>
 #include <kernel.h>
 
 static bool validate_checksum(char*, size_t);
@@ -43,30 +45,8 @@ void init_acpi(void) {
 }
 
 void parse_table(sdt_header_t *header) {
-    if (!memcmp(header->signature, "APIC", 4)) {
-        // MADT table
-        madt_t *madt = (madt_t*) header;
-        KLAPIC.addr = madt->lapic_base;
-
-        ioapic_t *ioapic = (ioapic_t*) get_madt_item(madt, MADT_IOAPIC, 0);
-        KIOAPIC.addr = ioapic->addr;
-        KIOAPIC.gsi_base = ioapic->gsi_base;
-        ioapic_so_t *item;
-        size_t count = 0;
-        while (true) {
-            item = (ioapic_so_t*) get_madt_item(madt, MADT_INT_SO_OVRD, count);
-            if (!item) break;
-            count++;
-        }
-        KIOAPIC.num_ovrds = count;
-        KIOAPIC.ovrds = halloc(sizeof(ioapic_so_t) * count, KHEAP);
-        count = 0;
-        while (true) {
-            KIOAPIC.ovrds[count] = *(ioapic_so_t*) get_madt_item(madt, MADT_INT_SO_OVRD, count);
-            if (!item) break;
-            count++;
-        }
-    }
+    if (!memcmp(header->signature, "APIC", 4))
+        parse_madt(header);
 }
 
 static bool validate_checksum(char *start, size_t length) {
@@ -74,15 +54,4 @@ static bool validate_checksum(char *start, size_t length) {
     for (size_t i = 0; i < length; i++)
         sum += start[i];
     return sum == 0;
-}
-
-madt_item_t *get_madt_item(madt_t *table, uint8_t search_item, uint8_t count) {
-    uint8_t counter = 0;
-    madt_item_t *item = (madt_item_t*) (table + 1);
-    while ((uintptr_t) item < ((uintptr_t) table) + table->header.length) {
-        if (item->type == search_item && count == counter++)
-            return item;
-        item = (madt_item_t*) ((uintptr_t) item + item->length);
-    }
-    return NULL;
 }

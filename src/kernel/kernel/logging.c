@@ -22,7 +22,7 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
         asm ("pause");
     va_list args;
     va_start(args, format);
-    printf("[%s][%u] %s: ", log_levels[log_level], apic_initialized() ? get_apic_id() : 0, target);
+    printf("[%s][%u] %s: ", log_levels[log_level], CPU, target);
     vprintf(format, args);
     printf("\n");
     va_end(args);

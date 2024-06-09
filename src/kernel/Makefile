@@ -13,7 +13,8 @@ KERNEL_CFLAGS := -Iinclude/ \
 				 -mcmodel=large \
 				 -nostdlib \
 				 -fno-stack-protector \
-				 -fno-stack-check
+				 -fno-stack-check \
+				 -ffixed-r14
 KERNEL_LINKER_FILE := src/kernel/linker.ld
 KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -n -nostdlib -z max-page-size=0x1000
 

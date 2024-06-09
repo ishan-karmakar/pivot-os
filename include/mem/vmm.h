@@ -12,7 +12,7 @@ typedef enum vmm_level {
     User
 } vmm_level_t;
 
-typedef struct vmm_info {
+typedef struct vmm {
     size_t flags;
     page_table_t p4_tbl;
     bitmap_t bm;
