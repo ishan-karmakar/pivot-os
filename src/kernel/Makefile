@@ -1,3 +1,4 @@
+KERNEL_TARET := build/kernel.elf
 KERNEL_C_SRC := $(shell find src/kernel -type f -name "*.c")
 KERNEL_C_OBJ := $(patsubst src/kernel/%.c, build/kernel/%.o, $(KERNEL_C_SRC))
 KERNEL_ASM_SRC := $(shell find src/kernel -type f -name "*.asm")
@@ -18,7 +19,7 @@ KERNEL_CFLAGS := -Iinclude/ \
 KERNEL_LINKER_FILE := src/kernel/linker.ld
 KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -n -nostdlib -z max-page-size=0x1000
 
-build/kernel.elf: $(KERNEL_C_OBJ) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
+$(KERNEL_TARGET): $(KERNEL_C_OBJ) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
 	ld $(KERNEL_LDFLAGS) -o $@ $^
 
 build/kernel/%.o: src/kernel/%.c $(HEADER_FILES)

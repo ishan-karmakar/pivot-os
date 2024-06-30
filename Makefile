@@ -1,5 +1,7 @@
 QEMU_FLAGS := -m 128M -smp 2 -enable-kvm -serial stdio -bios OVMF.fd -no-reboot -no-shutdown -d int
 HEADER_FILES := $(shell find include -type f -name "*.h")
+IMG_SIZE := 4M
+REGEX := ^[0-9]:([0-9]+)s:([0-9]+)s
 
 all: KERNEL_LDFLAGS += -S -s
 all: BOOT_LDFLAGS += -S -s
@@ -20,7 +22,7 @@ debug: base-run
 base-run: build/os.img
 	qemu-system-x86_64 $(QEMU_FLAGS) -drive file=$<,index=0,media=disk,format=raw
 
-build/os.img: build/BOOTX64.efi build/kernel.elf
+build/os.img: $(BOOT_TARGET) $(KERNEL_TARGET)
 	./efi2img.sh $^ $@
 
 clean:

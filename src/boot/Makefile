@@ -1,7 +1,8 @@
+BOOT_TARGET := build/BOOTX64.efi
 BOOT_C_SRC := $(shell find src/boot -type f -name "*.c")
 BOOT_C_OBJ := $(patsubst src/boot/%.c, build/boot/%.o, $(BOOT_C_SRC))
-GNU_EFI_INC := /usr/include/efi
-GNU_EFI_LIB := /usr/lib
+GNU_EFI_INC := /usr/local/include/efi
+GNU_EFI_LIB := /usr/local/lib
 BOOT_CFLAGS :=  -I$(GNU_EFI_INC) \
 				-Iinclude/ \
 				-fpic \
@@ -20,7 +21,7 @@ BOOT_LDFLAGS := -shared \
 				-T$(GNU_EFI_LIB)/elf_x86_64_efi.lds \
 				$(GNU_EFI_LIB)/crt0-efi-x86_64.o \
 
-build/BOOTX64.efi: $(BOOT_C_OBJ)
+$(BOOT_TARGET): $(BOOT_C_OBJ)
 	ld $(BOOT_LDFLAGS) $^ -o build/main.so -lgnuefi -lefi
 	objcopy -g -R .hash -R .gnu.hash -R .eh_frame -R .comment --target efi-app-x86_64 --subsystem=10 build/main.so $@
 
