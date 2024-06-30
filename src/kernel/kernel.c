@@ -21,6 +21,7 @@
 #include <stdatomic.h>
 
 kernel_info_t kinfo;
+uint8_t CPU = 0;
 
 void __attribute__((noreturn)) kernel_main(void);
 
@@ -77,9 +78,9 @@ void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info, uintptr_t
     // init_rtc();
     // init_keyboard();
     // clear_screen();
-    KCPUS[CPU].stack = stack;
-    KSMP.idle = create_thread("idle", idle, false);
-    start_aps();
+    // KCPUS[CPU].stack = stack;
+    // KSMP.idle = create_thread("idle", idle, false);
+    // start_aps();
     // scheduler_add_thread(create_thread("test1", task1, true));
     // scheduler_add_thread(create_thread("test3", task3, true));
     // scheduler_add_thread(create_thread("test2", task2, true));

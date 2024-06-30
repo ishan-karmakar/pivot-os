@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdatomic.h>
 #include <libc/string.h>
+#include <kernel/logging.h>
 #include <drivers/framebuffer.h>
 
 static char fb_buf[128];
@@ -23,32 +24,36 @@ static void add_string(char* str) {
 
 void vprintf(const char *c, va_list args) {
     for (; *c != '\0'; c++) {
-        if (*c != '%')
+        if (*c != '%' || (*c == '%' && *(c + 1) == '%'))
             fb_buf[fb_buf_pos++] = *c;
         else
             switch (*++c) {
-                case 's':
+                case 's': {
                     add_string(va_arg(args, char*));
                     break;
-                case 'c':
+                } case 'c': {
                     char ch = (char) va_arg(args, int);
                     fb_buf[fb_buf_pos++] = ch;
                     if (ch == '\n')
                         flush_screen();
                     break;
-                case 'd':
+                } case 'd': {
                     fb_buf_pos += itoa(va_arg(args, int64_t), fb_buf + fb_buf_pos, 21, 10);
                     break;
-                case 'u':
+                } case 'u': {
                     fb_buf_pos += ultoa(va_arg(args, uint64_t), fb_buf + fb_buf_pos, 10);
                     break;
-                case 'x':
+                } case 'x': {
                     add_string("0x");
                     fb_buf_pos += ultoa(va_arg(args, uint64_t), fb_buf + fb_buf_pos, 16);
                     break;
-                case 'b':
+                } case 'b': {
                     add_string("0b");
                     fb_buf_pos += ultoa(va_arg(args, uint64_t), fb_buf + fb_buf_pos, 2);
+                } default: {
+                    printf("\n");
+                    return log(Warning, "STDIO", "Unrecognized identifier %%%c", *c);
+                }
             }
         if (*c == '\n')
             flush_screen();

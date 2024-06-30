@@ -1,4 +1,5 @@
-QEMU_FLAGS := -m 128M -smp 2 -enable-kvm -serial stdio -bios OVMF.fd -no-reboot -no-shutdown -d int
+CC := clang
+QEMU_FLAGS := -m 128M -smp 2 -enable-kvm -serial stdio -bios OVMF.fd -no-reboot -no-shutdown
 HEADER_FILES := $(shell find include -type f -name "*.h")
 IMG_SIZE := 4M
 REGEX := ^[0-9]:([0-9]+)s:([0-9]+)s

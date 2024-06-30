@@ -1,4 +1,4 @@
-KERNEL_TARET := build/kernel.elf
+KERNEL_TARGET := build/kernel.elf
 KERNEL_C_SRC := $(shell find src/kernel -type f -name "*.c")
 KERNEL_C_OBJ := $(patsubst src/kernel/%.c, build/kernel/%.o, $(KERNEL_C_SRC))
 KERNEL_ASM_SRC := $(shell find src/kernel -type f -name "*.asm")
@@ -12,10 +12,7 @@ KERNEL_CFLAGS := -Iinclude/ \
 				 -mno-red-zone \
 				 -mno-sse \
 				 -mcmodel=large \
-				 -nostdlib \
-				 -fno-stack-protector \
-				 -fno-stack-check \
-				 -ffixed-r14
+				 -fno-stack-protector
 KERNEL_LINKER_FILE := src/kernel/linker.ld
 KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -n -nostdlib -z max-page-size=0x1000
 
@@ -24,7 +21,7 @@ $(KERNEL_TARGET): $(KERNEL_C_OBJ) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
 
 build/kernel/%.o: src/kernel/%.c $(HEADER_FILES)
 	@mkdir -p $(@D)
-	gcc $(KERNEL_CFLAGS) -c $(filter %.c,$^) -o $@
+	$(CC) $(KERNEL_CFLAGS) -c $(filter %.c,$^) -o $@
 
 build/kernel/%.o: src/kernel/%.asm
 	@mkdir -p $(@D)

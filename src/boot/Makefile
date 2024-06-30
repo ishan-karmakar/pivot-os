@@ -9,10 +9,8 @@ BOOT_CFLAGS :=  -I$(GNU_EFI_INC) \
 				-ffreestanding \
 				-nostdlib \
 				-fno-stack-protector \
-				-fno-stack-check \
 				-mno-red-zone \
 				-fshort-wchar \
-				-maccumulate-outgoing-args \
 				-Wall \
 				-Wextra
 BOOT_LDFLAGS := -shared \
@@ -23,8 +21,8 @@ BOOT_LDFLAGS := -shared \
 
 $(BOOT_TARGET): $(BOOT_C_OBJ)
 	ld $(BOOT_LDFLAGS) $^ -o build/main.so -lgnuefi -lefi
-	objcopy -g -R .hash -R .gnu.hash -R .eh_frame -R .comment --target efi-app-x86_64 --subsystem=10 build/main.so $@
+	objcopy --strip-unneeded -R .hash -R .gnu.hash -R .comment --target pei-x86-64 --subsystem=10 build/main.so $@
 
 build/boot/%.o: src/boot/%.c $(HEADER_FILES)
 	@mkdir -p $(@D)
-	gcc $(BOOT_CFLAGS) -c $(filter %.c,$^) -o $@
+	$(CC) $(BOOT_CFLAGS) -c $(filter %.c,$^) -o $@

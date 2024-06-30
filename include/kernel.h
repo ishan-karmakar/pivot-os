@@ -115,4 +115,4 @@ typedef struct kernel_info {
 } kernel_info_t;
 
 extern struct kernel_info kinfo;
-register uint8_t CPU asm("r14");
+extern uint8_t CPU;
