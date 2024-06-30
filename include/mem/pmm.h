@@ -15,7 +15,7 @@ void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, size_t f
 void map_kernel_entries(uint64_t*);
 void clean_table(uint64_t*);
 void invlpg(uintptr_t);
-uintptr_t get_phys_addr(uintptr_t, page_table_t);
+uintptr_t translate_addr(uintptr_t, page_table_t);
 void free_page_table(page_table_t, uint8_t);
 void map_pmm(page_table_t);
 

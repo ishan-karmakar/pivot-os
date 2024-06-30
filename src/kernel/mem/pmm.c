@@ -36,8 +36,12 @@ void init_pmm(void) {
 
 // Maps the kernel entries in a new page table, used for new threads
 void map_kernel_entries(page_table_t p4_tbl) {
-    for (size_t i = 0; i < KMEM.num_ke; i++)
+    for (size_t i = 0; i < KMEM.num_ke; i++) {
+        log(Verbose, "PMM", "[%u] %x, %x, %u", i, KMEM.ke[i].paddr, KMEM.ke[i].vaddr, KMEM.ke[i].num_pages);
+        // TODO: Once all the functions the user process calls are bundled together, map_range should be KERNEL_PT_ENTRY
+        // Otherwise, user function could corrupt kernel code
         map_range(KMEM.ke[i].paddr, KMEM.ke[i].vaddr, KMEM.ke[i].num_pages, USER_PT_ENTRY, p4_tbl);
+    }
 }
 
 void map_range(uintptr_t physical, uintptr_t virtual, size_t num_pages, size_t flags, page_table_t p4_tbl) {
@@ -60,27 +64,27 @@ void map_addr(uintptr_t physical, uintptr_t virtual, size_t flags, page_table_t 
     if (!(p4_tbl[p4_idx] & 1)) {
         page_table_t table = alloc_frame();
         p4_tbl[p4_idx] = (uintptr_t) table | USER_PT_ENTRY;
-        clean_table((page_table_t) VADDR(table));
-        map_addr((uintptr_t) table, VADDR(table), KERNEL_PT_ENTRY, p4_tbl);
+        clean_table((page_table_t) table);
+        map_addr((uintptr_t) table, (uintptr_t) table, KERNEL_PT_ENTRY, p4_tbl);
     }
 
-    page_table_t p3_tbl = (page_table_t) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
+    page_table_t p3_tbl = (page_table_t) (p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
         page_table_t table = alloc_frame();
         p3_tbl[p3_idx] = (uintptr_t) table | USER_PT_ENTRY;
-        clean_table((page_table_t) VADDR(table));
-        map_addr((uintptr_t) table, VADDR(table), KERNEL_PT_ENTRY, p4_tbl);
+        clean_table((page_table_t) table);
+        map_addr((uintptr_t) table, (uintptr_t) table, KERNEL_PT_ENTRY, p4_tbl);
     }
 
-    page_table_t p2_tbl = (page_table_t) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
+    page_table_t p2_tbl = (page_table_t) (p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
         page_table_t table = alloc_frame();
         p2_tbl[p2_idx] = (uintptr_t) table | USER_PT_ENTRY;
-        clean_table((page_table_t) VADDR(table));
-        map_addr((uintptr_t) table, VADDR(table), KERNEL_PT_ENTRY, p4_tbl);
+        clean_table((page_table_t) table);
+        map_addr((uintptr_t) table, (uintptr_t) table, KERNEL_PT_ENTRY, p4_tbl);
     }
 
-    page_table_t p1_tbl = (page_table_t) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
+    page_table_t p1_tbl = (page_table_t) (p2_tbl[p2_idx] & SIGN_MASK);
     p1_tbl[p1_idx] = physical | flags;
 }
 
@@ -126,7 +130,7 @@ void unmap_addr(uintptr_t addr, page_table_t p4_tbl) {
     }
 }
 
-uintptr_t get_phys_addr(uintptr_t virtual, page_table_t p4_tbl) {
+uintptr_t translate_addr(uintptr_t virtual, page_table_t p4_tbl) {
     if (p4_tbl == NULL)
         p4_tbl = KMEM.pml4;
     
@@ -138,13 +142,13 @@ uintptr_t get_phys_addr(uintptr_t virtual, page_table_t p4_tbl) {
 
     if (!(p4_tbl[p4_idx] & 1)) return 0;
     
-    page_table_t p3_tbl = (page_table_t) VADDR(p4_tbl[p4_idx] & SIGN_MASK);
+    page_table_t p3_tbl = (page_table_t) (p4_tbl[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) return 0;
 
-    page_table_t p2_tbl = (page_table_t) VADDR(p3_tbl[p3_idx] & SIGN_MASK);
+    page_table_t p2_tbl = (page_table_t) (p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) return 0;
 
-    page_table_t p1_tbl = (page_table_t) VADDR(p2_tbl[p2_idx] & SIGN_MASK);
+    page_table_t p1_tbl = (page_table_t) (p2_tbl[p2_idx] & SIGN_MASK);
     return p1_tbl[p1_idx] & SIGN_MASK;
 }
 
@@ -152,7 +156,7 @@ void free_page_table(page_table_t table, uint8_t level) {
     if (level > 1) {
         for (size_t i = 0; i < 512; i++)
             if (table[i] & 1)
-                free_page_table((page_table_t) VADDR(table[i] & SIGN_MASK), level - 1);
+                free_page_table((page_table_t) (table[i] & SIGN_MASK), level - 1);
     }
 
     pmm_clear_bit(PADDR(table));
@@ -161,7 +165,7 @@ void free_page_table(page_table_t table, uint8_t level) {
 void map_pmm(page_table_t table) {
     size_t num_pages = DIV_CEIL(KMEM.bitmap_size, PAGE_SIZE);
     for (size_t i = 0; i < num_pages; i++)
-        map_addr(PADDR(KMEM.bitmap) + i * PAGE_SIZE, (uintptr_t) KMEM.bitmap + i * PAGE_SIZE, KERNEL_PT_ENTRY, table);
+        map_addr((uintptr_t) KMEM.bitmap + i * PAGE_SIZE, (uintptr_t) KMEM.bitmap + i * PAGE_SIZE, KERNEL_PT_ENTRY, table);
 }
 
 void *alloc_frame(void) {

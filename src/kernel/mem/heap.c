@@ -47,7 +47,7 @@ void map_heap(heap_t *src, page_table_t src_vmm, page_table_t dest) {
         size_t num_pages = DIV_CEIL(b->bm.size + sizeof(heap_t), PAGE_SIZE);
         uintptr_t start = (uintptr_t) b->bm.bm - sizeof(heap_t);
         for (size_t i = 0; i < num_pages; i++)
-            map_addr(get_phys_addr(start + i * PAGE_SIZE, src_vmm), start + i * PAGE_SIZE, KERNEL_PT_ENTRY, dest);
+            map_addr(translate_addr(start + i * PAGE_SIZE, src_vmm), start + i * PAGE_SIZE, KERNEL_PT_ENTRY, dest);
     }
 }
 

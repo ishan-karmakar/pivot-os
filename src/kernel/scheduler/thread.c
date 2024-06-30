@@ -55,17 +55,16 @@ void free_thread(thread_t *thread) {
 }
 
 void init_thread_vmm(thread_t *thread) {
-    thread->vmm.p4_tbl = (page_table_t) VADDR(alloc_frame());
+    thread->vmm.p4_tbl = (page_table_t) alloc_frame();
     clean_table(thread->vmm.p4_tbl);
-    map_addr(PADDR(thread->vmm.p4_tbl), PADDR(thread->vmm.p4_tbl), KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
-    map_addr(PADDR(thread->vmm.p4_tbl), (uintptr_t) thread->vmm.p4_tbl, KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
+    map_addr((uintptr_t) thread->vmm.p4_tbl, (uintptr_t) thread->vmm.p4_tbl, KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
     map_addr(KCPUS[CPU].stack, VADDR(KCPUS[CPU].stack), KERNEL_PT_ENTRY, thread->vmm.p4_tbl);
     map_kernel_entries(thread->vmm.p4_tbl);
     map_framebuffer(thread->vmm.p4_tbl, USER_PT_ENTRY);
     map_lapic(thread->vmm.p4_tbl);
     map_heap(KHEAP, KMEM.pml4, thread->vmm.p4_tbl);
     map_pmm(thread->vmm.p4_tbl);
-    load_cr3(PADDR(thread->vmm.p4_tbl));
+    load_cr3((uintptr_t) thread->vmm.p4_tbl);
     init_vmm(User, 32, &thread->vmm);
     thread->heap = heap_add(1, HEAP_DEFAULT_BS, &thread->vmm, NULL);
     thread->stack = (uintptr_t) valloc(THREAD_STACK_PAGES, &thread->vmm);

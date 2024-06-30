@@ -8,7 +8,7 @@
 static char fb_buf[128];
 static size_t fb_buf_pos;
 char_printer_t char_printer;
-static atomic_flag mutex = ATOMIC_FLAG_INIT;
+atomic_flag mutex = ATOMIC_FLAG_INIT;
 
 void flush_screen(void) {
     for (uint16_t i = 0; i < fb_buf_pos; i++)

@@ -151,6 +151,8 @@ EFI_STATUS LoadKernel(kernel_info_t *kinfo, EFI_PHYSICAL_ADDRESS *kernel_entry_p
         return status;
     }
 
+    // FIXME: Copy over PML4 table responsible for kernel mappings from kernel pg tbl to user
+    // Kernel mappings will rarely ever change so this would save space
     EFI_PHYSICAL_ADDRESS ke_addr = ALIGN_ADDR((EFI_PHYSICAL_ADDRESS) kinfo->mem.ke);
     status = MapRange(ke_addr, VADDR(ke_addr), EFI_SIZE_TO_PAGES(num_kernel_entries * sizeof(kernel_entry_t)), kinfo->mem.pml4);
     if (EFI_ERROR(status)) {

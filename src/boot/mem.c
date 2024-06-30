@@ -32,7 +32,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
         if (EFI_ERROR(status))
             return status;
         p4_tbl[p4_idx] = (EFI_PHYSICAL_ADDRESS) table | KERNEL_PT_ENTRY;
-        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
+        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PDPT table in higher half\n");
             return status;
@@ -46,7 +46,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
         if (EFI_ERROR(status))
             return status;
         p3_tbl[p3_idx] = (EFI_PHYSICAL_ADDRESS) table | KERNEL_PT_ENTRY;
-        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
+        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PD table in higher half\n");
             return status;
@@ -60,7 +60,7 @@ EFI_STATUS MapAddr(EFI_PHYSICAL_ADDRESS phys_addr, EFI_VIRTUAL_ADDRESS virt_addr
         if (EFI_ERROR(status))
             return status;
         p2_tbl[p2_idx] = (EFI_PHYSICAL_ADDRESS) table | KERNEL_PT_ENTRY;
-        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, VADDR((EFI_PHYSICAL_ADDRESS) table), p4_tbl);
+        status = MapAddr((EFI_PHYSICAL_ADDRESS) table, (EFI_PHYSICAL_ADDRESS) table, p4_tbl);
         if (EFI_ERROR(status)) {
             Print(L"Error mapping PT table in higher half\n");
             return status;
@@ -95,11 +95,6 @@ EFI_STATUS ConfigurePaging(kernel_info_t *kinfo) {
         return status;
     }
 
-    status = MapAddr((uintptr_t) kinfo->mem.pml4, VADDR(kinfo->mem.pml4), kinfo->mem.pml4);
-    if (EFI_ERROR(status)) {
-        Print(L"Error mapping PML4 in higher half\n");
-        return status;
-    }
     Print(L"Mapped PML4\n");
     return EFI_SUCCESS;
 }
@@ -146,15 +141,12 @@ EFI_STATUS ParseMMAP(kernel_info_t *kinfo) {
         UINT32 type = cur_desc->Type;
         if (new_max_addr > max_addr)
             max_addr = new_max_addr;
-        if (type == 1 || type == 2 || type == 3 || type == 4)
-            MapRange(cur_desc->PhysicalStart, cur_desc->PhysicalStart, cur_desc->NumberOfPages, kinfo->mem.pml4);
-        if (type == 2 || type == 3 || type == 4 || type == 7) {
+        if (type == 1 || type == 2 || type == 3 || type == 4 || type == 7 || type == 9) {
             if (cur_desc->PhysicalStart == 0)
-                MapRange(PAGE_SIZE, VADDR(PAGE_SIZE), cur_desc->NumberOfPages - 1, kinfo->mem.pml4);
+                MapRange(PAGE_SIZE, PAGE_SIZE, cur_desc->NumberOfPages - 1, kinfo->mem.pml4);
             else
-                MapRange(cur_desc->PhysicalStart, VADDR(cur_desc->PhysicalStart), cur_desc->NumberOfPages, kinfo->mem.pml4);
-        } else if (type == 9)
-            MapRange(cur_desc->PhysicalStart, cur_desc->PhysicalStart, cur_desc->NumberOfPages, kinfo->mem.pml4);
+                MapRange(cur_desc->PhysicalStart, cur_desc->PhysicalStart, cur_desc->NumberOfPages, kinfo->mem.pml4);
+        }
         cur_desc = NextMemoryDescriptor(cur_desc, kinfo->mem.mmap_desc_size);
     }
 
@@ -164,13 +156,13 @@ EFI_STATUS ParseMMAP(kernel_info_t *kinfo) {
     uefi_call_wrapper(gBS->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, EFI_SIZE_TO_PAGES(bitmap_size), &kinfo->mem.bitmap);
     EFI_PHYSICAL_ADDRESS bitmap_location = (EFI_PHYSICAL_ADDRESS) kinfo->mem.bitmap;
     for (UINTN i = 0; i < SIZE_TO_PAGES(bitmap_size); i++) {
-        status = MapAddr(bitmap_location + i * PAGE_SIZE, VADDR(bitmap_location) + i * PAGE_SIZE, kinfo->mem.pml4);
+        status = MapAddr(bitmap_location + i * PAGE_SIZE, bitmap_location + i * PAGE_SIZE, kinfo->mem.pml4);
         if (EFI_ERROR(status))
             return status;
     }
     Print(L"Mapped bitmap...\n");
 
-    kinfo->mem.bitmap = (uint64_t*) VADDR(bitmap_location);
+    kinfo->mem.bitmap = (uint64_t*) bitmap_location;
     kinfo->mem.bitmap_entries = bitmap_size / 8;
     kinfo->mem.bitmap_size = SIZE_TO_PAGES(bitmap_size);
     kinfo->mem.mem_pages = mem_pages;

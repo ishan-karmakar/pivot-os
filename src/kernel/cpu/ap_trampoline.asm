@@ -74,6 +74,9 @@ kernel16:
 
 [bits 32]
 kernel32: ; 0x8050
+    mov dx, 0x3f8
+    mov al, 97
+    out dx, al
     ; Set segment registers to data descriptor
     mov ax, 0x10
     mov ds, ax

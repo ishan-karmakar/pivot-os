@@ -6,7 +6,7 @@
 void init_vmm(vmm_level_t level, size_t max_pages, vmm_t *vi) {
     vi->flags = level == Supervisor ? KERNEL_PT_ENTRY : USER_PT_ENTRY;
     if (level == Supervisor)
-        vi->bm.bm = (uint8_t*) (HIGHER_HALF_OFFSET + KMEM.mem_pages * PAGE_SIZE);
+        vi->bm.bm = (uint8_t*) HIGHER_HALF_OFFSET;
     else
         vi->bm.bm = (uint8_t*) PAGE_SIZE;
     
@@ -31,5 +31,5 @@ void *valloc(size_t pages, vmm_t *vi) {
 void vfree(void *addr, vmm_t *vi) {
     size_t pages = bm_free(addr, &vi->bm) / PAGE_SIZE;
     for (size_t i = 0; i < pages; i++)
-        pmm_clear_bit(get_phys_addr((uintptr_t) addr + i * PAGE_SIZE, vi->p4_tbl));
+        pmm_clear_bit(translate_addr((uintptr_t) addr + i * PAGE_SIZE, vi->p4_tbl));
 }

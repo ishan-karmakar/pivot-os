@@ -18,6 +18,7 @@
 #include <kernel/logging.h>
 #include <kernel/progress.h>
 #include <io/stdio.h>
+#include <stdatomic.h>
 
 kernel_info_t kinfo;
 
@@ -53,6 +54,11 @@ void user_function(void) {
 void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info, uintptr_t stack) {
     CPU = 0;
     kinfo = *kernel_info; // Copy over boot info to higher half
+#ifdef DEBUG
+    volatile int wait = 1;
+    while (wait)
+        asm ("pause");
+#endif
     init_qemu();
     init_gdt();
     init_idt();
@@ -68,8 +74,8 @@ void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info, uintptr_t
     init_lapic();
     init_ioapic();
     calibrate_apic_timer();
-    init_rtc();
-    init_keyboard();
+    // init_rtc();
+    // init_keyboard();
     // clear_screen();
     KCPUS[CPU].stack = stack;
     KSMP.idle = create_thread("idle", idle, false);

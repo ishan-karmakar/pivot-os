@@ -1,10 +1,6 @@
 QEMU_FLAGS := -m 128M -smp 2 -enable-kvm -serial stdio -bios OVMF.fd -no-reboot -no-shutdown -d int
 HEADER_FILES := $(shell find include -type f -name "*.h")
 
-ifeq ($(INIT_STOP), 1)
-	QEMU_FLAGS += -s -S
-endif
-
 all: KERNEL_LDFLAGS += -S -s
 all: BOOT_LDFLAGS += -S -s
 all: build/os.img
@@ -17,7 +13,8 @@ run: KERNEL_LDFLAGS += -S -s
 run: BOOT_LDFLAGS += -S -s
 run: base-run
 
-debug: KERNEL_CFLAGS += -g
+debug: KERNEL_CFLAGS += -g -DDEBUG
+debug: QEMU_FLAGS += -s
 debug: base-run
 
 base-run: build/os.img
