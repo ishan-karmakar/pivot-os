@@ -14,10 +14,15 @@ KERNEL_CFLAGS := -Iinclude/ \
 				 -mcmodel=large \
 				 -fno-stack-protector
 KERNEL_LINKER_FILE := src/kernel/linker.ld
-KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -n -nostdlib -z max-page-size=0x1000
+KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -z max-page-size=0x1000
+KERNEL_FLAGS := -Iinclude/ -fPIC -Bsymbolic -ffreestanding -nostdlib -target x86_64-unknown-elf \
+	-Wall -Wextra -mno-red-zone -mno-sse -mcmodel=large -fuse-ld=lld \
+	-fno-stack-protector -T$(KERNEL_LINKER_FILE) -z max-page-size=0x1000
 
-$(KERNEL_TARGET): $(KERNEL_C_OBJ) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
-	$(CC) $(KERNEL_LDFLAGS) -o $@ $^
+$(KERNEL_TARGET): $(KERNEL_C_SRC) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
+	@mkdir -p build
+	$(CC) $(KERNEL_FLAGS) $(KERNEL_C_SRC) $(KERNEL_FONT_OBJ) -o $@
+	# $(CC) $(KERNEL_LDFLAGS) -o $@ $^
 
 build/kernel/%.o: src/kernel/%.c $(HEADER_FILES)
 	@mkdir -p $(@D)
