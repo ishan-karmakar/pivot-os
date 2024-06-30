@@ -17,7 +17,7 @@ KERNEL_LINKER_FILE := src/kernel/linker.ld
 KERNEL_LDFLAGS := -T $(KERNEL_LINKER_FILE) -n -nostdlib -z max-page-size=0x1000
 
 $(KERNEL_TARGET): $(KERNEL_C_OBJ) $(KERNEL_ASM_OBJ) $(KERNEL_FONT_OBJ)
-	ld $(KERNEL_LDFLAGS) -o $@ $^
+	$(CC) $(KERNEL_LDFLAGS) -o $@ $^
 
 build/kernel/%.o: src/kernel/%.c $(HEADER_FILES)
 	@mkdir -p $(@D)

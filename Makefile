@@ -13,7 +13,6 @@ include src/kernel/Makefile
 .PHONY = run debug clean
 
 run: KERNEL_LDFLAGS += -S -s
-run: BOOT_LDFLAGS += -S -s
 run: base-run
 
 debug: KERNEL_CFLAGS += -g -DDEBUG

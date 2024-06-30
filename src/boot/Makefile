@@ -20,7 +20,7 @@ BOOT_LDFLAGS := -shared \
 				$(GNU_EFI_LIB)/crt0-efi-x86_64.o \
 
 $(BOOT_TARGET): $(BOOT_C_OBJ)
-	ld $(BOOT_LDFLAGS) $^ -o build/main.so -lgnuefi -lefi
+	$(CC) $(BOOT_LDFLAGS) $^ -o build/main.so -lgnuefi -lefi
 	objcopy --strip-unneeded -R .hash -R .gnu.hash -R .comment --target pei-x86-64 --subsystem=10 build/main.so $@
 
 build/boot/%.o: src/boot/%.c $(HEADER_FILES)
