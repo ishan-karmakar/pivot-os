@@ -1,4 +1,4 @@
-[bits  64]
+[bits 64]
 [extern exception_handler]
 [extern set_rsp0]
 
