@@ -1,4 +1,4 @@
-#include <kernel/progress.h>
+#include <util/progress.h>
 #include <drivers/framebuffer.h>
 #include <io/stdio.h>
 

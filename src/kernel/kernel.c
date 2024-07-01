@@ -14,9 +14,8 @@
 #include <drivers/framebuffer.h>
 #include <drivers/keyboard.h>
 #include <acpi/acpi.h>
-#include <kernel/rtc.h>
-#include <kernel/logging.h>
-#include <kernel/progress.h>
+#include <drivers/rtc.h>
+#include <util/logger.h>
 #include <io/stdio.h>
 #include <stdatomic.h>
 

@@ -21,3 +21,4 @@ typedef struct psf_font {
 void init_framebuffer(void);
 void map_framebuffer(page_table_t, size_t);
 void clear_screen(void);
+void printf_at(size_t x, size_t y, const char *format, ...);

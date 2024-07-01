@@ -1,7 +1,7 @@
 #include <mem/heap.h>
 #include <mem/vmm.h>
 #include <mem/pmm.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <libc/string.h>
 #include <kernel.h>
 

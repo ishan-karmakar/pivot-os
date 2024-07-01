@@ -1,6 +1,6 @@
 #include <cpu/tss.h>
 #include <cpu/gdt.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <mem/heap.h>
 #include <kernel.h>
 

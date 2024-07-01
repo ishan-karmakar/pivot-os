@@ -1,6 +1,6 @@
 #include <mem/bitmap.h>
 #include <libc/string.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <kernel.h>
 #define BM_BLOCKS(size, bsize) DIV_CEIL(DIV_CEIL((size) / (bsize), BLOCKS_PER_INT), (bsize))
 static void set_bm(uint8_t*, size_t, uint8_t);

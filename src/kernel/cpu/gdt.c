@@ -1,5 +1,5 @@
 #include <cpu/gdt.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 extern void load_gdt(uintptr_t);
 uint16_t gdt_entries = 5;
 

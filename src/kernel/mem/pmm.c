@@ -8,9 +8,9 @@ Only the VMM and HEAP use the bitmap from bitmap.h
 #include <stddef.h>
 #include <mem/pmm.h>
 #include <io/stdio.h>
-#include <kernel/logging.h>
-#include <kernel/progress.h>
+#include <util/logger.h>
 #include <kernel.h>
+#include <mem/vmm.h>
 
 static bool table_empty(page_table_t);
 static int64_t pmm_request_frame();

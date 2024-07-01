@@ -3,29 +3,28 @@
 #include <stddef.h>
 #include <stdatomic.h>
 #include <libc/string.h>
-#include <kernel/logging.h>
-#include <drivers/framebuffer.h>
+#include <util/logger.h>
 
-static char fb_buf[128];
-static size_t fb_buf_pos;
+static char buf[128];
+static size_t buf_pos;
 char_printer_t char_printer;
 atomic_flag mutex = ATOMIC_FLAG_INIT;
 
 void flush_screen(void) {
-    for (uint16_t i = 0; i < fb_buf_pos; i++)
-        char_printer(fb_buf[i]);
-    fb_buf_pos = 0;
+    for (uint16_t i = 0; i < buf_pos; i++)
+        char_printer(buf[i]);
+    buf_pos = 0;
 }
 
 static void add_string(char* str) {
     for (; *str != '\0'; str++)
-        fb_buf[fb_buf_pos++] = *str;
+        buf[buf_pos++] = *str;
 }
 
 void vprintf(const char *c, va_list args) {
     for (; *c != '\0'; c++) {
         if (*c != '%' || (*c == '%' && *(c + 1) == '%'))
-            fb_buf[fb_buf_pos++] = *c;
+            buf[buf_pos++] = *c;
         else
             switch (*++c) {
                 case 's': {
@@ -33,23 +32,23 @@ void vprintf(const char *c, va_list args) {
                     break;
                 } case 'c': {
                     char ch = (char) va_arg(args, int);
-                    fb_buf[fb_buf_pos++] = ch;
+                    buf[buf_pos++] = ch;
                     if (ch == '\n')
                         flush_screen();
                     break;
                 } case 'd': {
-                    fb_buf_pos += itoa(va_arg(args, int64_t), fb_buf + fb_buf_pos, 21, 10);
+                    buf_pos += itoa(va_arg(args, int64_t), buf + buf_pos, 21, 10);
                     break;
                 } case 'u': {
-                    fb_buf_pos += ultoa(va_arg(args, uint64_t), fb_buf + fb_buf_pos, 10);
+                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 10);
                     break;
                 } case 'x': {
                     add_string("0x");
-                    fb_buf_pos += ultoa(va_arg(args, uint64_t), fb_buf + fb_buf_pos, 16);
+                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 16);
                     break;
                 } case 'b': {
                     add_string("0b");
-                    fb_buf_pos += ultoa(va_arg(args, uint64_t), fb_buf + fb_buf_pos, 2);
+                    buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 2);
                 } default: {
                     printf("\n");
                     return log(Warning, "STDIO", "Unrecognized identifier %%%c", *c);
@@ -67,22 +66,5 @@ void printf(const char *format, ...) {
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
-    atomic_flag_clear(&mutex);
-}
-
-void printf_at(size_t x, size_t y, const char *format, ...) {
-    while (atomic_flag_test_and_set(&mutex))
-        asm volatile ("pause");
-    size_t old_x = screen_x;
-    size_t old_y = screen_y;
-    screen_x = x;
-    screen_y = y;
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    va_end(args);
-    flush_screen();
-    screen_x = old_x;
-    screen_y = old_y;
     atomic_flag_clear(&mutex);
 }

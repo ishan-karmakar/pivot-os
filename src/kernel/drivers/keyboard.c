@@ -1,6 +1,6 @@
 #include <drivers/keyboard.h>
 #include <io/ports.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <io/stdio.h>
 #include <stddef.h>
 #include <cpu/idt.h>

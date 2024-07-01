@@ -1,4 +1,4 @@
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <cpu/tss.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>

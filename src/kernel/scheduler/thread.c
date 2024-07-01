@@ -6,7 +6,7 @@
 #include <drivers/framebuffer.h>
 #include <cpu/lapic.h>
 #include <libc/string.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <io/stdio.h>
 #include <cpu/cpu.h>
 #include <cpu/idt.h>

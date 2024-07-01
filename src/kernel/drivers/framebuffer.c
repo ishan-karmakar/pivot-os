@@ -1,7 +1,7 @@
 #include <drivers/framebuffer.h>
 #include <mem/pmm.h>
 #include <io/stdio.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <kernel.h>
 
 extern char _binary_fonts_default_psf_start;
@@ -102,4 +102,19 @@ void init_framebuffer(void) {
     char_printer = fb_print_char;
     clear_screen();
     log(Info, "FB", "Initialized framebuffer");
+}
+
+void printf_at(size_t x, size_t y, const char *format, ...) {
+    // TODO: Add Mutex
+    size_t old_x = screen_x;
+    size_t old_y = screen_y;
+    screen_x = x;
+    screen_y = y;
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    flush_screen();
+    screen_x = old_x;
+    screen_y = old_y;
 }

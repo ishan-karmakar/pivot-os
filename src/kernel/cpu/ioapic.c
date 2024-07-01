@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <cpu/ioapic.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <acpi/madt.h>
 #include <mem/pmm.h>
 #include <libc/string.h>

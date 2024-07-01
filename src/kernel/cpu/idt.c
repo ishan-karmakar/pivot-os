@@ -1,6 +1,6 @@
 #include <cpu/idt.h>
 #include <libc/string.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 
 idtr_t idtr;
 idt_desc_t idt[256];

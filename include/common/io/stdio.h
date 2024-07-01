@@ -6,6 +6,5 @@ typedef void (*char_printer_t)(char);
 extern char_printer_t char_printer;
 
 void printf(const char *format, ...);
-void printf_at(size_t x, size_t y, const char *format, ...);
 void vprintf(const char *c, va_list args);
 void flush_screen(void);

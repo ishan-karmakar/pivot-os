@@ -2,7 +2,7 @@
 
 set -e
 CURRENT_USER=$(whoami)
-
+# FIXME: Update this information to use LLVM and no GNU EFI instead
 sudo apt-get install make gcc nasm mtools qemu-system
 cd /tmp
 git clone https://git.code.sf.net/p/gnu-efi/code gnu-efi

@@ -2,8 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-
-typedef size_t efi_status_t;
+#include <types.h>
 
 typedef struct {
     uint16_t scan_code;
@@ -40,3 +39,5 @@ typedef struct efi_simple_output {
 
     efi_simple_output_mode_t *mode;
 } efi_simple_output_t;
+
+efi_status_t init_con(efi_simple_output_t*);

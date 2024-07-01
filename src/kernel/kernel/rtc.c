@@ -2,8 +2,8 @@
 #include <cpu/idt.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>
-#include <kernel/rtc.h>
-#include <kernel/logging.h>
+#include <drivers/rtc.h>
+#include <util/logger.h>
 #include <drivers/framebuffer.h>
 #include <io/ports.h>
 #include <io/stdio.h>

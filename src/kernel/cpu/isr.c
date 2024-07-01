@@ -3,7 +3,7 @@
 #include <cpu/cpu.h>
 #include <cpu/lapic.h>
 #include <scheduler/thread.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 
 extern void hcf(void);
 

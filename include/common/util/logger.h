@@ -1,4 +1,5 @@
 #pragma once
+#define MIN_LOG_LEVEL Verbose
 
 typedef enum log_level {
     Error,

@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <mem/heap.h>
 #include <cpu/gdt.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 
 typedef struct tss {
     uint32_t rsv0;

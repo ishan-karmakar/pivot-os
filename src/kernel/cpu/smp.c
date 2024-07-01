@@ -6,7 +6,7 @@
 #include <acpi/madt.h>
 #include <mem/pmm.h>
 #include <mem/heap.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <libc/string.h>
 #include <scheduler/thread.h>
 #include <kernel.h>

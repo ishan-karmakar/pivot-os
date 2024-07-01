@@ -1,6 +1,6 @@
 #include <mem/vmm.h>
 #include <mem/pmm.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <kernel.h>
 
 void init_vmm(vmm_level_t level, size_t max_pages, vmm_t *vi) {

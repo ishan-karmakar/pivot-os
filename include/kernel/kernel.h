@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <mem/pmm.h>
+#include <boot.h>
 #include <mem/vmm.h>
 #define KMEM kinfo.mem
 #define KFB kinfo.fb
@@ -15,7 +15,6 @@
 #define KSMP kinfo.smp
 #define KCPUS kinfo.smp.cpus
 
-#define MIN_LOG_LEVEL Verbose
 #define PAGE_SIZE 4096
 #define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
 #define HIGHER_HALF_OFFSET 0xFFFF800000000000
@@ -32,15 +31,6 @@
 #define SIGN_MASK 0x000ffffffffff000
 #define KERNEL_PT_ENTRY 0b11
 #define USER_PT_ENTRY 0b111
-
-typedef struct mmap_descriptor {
-    uint32_t type;
-    uint32_t pad;
-    uintptr_t physical_start;
-    uintptr_t virtual_start;
-    uint64_t count;
-    uint64_t attributes;
-} mmap_desc_t;
 
 typedef struct kernel_entry {
     uintptr_t vaddr;
@@ -65,7 +55,7 @@ typedef struct kernel_info {
         uint64_t mmap_desc_size;
         size_t num_ke;
         kernel_entry_t *ke;
-        page_table_t pml4;
+        uint64_t *pml4;
         uint64_t *bitmap;
         size_t bitmap_entries;
         size_t bitmap_size;

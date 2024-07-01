@@ -1,8 +1,9 @@
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <io/stdio.h>
-#include <cpu/lapic.h>
 #include <stdatomic.h>
-#include <kernel.h>
+#include <stdint.h>
+
+extern uint8_t CPU;
 
 static char *log_levels[] = {
     "ERROR",

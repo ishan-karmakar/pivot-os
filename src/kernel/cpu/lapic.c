@@ -5,7 +5,7 @@
 #include <cpu/idt.h>
 #include <cpu/ioapic.h>
 #include <scheduler/scheduler.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <mem/pmm.h>
 #include <io/ports.h>
 #include <kernel.h>

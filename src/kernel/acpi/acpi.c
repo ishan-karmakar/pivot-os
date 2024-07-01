@@ -1,5 +1,5 @@
 #include <acpi/acpi.h>
-#include <kernel/logging.h>
+#include <util/logger.h>
 #include <libc/string.h>
 #include <cpu/ioapic.h>
 #include <mem/pmm.h>
