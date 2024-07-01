@@ -10,10 +10,10 @@ typedef struct {
     void *wait_for_key;
 } efi_input_key_t;
 
-typedef struct efi_simple_input {
-    efi_status_t (*reset)(struct efi_simple_input*, bool);
-    efi_status_t (*read_key_stroke)(struct efi_simple_input*, efi_input_key_t*);
-} efi_simple_input_t;
+typedef struct efi_si {
+    efi_status_t (*reset)(struct efi_si*, bool);
+    efi_status_t (*read_key_stroke)(struct efi_si*, efi_input_key_t*);
+} efi_si_t;
 
 typedef struct {
     int32_t max_mode;
@@ -22,22 +22,22 @@ typedef struct {
     int32_t cursor_column;
     int32_t cursor_row;
     bool cursor_visible;
-} efi_simple_output_mode_t;
+} efi_so_mode_t;
 
-typedef struct efi_simple_output {
-    efi_status_t (*reset)(struct efi_simple_output*, bool);
-    efi_status_t (*output_string)(struct efi_simple_output*, uint16_t*);
-    efi_status_t (*test_string)(struct efi_simple_output*, uint16_t*);
+typedef struct efi_so {
+    efi_status_t (*reset)(struct efi_so*, bool);
+    efi_status_t (*output_string)(struct efi_so*, uint16_t*);
+    efi_status_t (*test_string)(struct efi_so*, uint16_t*);
 
-    efi_status_t (*query_mode)(struct efi_simple_output*, size_t, size_t*, size_t*);
-    efi_status_t (*set_mode)(struct efi_simple_output*, size_t);
-    efi_status_t (*set_attribute)(struct efi_simple_output*, size_t);
+    efi_status_t (*query_mode)(struct efi_so*, size_t, size_t*, size_t*);
+    efi_status_t (*set_mode)(struct efi_so*, size_t);
+    efi_status_t (*set_attribute)(struct efi_so*, size_t);
 
-    efi_status_t (*clear_screen)(struct efi_simple_output*);
-    efi_status_t (*set_cursor_position)(struct efi_simple_output*, size_t, size_t);
-    efi_status_t (*enable_cursor)(struct efi_simple_output*, bool);
+    efi_status_t (*clear_screen)(struct efi_so*);
+    efi_status_t (*set_cursor_position)(struct efi_so*, size_t, size_t);
+    efi_status_t (*enable_cursor)(struct efi_so*, bool);
 
-    efi_simple_output_mode_t *mode;
-} efi_simple_output_t;
+    efi_so_mode_t *mode;
+} efi_so_t;
 
-efi_status_t init_con(efi_simple_output_t*);
+efi_status_t init_con(efi_so_t*);

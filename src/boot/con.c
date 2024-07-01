@@ -2,7 +2,7 @@
 #include <io/stdio.h>
 #include <util/logger.h>
 #include <stdarg.h>
-static efi_simple_output_t *con_out;
+static efi_so_t *con_out;
 
 void efi_char_printer(char c) {
     uint16_t s[2] = { c, 0 };
@@ -11,7 +11,7 @@ void efi_char_printer(char c) {
         con_out->output_string(con_out, L"\r");
 }
 
-efi_status_t init_con(efi_simple_output_t *cout) {
+efi_status_t init_con(efi_so_t *cout) {
     con_out = cout;
     char_printer = efi_char_printer;
 

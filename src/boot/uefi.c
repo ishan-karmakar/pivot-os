@@ -8,6 +8,30 @@
 #include <stdarg.h>
 
 uint8_t CPU = 0;
+efi_guid_t simple_pointer_protocol = {0x31878c87,0xb75,0x11d5, {0x9a,0x4f,0x00,0x90,0x27,0x3f,0xc1,0x4d}};
+
+typedef struct {
+    uint64_t resx;
+    uint64_t resy;
+    uint64_t resz;
+    bool left_button;
+    bool right_button;
+} efi_sp_mode_t; 
+
+typedef struct {
+    int32_t relative_movement_x;
+    int32_t relative_movement_y;
+    int32_t relative_movement_z;
+    bool left_button;
+    bool right_button;
+} efi_sp_state_t;
+
+typedef struct efi_spp {
+    efi_status_t (*reset)(struct efi_spp*, bool);
+    efi_status_t (*get_state)(struct efi_spp*, efi_sp_state_t*);
+    uintptr_t wait_for_input;
+    efi_sp_mode_t *mode;
+} efi_spp_t;
 
 efi_status_t verify_table(efi_boot_services_t *bs, efi_table_header_t *header) {
     uint32_t crc32, old_crc32 = header->crc32;

@@ -97,13 +97,13 @@ typedef struct {
     uint32_t firmware_revision;
 
     void *console_in_handle;
-    uintptr_t con_in;
+    efi_si_t *con_in;
 
     void *console_out_handle;
-    efi_simple_output_t *con_out;
+    efi_so_t *con_out;
 
     void *standard_error_handle;
-    efi_simple_output_t *std_err;
+    efi_so_t *std_err;
 
     uintptr_t runtime_services;
 

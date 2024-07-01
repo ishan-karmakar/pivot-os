@@ -33,6 +33,7 @@ efi_status_t init_graphics(efi_boot_services_t *bs) {
     }
     if (target_mode == NULL) {
         log(Error, "GOP", "Couldn't find a compatible video mode");
+        while(1);
         return -3;
     }
     log(Info, "GOP", "Choosing mode with resolution %ux%u", target_mode->horizontal_res, target_mode->vertical_res);
