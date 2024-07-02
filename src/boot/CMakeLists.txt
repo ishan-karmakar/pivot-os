@@ -1,3 +1,5 @@
+project(bootloader C)
+
 file(GLOB_RECURSE C_FILES CONFIGURE_DEPENDS "*.c")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -target x86_64-unknown-windows -fshort-wchar")

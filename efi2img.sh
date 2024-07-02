@@ -14,7 +14,7 @@ REGEX="^[0-9]:([0-9]+)s:([0-9]+)s"
 rm -f $IMG /tmp/part.img
 
 truncate -s $IMG_SIZE $IMG
-output=$(parted $IMG -m -s -a min mklabel gpt mkpart EFI FAT32 0% 100% unit s p list | sed -n 3p)
+output=$(parted $IMG -m -s -a min mklabel gpt mkpart TEST FAT32 0% 100% unit s p list | sed -n 3p)
 [[ $output =~ $REGEX ]]
 start_sec=${BASH_REMATCH[1]}
 end_sec=${BASH_REMATCH[2]}
