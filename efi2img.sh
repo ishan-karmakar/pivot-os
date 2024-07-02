@@ -9,7 +9,8 @@ KERNEL_ELF=$2
 IMG=$3
 # 1:(12)s:(12345)s:...
 REGEX="^[0-9]:([0-9]+)s:([0-9]+)s"
-
+# FIXME: Need to figure out how this all works and fix it
+# Maybe use a python script or something
 rm -f $IMG /tmp/part.img
 
 truncate -s $IMG_SIZE $IMG
