@@ -44,5 +44,5 @@ typedef struct efi_gop {
 #define TARGET_SCREEN_HEIGHT 768
 #define TARGET_PIXEL_FORMAT PixelBlueGreenRedReserved8BitPerColor
 
-efi_status_t init_graphics(efi_boot_services_t*);
+efi_status_t init_graphics(efi_system_table_t*);
 efi_status_t close_graphics(void *handle_buffer);

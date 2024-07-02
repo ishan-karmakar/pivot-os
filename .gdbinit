@@ -3,5 +3,5 @@ define kc
 	continue
 end
 
-file build/kernel.elf
+file build/debug/kernel.elf
 target remote :1234

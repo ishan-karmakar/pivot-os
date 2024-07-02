@@ -1,6 +1,4 @@
 #pragma once
-#include <efi.h>
-#include <efilib.h>
-#include <kernel.h>
+#include <uefi.h>
 
-EFI_STATUS FindRSDP(kernel_info_t *kinfo);
+void init_acpi(efi_system_table_t*);

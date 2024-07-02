@@ -74,7 +74,7 @@ typedef struct {
 
     efi_status_t (*protocols_per_handle)(void*, efi_guid_t***, size_t*);
     efi_status_t (*locate_handle_buffer)(efi_locate_search_type_t, efi_guid_t*, void*, size_t*, void***);
-    efi_status_t (*locate_protocol)(efi_guid_t*, void*, void**);
+    efi_status_t (*locate_protocol)(const efi_guid_t*, void*, void**);
     uintptr_t install_multiple_protocol_interfaces;
     uintptr_t uninstall_multiple_protocol_interfaces;
 
