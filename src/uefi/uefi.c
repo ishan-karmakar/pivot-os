@@ -20,7 +20,7 @@ efi_status_t verify_table(efi_boot_services_t *bs, efi_table_header_t *header) {
         return -27;
 }
 
-efi_status_t efi_main(void *image_handle, efi_system_table_t *st) {
+efi_status_t efi_main(__attribute__((unused)) void* image_handle, efi_system_table_t *st) {
     efi_status_t status;
     status = init_con(st->con_out);
     if (status < 0) return status;

@@ -51,7 +51,7 @@ void user_function(void) {
 }
 
 // TODO: Support booting with BIOS and UEFI
-void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info, uintptr_t stack) {
+void __attribute__((noreturn)) init_kernel(kernel_info_t *kernel_info) {
     CPU = 0;
     kinfo = *kernel_info; // Copy over boot info to higher half
 #ifdef DEBUG

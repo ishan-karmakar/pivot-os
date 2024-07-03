@@ -1,4 +1,4 @@
-project(bootloader C)
+project(uefi C)
 
 file(GLOB_RECURSE C_FILES CONFIGURE_DEPENDS "*.c")
 

@@ -20,6 +20,7 @@ add_custom_command(
     OUTPUT ${PSF_OUT}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMAND ${CMAKE_OBJCOPY} -O elf64-x86-64 -B i386 -I binary fonts/default.psf ${PSF_OUT}
+    DEPENDS ${CMAKE_SOURCE_DIR}/fonts/default.psf
     VERBATIM
 )
 

@@ -15,7 +15,7 @@ static void *search_guid(const efi_system_table_t *st, const efi_guid_t *guid) {
 void init_acpi(efi_system_table_t *st) {
     void *acpi_20 = search_guid(st, &ACPI_20_GUID);
     if (!acpi_20) {
-        void *acpi_10 = search_guid(st, &ACPI_10_GUID);
+        // void *acpi_10 = search_guid(st, &ACPI_10_GUID);
         log(Info, "ACPI", "Found ACPI 1.0 tables");
     } else {
         log(Info, "ACPI", "Found ACPI 2.0 tables");
