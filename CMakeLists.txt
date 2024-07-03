@@ -6,6 +6,7 @@ file(GLOB_RECURSE COMMON_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/common
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -mno-sse")
 set(QEMU_FLAGS -m 128M -smp 2 -enable-kvm -serial stdio -no-reboot -no-shutdown)
 set(OS_IMG ${CMAKE_CURRENT_BINARY_DIR}/os.img)
+set(BIOS_BIN ${CMAKE_CURRENT_BINARY_DIR}/bios/bios.bin)
 include_directories(include/common)
 find_program(SGDISK sgdisk REQUIRED)
 find_program(FAT_MKFS mkfs.fat REQUIRED)
@@ -24,10 +25,10 @@ add_custom_command(
     COMMAND ./diskmaker.sh
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     BYPRODUCTS tmp.img
-    DEPENDS BOOTX64.efi kernel.elf bios.bin
+    DEPENDS BOOTX64.efi kernel.elf ${BIOS_BIN}
 )
     
-add_custom_target(os ALL DEPENDS ${OS_IMG})
+add_custom_target(os ALL DEPENDS ${OS_IMG} BOOTX64.efi kernel.elf bios.bin)
 
 find_program(QEMU_PATH qemu-system-x86_64)
 if (NOT QEMU_BIOS)
