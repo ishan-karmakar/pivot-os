@@ -7,7 +7,7 @@ IMG_SIZE=$((34 + FAT_SIZE))
 
 # Only going to use paths for executables that aren't in coreutils
 rm -f tmp.img
-@FAT_MKFS@ -v -f 1 -s 1 -a -r 16 -R $((BIOS2_SEC + 1)) -F12 -C tmp.img $FAT_SIZE
+@FAT_MKFS@ -f 1 -s 1 -a -r 16 -R $((BIOS2_SEC + 1)) -F12 -C tmp.img $FAT_SIZE
 @MMD@ -i tmp.img ::/EFI
 @MMD@ -i tmp.img ::/EFI/BOOT
 @MCOPY@ -i tmp.img $<TARGET_FILE:BOOTX64.efi> ::/EFI/BOOT
