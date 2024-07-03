@@ -33,7 +33,7 @@ find_program(QEMU_PATH qemu-system-x86_64)
 if (QEMU_PATH)
     add_custom_target(
         run
-        COMMAND ${QEMU_PATH} ${QEMU_FLAGS} -drive file=$<TARGET_FILE:os.img>,index=0,media=disk,format=raw
+        COMMAND ${QEMU_PATH} ${QEMU_FLAGS} -drive file=$<TARGET_FILE:os.>,index=0,media=disk,format=raw
         DEPENDS os
     )
 endif ()
