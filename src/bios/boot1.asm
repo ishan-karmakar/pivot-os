@@ -23,6 +23,9 @@ load_bios2:
     mov di, disk_error
     int 0x13
     jc handle_error
+    mov dx, [0x8000]
+    call print_hex
+    jmp $
     ret
 
 check_lba_ext:
@@ -32,9 +35,6 @@ check_lba_ext:
     mov di, ext_lba_error
     int 0x13
     jc handle_error
-    mov al, 0xEB
-    cmp al, [0x8000]
-    jne handle_error
     ret
 
 handle_error:
@@ -51,8 +51,8 @@ disk_addr_packet:
     db 16
     db 0
     dw BIOS2_SECTORS
-    dw 0
     dw 0x8000
+    dw 0
     dd 35
     dd 0
 

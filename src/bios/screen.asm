@@ -54,8 +54,8 @@ step2:
 end:
     ; prepare the parameter and call the function
     ; remember that print receives parameters in 'bx'
-    mov bx, HEX_OUT
-    call print
+    mov di, HEX_OUT
+    call print_string
 
     popa
     ret
