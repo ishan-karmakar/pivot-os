@@ -1,18 +1,20 @@
 EFI_KB=$(du -k $<TARGET_FILE:BOOTX64.efi> | cut -f1)
 ELF_KB=$(du -k $<TARGET_FILE:kernel.elf> | cut -f1)
-FAT_SIZE=$((2 + EFI_KB + ELF_KB))
+BIOS2_BYTES=$(du -b bios/bios2.bin | cut -f1)
+BIOS2_SEC=$(((BIOS2_BYTES + 511) / 512))
+FAT_SIZE=$((3 + BIOS2_KB + EFI_KB + ELF_KB))
 IMG_SIZE=$((34 + FAT_SIZE))
 
 # Only going to use paths for executables that aren't in coreutils
-
 rm -f tmp.img
-@FAT_MKFS@ -f 1 -s 1 -a -r 16 -F12 -C tmp.img $FAT_SIZE
+@FAT_MKFS@ -v -f 1 -s 1 -a -r 16 -R $((BIOS2_SEC + 1)) -F12 -C tmp.img $FAT_SIZE
 @MMD@ -i tmp.img ::/EFI
 @MMD@ -i tmp.img ::/EFI/BOOT
 @MCOPY@ -i tmp.img $<TARGET_FILE:BOOTX64.efi> ::/EFI/BOOT
 @MCOPY@ -i tmp.img $<TARGET_FILE:kernel.elf> ::/
 truncate -s ${IMG_SIZE}K os.img
-@SGDISK@ -z -N 1 -t 1:ef00 -c 1:EFI os.img
-dd bs=512 if=tmp.img of=os.img seek=34 conv=notrunc
-dd bs=1 if=bios/bios.bin of=os.img count=446 conv=notrunc
-dd bs=1 if=bios/bios.bin of=os.img count=2 seek=510 skip=510 conv=notrunc
+@SGDISK@ -z -N 1 -t 1:ef00 -c 1:EFI os.img > /dev/null
+dd status=none bs=512 if=tmp.img of=os.img seek=34 conv=notrunc
+dd status=none bs=512 if=@BIOS2_BIN@ of=os.img seek=35 conv=notrunc
+dd status=none bs=1 if=@BIOS1_BIN@ of=os.img count=446 conv=notrunc
+dd status=none bs=1 if=@BIOS1_BIN@ of=os.img count=2 seek=510 skip=510 conv=notrunc

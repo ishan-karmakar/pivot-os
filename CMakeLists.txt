@@ -6,7 +6,8 @@ file(GLOB_RECURSE COMMON_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/common
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -mno-sse")
 set(QEMU_FLAGS -m 128M -smp 2 -enable-kvm -serial stdio -no-reboot -no-shutdown)
 set(OS_IMG ${CMAKE_CURRENT_BINARY_DIR}/os.img)
-set(BIOS_BIN ${CMAKE_CURRENT_BINARY_DIR}/bios/bios.bin)
+set(BIOS1_BIN ${CMAKE_CURRENT_BINARY_DIR}/bios/bios1.bin)
+set(BIOS2_BIN ${CMAKE_CURRENT_BINARY_DIR}/bios/bios2.bin)
 include_directories(include/common)
 find_program(SGDISK sgdisk REQUIRED)
 find_program(FAT_MKFS mkfs.fat REQUIRED)
@@ -25,21 +26,20 @@ add_custom_command(
     COMMAND ./diskmaker.sh
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     BYPRODUCTS tmp.img
-    DEPENDS BOOTX64.efi kernel.elf ${BIOS_BIN}
+    DEPENDS BOOTX64.efi kernel.elf ${BIOS1_BIN} ${BIOS2_BIN}
 )
     
-add_custom_target(os ALL DEPENDS ${OS_IMG} BOOTX64.efi kernel.elf bios.bin)
+add_custom_target(os ALL DEPENDS ${OS_IMG} BOOTX64.efi kernel.elf bios1.bin bios2.bin)
 
 find_program(QEMU_PATH qemu-system-x86_64)
 if (NOT QEMU_BIOS)
     list(APPEND QEMU_FLAGS -bios OVMF.fd)
 endif()
-unset(QEMU_BIOS CACHE)
 
 if (QEMU_PATH)
     add_custom_target(
         run
         COMMAND ${QEMU_PATH} ${QEMU_FLAGS} -drive file=${OS_IMG},index=0,media=disk,format=raw
-        DEPENDS ${OS_IMG}
+        DEPENDS os
     )
 endif ()
