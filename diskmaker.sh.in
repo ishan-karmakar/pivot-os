@@ -14,5 +14,5 @@ rm -f tmp.img
 truncate -s ${IMG_SIZE}K os.img
 @SGDISK@ -z -N 1 -t 1:ef00 -c 1:EFI os.img
 dd bs=512 if=tmp.img of=os.img seek=34 conv=notrunc
-# dd bs=1 if=bios/bios.bin of=os.img count=446 conv=notrunc
+dd bs=1 if=bios/bios.bin of=os.img count=446 conv=notrunc
 dd bs=1 if=bios/bios.bin of=os.img count=2 seek=510 skip=510 conv=notrunc

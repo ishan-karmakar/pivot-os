@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 project(PivotOS)
 file(GLOB_RECURSE COMMON_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/common/*.c")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -mno-sse")
-set(QEMU_FLAGS -m 128M -smp 2 -enable-kvm -serial stdio -bios OVMF.fd -no-reboot -no-shutdown)
+set(QEMU_FLAGS -m 128M -smp 2 -enable-kvm -serial stdio -no-reboot -no-shutdown)
 set(OS_IMG ${CMAKE_CURRENT_BINARY_DIR}/os.img)
 include_directories(include/common)
 find_program(SGDISK sgdisk REQUIRED)
@@ -30,6 +30,11 @@ add_custom_command(
 add_custom_target(os ALL DEPENDS ${OS_IMG})
 
 find_program(QEMU_PATH qemu-system-x86_64)
+if (NOT QEMU_BIOS)
+    list(APPEND QEMU_FLAGS -bios OVMF.fd)
+endif()
+unset(QEMU_BIOS CACHE)
+
 if (QEMU_PATH)
     add_custom_target(
         run
