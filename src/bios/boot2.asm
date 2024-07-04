@@ -4,13 +4,12 @@
 
 [bits 16]
 [org BIOS2_ORG]
-jmp $
-; cli
-; lgdt [gdt32.pointer]
-; mov eax, cr0
-; or eax, 1
-; mov cr0, eax
-; jmp 0x8:init32
+cli
+lgdt [gdt32.pointer]
+mov eax, cr0
+or eax, 1
+mov cr0, eax
+jmp 0x8:init32
 
 [bits 32]
 init32:
@@ -21,25 +20,9 @@ init32:
     mov fs, ax
     mov gs, ax
 
-    mov ebx, pm_msg
-    call print_string
+    mov dx, [0x8000]
+    call printh
     jmp $
-
-vesa_info:
-    db 'VESA' ; Signature
-    dw 0 ; Version number
-    dd 0 ; Pointer to OEM name
-    dd 0 ; Capabilities
-    dd 0 ; Supported VESA and OEM video modes
-    dw 0 ; Amount of video memory in 64K blocks
-    dw 0 ; OEM software version (BCD)
-    dd 0 ; Pointer to vendor name
-    dd 0 ; Pointer to product name
-    dd 0 ; Pointer to product revision string
-    dw 0 ; VBE/AF version (BCD)
-    dd 0 ; Pointer to list of supported accelerated video modes
-    times 216 db 0
-    times 256 db 0
 
 gdt32:
     dq 0
@@ -62,5 +45,7 @@ gdt32:
     dd gdt32
 
 pm_msg db `Loaded into 32-bit mode\0`
+svga_err db `Error getting SVGA info\0`
 
-%include "screen32.asm"
+%include "util.asm"
+%include "util32.asm"
