@@ -16,7 +16,6 @@ print_string:
 .exit:
     ret
 
-; receiving the data in 'dx'
 ; For the examples we'll assume that we're called with dx=0x1234
 print_hex:
     pusha
@@ -56,7 +55,6 @@ end:
     ; remember that print receives parameters in 'bx'
     mov di, HEX_OUT
     call print_string
-
     popa
     ret
 
