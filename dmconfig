@@ -1,0 +1,19 @@
+# DiskMaker config - CMake will fill in most of these at configure time
+
+# Target files
+BIOS1=${BIOS1_BIN}
+BIOS2=${BIOS2_BIN}
+EFI=$<TARGET_FILE:BOOTX64.efi>
+ELF=$<TARGET_FILE:kernel.elf>
+OUT=${OS_IMG}
+
+# Executable paths
+FAT_MKFS=${FAT_MKFS}
+MMD=${MMD}
+MCOPY=${MCOPY}
+SGDISK=${SGDISK}
+
+# FAT paths
+EFI_PATH=/EFI/BOOT
+ELF_PATH=/
+NUM_SUBDIRECTORIES=1

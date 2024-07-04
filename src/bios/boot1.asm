@@ -1,7 +1,6 @@
 ; BIOS Bootloader stage 1
 ; BIOS will directly load this
-; FIXME: Try to find a way to do this dynamically
-%define BIOS2_SECTORS 1
+%include "constants.asm"
 
 [bits 16]
 [org 0x7C00]
@@ -11,11 +10,10 @@ call print_string
 mov sp, 0x8000
 mov bp, sp
 
-
 jmp $
-call check_lba_ext
-call load_bios2
-jmp 0x8000
+; call check_lba_ext
+; call load_bios2
+jmp BIOS2_ORG
 
 load_bios2:
     mov si, disk_addr_packet
@@ -39,21 +37,16 @@ handle_error:
     call print_string
     jmp $
 
-%include "screen16.asm"
-
 disk_addr_packet:
     db 16
     db 0
     dw BIOS2_SECTORS
-    dw 0x8100
+    dw BIOS2_ORG
     dw 0
-    dd 35
+    dd BIOS2_START_SEC
     dd 0
 
-svga_info:
-    db 'VBE2'
-    dw 0
-    dd 0
+%include "screen16.asm"
 
 entered_bl db `Entered bootloader\r\n\0`
 ext_lba_error db `BIOS does not support LBA Ext Read\r\n\0`

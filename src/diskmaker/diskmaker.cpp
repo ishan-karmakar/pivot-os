@@ -1,0 +1,129 @@
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <map>
+#include <filesystem>
+#include <unistd.h>
+#include <cstring>
+typedef std::map<std::string, std::string> config_t;
+
+const std::string CONFIG_FILE("dmconfig");
+config_t config;
+const char *size = "";
+char buf[100];
+
+void parse_config();
+size_t get_size(std::string);
+void create_image();
+std::string config_val(const char*);
+inline void run_command(char *cmd);
+
+int main(int argc, char *argv[]) {
+    int c = 0;
+    while ((c = getopt(argc, argv, "s:")) != -1)
+        switch (c) {
+        case 's':
+            size = optarg;
+            break;
+        default:
+            return 1;
+        }
+    parse_config();
+    if (*size)
+        std::cout << get_size(config_val(size)) << '\n';
+    else
+        create_image();
+
+    return 0;
+}
+
+void parse_config() {
+    std::ifstream file(CONFIG_FILE);
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line[0] == '#')
+            continue;
+        std::stringstream ss(line);
+        std::string key;
+        while (std::getline(ss, line, '=')) {
+            if (key.empty())
+                key = line;
+            else {
+                config[key] = line;
+                break;
+            }
+        }
+    }
+}
+
+void create_image() {
+    size_t efi_sectors = get_size(config_val("EFI"));
+    size_t elf_sectors = get_size(config_val("ELF"));
+    size_t b2_sectors = get_size(config_val("BIOS2"));
+    size_t fat_sectors = 4 + b2_sectors + std::stoi(config_val("NUM_SUBDIRECTORIES")) + efi_sectors + elf_sectors;
+    size_t os_sectors = 34 + 33 + fat_sectors;
+    std::string out_str = config_val("OUT");
+    const char *out = out_str.c_str();
+    
+    std::remove("tmp.img");
+    std::remove(out);
+
+    std::sprintf(buf, "%s -f 1 -s 1 -a -r 16 -F12 -R %lu -C tmp.img %lu", config_val("FAT_MKFS").c_str(), b2_sectors + 1, fat_sectors);
+    run_command(buf);
+
+    auto create_subdirectories = [&](std::string dir_str, std::string file) {
+        const char *fstr = "%s -i tmp.img ::%s";
+        std::filesystem::path dir(dir_str);
+        for (auto it = std::next(dir.begin()); it != dir.end(); it++) {
+            std::filesystem::path ancestor;
+            for (auto jt = dir.begin(); jt != std::next(it); jt++)
+                ancestor /= *jt;
+
+            std::sprintf(buf, "%s -i tmp.img ::%s", config_val("MMD").c_str(), ancestor.c_str());
+            run_command(buf);
+
+            std::sprintf(buf, "%s -i tmp.img %s ::%s", config_val("MCOPY").c_str(), file.c_str(), ancestor.c_str());
+            run_command(buf);
+        }
+    };
+
+    create_subdirectories(config_val("EFI_PATH"), config_val("EFI"));
+    create_subdirectories(config_val("ELF_PATH"), config_val("ELF"));
+
+    std::sprintf(buf, "truncate -s %lu %s", os_sectors * 512, out);
+    run_command(buf);
+
+    std::sprintf(buf, "%s -N 1 -t 1:ef00 -h 1 %s", config_val("SGDISK").c_str(), out);
+    run_command(buf);
+
+    // First copy tmp.img to OUT
+    std::sprintf(buf, "dd status=none bs=512 if=tmp.img of=%s seek=34 conv=notrunc", out);
+    run_command(buf);
+
+    std::sprintf(buf, "dd status=none bs=512 if=%s of=%s seek=35 conv=notrunc", config_val("BIOS2").c_str(), out);
+    run_command(buf);
+
+    std::sprintf(buf, "dd status=none bs=1 if=%s of=%s count=446 conv=notrunc", config_val("BIOS1").c_str(), out);
+    run_command(buf);
+
+    std::sprintf(buf, "dd status=none bs=1 if=%s of=%s count=2 skip=510 seek=510 conv=notrunc", config_val("BIOS1").c_str(), out);
+    run_command(buf);
+}
+
+// Returns file's size in sectors (512 bytes)
+size_t get_size(std::string path) {
+    std::ifstream in(path, std::ifstream::ate | std::ifstream::binary);
+    return ((size_t) in.tellg() + 511) / 512;
+}
+
+std::string config_val(const char *key) {
+    if (config.find(key) == config.end())
+        throw std::invalid_argument("Could not find " + std::string(key) + " in config");
+    return config[key];
+}
+
+inline void run_command(char *cmd) {
+    std::strcat(cmd, " > /dev/null");
+    std::system(cmd);
+}
