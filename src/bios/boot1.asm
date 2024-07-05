@@ -8,48 +8,8 @@ mov sp, 0x8000
 mov bp, sp
 
 call check_lba_ext
-call find_video_mode
-jmp $
 call load_bios2
-jmp $
-
-find_video_mode:
-    mov word [0x8000 + vbe_info.signature], 0x4256
-    mov word [0x8000 + vbe_info.signature + 2], 0x3245
-    mov ax, 0x4F00
-    mov di, 0x8000
-    int 0x10
-    cmp ax, 0x4F
-    jne error
-    mov fs, [0x8000 + vbe_info.video_modes]
-    mov si, [0x8000 + vbe_info.video_modes + 2]
-.find_mode:
-    mov dx, [fs:si]
-    add si, 2
-    cmp dx, 0xFFFF
-    je error
-
-    mov ax, 0x4F01
-    mov cx, dx
-    mov di, 0x8200
-    int 0x10
-
-    cmp ax, 0x4F
-    jne error
-
-    mov ax, [0x8200 + vbe_minfo.width]
-    cmp ax, TARGET_WIDTH
-    jne .next_mode
-
-    mov ax, [0x8200 + vbe_minfo.height]
-    cmp ax, TARGET_HEIGHT
-    jne .next_mode
-
-    jmp error
-
-.next_mode:
-    add si, 2
-    jmp .find_mode
+jmp BIOS2_ORG
 
 load_bios2:
     mov si, disk_addr_packet
@@ -79,8 +39,12 @@ disk_addr_packet:
 error:
     jmp $
 
+%include "util.asm"
+%include "util16.asm"
+
 TIMES 510 - ($ - $$) db 0
 dw 0xAA55
+
 
 struc vbe_info
     .signature resb 4

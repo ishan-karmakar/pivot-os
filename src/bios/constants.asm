@@ -6,3 +6,4 @@
 %define BIOS2_SECTORS 1
 %define TARGET_WIDTH 1024
 %define TARGET_HEIGHT 768
+%define TARGET_BPP 4

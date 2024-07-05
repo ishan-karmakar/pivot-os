@@ -1,7 +1,3 @@
-error:
-    call print
-    jmp $
-
 print:
     pusha
 .start:
