@@ -1,9 +1,8 @@
-project(bios ASM_NASM)
+project(bios C ASM_NASM)
 set(
     BIOS_HELPERS
     util.asm
     util16.asm
-    util32.asm
 )
 
 add_custom_target(bios1.bin DEPENDS ${BIOS1_BIN} bios2.bin)
