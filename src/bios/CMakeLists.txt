@@ -1,5 +1,4 @@
 project(bios C ASM_NASM)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m16")
 set(
     BIOS_HELPERS
     util.asm
@@ -14,20 +13,13 @@ add_custom_command(
     DEPENDS boot1.asm ${BIOS_HELPERS} ${BIOS2_BIN}
 )
 
-# add_custom_target(bios2.bin DEPENDS ${BIOS2_BIN} diskmaker)
-# add_custom_command(
-#     OUTPUT ${BIOS2_BIN}
-#     COMMAND ${CMAKE_ASM_NASM_COMPILER} -o ${BIOS2_BIN} boot2.asm
-#     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-#     DEPENDS boot2.asm ${BIOS_HELPERS}
-# )
-add_executable(
-    bios2.bin
-    EXCLUDE_FROM_ALL
-    boot2.c
+add_custom_target(bios2.bin DEPENDS ${BIOS2_BIN} diskmaker)
+add_custom_command(
+    OUTPUT ${BIOS2_BIN}
+    COMMAND ${CMAKE_ASM_NASM_COMPILER} -o ${BIOS2_BIN} boot2.asm
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DEPENDS boot2.asm ${BIOS_HELPERS}
 )
-add_dependencies(bios2.bin diskmaker)
-target_link_options(bios2.bin PRIVATE -no-pie -Wl,-Ttext=0x8300,--oformat=binary)
 
 # This abomination of a command is because CMake escaping is the dumbest thing I have ever seen
 # It changes the BIOS2_SECTORS in constants.asm at compile time
