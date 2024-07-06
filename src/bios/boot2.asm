@@ -85,25 +85,72 @@ parse_fat:
     cmp word [FAT_LOAD_ADDR + 510], 0xAA55
     jne error
 
+    call get_rde_sector
+    mov dword [dap + dap_t.low_lba], eax
+    call load_sectors
+
+    mov edi, elf_path
+    call load_dir_entry
+    jmp $
+
+get_rde_sector:
     ; Calculate sector of root directory entry
-    ; FAT_START + FAT entries * 2 + Reserved sectors
-    mov edx, FAT_START
-    add dx, [FAT_LOAD_ADDR + 0xE] ; Reserved sectors
+    ; FAT_START + FAT entries * 2 + (Reserved sectors - 1)
+    mov eax, FAT_START
+    add ax, [FAT_LOAD_ADDR + 0xE] ; Reserved sectors
+    dec ax
     ; TODO: I guess something bad will happen if it overflows, but rn I don't care
     ; Root directory entry
+    push ax
     xor ax, ax
     mov al, [FAT_LOAD_ADDR + 0x10]
     mov cx, SECTORS_PER_FAT
-    push dx
     mul cx
-    pop dx
-    add dl, al
+    mov dx, ax
+    pop ax
+    add ax, dx
+    ret
 
-    mov dword [dap + dap_t.low_lba], edx
-    call load_sectors
-    mov dx, [FAT_LOAD_ADDR]
+; EDI contains name to search for (11 chars, space padded, last 3 is extension, no period)
+; If it can't find directory, it will iterate infinitely
+load_dir_entry:
+    mov esi, FAT_LOAD_ADDR
+.loop:
+    mov edx, 11
+    call memcmp
+    cmp eax, 1
+    je .done
+    add esi, 0x20
+.done:
+    mov dx, [esi + 0x1A]
     call printh
-    jmp $
+    ret
+
+; EDI contains src1 address
+; ESI contains src2 address
+; EDX contains num of elements to compare
+; EAX returns 0 if not equal, 1 if equal
+memcmp:
+    pusha
+    mov ecx, 0
+.loop:
+    cmp ecx, edx
+    jge .equal
+    mov bl, [edi]
+    cmp byte bl, [esi]
+    jne .not_equal
+    inc edi
+    inc esi
+    inc ecx
+    jmp .loop
+.not_equal:
+    popa
+    mov eax, 0
+    ret
+.equal:
+    popa
+    mov eax, 1
+    ret
 
 %include "util16.asm"
 %include "common.asm"
@@ -112,6 +159,7 @@ entered_bl db `Entered bootloader stage 2\r\n\0`
 set_video_mode db `Set VESA video mode\r\n\0`
 svga_err db `Error getting VESA info\0`
 video_mode_err db `Could not find suitable video mode\0`
+elf_path db 'KERNEL  ELF'
 
 struc vbe_info
     .signature resb 4

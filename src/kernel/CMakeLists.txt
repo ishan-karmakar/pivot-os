@@ -8,13 +8,14 @@ set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mcmodel=large")
 
 add_executable(
-    kernel.elf
+    kernel
     EXCLUDE_FROM_ALL
     ${C_FILES}
     ${ASM_FILES}
     ${COMMON_FILES}
     ${PSF_OUT}
 )
+set_target_properties(kernel PROPERTIES OUTPUT_NAME kernel.elf)
 
 add_custom_command(
     OUTPUT ${PSF_OUT}
@@ -24,7 +25,7 @@ add_custom_command(
     VERBATIM
 )
 
-target_include_directories(kernel.elf PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel)
+target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel)
 
-set_target_properties(kernel.elf PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
-target_link_options(kernel.elf PRIVATE -fuse-ld=lld -no-pie -z max-page-size=0x1000 -T ${LINKER_SCRIPT})
+set_target_properties(kernel PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
+target_link_options(kernel PRIVATE -fuse-ld=lld -no-pie -z max-page-size=0x1000 -T ${LINKER_SCRIPT})
