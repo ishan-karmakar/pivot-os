@@ -10,6 +10,7 @@ endstruc
 load_sectors:
     mov si, dap
     mov ah, 0x42
+    mov dl, 0x80
     mov bx, disk_read_err
     int 0x13
     jc error
@@ -39,7 +40,7 @@ printh:
     cmp cx, 4
     je .end
 
-    mov ax, bx
+    mov ax, dx
     and ax, 0xF
     add al, 0x30
     cmp al, 0x39

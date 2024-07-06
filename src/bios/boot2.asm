@@ -4,6 +4,8 @@
 %define VBE_INFO 0x8000
 %define VBE_MINFO 0x8200
 %define FAT_LOAD_ADDR 0x8000
+%define FAT_START 34
+%define SECTORS_PER_FAT 2
 
 [bits 16]
 [org BIOS2_ORG]
@@ -77,8 +79,30 @@ parse_fat:
     ; First load first sector
     mov word [dap + dap_t.num_sectors], 1
     mov dword [dap + dap_t.buffer], FAT_LOAD_ADDR
-    mov dword [dap + dap_t.low_lba], 0
+    mov dword [dap + dap_t.low_lba], FAT_START
     call load_sectors
+    mov bx, disk_read_err
+    cmp word [FAT_LOAD_ADDR + 510], 0xAA55
+    jne error
+
+    ; Calculate sector of root directory entry
+    ; FAT_START + FAT entries * 2 + Reserved sectors
+    mov edx, FAT_START
+    add dx, [FAT_LOAD_ADDR + 0xE] ; Reserved sectors
+    ; TODO: I guess something bad will happen if it overflows, but rn I don't care
+    ; Root directory entry
+    xor ax, ax
+    mov al, [FAT_LOAD_ADDR + 0x10]
+    mov cx, SECTORS_PER_FAT
+    push dx
+    mul cx
+    pop dx
+    add dl, al
+
+    mov dword [dap + dap_t.low_lba], edx
+    call load_sectors
+    mov dx, [FAT_LOAD_ADDR]
+    call printh
     jmp $
 
 %include "util16.asm"
