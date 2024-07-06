@@ -3,12 +3,14 @@
 %include "constants.asm"
 %define VBE_INFO 0x8000
 %define VBE_MINFO 0x8200
+%define FAT_LOAD_ADDR 0x8000
 
 [bits 16]
 [org BIOS2_ORG]
 mov bx, entered_bl
 call print
 call find_video_mode
+call parse_fat
 jmp $
 
 find_video_mode:
@@ -71,11 +73,19 @@ find_video_mode:
     call print
     ret
 
-%include "util.asm"
+parse_fat:
+    ; First load first sector
+    mov word [dap + dap_t.num_sectors], 1
+    mov dword [dap + dap_t.buffer], FAT_LOAD_ADDR
+    mov dword [dap + dap_t.low_lba], 0
+    call load_sectors
+    jmp $
+
 %include "util16.asm"
+%include "common.asm"
 
 entered_bl db `Entered bootloader stage 2\r\n\0`
-set_video_mode db `Set video mode: \0`
+set_video_mode db `Set VESA video mode\r\n\0`
 svga_err db `Error getting VESA info\0`
 video_mode_err db `Could not find suitable video mode\0`
 
@@ -90,8 +100,6 @@ struc vbe_info
     .vendor resd 1
     .product_name resd 1
     .product_rev resd 1
-    resb 222
-    resb 256
 endstruc
 
 struc vbe_minfo
@@ -126,5 +134,4 @@ struc vbe_minfo
     .framebuffer resd 1 ; 40
     .off_screen_mem_off resd 1
     .off_screen_mem_size resw 1
-    resb 206
 endstruc

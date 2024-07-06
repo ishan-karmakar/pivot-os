@@ -1,3 +1,20 @@
+struc dap_t
+    .size: resb 1
+    .rsv: resb 1
+    .num_sectors: resw 1
+    .buffer: resd 1
+    .low_lba: resd 1
+    .high_lba: resd 1
+endstruc
+
+load_sectors:
+    mov si, dap
+    mov ah, 0x42
+    mov bx, disk_read_err
+    int 0x13
+    jc error
+    ret
+
 error:
     call print
     jmp $
@@ -22,7 +39,7 @@ printh:
     cmp cx, 4
     je .end
 
-    mov ax, dx
+    mov ax, bx
     and ax, 0xF
     add al, 0x30
     cmp al, 0x39
@@ -42,5 +59,10 @@ printh:
     popa
     ret
 
-HEX_OUT:
-    db '0x0000',0 ; reserve memory for our new string
+disk_read_err: db `Disk read error\0`
+HEX_OUT: db '0x0000',0 ; reserve memory for our new string
+dap: istruc dap_t
+    at dap_t.size, db 16
+    at dap_t.rsv, db 0
+    at dap_t.high_lba, dd 0
+iend

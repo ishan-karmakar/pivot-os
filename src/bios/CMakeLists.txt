@@ -1,7 +1,7 @@
 project(bios C ASM_NASM)
 set(
     BIOS_HELPERS
-    util.asm
+    common.asm
     util16.asm
 )
 
