@@ -1,9 +1,11 @@
 ; BIOS Bootloader stage 2
 ; Bootloader stage 1 will load this
 %include "constants.asm"
-%define VBE_INFO 0x8000
-%define VBE_MINFO 0x8200
-%define FAT_LOAD_ADDR 0x8000
+%define VBE_INFO 0x7C00
+%define VBE_MINFO 0x7E00
+%define MMAP_ADDR 0x7C00
+%define MMAP_MAGIC 0x534D4150
+%define FAT_LOAD_ADDR 0x7D00
 %define SECTORS_PER_FAT 2
 
 [bits 16]
@@ -11,7 +13,8 @@
 mov bx, entered_bl
 call print
 call find_video_mode
-call parse_fat
+call get_mmap
+; call parse_fat
 jmp $
 
 find_video_mode:
@@ -41,8 +44,8 @@ find_video_mode:
     jne error
 
     mov ax, [VBE_MINFO + vbe_minfo.attributes]
-    test ax, 1 << 7
-    jz .find_mode
+    bt ax, 7
+    jnc .find_mode
 
     mov ax, [VBE_MINFO + vbe_minfo.width]
     cmp ax, TARGET_WIDTH
@@ -74,6 +77,40 @@ find_video_mode:
     call print
     ret
 
+get_mmap:
+    clc
+    mov ax, 0
+    mov es, ax
+    mov di, MMAP_ADDR
+    xor ebx, ebx
+.loop:
+    mov dword [es:di + 20], 1
+    mov eax, 0xE820
+    mov ecx, 24
+    mov edx, MMAP_MAGIC
+    int 0x15
+    jc .error
+    cmp eax, MMAP_MAGIC
+    jne .error
+    mov dx, [MMAP_ADDR + 8]
+    call printh
+    mov dx, [MMAP_ADDR + 8 + 2]
+    call printh
+    mov dx, [MMAP_ADDR + 8 + 4]
+    call printh
+    mov dx, [MMAP_ADDR + 8 + 6]
+    call printh
+    mov al, 32
+    call printc
+    cmp ebx, 0
+    jne .loop
+.done:
+    ret
+.error:
+    ; Need a custom error label here because EBX needs to be preserved
+    mov bx, mmap_err
+    jmp error
+
 parse_fat:
     ; First load first sector
     mov word [dap + dap_t.num_sectors], 1
@@ -90,24 +127,24 @@ parse_fat:
 
     mov edi, elf_path
     call load_dir_entry
-    jmp $
 
 get_rde_sector:
     ; Calculate sector of root directory entry
     ; FAT_START + FAT entries * 2 + (Reserved sectors - 1)
     mov eax, FAT_START
-    add ax, [FAT_LOAD_ADDR + 0xE] ; Reserved sectors
-    dec ax
+    movzx edx, word [FAT_LOAD_ADDR + 0xE] ; Reserved sectors
+    add eax, edx
+    dec eax
     ; TODO: I guess something bad will happen if it overflows, but rn I don't care
     ; Root directory entry
-    push ax
-    xor ax, ax
-    mov al, [FAT_LOAD_ADDR + 0x10]
-    mov cx, SECTORS_PER_FAT
-    mul cx
-    mov dx, ax
-    pop ax
-    add ax, dx
+    push eax
+    xor eax, eax
+    movzx eax, byte [FAT_LOAD_ADDR + 0x10]
+    mov ecx, SECTORS_PER_FAT
+    mul ecx
+    mov edx, eax
+    pop eax
+    add eax, edx
     ret
 
 ; EDI contains name to search for (11 chars, space padded, last 3 is extension, no period)
@@ -122,22 +159,22 @@ load_dir_entry:
     add esi, 0x20
 .load:
     mov edx, [dap + dap_t.low_lba]
-    add dx, [esi + 0x1A]
+    movzx eax, word [esi + 0x1A]
+    add edx, eax
     dec edx
+    mov [dap + dap_t.low_lba], edx
     mov eax, [esi + 0x1C]
     mov edx, eax
     shr edx, 16
     mov cx, 512
     div cx
-    test dx, dx
+    cmp dx, 0
     jz .done
     inc ax
 .done:
+    mov [dap + dap_t.num_sectors], ax
     mov dx, ax
     call printh
-    ; call printh
-    ; shr edx, 16
-    ; call printh
     ret
 
 ; EDI contains src1 address
@@ -173,6 +210,7 @@ entered_bl db `Entered bootloader stage 2\r\n\0`
 set_video_mode db `Set VESA video mode\r\n\0`
 svga_err db `Error getting VESA info\0`
 video_mode_err db `Could not find suitable video mode\0`
+mmap_err db `Error getting MMAP\0`
 elf_path db 'KERNEL  ELF'
 
 struc vbe_info
