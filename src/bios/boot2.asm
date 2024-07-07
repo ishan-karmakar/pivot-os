@@ -4,7 +4,6 @@
 %define VBE_INFO 0x8000
 %define VBE_MINFO 0x8200
 %define FAT_LOAD_ADDR 0x8000
-%define FAT_START 34
 %define SECTORS_PER_FAT 2
 
 [bits 16]
@@ -119,11 +118,26 @@ load_dir_entry:
     mov edx, 11
     call memcmp
     cmp eax, 1
-    je .done
+    je .load
     add esi, 0x20
+.load:
+    mov edx, [dap + dap_t.low_lba]
+    add dx, [esi + 0x1A]
+    dec edx
+    mov eax, [esi + 0x1C]
+    mov edx, eax
+    shr edx, 16
+    mov cx, 512
+    div cx
+    test dx, dx
+    jz .done
+    inc ax
 .done:
-    mov dx, [esi + 0x1A]
+    mov dx, ax
     call printh
+    ; call printh
+    ; shr edx, 16
+    ; call printh
     ret
 
 ; EDI contains src1 address

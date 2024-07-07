@@ -10,14 +10,26 @@ mov sp, 0x8000
 mov bp, sp
 
 call check_lba_ext
+call get_bios2_sectors
 call load_bios2
 jmp BIOS2_ORG
 
+; AX: Number of sectors B2 takes up
 load_bios2:
-    mov word [dap + dap_t.num_sectors], BIOS2_SECTORS
+    mov word [dap + dap_t.num_sectors], ax
     mov dword [dap + dap_t.buffer], BIOS2_ORG
-    mov dword [dap + dap_t.low_lba], BIOS2_START_SEC
+    mov dword [dap + dap_t.low_lba], FAT_START + 1
     call load_sectors
+    ret
+
+; AX returns number of sectors B2 takes up
+get_bios2_sectors:
+    mov word [dap + dap_t.num_sectors], 1
+    mov dword [dap + dap_t.buffer], BIOS2_ORG
+    mov dword [dap + dap_t.low_lba], FAT_START
+    call load_sectors
+    mov ax, [BIOS2_ORG + 0xE]
+    sub ax, 1
     ret
 
 check_lba_ext:
