@@ -10,6 +10,7 @@
 #include <libc/string.h>
 #include <scheduler/thread.h>
 #include <kernel.h>
+#include <common.h>
 
 extern void ap_trampoline(void);
 extern gdtr_t gdtr;

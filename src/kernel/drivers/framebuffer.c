@@ -3,6 +3,7 @@
 #include <io/stdio.h>
 #include <util/logger.h>
 #include <kernel.h>
+#include <common.h>
 
 extern char _binary_fonts_default_psf_start;
 psf_font_t *loaded_font;

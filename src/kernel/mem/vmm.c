@@ -2,6 +2,7 @@
 #include <mem/pmm.h>
 #include <util/logger.h>
 #include <kernel.h>
+#include <common.h>
 
 void init_vmm(vmm_level_t level, size_t max_pages, vmm_t *vi) {
     vi->flags = level == Supervisor ? KERNEL_PT_ENTRY : USER_PT_ENTRY;

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#define PAGE_SIZE 0x1000
 
 typedef struct mmap_descriptor {
     uint32_t type;

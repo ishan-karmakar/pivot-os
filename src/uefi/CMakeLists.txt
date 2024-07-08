@@ -13,5 +13,5 @@ add_executable(
 
 set_target_properties(uefi PROPERTIES OUTPUT_NAME BOOTX64.efi)
 
-target_include_directories(uefi PRIVATE ${CMAKE_SOURCE_DIR}/include/boot)
+target_include_directories(uefi PRIVATE ${CMAKE_SOURCE_DIR}/include/uefi)
 target_link_options(uefi PRIVATE -fuse-ld=lld -Wl,-entry:efi_main,-subsystem:efi_application)

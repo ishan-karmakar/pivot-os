@@ -9,6 +9,7 @@
 #include <mem/pmm.h>
 #include <io/ports.h>
 #include <kernel.h>
+#include <common.h>
 
 extern void hcf(void);
 void disable_pic(void);

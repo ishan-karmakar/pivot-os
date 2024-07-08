@@ -40,4 +40,4 @@ typedef struct efi_so {
     efi_so_mode_t *mode;
 } efi_so_t;
 
-efi_status_t init_con(efi_so_t*);
+efi_status_t init_con(void);

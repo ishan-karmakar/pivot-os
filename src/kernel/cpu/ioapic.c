@@ -5,6 +5,7 @@
 #include <mem/pmm.h>
 #include <libc/string.h>
 #include <kernel.h>
+#include <common.h>
 
 static uint32_t read_register(uint8_t);
 static int read_redirect(uint8_t, ioapic_redtbl_entry_t*);

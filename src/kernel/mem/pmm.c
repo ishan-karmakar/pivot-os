@@ -11,6 +11,7 @@ Only the VMM and HEAP use the bitmap from bitmap.h
 #include <util/logger.h>
 #include <kernel.h>
 #include <mem/vmm.h>
+#include <common.h>
 
 static bool table_empty(page_table_t);
 static int64_t pmm_request_frame();

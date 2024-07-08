@@ -12,6 +12,7 @@
 #include <cpu/idt.h>
 #include <cpu/smp.h>
 #include <kernel.h>
+#include <common.h>
 
 void thread_wrapper(thread_fn_t);
 void init_thread_vmm(thread_t*);

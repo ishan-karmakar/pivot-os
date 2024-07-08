@@ -32,7 +32,7 @@ typedef struct {
     uintptr_t raise_tpl;
     uintptr_t restore_tpl;
 
-    efi_status_t (*alloc_pages)(efi_allocate_type_t, efi_memory_type_t, size_t, uintptr_t);
+    efi_status_t (*alloc_pages)(efi_allocate_type_t, efi_memory_type_t, size_t, uintptr_t*);
     efi_status_t (*free_pages)(uintptr_t, size_t);
     efi_status_t (*get_mmap)(size_t*, mmap_desc_t*, size_t*, size_t*, uint32_t*);
     efi_status_t (*alloc_pool)(efi_memory_type_t, size_t, void**);
@@ -113,4 +113,5 @@ typedef struct {
     efi_config_table_t *config_table;
 } efi_system_table_t;
 
-efi_status_t verify_table(efi_boot_services_t*, efi_table_header_t*);
+efi_status_t verify_table(efi_table_header_t*);
+extern efi_system_table_t *gST;

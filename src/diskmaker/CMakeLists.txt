@@ -1,3 +1,5 @@
+set(CMAKE_CXX_FLAGS "")
+
 project(
     diskmaker
     VERSION 0.1

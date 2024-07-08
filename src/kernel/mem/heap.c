@@ -4,6 +4,7 @@
 #include <util/logger.h>
 #include <libc/string.h>
 #include <kernel.h>
+#include <common.h>
 
 heap_t *heap_add(size_t pages, size_t bsize, vmm_t *vi, heap_t *n) {
     heap_t *h = valloc(pages, vi);
