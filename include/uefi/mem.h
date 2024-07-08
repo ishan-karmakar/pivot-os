@@ -1,4 +1,5 @@
 #pragma once
+#include <types.h>
 
 typedef enum {
     AllocateAnyPages,
@@ -26,3 +27,9 @@ typedef enum {
     EfiUnacceptedMemoryType,
     EfiMaxMemoryType
 } efi_memory_type_t;
+
+efi_status_t init_mem(void);
+efi_status_t parse_mmap(uint64_t*);
+efi_status_t alloc_table(uint64_t**);
+efi_status_t map_addr(uintptr_t, uintptr_t, size_t);
+efi_status_t map_range(uintptr_t, uintptr_t, size_t, size_t);

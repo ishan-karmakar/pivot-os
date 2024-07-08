@@ -113,6 +113,5 @@ typedef struct {
     efi_config_table_t *config_table;
 } efi_system_table_t;
 
-efi_status_t verify_table(efi_table_header_t*);
 extern efi_system_table_t *gST;
 extern boot_info_t gBI;

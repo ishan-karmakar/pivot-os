@@ -1,4 +1,7 @@
 #pragma once
-#include <stddef.h>
+#include <stdint.h>
+#define ERR_MASK ((uint64_t) 1 << 63)
+#define ERR(status) (status | ERR_MASK)
+#define EFI_ERR(status) (status & ERR_MASK)
 
-typedef size_t efi_status_t;
+typedef uint64_t efi_status_t;

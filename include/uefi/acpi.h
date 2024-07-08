@@ -1,4 +1,4 @@
 #pragma once
 #include <uefi.h>
 
-void init_acpi(void);
+efi_status_t init_acpi(void);

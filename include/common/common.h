@@ -1,8 +1,12 @@
 #pragma once
 
 #define PAGE_SIZE 0x1000
+#define KERNEL_STACK_SIZE PAGE_SIZE
 #define DIV_CEIL(num, dividend) (((num) + ((dividend) - 1)) / (dividend))
 #define ALIGN_ADDR(address) ((address) & -PAGE_SIZE)
+#define HIGHER_HALF_OFFSET 0xFFFF800000000000
+#define VADDR(addr) (((uintptr_t) (addr)) | HIGHER_HALF_OFFSET)
+#define PADDR(addr) (((uintptr_t) (addr) & ~HIGHER_HALF_OFFSET))
 
 // FIXME: This stuff should not be in the common.h for all files
 // This is only stuff specific to paging!

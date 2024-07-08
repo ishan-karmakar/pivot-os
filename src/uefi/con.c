@@ -15,7 +15,7 @@ efi_status_t init_con(void) {
     char_printer = efi_char_printer;
 
     efi_status_t status = gST->con_out->reset(gST->con_out, true);
-    if (status < 0) return status;
+    if (EFI_ERR(status)) return status;
 
     log(Info, "CON", "Initialized console output");
     return 0;

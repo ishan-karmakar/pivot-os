@@ -16,9 +16,6 @@
 #define KCPUS kinfo.smp.cpus
 
 #define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
-#define HIGHER_HALF_OFFSET 0xFFFF800000000000
-#define VADDR(addr) (((uintptr_t) (addr)) | HIGHER_HALF_OFFSET)
-#define PADDR(addr) (((uintptr_t) (addr) & ~HIGHER_HALF_OFFSET))
 #define ALIGN_ADDR_UP(address) ALIGN_ADDR((address) + (PAGE_SIZE - 1))
 
 typedef struct kernel_entry {

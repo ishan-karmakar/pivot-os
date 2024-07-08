@@ -10,6 +10,7 @@
 #include <io/stdio.h>
 #include <cpu/smp.h>
 #include <kernel.h>
+#include <common.h>
 
 thread_t *scheduler_next_thread(thread_t*);
 void scheduler_remove_thread(thread_t * volatile*, thread_t*);

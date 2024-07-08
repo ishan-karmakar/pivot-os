@@ -5,19 +5,22 @@
 const efi_guid_t ACPI_20_GUID = {0x8868e871,0xe4f1,0x11d3,{0xbc,0x22,0x00,0x80,0xc7,0x3c,0x88,0x81}};
 const efi_guid_t ACPI_10_GUID = {0xeb9d2d30,0x2d88,0x11d3,{0x9a,0x16,0x00,0x90,0x27,0x3f,0xc1,0x4d}};
 
-static void *search_guid(const efi_guid_t *guid) {
+static uintptr_t search_guid(const efi_guid_t *guid) {
     for (size_t i = 0; i < gST->table_entries; i++)
         if (!memcmp(guid, &gST->config_table[i].vendor_guid, sizeof(efi_guid_t)))
-            return gST->config_table[i].vendor_table;
-    return NULL;
+            return (uintptr_t) gST->config_table[i].vendor_table;
+    return 0;
 }
 
-void init_acpi(void) {
-    void *acpi_20 = search_guid(&ACPI_20_GUID);
-    if (!acpi_20) {
-        // void *acpi_10 = search_guid(st, &ACPI_10_GUID);
-        log(Info, "ACPI", "Found ACPI 1.0 tables");
-    } else {
-        log(Info, "ACPI", "Found ACPI 2.0 tables");
+efi_status_t init_acpi(void) {
+    gBI.rsdp = search_guid(&ACPI_20_GUID);
+    gBI.xsdt = gBI.rsdp;
+    if (!gBI.rsdp)
+        gBI.rsdp = search_guid(&ACPI_10_GUID);
+    if (!gBI.rsdp) {
+        log(Error, "ACPI", "Couldn't find any ACPI tables");
+        return ERR(14);
     }
+    log(Info, "ACPI", "Found ACPI %c.0 tables", gBI.xsdt ? '2' : '1');
+    return 0;
 }
