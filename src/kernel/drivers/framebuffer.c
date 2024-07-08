@@ -91,8 +91,8 @@ void clear_screen(void) {
 
 void map_framebuffer(page_table_t p4_tbl, size_t flags) {
     size_t fb_size = KFB.bpp * KFB.pixels_per_scanline * KFB.vertical_res;
-    map_range((uintptr_t) KFB.buffer, (uintptr_t) KFB.buffer, SIZE_TO_PAGES(fb_size), flags, p4_tbl);
-    pmm_set_area((uintptr_t) KFB.buffer, SIZE_TO_PAGES(fb_size));
+    map_range((uintptr_t) KFB.buffer, (uintptr_t) KFB.buffer, DIV_CEIL(fb_size, PAGE_SIZE), flags, p4_tbl);
+    pmm_set_area((uintptr_t) KFB.buffer, DIV_CEIL(fb_size, PAGE_SIZE));
 }
 
 void init_framebuffer(void) {

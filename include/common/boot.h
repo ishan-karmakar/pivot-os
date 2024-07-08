@@ -10,3 +10,7 @@ typedef struct mmap_descriptor {
     uint64_t count;
     uint64_t attributes;
 } mmap_desc_t;
+
+typedef struct {
+    uint64_t *pml4;
+} boot_info_t;

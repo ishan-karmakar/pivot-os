@@ -17,12 +17,9 @@
 
 #define KERNEL_VIRTUAL_ADDR 0xFFFFFFFF80000000
 #define HIGHER_HALF_OFFSET 0xFFFF800000000000
-#define SIZE_TO_PAGES(size) DIV_CEIL(size, PAGE_SIZE)
 #define VADDR(addr) (((uintptr_t) (addr)) | HIGHER_HALF_OFFSET)
 #define PADDR(addr) (((uintptr_t) (addr) & ~HIGHER_HALF_OFFSET))
-#define ALIGN_ADDR(address) ((address) & -PAGE_SIZE)
 #define ALIGN_ADDR_UP(address) ALIGN_ADDR((address) + (PAGE_SIZE - 1))
-#define DIV_CEIL(num, dividend) (((num) + ((dividend) - 1)) / (dividend))
 
 typedef struct kernel_entry {
     uintptr_t vaddr;
