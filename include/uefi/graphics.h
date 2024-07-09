@@ -41,4 +41,3 @@ typedef struct efi_gop {
 } efi_gop_t;
 
 efi_status_t init_graphics(void);
-efi_status_t close_graphics(void *handle_buffer);

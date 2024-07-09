@@ -63,7 +63,7 @@ typedef struct {
 
     uintptr_t get_next_monotonic_count;
     uintptr_t stall;
-    uintptr_t set_watchdog_timer;
+    efi_status_t (*set_watchdog_timer)(size_t, uint64_t, size_t, uint16_t*);
 
     uintptr_t connect_controller;
     uintptr_t disconnect_controller;
@@ -105,9 +105,9 @@ typedef struct {
     void *standard_error_handle;
     efi_so_t *std_err;
 
-    uintptr_t runtime_services;
+    uintptr_t rs;
 
-    efi_boot_services_t *boot_services;
+    efi_boot_services_t *bs;
 
     size_t table_entries;
     efi_config_table_t *config_table;

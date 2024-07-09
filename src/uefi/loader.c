@@ -17,13 +17,13 @@ efi_status_t load_segment(elf64_phdr_t *phdr, efi_file_handle_t *kernel) {
     status = kernel->set_pos(kernel, phdr->p_offset);
     if (EFI_ERR(status)) return status;
 
-    status = gST->boot_services->alloc_pages(AllocateAnyPages, EfiLoaderCode, num_pages, (uintptr_t*) &data);
+    status = gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderCode, num_pages, (uintptr_t*) &data);
     if (EFI_ERR(status)) return status;
 
     status = kernel->read(kernel, &buffer_read_size, data + page_offset);
     if (EFI_ERR(status)) return status;
 
-    gST->boot_services->set_mem(data + page_offset + buffer_read_size, phdr->p_memsz - buffer_read_size, 0);
+    gST->bs->set_mem(data + page_offset + buffer_read_size, phdr->p_memsz - buffer_read_size, 0);
 
     for (size_t i = 0; i < num_pages; i++)
         map_addr(ALIGN_ADDR((uintptr_t) data) + PAGE_SIZE * i, ALIGN_ADDR(phdr->p_vaddr) + PAGE_SIZE * i, KERNEL_PT_ENTRY);
@@ -35,7 +35,7 @@ efi_status_t load_kernel(uintptr_t *entry) {
     size_t buffer_read_size;
 
     efi_sfsp_t *sfsp;
-    status = gST->boot_services->locate_protocol(&sfsp_guid, NULL, (void**) &sfsp);
+    status = gST->bs->locate_protocol(&sfsp_guid, NULL, (void**) &sfsp);
     if (EFI_ERR(status)) return status;
 
     efi_file_handle_t *root_fs;
@@ -69,7 +69,7 @@ efi_status_t load_kernel(uintptr_t *entry) {
     if (EFI_ERR(status)) return status;
 
     elf64_phdr_t *phdrs;
-    status = gST->boot_services->alloc_pool(EfiLoaderData, buffer_read_size, (void**) &phdrs);
+    status = gST->bs->alloc_pool(EfiLoaderData, buffer_read_size, (void**) &phdrs);
     if (EFI_ERR(status)) return status;
 
     status = kernel->read(kernel, &buffer_read_size, phdrs);
@@ -86,7 +86,7 @@ efi_status_t load_kernel(uintptr_t *entry) {
         }
     log(Info, "LOADER", "Loaded program segments");
 
-    status = gST->boot_services->free_pool(phdrs);
+    status = gST->bs->free_pool(phdrs);
     if (EFI_ERR(status)) return status;
 
     return 0;
