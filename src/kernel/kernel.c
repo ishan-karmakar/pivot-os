@@ -19,63 +19,39 @@
 #include <io/stdio.h>
 #include <stdatomic.h>
 
-kernel_info_t kinfo;
-uint8_t CPU = 0;
-
-void __attribute__((noreturn)) kernel_main(void);
-
-void __attribute__((noreturn)) hcf(void) {
-    asm volatile ("cli");
-    while (1)
-        asm volatile ("hlt");
-}
-
-void task1(void) {
-    printf("Hello World\n");
-}
-
-void task2(void) {
-    printf("Hello World 2\n");
-    thread_sleep(2000);
-    printf("Hello World after thread_sleep\n");
-}
-
-void task3(void) {
-    printf("Hello World 3\n");
-    thread_sleep(1000);
-    printf("Hello World after thread_sleep3\n");
-}
-
-void user_function(void) {
-    while(1);
-}
+// void __attribute__((noreturn)) hcf(void) {
+//     asm volatile ("cli");
+//     while (1)
+//         asm volatile ("hlt");
+// }
 
 // TODO: Support booting with BIOS and UEFI
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
-    init_qemu();
-    log(Verbose, "KERNEL", "Test");
+    asm volatile ("int $1");
+    // init_qemu();
+    // log(Verbose, "KERNEL", "Test");
     while(1);
     // CPU = 0;
     // kinfo = *kernel_info; // Copy over boot info to higher half
 #ifdef DEBUG
-    volatile int wait = 1;
-    while (wait)
-        asm ("pause");
+    // volatile int wait = 1;
+    // while (wait)
+    //     asm ("pause");
 #endif
-    init_gdt();
-    init_idt();
-    IDT_SET_TRAP(SYSCALL_IDT_ENTRY, 3, syscall_irq);
-    IDT_SET_INT(IPI_IDT_ENTRY, 0, ipi_irq);
-    init_pmm();
-    init_framebuffer();
-    init_vmm(Supervisor, KMEM.mem_pages, &KVMM);
-    KHEAP = heap_add(1, HEAP_DEFAULT_BS, &KVMM, NULL);
-    init_acpi();
-    init_tss();
-    set_rsp0();
-    init_lapic();
-    init_ioapic();
-    calibrate_apic_timer();
+    // init_gdt();
+    // init_idt();
+    // IDT_SET_TRAP(SYSCALL_IDT_ENTRY, 3, syscall_irq);
+    // IDT_SET_INT(IPI_IDT_ENTRY, 0, ipi_irq);
+    // init_pmm();
+    // init_framebuffer();
+    // init_vmm(Supervisor, KMEM.mem_pages, &KVMM);
+    // KHEAP = heap_add(1, HEAP_DEFAULT_BS, &KVMM, NULL);
+    // init_acpi();
+    // init_tss();
+    // set_rsp0();
+    // init_lapic();
+    // init_ioapic();
+    // calibrate_apic_timer();
     // init_rtc();
     // init_keyboard();
     // clear_screen();
@@ -86,10 +62,5 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     // scheduler_add_thread(create_thread("test3", task3, true));
     // scheduler_add_thread(create_thread("test2", task2, true));
     // start_apic_timer(APIC_TIMER_PERIODIC, KLAPIC.ms_interval * 50, APIC_PERIODIC_IDT_ENTRY);
-    while (1);
-}
-
-void __attribute__((noreturn)) kernel_main(void) {
-    // Kernel should now be completely initialized
     while (1);
 }

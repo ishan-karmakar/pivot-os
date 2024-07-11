@@ -5,15 +5,16 @@ file(GLOB_RECURSE C_FILES CONFIGURE_DEPENDS "*.c")
 
 set(PSF_OUT ${CMAKE_CURRENT_BINARY_DIR}/default.o)
 set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mcmodel=large")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -v -static -mcmodel=large")
 
 add_executable(
     kernel
     EXCLUDE_FROM_ALL
-    ${C_FILES}
-    ${ASM_FILES}
-    ${COMMON_FILES}
-    ${PSF_OUT}
+    kernel.c
+    # ${C_FILES}
+    # ${ASM_FILES}
+    # ${COMMON_FILES}
+    # ${PSF_OUT}
 )
 set_target_properties(kernel PROPERTIES OUTPUT_NAME kernel.elf)
 
@@ -28,4 +29,4 @@ add_custom_command(
 target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel)
 
 set_target_properties(kernel PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
-target_link_options(kernel PRIVATE -fuse-ld=lld -no-pie -z max-page-size=0x1000 -T ${LINKER_SCRIPT})
+target_link_options(kernel PRIVATE -fuse-ld=lld -z max-page-size=0x1000 -T ${LINKER_SCRIPT})

@@ -58,39 +58,39 @@ efi_status_t efi_main(void *image_handle, efi_system_table_t *st) {
 
     status = get_mmap(&mmap_key);
     if (EFI_ERR(status)) return status;
-    log(Verbose, "EFI", "Test");
 
-    status = gST->bs->exit_boot_services(image_handle, mmap_key);
-    if (EFI_ERR(status)) return status;
+    // status = gST->bs->exit_boot_services(image_handle, mmap_key);
+    // if (EFI_ERR(status)) return status;
     uint64_t *old_cr3;
     uint64_t *new_cr3 = gBI.pml4;
     asm volatile ("mov %%cr3, %0" : "=r" (old_cr3));
-    for (int p4 = 0; p4 < 1; p4++) {
-        uint64_t *old_p3 = (uint64_t*) (old_cr3[p4] & SIGN_MASK);
-        uint64_t *new_p3 = (uint64_t*) (new_cr3[p4] & SIGN_MASK);
-        for (int p3 = 0; p3 < 512; p3++) {
-            uint64_t *old_p2 = (uint64_t*) (old_p3[p3] & SIGN_MASK);
-            uint64_t *new_p2 = (uint64_t*) (new_p3[p3] & SIGN_MASK);
-            for (int p2 = 0; p2 < 512; p2++) {
-                uint64_t *old_p1 = (uint64_t*) (old_p2[p2] & SIGN_MASK);
-                uint64_t *new_p1 = (uint64_t*) (new_p2[p2] & SIGN_MASK);
-                for (int p1 = 0; p1 < 512; p1++) {
-                    uintptr_t old_addr = old_p1[p1] & SIGN_MASK;
-                    uintptr_t new_addr = new_p1[p1] & SIGN_MASK;
-                    if (new_addr != old_addr)
-                        log(Info, "EFI", "Mismatch - OLD: %x - NEW: %x", old_addr, new_addr);
-                }
-            }
-        }
-    }
+    // for (int p4 = 0; p4 < 1; p4++) {
+    //     uint64_t *old_p3 = (uint64_t*) (old_cr3[p4] & SIGN_MASK);
+    //     uint64_t *new_p3 = (uint64_t*) (new_cr3[p4] & SIGN_MASK);
+    //     for (int p3 = 0; p3 < 512; p3++) {
+    //         uint64_t *old_p2 = (uint64_t*) (old_p3[p3] & SIGN_MASK);
+    //         uint64_t *new_p2 = (uint64_t*) (new_p3[p3] & SIGN_MASK);
+    //         for (int p2 = 0; p2 < 512; p2++) {
+    //             uint64_t *old_p1 = (uint64_t*) (old_p2[p2] & SIGN_MASK);
+    //             uint64_t *new_p1 = (uint64_t*) (new_p2[p2] & SIGN_MASK);
+    //             for (int p1 = 0; p1 < 512; p1++) {
+    //                 uintptr_t old_addr = old_p1[p1] & SIGN_MASK;
+    //                 uintptr_t new_addr = new_p1[p1] & SIGN_MASK;
+    //                 if (new_addr != old_addr)
+    //                     log(Info, "EFI", "Mismatch - OLD: %x - NEW: %x", old_addr, new_addr);
+    //             }
+    //         }
+    //     }
+    // }
+    new_cr3[0] = old_cr3[0];
 
     asm volatile (
         "mov %0, %%cr3\n"
-        // "mov %1, %%rsp\n"
         : : "r" (gBI.pml4)
     );
-    gST->con_out->output_string(gST->con_out, L"a");
-    gST->con_out->output_string(gST->con_out, L"a");
+    uint32_t *test = (uint32_t*) kernel_entry_point;
+    for (int i = 0; i < 4; i++)
+        log(Verbose, "EFI", "%x", test[i]);
     while(1);
     void (*kernel_entry)(void) = (void (*)(void)) kernel_entry_point;
     kernel_entry();

@@ -3,9 +3,7 @@ ENTRY (init_kernel)
 SECTIONS
 {
     _kern_virt_offset = 0xFFFFFFFF80000000;
-	. = 1M;
-    _kern_phys_start = .;
-    . += _kern_virt_offset;
+    . = _kern_virt_offset;
 
 	.text ALIGN (4K) : AT (ADDR (.text) - _kern_virt_offset)
 	{
@@ -27,4 +25,9 @@ SECTIONS
 	{
 		*(.data*)
 	}
+
+    /DISCARD/ : {
+        *(.note*)
+        *(.common*)
+    }
 }

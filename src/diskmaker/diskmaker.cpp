@@ -63,6 +63,7 @@ void create_image() {
     size_t elf_sectors = get_size(config_val("ELF"));
     size_t b2_sectors = get_size(config_val("BIOS2"));
     size_t fat_sectors = 4 + b2_sectors + std::stoi(config_val("NUM_SUBDIRECTORIES")) + efi_sectors + elf_sectors;
+    fat_sectors = std::max(69UL, fat_sectors); // 69 blocks seems to be the minimum number of sectors needed to satisfy MKFS
     size_t os_sectors = 34 + 33 + fat_sectors;
     std::string out_str = config_val("OUT");
     const char *out = out_str.c_str();
