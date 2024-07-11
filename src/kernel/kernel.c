@@ -52,6 +52,8 @@ void user_function(void) {
 
 // TODO: Support booting with BIOS and UEFI
 void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
+    init_qemu();
+    log(Verbose, "KERNEL", "Test");
     while(1);
     // CPU = 0;
     // kinfo = *kernel_info; // Copy over boot info to higher half
@@ -60,7 +62,6 @@ void __attribute__((noreturn)) init_kernel(boot_info_t *boot_info) {
     while (wait)
         asm ("pause");
 #endif
-    init_qemu();
     init_gdt();
     init_idt();
     IDT_SET_TRAP(SYSCALL_IDT_ENTRY, 3, syscall_irq);

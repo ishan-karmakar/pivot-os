@@ -58,8 +58,6 @@ efi_status_t load_kernel(uintptr_t *entry) {
     if (memcmp(ehdr.e_ident, elf_ident, 4))
         return ERR(2);
     
-    log(Verbose, "LOADER", "ELF file verified");
-
     if (ehdr.e_ident[4] == 1)
         return ERR(3);
 
@@ -84,7 +82,6 @@ efi_status_t load_kernel(uintptr_t *entry) {
             status = load_segment(phdrs + i, kernel);
             if (EFI_ERR(status)) return status;
         }
-    log(Info, "LOADER", "Loaded program segments");
 
     status = gST->bs->free_pool(phdrs);
     if (EFI_ERR(status)) return status;

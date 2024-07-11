@@ -100,8 +100,10 @@ efi_status_t parse_mmap(void) {
         uint32_t t = cur_desc->type;
         if (new_max_addr > max_addr)
             max_addr = new_max_addr;
-        if (t == 1 || t == 2 || t == 3 || t == 4 || t == 7 || t == 9 && cur_desc->physical_start != 0)
-            map_range(cur_desc->physical_start, cur_desc->physical_start, cur_desc->count, gBI.pml4);
+        // if ((t == 1 || t == 2 || t == 3 || t == 4 || t == 7 || t == 9) && cur_desc->physical_start != 0) {
+        status = map_range(cur_desc->physical_start, cur_desc->physical_start, cur_desc->count, gBI.pml4);
+        if (EFI_ERR(status)) return status;
+        // }
         cur_desc = (mmap_desc_t*) ((char*) cur_desc + gBI.desc_size);
     }
     size_t mem_pages = max_addr / PAGE_SIZE;
