@@ -26,7 +26,7 @@ efi_status_t load_segment(elf64_phdr_t *phdr, efi_file_handle_t *kernel) {
     gST->bs->set_mem(data + page_offset + buffer_read_size, phdr->p_memsz - buffer_read_size, 0);
 
     for (size_t i = 0; i < num_pages; i++)
-        map_addr(ALIGN_ADDR((uintptr_t) data) + PAGE_SIZE * i, ALIGN_ADDR(phdr->p_vaddr) + PAGE_SIZE * i, KERNEL_PT_ENTRY);
+        map_addr(ALIGN_ADDR((uintptr_t) data) + PAGE_SIZE * i, ALIGN_ADDR(phdr->p_vaddr) + PAGE_SIZE * i, gBI.pml4);
     return 0;
 }
 

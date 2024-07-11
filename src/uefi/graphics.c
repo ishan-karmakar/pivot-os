@@ -23,7 +23,7 @@ efi_status_t find_video_mode(efi_gop_t *gop, uint32_t target_width, uint32_t tar
 efi_status_t init_graphics(void) {
     efi_status_t status;
     efi_gop_t *gop;
-    status = gST->bs->locate_protocol(&GOP_GUID, NULL, &gop);
+    status = gST->bs->locate_protocol(&GOP_GUID, NULL, (void**) &gop);
     if (EFI_ERR(status)) return status;
 
     size_t video_mode;

@@ -1,12 +1,13 @@
 #include <uefi.h>
 #include <common.h>
+#include <mem.h>
 
 efi_status_t alloc_table(uint64_t **table) {
     efi_status_t status;
-    status = gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, 1, table);
+    status = gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, 1, (uintptr_t*) table);
     if (EFI_ERR(status)) return status;
     
-    status = gST->bs->set_mem(*table, PAGE_SIZE, 0);
+    gST->bs->set_mem(*table, PAGE_SIZE, 0);
     if (EFI_ERR(status)) return status;
 
     return 0;
@@ -64,7 +65,7 @@ efi_status_t map_range(uintptr_t phys, uintptr_t virt, size_t pages, uint64_t *p
 efi_status_t init_mem(void) {
     efi_status_t status;
     uint64_t *p4_tbl = NULL;
-    gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, 1, &p4_tbl);
+    gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, 1, (uintptr_t*) &p4_tbl);
     gST->bs->set_mem(p4_tbl, PAGE_SIZE, 0);
 
     status = map_addr((uintptr_t) p4_tbl, (uintptr_t) p4_tbl, p4_tbl);
@@ -80,7 +81,7 @@ efi_status_t get_mmap(size_t *mmap_key) {
     if (EFI_ERR(status) && status != ERR(5)) return status;
 
     gBI.mmap_size += 2 * gBI.desc_size;
-    status = gST->bs->alloc_pool(EfiLoaderData, gBI.mmap_size, &gBI.mmap);
+    status = gST->bs->alloc_pool(EfiLoaderData, gBI.mmap_size, (void**) &gBI.mmap);
     if (EFI_ERR(status)) return status;
 
     status = gST->bs->get_mmap(&gBI.mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
@@ -96,5 +97,20 @@ efi_status_t parse_mmap(void) {
     uintptr_t max_addr = 0;
     for (size_t i = 0; i < num_entries; i++) {
         uintptr_t new_max_addr = cur_desc->physical_start + cur_desc->count * PAGE_SIZE;
+        uint32_t t = cur_desc->type;
+        if (new_max_addr > max_addr)
+            max_addr = new_max_addr;
+        if (t == 1 || t == 2 || t == 3 || t == 4 || t == 7 || t == 9 && cur_desc->physical_start != 0)
+            map_range(cur_desc->physical_start, cur_desc->physical_start, cur_desc->count, gBI.pml4);
+        cur_desc = (mmap_desc_t*) ((char*) cur_desc + gBI.desc_size);
     }
+    size_t mem_pages = max_addr / PAGE_SIZE;
+    gBI.mem_pages = mem_pages;
+    return 0;
+}
+
+efi_status_t free_mmap(void) {
+    efi_status_t status = gST->bs->free_pool(gBI.mmap);
+    if (EFI_ERR(status)) return status;
+    return 0;
 }
