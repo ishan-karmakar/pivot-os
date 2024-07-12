@@ -1,9 +1,39 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <boot.h>
-#include <mem.h>
-#include <con.h>
+#include <types.h>
+
+struct efi_so;
+struct efi_si;
+struct mmap_desc;
+struct boot_info;
+
+typedef enum {
+    AllocateAnyPages,
+    AllocateMaxAddress,
+    AllocateAddress,
+    MaxAllocateType
+} efi_alloc_type_t;
+
+typedef enum {
+    EfiReservedMemoryType,
+    EfiLoaderCode,
+    EfiLoaderData,
+    EfiBootServicesCode,
+    EfiBootServicesData,
+    EfiRuntimeServicesCode,
+    EfiRuntimeServicesData,
+    EfiConventionalMemory,
+    EfiUnusableMemory,
+    EfiACPIReclaimMemory,
+    EfiACPIMemoryNVS,
+    EfiMemoryMappedIO,
+    EfiMemoryMappedIOPortSpace,
+    EfiPalCode,
+    EfiPersistentMemory,
+    EfiUnacceptedMemoryType,
+    EfiMaxMemoryType
+} efi_mem_type_t;
 
 typedef enum {
     AllHandles,
@@ -32,10 +62,10 @@ typedef struct {
     uintptr_t raise_tpl;
     uintptr_t restore_tpl;
 
-    efi_status_t (*alloc_pages)(efi_allocate_type_t, efi_memory_type_t, size_t, uintptr_t*);
+    efi_status_t (*alloc_pages)(efi_alloc_type_t, efi_mem_type_t, size_t, uintptr_t*);
     efi_status_t (*free_pages)(uintptr_t, size_t);
-    efi_status_t (*get_mmap)(size_t*, mmap_desc_t*, size_t*, size_t*, uint32_t*);
-    efi_status_t (*alloc_pool)(efi_memory_type_t, size_t, void**);
+    efi_status_t (*get_mmap)(size_t*, struct mmap_desc*, size_t*, size_t*, uint32_t*);
+    efi_status_t (*alloc_pool)(efi_mem_type_t, size_t, void**);
     efi_status_t (*free_pool)(void*);
 
     uintptr_t create_event;
@@ -97,13 +127,13 @@ typedef struct {
     uint32_t firmware_revision;
 
     void *console_in_handle;
-    efi_si_t *con_in;
+    struct efi_si *con_in;
 
     void *console_out_handle;
-    efi_so_t *con_out;
+    struct efi_so *con_out;
 
     void *standard_error_handle;
-    efi_so_t *std_err;
+    struct efi_so *std_err;
 
     uintptr_t rs;
 
@@ -114,4 +144,4 @@ typedef struct {
 } efi_system_table_t;
 
 extern efi_system_table_t *gST;
-extern boot_info_t gBI;
+extern struct boot_info gBI;

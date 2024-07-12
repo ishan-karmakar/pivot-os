@@ -1,6 +1,8 @@
 #include <uefi.h>
+#include <boot.h>
 #include <common.h>
 #include <mem.h>
+#include <util/logger.h>
 
 efi_status_t alloc_table(uint64_t **table) {
     efi_status_t status;
@@ -66,17 +68,28 @@ efi_status_t init_mem(void) {
     efi_status_t status;
     uint64_t *p4_tbl = NULL;
     gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, 1, (uintptr_t*) &p4_tbl);
-    gST->bs->set_mem(p4_tbl, PAGE_SIZE, 0);
+    uint64_t *uefi_tbl = NULL;
+    asm volatile ("mov %%cr3, %0" : "=r" (uefi_tbl));
 
-    status = map_addr((uintptr_t) p4_tbl, (uintptr_t) p4_tbl, p4_tbl);
+    for (int i = 0; i < 512; i++)
+        p4_tbl[i] = uefi_tbl[i];
+    gBI.pml4 = p4_tbl;
+
+    log(Info, "MEM", "Initialized page tables");
+
+    status = gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, KERNEL_STACK_PAGES, &gBI.stack);
     if (EFI_ERR(status)) return status;
+    gBI.stack = VADDR(gBI.stack);
 
+    status = map_range(PADDR(gBI.stack), gBI.stack, KERNEL_STACK_PAGES, gBI.pml4);
+    if (EFI_ERR(status)) return status;
+    log(Info, "MEM", "Allocated kernel stack");
     return 0;
 }
 
-efi_status_t get_mmap(size_t *mmap_key) {
-    uint32_t desc_version;
+efi_status_t parse_mmap(size_t *mmap_key) {
     efi_status_t status;
+    uint32_t desc_version;
     status = gST->bs->get_mmap(&gBI.mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
     if (EFI_ERR(status) && status != ERR(5)) return status;
 
@@ -87,32 +100,15 @@ efi_status_t get_mmap(size_t *mmap_key) {
     status = gST->bs->get_mmap(&gBI.mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
     if (EFI_ERR(status)) return status;
 
-    return 0;
-}
-
-efi_status_t parse_mmap(void) {
-    efi_status_t status;
     size_t num_entries = gBI.mmap_size / gBI.desc_size;
     mmap_desc_t *cur_desc = gBI.mmap;
     uintptr_t max_addr = 0;
     for (size_t i = 0; i < num_entries; i++) {
         uintptr_t new_max_addr = cur_desc->physical_start + cur_desc->count * PAGE_SIZE;
-        uint32_t t = cur_desc->type;
         if (new_max_addr > max_addr)
             max_addr = new_max_addr;
-        // if ((t == 1 || t == 2 || t == 3 || t == 4 || t == 7 || t == 9) && cur_desc->physical_start != 0) {
-        status = map_range(cur_desc->physical_start, cur_desc->physical_start, cur_desc->count, gBI.pml4);
-        if (EFI_ERR(status)) return status;
-        // }
         cur_desc = (mmap_desc_t*) ((char*) cur_desc + gBI.desc_size);
     }
-    size_t mem_pages = max_addr / PAGE_SIZE;
-    gBI.mem_pages = mem_pages;
-    return 0;
-}
-
-efi_status_t free_mmap(void) {
-    efi_status_t status = gST->bs->free_pool(gBI.mmap);
-    if (EFI_ERR(status)) return status;
+    gBI.mem_pages = max_addr / PAGE_SIZE;
     return 0;
 }

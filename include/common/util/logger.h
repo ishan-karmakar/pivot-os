@@ -10,4 +10,10 @@ typedef enum log_level {
     Trace
 } log_level_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void log(log_level_t log_level, const char*, const char*, ...);
+#ifdef __cplusplus
+}
+#endif

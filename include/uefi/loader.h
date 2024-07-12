@@ -43,8 +43,8 @@ typedef struct efi_file_handle {
     uintptr_t delete;
     efi_status_t (*read)(struct efi_file_handle*, size_t *buffer_size, void *buffer);
     uintptr_t write;
-    efi_status_t (*set_pos)(struct efi_file_handle*, uint64_t);
     uintptr_t get_pos;
+    efi_status_t (*set_pos)(struct efi_file_handle*, uint64_t);
     uintptr_t get_info;
     uintptr_t set_info;
     uintptr_t flush;

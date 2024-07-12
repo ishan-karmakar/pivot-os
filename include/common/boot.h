@@ -1,9 +1,9 @@
 #pragma once
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
-#define PAGE_SIZE 0x1000
 
-typedef struct mmap_descriptor {
+typedef struct mmap_desc {
     uint32_t type;
     uint32_t pad;
     uintptr_t physical_start;
@@ -12,7 +12,7 @@ typedef struct mmap_descriptor {
     uint64_t attributes;
 } mmap_desc_t;
 
-typedef struct {
+typedef struct boot_info {
     // ACPI
     uintptr_t rsdp;
     bool xsdt;

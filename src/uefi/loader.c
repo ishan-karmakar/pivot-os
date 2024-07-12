@@ -1,5 +1,6 @@
 #include <loader.h>
 #include <uefi.h>
+#include <boot.h>
 #include <common.h>
 #include <mem.h>
 #include <util/logger.h>
@@ -73,10 +74,6 @@ efi_status_t load_kernel(uintptr_t *entry) {
     status = kernel->read(kernel, &buffer_read_size, phdrs);
     if (EFI_ERR(status)) return status;
 
-    // uint64_t load_segments = 0;
-    // for (uint16_t i = 0; i < ehdr.e_phnum; i++)
-    //     load_segments += phdrs[i].p_type == 1;
-
     for (uint16_t i = 0; i < ehdr.e_phnum; i++)
         if (phdrs[i].p_type == 1) {
             status = load_segment(phdrs + i, kernel);
@@ -85,6 +82,6 @@ efi_status_t load_kernel(uintptr_t *entry) {
 
     status = gST->bs->free_pool(phdrs);
     if (EFI_ERR(status)) return status;
-
+    log(Info, "LOADER", "Loaded kernel segments");
     return 0;
 }

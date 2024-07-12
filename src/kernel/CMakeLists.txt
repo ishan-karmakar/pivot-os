@@ -1,19 +1,21 @@
-project(kernel C ASM_NASM)
+project(kernel C CXX ASM_NASM)
 
 file(GLOB_RECURSE ASM_FILES CONFIGURE_DEPENDS "*.asm")
-file(GLOB_RECURSE C_FILES CONFIGURE_DEPENDS "*.c")
+file(GLOB_RECURSE C_FILES CONFIGURE_DEPENDS "*.c") # TODO: REMOVE WHEN NOT NEEDED
+file(GLOB_RECURSE CXX_FILES CONFIGURE_DEPENDS "*.cpp")
 
 set(PSF_OUT ${CMAKE_CURRENT_BINARY_DIR}/default.o)
 set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -v -static -mcmodel=large")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -mcmodel=large")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -mcmodel=large")
 
 add_executable(
     kernel
     EXCLUDE_FROM_ALL
-    kernel.c
+    ${CXX_FILES}
     # ${C_FILES}
     # ${ASM_FILES}
-    # ${COMMON_FILES}
+    ${COMMON_FILES}
     # ${PSF_OUT}
 )
 set_target_properties(kernel PROPERTIES OUTPUT_NAME kernel.elf)
@@ -29,4 +31,4 @@ add_custom_command(
 target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel)
 
 set_target_properties(kernel PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
-target_link_options(kernel PRIVATE -fuse-ld=lld -z max-page-size=0x1000 -T ${LINKER_SCRIPT})
+target_link_options(kernel PRIVATE -fuse-ld=lld -z norelro -T ${LINKER_SCRIPT})

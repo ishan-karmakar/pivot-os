@@ -8,6 +8,7 @@ initialized, the serial port is no longer used
 #include <drivers/qemu.h>
 #include <io/ports.h>
 #include <io/stdio.h>
+#include <util/logger.h>
 
 void qemu_write_char(const char ch){
     while((inb(0x3f8 + 5) & 0x20) == 0);
@@ -23,4 +24,5 @@ void init_qemu(void) {
 	outb(0x3f8 + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
 	outb(0x3f8 + 4, 0x0B);
     char_printer = qemu_write_char;
+    log(Info, "QEMU", "Initialized QEMU serial port");
 }
