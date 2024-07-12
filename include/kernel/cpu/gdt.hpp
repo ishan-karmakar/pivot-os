@@ -4,12 +4,12 @@
 
 namespace cpu {
     namespace gdt {
-        struct __attribute__((packed)) gdtr {
+        struct [[gnu::packed]] gdtr {
             uint16_t size;
             uintptr_t addr;
         };
 
-        struct __attribute__((packed)) alignas(8) gdt_desc {
+        struct [[gnu::packed]] alignas(8) gdt_desc {
             uint16_t limit0;
             uint16_t base0;
             uint8_t base1;

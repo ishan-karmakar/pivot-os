@@ -41,4 +41,6 @@ void init_gdt() {
 }
 
 void init_idt() {
+    cpu::isr::load_exceptions(idt);
+    idt.load();
 }

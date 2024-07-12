@@ -1,11 +1,12 @@
 #pragma once
 #include <cstdint>
+#include <cstddef>
 
 namespace cpu {
     namespace idt {
-        const uint8_t IDT_ENTRIES = 256;
+        const size_t IDT_ENTRIES = 256;
 
-        struct __attribute__((packed)) idt_desc {
+        struct [[gnu::packed]] idt_desc {
             uint16_t offset0;
             uint16_t segment_selector;
             uint8_t ist;
@@ -15,7 +16,7 @@ namespace cpu {
             uint32_t rsv;
         };
 
-        struct __attribute__((packed)) idtr {
+        struct [[gnu::packed]] idtr {
             uint16_t size;
             uintptr_t addr;
         };
@@ -28,8 +29,11 @@ namespace cpu {
         void load();
 
     private:
-        void load_exceptions();
         struct idt::idt_desc idt[idt::IDT_ENTRIES];
         struct idt::idtr idtr;
     };
+
+    namespace isr {
+        void load_exceptions(cpu::InterruptDescriptorTable&);
+    }
 }
