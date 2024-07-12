@@ -1,5 +1,6 @@
 #pragma once
 #include <uefi.h>
+
 typedef enum {
     PixelRedGreenBlueReserved8BitPerColor,
     PixelBlueGreenRedReserved8BitPerColor,

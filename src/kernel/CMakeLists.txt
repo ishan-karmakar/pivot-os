@@ -14,7 +14,7 @@ add_executable(
     EXCLUDE_FROM_ALL
     ${CXX_FILES}
     # ${C_FILES}
-    # ${ASM_FILES}
+    ${ASM_FILES}
     ${COMMON_FILES}
     # ${PSF_OUT}
 )
@@ -28,7 +28,7 @@ add_custom_command(
     VERBATIM
 )
 
-target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel)
+target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(kernel PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
 target_link_options(kernel PRIVATE -fuse-ld=lld -z norelro -T ${LINKER_SCRIPT})

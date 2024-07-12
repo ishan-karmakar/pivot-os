@@ -1,8 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include <types.h>
+#include <uefi.h>
 
 typedef struct {
     uint16_t scan_code;

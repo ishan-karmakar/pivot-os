@@ -1,5 +1,5 @@
 #pragma once
-#include <types.h>
+#include <uefi.h>
 
 efi_status_t init_mem(void);
 efi_status_t parse_mmap(size_t*);

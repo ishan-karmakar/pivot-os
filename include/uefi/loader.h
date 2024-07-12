@@ -1,6 +1,5 @@
 #pragma once
-#include <types.h>
-#include <stdint.h>
+#include <uefi.h>
 
 /**
  * @brief The 64-bit ELF header.

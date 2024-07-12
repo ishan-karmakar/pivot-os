@@ -4,7 +4,7 @@
 namespace drivers {
     class QEMUWriter : public IOWriter {
     public:
-        QEMUWriter();
+        void init();
         void operator<<(char);
     };
 }

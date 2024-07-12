@@ -4,7 +4,7 @@
 using namespace drivers;
 
 // This can only be called ONCE
-QEMUWriter::QEMUWriter() {
+void QEMUWriter::init() {
     outb(0x3f8 + 1, 0x00);    // Disable all interrupts
 	outb(0x3f8 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
 	outb(0x3f8 + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
