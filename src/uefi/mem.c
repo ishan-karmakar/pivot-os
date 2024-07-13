@@ -90,25 +90,27 @@ efi_status_t init_mem(void) {
 efi_status_t parse_mmap(size_t *mmap_key) {
     efi_status_t status;
     uint32_t desc_version;
-    status = gST->bs->get_mmap(&gBI.mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
+    size_t mmap_size = 0;
+    status = gST->bs->get_mmap(&mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
     if (EFI_ERR(status) && status != ERR(5)) return status;
 
-    gBI.mmap_size += 2 * gBI.desc_size;
-    status = gST->bs->alloc_pool(EfiLoaderData, gBI.mmap_size, (void**) &gBI.mmap);
+    mmap_size += 2 * gBI.desc_size;
+    status = gST->bs->alloc_pool(EfiLoaderData, mmap_size, (void**) &gBI.mmap);
     if (EFI_ERR(status)) return status;
 
-    status = gST->bs->get_mmap(&gBI.mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
+    status = gST->bs->get_mmap(&mmap_size, gBI.mmap, mmap_key, &gBI.desc_size, &desc_version);
     if (EFI_ERR(status)) return status;
 
-    size_t num_entries = gBI.mmap_size / gBI.desc_size;
-    mmap_desc_t *cur_desc = gBI.mmap;
+    size_t num_entries = mmap_size / gBI.desc_size;
+    struct mmap_desc *cur_desc = gBI.mmap;
     uintptr_t max_addr = 0;
     for (size_t i = 0; i < num_entries; i++) {
-        uintptr_t new_max_addr = cur_desc->physical_start + cur_desc->count * PAGE_SIZE;
+        uintptr_t new_max_addr = cur_desc->phys + cur_desc->count * PAGE_SIZE;
         if (new_max_addr > max_addr)
             max_addr = new_max_addr;
-        cur_desc = (mmap_desc_t*) ((char*) cur_desc + gBI.desc_size);
+        cur_desc = (struct mmap_desc*) ((char*) cur_desc + gBI.desc_size);
     }
     gBI.mem_pages = max_addr / PAGE_SIZE;
+    gBI.mmap_entries = mmap_size / gBI.desc_size;
     return 0;
 }

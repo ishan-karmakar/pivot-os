@@ -5,6 +5,7 @@
 #include <util/logger.h>
 #include <cpu/gdt.hpp>
 #include <cpu/idt.hpp>
+#include <mem/pmm.hpp>
 
 uint8_t CPU = 0;
 
@@ -12,18 +13,23 @@ uint8_t CPU = 0;
 drivers::QEMUWriter qemu_writer;
 cpu::GlobalDescriptorTable<3> gdt;
 cpu::InterruptDescriptorTable idt;
+mem::PhysicalMemoryManager pmm;
 
 void init_qemu();
 void init_gdt();
 void init_idt();
+void init_pmm(struct boot_info*);
+void init_vmm(struct boot_info*);
 
 extern "C" void __cxa_pure_virtual() { while(1); }
 
-extern "C" void __attribute__((noreturn)) init_kernel(boot_info_t *bi) {
+extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
     char_printer = io_char_printer;
     init_qemu();
     init_gdt();
     init_idt();
+    init_pmm(bi);
+    init_vmm(bi);
 
     while(1);
 }
@@ -44,3 +50,9 @@ void init_idt() {
     cpu::isr::load_exceptions(idt);
     idt.load();
 }
+
+void init_pmm(struct boot_info *bi) {
+    pmm.init(bi);
+}
+
+void init_vmm(struct boot_info *bi) {}

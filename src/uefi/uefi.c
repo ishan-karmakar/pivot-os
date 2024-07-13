@@ -8,7 +8,7 @@
 #include <boot.h>
 
 efi_system_table_t *gST;
-boot_info_t gBI;
+struct boot_info gBI;
 uint8_t CPU = 0;
 
 efi_status_t efi_main(void *image_handle, efi_system_table_t *st) {

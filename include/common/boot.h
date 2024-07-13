@@ -3,16 +3,16 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-typedef struct mmap_desc {
+struct mmap_desc {
     uint32_t type;
     uint32_t pad;
-    uintptr_t physical_start;
-    uintptr_t virtual_start;
+    uintptr_t phys;
+    uintptr_t virt;
     uint64_t count;
     uint64_t attributes;
-} mmap_desc_t;
+};
 
-typedef struct boot_info {
+struct boot_info {
     // ACPI
     uintptr_t rsdp;
     bool xsdt;
@@ -20,7 +20,8 @@ typedef struct boot_info {
     // MEM
     uint64_t *pml4;
     uintptr_t stack; // Stack start
-    mmap_desc_t *mmap;
-    uint64_t mmap_size, desc_size;
+    struct mmap_desc *mmap;
+    size_t mmap_entries;
     size_t mem_pages;
-} boot_info_t;
+    size_t desc_size;
+};
