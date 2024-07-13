@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+typedef uint64_t* pg_tbl_t;
 
 struct mmap_desc {
     uint32_t type;
@@ -18,7 +19,7 @@ struct boot_info {
     bool xsdt;
 
     // MEM
-    uint64_t *pml4;
+    pg_tbl_t pml4;
     uintptr_t stack; // Stack start
     struct mmap_desc *mmap;
     size_t mmap_entries;

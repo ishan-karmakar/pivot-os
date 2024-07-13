@@ -1,7 +1,7 @@
 #pragma once
 
 #define PAGE_SIZE 0x1000
-#define KERNEL_STACK_SIZE PAGE_SIZE
+#define KERNEL_STACK_SIZE (PAGE_SIZE * 4)
 #define KERNEL_STACK_PAGES DIV_CEIL(KERNEL_STACK_SIZE, PAGE_SIZE)
 #define DIV_CEIL(num, dividend) (((num) + ((dividend) - 1)) / (dividend))
 #define ALIGN_ADDR(address) ((address) & -PAGE_SIZE)

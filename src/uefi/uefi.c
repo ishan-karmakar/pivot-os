@@ -43,7 +43,7 @@ efi_status_t efi_main(void *image_handle, efi_system_table_t *st) {
 
     asm volatile (
         "mov %0, %%cr3;"
-        "mov %1, %%sp;"
+        "mov %1, %%rsp;"
         "jmp *%2"
         : : "r" (gBI.pml4), "g" (gBI.stack + KERNEL_STACK_SIZE), "r" (kernel_entry_point), "D" (&gBI)
     );

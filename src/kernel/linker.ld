@@ -2,33 +2,45 @@ ENTRY (init_kernel)
 
 SECTIONS
 {
-    _page_size = 4K;
     _kern_virt_offset = 0xFFFFFFFF80000000;
     . = _kern_virt_offset;
 
-	.text ALIGN (_page_size) : AT (ADDR (.text) - _kern_virt_offset)
+	.text ALIGN (0x1000) : AT (ADDR (.text) - _kern_virt_offset)
 	{
 		*(.text*)
+        *(.gnu.linkonce.t*)
 	}
 
-	.rodata ALIGN(_page_size) : AT (ADDR (.rodata) - _kern_virt_offset)
+	.rodata ALIGN(0x1000) : AT (ADDR (.rodata) - _kern_virt_offset)
 	{
+        start_ctors = .;
+        *(SORT(.ctors*))
+        end_ctors = .;
+
+        start_dtors = .;
+        *(SORT(.dtors*))
+        end_dtors = .;
+
 		*(.rodata*)
+        *(.gnu.linkonce.r*)
 	}
 
-	.bss ALIGN(_page_size) : AT (ADDR (.bss) - _kern_virt_offset)
+	.data ALIGN(0x1000) : AT (ADDR (.data) - _kern_virt_offset)
+	{
+		*(.data*)
+        *(.gnu.linkonce.d*)
+	}
+
+	.bss ALIGN(0x1000) : AT (ADDR (.bss) - _kern_virt_offset)
 	{
         *(COMMON)
 		*(.bss*)
-	}
-
-	.data ALIGN(_page_size) : AT (ADDR (.data) - _kern_virt_offset)
-	{
-		*(.data*)
+        *(.gnu.linkonce.b*)
 	}
 
     /DISCARD/ : {
         *(.note*)
         *(.common*)
+        *(.eh_frame)
     }
 }

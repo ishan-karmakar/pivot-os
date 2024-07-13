@@ -5,26 +5,33 @@
 namespace mem {
     // This class is meant to be inherited by another class such as VMM, Heap
     class Bitmap {
-    protected:
-        void init();
+    public:
         void *alloc(size_t);
-        size_t free(void*);
+        void free(void*);
         void *realloc(void*, size_t);
 
-    private:
-        typedef uint8_t id_t;
+    // protected:
+        void init(size_t, size_t, uint8_t*);
 
-        void set_id(id_t, id_t);
-        id_t get_id(size_t);
-        id_t unique_id(id_t, id_t);
-        size_t num_blocks();
+        // Runs after alloc()
+        // Meant for something like VMM mapping pages
+        // This way it still works in correct order when using realloc
+        virtual void post_alloc(void*, size_t) = 0;
+
+        // Runs after free()
+        // Meant for something like VMM freeing pages
+        // This way it still works in correct order when using realloc
+        virtual void post_free(void*, size_t) = 0;
+
+    private:
+        void set_id(size_t, uint8_t);
+        uint8_t get_id(size_t);
+        uint8_t unique_id(uint8_t, uint8_t);
+        size_t header_blocks();
 
         size_t tsize, bsize;
         size_t used;
         size_t ffa;
         uint8_t *bm;
-
-        const uint8_t BITS_PER_ID = 2;
-        const uint8_t BLOCKS_PER_INT = sizeof(id_t) * 8 / BITS_PER_ID;
     };
 };

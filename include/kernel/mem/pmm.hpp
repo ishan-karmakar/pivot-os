@@ -5,10 +5,14 @@ namespace mem {
     class PhysicalMemoryManager {
     public:
         void init(struct boot_info*);
-        void clear_region(uintptr_t, size_t);
-        void clear_region(uintptr_t);
-        void set_region(uintptr_t, size_t);
-        void set_region(uintptr_t);
+        
+        uintptr_t frame();
+
+        void clear(uintptr_t, size_t);
+        void clear(uintptr_t);
+        
+        void set(uintptr_t, size_t);
+        void set(uintptr_t);
 
     private:
         size_t bitmap_size;
