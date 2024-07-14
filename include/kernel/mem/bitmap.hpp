@@ -22,12 +22,12 @@ namespace mem {
         // Runs after alloc()
         // Meant for something like VMM mapping pages
         // This way it still works in correct order when using realloc
-        virtual void post_alloc(void*, size_t) = 0;
+        virtual void post_alloc(void*, size_t) {};
 
         // Runs after free()
         // Meant for something like VMM freeing pages
         // This way it still works in correct order when using realloc
-        virtual void post_free(void*, size_t) = 0;
+        virtual void post_free(void*, size_t) {};
     
     private:
         void set_id(size_t, uint8_t);

@@ -9,6 +9,7 @@
 #include <mem/pmm.hpp>
 #include <mem/mapper.hpp>
 #include <mem/vmm.hpp>
+#include <mem/heap.hpp>
 #include <init.hpp>
 
 uint8_t CPU = 0;
@@ -34,6 +35,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
     mem::PhysicalMemoryManager pmm{bi};
     mem::PTMapper mapper{bi->pml4, pmm};
     mem::VirtualMemoryManager vmm{mem::vmm::Supervisor, bi->mem_pages, mapper, pmm};
+    mem::Heap heap{vmm.alloc(PAGE_SIZE), PAGE_SIZE, 16};
 
     while(1);
 }

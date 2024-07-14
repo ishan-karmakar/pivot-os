@@ -1,21 +1,23 @@
 project(kernel C CXX ASM_NASM)
 
 file(GLOB_RECURSE ASM_FILES CONFIGURE_DEPENDS "*.asm")
+file(GLOB_RECURSE CXX_FILES CONFIGURE_DEPENDS "*.cpp")
 # I need CXX_FILES to be in a very specific order for global constructors to work
-set(
-    CXX_FILES
-    io/stdio.cpp
-    kernel.cpp
-    init.cpp
-    drivers/qemu.cpp
-    cpu/idt.cpp
-    cpu/isr.cpp
-    mem/pmm.cpp
-    mem/bitmap.cpp
-    mem/vmm.cpp
-    mem/mapper.cpp
-    io/ports.cpp
-)
+# set(
+#     CXX_FILES
+#     io/stdio.cpp
+#     kernel.cpp
+#     init.cpp
+#     drivers/qemu.cpp
+#     cpu/idt.cpp
+#     cpu/isr.cpp
+#     mem/pmm.cpp
+#     mem/bitmap.cpp
+#     mem/vmm.cpp
+#     mem/mapper.cpp
+#     mem/heap.cpp
+#     io/ports.cpp
+# )
 
 set(PSF_OUT ${CMAKE_CURRENT_BINARY_DIR}/default.o)
 set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
