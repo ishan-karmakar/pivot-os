@@ -1,11 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <util/logger.h>
 
 namespace cpu {
     namespace idt {
-        const size_t IDT_ENTRIES = 256;
-
         struct [[gnu::packed]] idt_desc {
             uint16_t offset0;
             uint16_t segment_selector;
@@ -29,8 +28,11 @@ namespace cpu {
         void load();
 
     private:
-        struct idt::idt_desc idt[idt::IDT_ENTRIES];
-        struct idt::idtr idtr;
+        struct idt::idt_desc idt[256];
+        struct idt::idtr idtr{
+            256 * sizeof(idt::idt_desc) - 1,
+            reinterpret_cast<uintptr_t>(&idt)
+        };
     };
 
     namespace isr {

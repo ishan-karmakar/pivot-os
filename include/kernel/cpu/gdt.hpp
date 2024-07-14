@@ -36,8 +36,6 @@ namespace cpu {
         }
 
         void load() {
-            gdtr.size = L * sizeof(struct gdt::gdt_desc) - 1;
-            gdtr.addr = reinterpret_cast<uintptr_t>(&gdt);
             asm volatile (
                 "cli;"
                 "lgdt %0;"
@@ -52,11 +50,14 @@ namespace cpu {
                 "mov %1, %%ss;"
                 : : "rm" (gdtr), "r" (0x10) : "memory"
             );
-            log(Info, "GDT", "Initialized + loaded GDT");
+            log(Info, "GDT", "Loaded GDT");
         };
 
     private:
         struct gdt::gdt_desc gdt[L];
-        struct gdt::gdtr gdtr;
+        struct gdt::gdtr gdtr{
+            L * sizeof(struct gdt::gdt_desc) - 1,
+            reinterpret_cast<uintptr_t>(&gdt)
+        };
     };
 }

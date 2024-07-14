@@ -4,7 +4,7 @@
 #include <common.h>
 using namespace mem;
 
-void PhysicalMemoryManager::init(struct boot_info* bi) {
+PhysicalMemoryManager::PhysicalMemoryManager(struct boot_info* bi) {
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
     struct mmap_desc *cur_desc = bi->mmap;
     bitmap_size = DIV_CEIL(bi->mem_pages, 8);

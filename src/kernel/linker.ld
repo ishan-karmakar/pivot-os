@@ -11,16 +11,21 @@ SECTIONS
         *(.gnu.linkonce.t*)
 	}
 
+    .cdtors ALIGN(0x1000) : AT (ADDR (.cdtors) - _kern_virt_offset)
+    {
+        __start_ctors = .;
+        *(.init_array)
+        *(SORT(.ctors*))
+        __stop_ctors = .;
+
+        __start_dtors = .;
+        *(.fini_array)
+        *(SORT(.dtors*))
+        __stop_ctors = .;
+    }
+
 	.rodata ALIGN(0x1000) : AT (ADDR (.rodata) - _kern_virt_offset)
 	{
-        start_ctors = .;
-        *(SORT(.ctors*))
-        end_ctors = .;
-
-        start_dtors = .;
-        *(SORT(.dtors*))
-        end_dtors = .;
-
 		*(.rodata*)
         *(.gnu.linkonce.r*)
 	}

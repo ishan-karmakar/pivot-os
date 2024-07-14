@@ -19,9 +19,6 @@ void InterruptDescriptorTable::set_entry(uint8_t idx, uint8_t ring, uintptr_t ha
 }
 
 void InterruptDescriptorTable::load() {
-    idtr.addr = reinterpret_cast<uintptr_t>(&idt);
-    idtr.size = idt::IDT_ENTRIES * sizeof(struct idt::idt_desc) - 1;
-
     asm volatile ("lidt %0" : : "rm" (idtr));
-    log(Info, "IDT", "Initialized + loaded IDT");
+    log(Info, "IDT", "Loaded IDT");
 }

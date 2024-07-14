@@ -14,13 +14,15 @@ namespace mem {
 
     class VirtualMemoryManager : public Bitmap {
     public:
-        void init(enum vmm::vmm_level, size_t, PTMapper*, PhysicalMemoryManager*);
-        void post_alloc(void*, size_t);
-        void post_free(void*, size_t);
+        VirtualMemoryManager(enum vmm::vmm_level, size_t, PTMapper&, PhysicalMemoryManager&);
 
     private:
+        void post_alloc(void*, size_t) override;
+        void post_free(void*, size_t) override;
+        uintptr_t parse_level(enum vmm::vmm_level);
+
         size_t flags;
-        PhysicalMemoryManager *pmm;
-        PTMapper *mapper;
+        PhysicalMemoryManager& pmm;
+        PTMapper& mapper;
     };
 }
