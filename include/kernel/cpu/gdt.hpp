@@ -23,16 +23,22 @@ namespace cpu {
         };
 
     public:
-        void set_entry(uint16_t idx, struct gdt_desc desc) {
+        void set_entry(uint16_t idx, gdt_desc desc) {
             if (idx >= L)
                 log(Warning, "GDT", "Index more than max GDT size");
             gdt[idx] = desc;
         }
 
         void set_entry(uint16_t idx, uint8_t access, uint8_t flags) {
-            struct gdt_desc desc { 0xFFFF, 0, 0, access, 0xF, flags, 0 };
+            gdt_desc desc { 0xFFFF, 0, 0, access, 0xF, flags, 0 };
 
             set_entry(idx, desc);
+        }
+
+        uint16_t ff_idx() {
+            for (uint16_t i = 1; i < L; i++)
+                if (!(gdt[i].access_byte & (1 << 47)))
+                    return i;
         }
 
         void load() {
@@ -54,9 +60,9 @@ namespace cpu {
         };
 
     private:
-        struct gdt_desc gdt[L];
-        struct gdtr gdtr{
-            L * sizeof(struct gdt_desc) - 1,
+        gdt_desc gdt[L];
+        gdtr gdtr{
+            L * sizeof(gdt_desc) - 1,
             reinterpret_cast<uintptr_t>(&gdt)
         };
     };

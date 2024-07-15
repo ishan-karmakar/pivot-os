@@ -7,7 +7,7 @@ using namespace drivers;
 
 extern char _binary_fonts_default_psf_start;
 
-Framebuffer::Framebuffer(struct boot_info* bi, mem::PTMapper& mapper, mem::PMM& pmm, uint32_t fg, uint32_t bg) :
+Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, mem::PMM& pmm, uint32_t fg, uint32_t bg) :
     font{reinterpret_cast<struct font*>(&_binary_fonts_default_psf_start)}, buffer{reinterpret_cast<char*>(bi->fb_buf)},
     hres{bi->hres}, vres{bi->vres}, pps{bi->pps}, num_cols{hres / font->width}, num_rows{vres / font->height}, fg{fg}, bg{bg}
 {

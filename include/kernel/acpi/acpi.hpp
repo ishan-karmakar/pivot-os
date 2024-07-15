@@ -17,17 +17,17 @@ namespace acpi {
             uint32_t creator_revision;
         };
 
-        SDT(struct sdt*);
+        SDT(sdt*);
         static bool validate(char*, uint32_t);
-        struct sdt *header;
+        sdt *header;
 
         private:
             bool validate();
     };
 
-    class RSDT : SDT {
+    class ACPI : SDT {
     public:
-        RSDT(uintptr_t);
+        ACPI(uintptr_t);
 
         template <class T>
         std::optional<T> get_table();
@@ -46,7 +46,7 @@ namespace acpi {
             uint8_t rsv[3];
         };
 
-        struct sdt *get_rsdt(char*);
+        sdt *get_rsdt(char*);
         bool xsdt;
     };
 }

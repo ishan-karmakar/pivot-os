@@ -2,7 +2,7 @@
 #include <util/logger.h>
 using namespace cpu;
 
-void IDT::set_entry(uint8_t idx, struct idt_desc desc) {
+void IDT::set_entry(uint8_t idx, idt_desc desc) {
     this->idt[idx] = desc;
 }
 

@@ -4,9 +4,9 @@
 #include <common.h>
 using namespace mem;
 
-PMM::PMM(struct boot_info* bi) {
+PMM::PMM(boot_info* bi) {
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
-    struct mmap_desc *cur_desc = bi->mmap;
+    mmap_desc *cur_desc = bi->mmap;
     bitmap_size = DIV_CEIL(bi->mem_pages, 8);
     for (size_t i = 0; i < bi->mmap_entries; i++) {
         uint32_t type = cur_desc->type;
@@ -15,7 +15,7 @@ PMM::PMM(struct boot_info* bi) {
             break;
         }
 
-        cur_desc = reinterpret_cast<struct mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
+        cur_desc = reinterpret_cast<mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
     }
     log(Verbose, "PMM", "Bitmap: %x, Size: %u", bitmap, bitmap_size);
 
@@ -29,7 +29,7 @@ PMM::PMM(struct boot_info* bi) {
             clear(cur_desc->phys, cur_desc->count);
         }
 
-        cur_desc = reinterpret_cast<struct mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
+        cur_desc = reinterpret_cast<mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
     }
 
     set(reinterpret_cast<uintptr_t>(bitmap), DIV_CEIL(bitmap_size, PAGE_SIZE));

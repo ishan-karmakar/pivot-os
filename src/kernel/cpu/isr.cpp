@@ -39,7 +39,7 @@ extern "C" {
     EXTERN_ENTRY(31);
 }
 
-void log_registers(struct cpu::cpu_status *status) {
+void log_registers(cpu::cpu_status *status) {
     log(Verbose, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
         status->ss, status->rsp, status->rflags, status->cs);
     log(Verbose, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
@@ -53,7 +53,7 @@ void log_registers(struct cpu::cpu_status *status) {
 }
 
 [[noreturn]]
-extern "C" void exception_handler(struct cpu::cpu_status *status) {
+extern "C" void exception_handler(cpu::cpu_status *status) {
     switch (status->int_no) {
         case 14: {
             log(Error, "ISR", "Received interrupt number 14");

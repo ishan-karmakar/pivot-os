@@ -7,7 +7,7 @@ namespace mem {
         // I should really create a separate struct
         // to hold the information I want to pass to PMM instead of boot_info_t
         // but I'll deal with it later
-        PMM(struct boot_info*);
+        PMM(boot_info*);
         
         uintptr_t frame();
 

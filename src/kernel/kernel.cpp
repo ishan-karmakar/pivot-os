@@ -19,7 +19,7 @@ void init_idt(cpu::IDT&);
 
 extern "C" void __cxa_pure_virtual() { while(1); }
 
-extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
+extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     call_constructors();
     io::SerialPort qemu{0x3F8};
     qemu.set_global();
@@ -35,8 +35,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
     drivers::Framebuffer fb{bi, mapper, pmm};
     mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, mapper, pmm};
     mem::Heap heap{vmm, PAGE_SIZE};
-    acpi::RSDT rsdt{bi->rsdp};
-    auto madt = rsdt.get_table<acpi::MADT>();
+    acpi::ACPI rsdt{bi->rsdp};
     while(1);
 }
 

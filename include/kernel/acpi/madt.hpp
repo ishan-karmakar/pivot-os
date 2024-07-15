@@ -5,7 +5,7 @@ namespace acpi {
     class MADT : SDT {
     public:
         struct [[gnu::packed]] madt {
-            struct sdt header;
+            sdt header;
             uint32_t lapic_addr;
             uint32_t flags;
         };
@@ -46,7 +46,7 @@ namespace acpi {
             uintptr_t end;
         };
 
-        MADT(struct sdt* h);
+        MADT(sdt* h);
 
         template <class E>
         MADTIterator<E> iter() { return MADTIterator<E>{table}; };

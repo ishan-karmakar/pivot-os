@@ -19,7 +19,7 @@ namespace drivers {
         };
 
     public:
-        Framebuffer(struct boot_info*, mem::PTMapper&, mem::PMM&, uint32_t = 0xFFFFFFFF, uint32_t = 0);
+        Framebuffer(boot_info*, mem::PTMapper&, mem::PMM&, uint32_t = 0xFFFFFFFF, uint32_t = 0);
         void operator<<(char) override;
         void clear() override;
     
@@ -28,7 +28,7 @@ namespace drivers {
         size_t get_off();
         void putchar(char);
 
-        struct font *font;
+        font *font;
         char *buffer;
         uint32_t hres, vres, pps;
         uint32_t num_cols, num_rows;
