@@ -71,7 +71,7 @@ extern "C" void exception_handler(struct cpu::cpu_status *status) {
     }
 }
 
-void cpu::isr::load_exceptions(cpu::InterruptDescriptorTable& idt) {
+void cpu::load_exceptions(cpu::IDT& idt) {
     SET_ENTRY(0);
     SET_ENTRY(1);
     SET_ENTRY(2);

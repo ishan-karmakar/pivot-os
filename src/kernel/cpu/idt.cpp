@@ -2,11 +2,11 @@
 #include <util/logger.h>
 using namespace cpu;
 
-void InterruptDescriptorTable::set_entry(uint8_t idx, struct idt::idt_desc desc) {
+void IDT::set_entry(uint8_t idx, struct idt_desc desc) {
     this->idt[idx] = desc;
 }
 
-void InterruptDescriptorTable::set_entry(uint8_t idx, uint8_t ring, uintptr_t handler) {
+void IDT::set_entry(uint8_t idx, uint8_t ring, uintptr_t handler) {
     set_entry(idx, {
         static_cast<uint16_t>(handler),
         0x8,
@@ -18,7 +18,7 @@ void InterruptDescriptorTable::set_entry(uint8_t idx, uint8_t ring, uintptr_t ha
     });
 }
 
-void InterruptDescriptorTable::load() {
+void IDT::load() {
     asm volatile ("lidt %0" : : "rm" (idtr));
     log(Info, "IDT", "Loaded IDT");
 }

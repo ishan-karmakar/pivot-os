@@ -4,7 +4,7 @@
 #include <common.h>
 using namespace mem;
 
-PhysicalMemoryManager::PhysicalMemoryManager(struct boot_info* bi) {
+PMM::PMM(struct boot_info* bi) {
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
     struct mmap_desc *cur_desc = bi->mmap;
     bitmap_size = DIV_CEIL(bi->mem_pages, 8);
@@ -26,7 +26,6 @@ PhysicalMemoryManager::PhysicalMemoryManager(struct boot_info* bi) {
         log(Debug, "PMM", "[%u] Type: %u - Address: %x - Count: %u", i, cur_desc->type, cur_desc->phys, cur_desc->count);
         uint32_t type = cur_desc->type;
         if ((type >= 3 && type <= 7) && cur_desc->phys != 0) {
-            log(Debug, "PMM", "Clearing region start at %x, spanning %u pages", cur_desc->phys, cur_desc->count);
             clear(cur_desc->phys, cur_desc->count);
         }
 
@@ -38,7 +37,7 @@ PhysicalMemoryManager::PhysicalMemoryManager(struct boot_info* bi) {
     log(Info, "PMM", "Initialized PMM");
 }
 
-uintptr_t PhysicalMemoryManager::frame() {
+uintptr_t PMM::frame() {
     for (uint16_t row = 0; row < bitmap_size; row++)
         if (bitmap[row] != 0xFF)
             for (uint16_t col = 0; col < 8; col++)
@@ -51,26 +50,26 @@ uintptr_t PhysicalMemoryManager::frame() {
     return 0;
 }
 
-void PhysicalMemoryManager::clear(uintptr_t addr, size_t count) {
+void PMM::clear(uintptr_t addr, size_t count) {
     for (size_t i = 0; i < count; i++)
         clear(addr + i * PAGE_SIZE);
 }
 
-void PhysicalMemoryManager::clear(uintptr_t addr) {
+void PMM::clear(uintptr_t addr) {
     addr /= PAGE_SIZE;
     if (addr >= (bitmap_size * 8))
-        log(Warning, "PMM", "Address exceeds bitmap size (%u >= %u)", addr, bitmap_size);
+        return;
     bitmap[addr / 8] &= ~(1 << (addr % 8));
 }
 
-void PhysicalMemoryManager::set(uintptr_t addr, size_t count) {
+void PMM::set(uintptr_t addr, size_t count) {
     for (size_t i = 0; i < count; i++)
         set(addr + i * PAGE_SIZE);
 }
 
-void PhysicalMemoryManager::set(uintptr_t addr) {
+void PMM::set(uintptr_t addr) {
     addr /= PAGE_SIZE;
     if (addr >= (bitmap_size * 8))
-        log(Warning, "PMM", "Address exceeds bitmap size (%u >= %u)", addr, bitmap_size);
+        return;
     bitmap[addr / 8] |= 1 << (addr % 8);
 }

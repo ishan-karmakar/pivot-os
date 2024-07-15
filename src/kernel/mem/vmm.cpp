@@ -3,32 +3,35 @@
 #include <util/logger.h>
 using namespace mem;
 
-VirtualMemoryManager::VirtualMemoryManager(enum vmm::vmm_level level, size_t max_pages, PTMapper& mapper, PhysicalMemoryManager& pmm) :
-    Bitmap{max_pages * PAGE_SIZE, PAGE_SIZE, reinterpret_cast<uint8_t*>(parse_level(level))}, pmm{pmm}, mapper{mapper} {
-
-    for (size_t i = 0; i < DIV_CEIL(max_pages, PAGE_SIZE); i++)
-        mapper.map(pmm.frame(), parse_level(level) + i * PAGE_SIZE, flags);
-
-    Bitmap::init();
+VMM::VMM(enum vmm_level level, size_t max_pages, PTMapper& mapper, PMM& pmm) :
+    Bitmap{max_pages * PAGE_SIZE, PAGE_SIZE, map_bm(level, max_pages, mapper, pmm)}, pmm{pmm}, mapper{mapper} {
     log(Info, "VMM", "Initialized VMM");
 }
 
-void VirtualMemoryManager::post_alloc(void *start, size_t pages) {
-    for (size_t i = 0; i < pages; i++)
-        mapper.map(pmm.frame(), reinterpret_cast<uintptr_t>(start) + i * PAGE_SIZE, flags);
+void *VMM::alloc(size_t size) {
+    void *addr = Bitmap::alloc(size * PAGE_SIZE);
+    for (size_t i = 0; i < size; i++)
+        mapper.map(pmm.frame(), reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
+    return addr;
 }
 
-void VirtualMemoryManager::post_free(void *start, size_t pages) {
+size_t VMM::free(void *addr) {
+    size_t pages = Bitmap::free(addr);
     for (size_t i = 0; i < pages; i++)
-        pmm.clear(mapper.translate(reinterpret_cast<uintptr_t>(start) + i * PAGE_SIZE));
+        pmm.clear(mapper.translate(reinterpret_cast<uintptr_t>(pages) + i * PAGE_SIZE));
+    return pages;
 }
 
-uintptr_t VirtualMemoryManager::parse_level(enum vmm::vmm_level level) {
-    if (level == vmm::Supervisor) {
+uint8_t *VMM::map_bm(enum vmm_level level, size_t max_pages, PTMapper& mapper, PMM& pmm) {
+    uintptr_t bm;
+    if (level == Supervisor) {
         flags = KERNEL_PT_ENTRY;
-        return HIGHER_HALF_OFFSET;
+        bm = HIGHER_HALF_OFFSET;
     } else {
         flags = USER_PT_ENTRY;
-        return PAGE_SIZE;
+        bm = PAGE_SIZE;
     }
+    for (size_t i = 0; i < DIV_CEIL(max_pages, PAGE_SIZE); i++)
+        mapper.map(pmm.frame(), bm + i * PAGE_SIZE, flags);
+    return reinterpret_cast<uint8_t*>(bm);
 }

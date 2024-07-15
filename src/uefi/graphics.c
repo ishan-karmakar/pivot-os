@@ -2,6 +2,7 @@
 #include <graphics.h>
 #include <util/logger.h>
 #include <con.h>
+#include <boot.h>
 
 const efi_guid_t GOP_GUID = { 0x9042a9de, 0x23dc, 0x4a38, {0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a } };
 
@@ -36,5 +37,9 @@ efi_status_t init_graphics(void) {
     if (EFI_ERR(status)) return status;
 
     log(Info, "GRAPHICS", "Set graphics mode to %ux%u", tmi->horizontal_res, tmi->vertical_res);
+    gBI.fb_buf = gop->mode->fb_base;
+    gBI.hres = tmi->horizontal_res;
+    gBI.vres = tmi->vertical_res;
+    gBI.pps = tmi->pp_scan_line;
     return 0;
 }

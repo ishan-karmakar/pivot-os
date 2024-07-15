@@ -29,7 +29,7 @@ add_executable(
     ${CXX_FILES}
     ${ASM_FILES}
     ${COMMON_FILES}
-    # ${PSF_OUT}
+    ${PSF_OUT}
 )
 target_compile_features(kernel PRIVATE cxx_std_17)
 set_target_properties(kernel PROPERTIES OUTPUT_NAME kernel.elf)

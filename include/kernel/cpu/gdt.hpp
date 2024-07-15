@@ -1,9 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <util/logger.h>
 
 namespace cpu {
-    namespace gdt {
+    template<uint16_t L>
+    class GDT {
+    private:
         struct [[gnu::packed]] gdtr {
             uint16_t size;
             uintptr_t addr;
@@ -18,19 +21,16 @@ namespace cpu {
             uint8_t flags:4;
             uint8_t base2;
         };
-    }
 
-    template<uint16_t L>
-    class GlobalDescriptorTable {
     public:
-        void set_entry(uint16_t idx, struct gdt::gdt_desc desc) {
+        void set_entry(uint16_t idx, struct gdt_desc desc) {
             if (idx >= L)
                 log(Warning, "GDT", "Index more than max GDT size");
             gdt[idx] = desc;
         }
 
         void set_entry(uint16_t idx, uint8_t access, uint8_t flags) {
-            struct gdt::gdt_desc desc { 0xFFFF, 0, 0, access, 0xF, flags, 0 };
+            struct gdt_desc desc { 0xFFFF, 0, 0, access, 0xF, flags, 0 };
 
             set_entry(idx, desc);
         }
@@ -54,9 +54,9 @@ namespace cpu {
         };
 
     private:
-        struct gdt::gdt_desc gdt[L];
-        struct gdt::gdtr gdtr{
-            L * sizeof(struct gdt::gdt_desc) - 1,
+        struct gdt_desc gdt[L];
+        struct gdtr gdtr{
+            L * sizeof(struct gdt_desc) - 1,
             reinterpret_cast<uintptr_t>(&gdt)
         };
     };

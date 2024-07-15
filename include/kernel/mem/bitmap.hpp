@@ -6,8 +6,8 @@ namespace mem {
     // This class is meant to be inherited by another class such as VMM, Heap
     class Bitmap {
     public:
-        void *alloc(size_t);
-        void free(void*);
+        virtual void *alloc(size_t);
+        virtual size_t free(void*);
         void *realloc(void*, size_t);
 
     protected:
@@ -18,16 +18,6 @@ namespace mem {
         // Constructor and init() are split so that subclass can choose to setup memory for init since base constructor must run before subclass constructor
         // Ex: VMM maps the area that BM init will access
         void init();
-
-        // Runs after alloc()
-        // Meant for something like VMM mapping pages
-        // This way it still works in correct order when using realloc
-        virtual void post_alloc(void*, size_t) {};
-
-        // Runs after free()
-        // Meant for something like VMM freeing pages
-        // This way it still works in correct order when using realloc
-        virtual void post_free(void*, size_t) {};
     
     private:
         void set_id(size_t, uint8_t);

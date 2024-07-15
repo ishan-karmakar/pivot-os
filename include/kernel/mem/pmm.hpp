@@ -2,12 +2,12 @@
 #include <boot.h>
 
 namespace mem {
-    class PhysicalMemoryManager {
+    class PMM {
     public:
         // I should really create a separate struct
         // to hold the information I want to pass to PMM instead of boot_info_t
         // but I'll deal with it later
-        PhysicalMemoryManager(struct boot_info*);
+        PMM(struct boot_info*);
         
         uintptr_t frame();
 

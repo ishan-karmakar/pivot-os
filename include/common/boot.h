@@ -16,7 +16,6 @@ struct mmap_desc {
 struct boot_info {
     // ACPI
     uintptr_t rsdp;
-    bool xsdt;
 
     // MEM
     pg_tbl_t pml4;
@@ -25,4 +24,10 @@ struct boot_info {
     size_t mmap_entries;
     size_t mem_pages;
     size_t desc_size;
+
+    // FRAMEBUFFER
+    uintptr_t fb_buf;
+    uint32_t hres;
+    uint32_t vres;
+    uint32_t pps;
 };

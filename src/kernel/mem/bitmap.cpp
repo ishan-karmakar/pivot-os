@@ -7,9 +7,7 @@ using namespace mem;
 const uint8_t BITS_PER_ID = 2;
 const uint8_t BLOCKS_PER_INT = sizeof(uint8_t) * 8 / BITS_PER_ID;
 
-Bitmap::Bitmap(size_t tsize, size_t bsize, uint8_t *bm) : tsize{tsize}, bsize{bsize}, bm{bm}, hblocks{DIV_CEIL(DIV_CEIL(tsize / bsize, BLOCKS_PER_INT), bsize)}, used{hblocks}, ffa{used} {}
-
-void Bitmap::init() {
+Bitmap::Bitmap(size_t tsize, size_t bsize, uint8_t *bm) : tsize{tsize}, bsize{bsize}, bm{bm}, hblocks{DIV_CEIL(DIV_CEIL(tsize / bsize, BLOCKS_PER_INT), bsize)}, used{hblocks}, ffa{used} {
     for (size_t i = 0; i < used; i++)
         set_id(i, 1);
 
@@ -43,7 +41,6 @@ void *Bitmap::alloc(size_t nsize) {
             used += fblocks;
 
             void *ptr = bm + i * bsize;
-            post_alloc(ptr, nblocks);
             return ptr;
         }
 
@@ -53,13 +50,13 @@ void *Bitmap::alloc(size_t nsize) {
     return 0;
 }
 
-void Bitmap::free(void *ptr) {
+size_t Bitmap::free(void *ptr) {
     uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
     uintptr_t bm_addr = reinterpret_cast<uintptr_t>(bm);
     uintptr_t start = bm_addr + hblocks * bsize;
     uintptr_t end = bm_addr + tsize;
 
-    if (start > addr || addr >= end) return;
+    if (start > addr || addr >= end) return 0;
     
     size_t sblock = (addr - bm_addr) / bsize;
     uint8_t id = get_id(sblock);
@@ -70,8 +67,7 @@ void Bitmap::free(void *ptr) {
 
     if (sblock < ffa)
         ffa = sblock;
-
-    post_free(ptr, i);
+    return i;
 }
 
 void *Bitmap::realloc(void *ptr, size_t new_size) {

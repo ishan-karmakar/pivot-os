@@ -3,7 +3,7 @@
 #include <util/logger.h>
 using namespace mem;
 
-PTMapper::PTMapper(pg_tbl_t pml4, PhysicalMemoryManager& pmm) : pml4{pml4}, pmm{pmm} {}
+PTMapper::PTMapper(pg_tbl_t pml4, PMM& pmm) : pml4{pml4}, pmm{pmm} {}
 
 void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags, size_t pages) {
     for (size_t i = 0; i < pages; i++)

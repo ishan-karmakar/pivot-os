@@ -4,7 +4,8 @@
 #include <util/logger.h>
 
 namespace cpu {
-    namespace idt {
+    class IDT {
+    private:
         struct [[gnu::packed]] idt_desc {
             uint16_t offset0;
             uint16_t segment_selector;
@@ -19,23 +20,18 @@ namespace cpu {
             uint16_t size;
             uintptr_t addr;
         };
-    }
-
-    class InterruptDescriptorTable {
     public:
-        void set_entry(uint8_t, struct idt::idt_desc);
+        void set_entry(uint8_t, struct idt_desc);
         void set_entry(uint8_t, uint8_t ring, uintptr_t handler);
         void load();
 
     private:
-        struct idt::idt_desc idt[256];
-        struct idt::idtr idtr{
-            256 * sizeof(idt::idt_desc) - 1,
+        struct idt_desc idt[256];
+        struct idtr idtr{
+            256 * sizeof(idt_desc) - 1,
             reinterpret_cast<uintptr_t>(&idt)
         };
     };
 
-    namespace isr {
-        void load_exceptions(cpu::InterruptDescriptorTable&);
-    }
+    void load_exceptions(IDT&);
 }
