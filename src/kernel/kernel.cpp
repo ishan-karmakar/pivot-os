@@ -22,7 +22,6 @@ extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
     call_constructors();
     io::SerialPort qemu{0x3F8};
     qemu.set_global();
-    log(Verbose, "ACPI", "%x", *(char*) 0x7B7D10C);
 
     cpu::GDT<3> gdt;
     init_gdt(gdt);
@@ -37,6 +36,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
     mem::Heap heap{vmm, PAGE_SIZE};
     acpi::RSDT rsdt{bi->rsdp};
     auto madt = rsdt.get_table<acpi::MADT>();
+    log(Verbose, "KERNEL", "%u", madt.has_value());
     while(1);
 }
 

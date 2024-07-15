@@ -26,12 +26,16 @@ RSDT::RSDT(uintptr_t rsdp) : SDT{get_rsdt(reinterpret_cast<char*>(rsdp))} {
 template <class T>
 std::optional<T> RSDT::get_table() {
     uint32_t num_entries = (header->length - sizeof(struct sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
-    uintptr_t cur_table = reinterpret_cast<uintptr_t>(header + 1);
+    auto start = reinterpret_cast<uintptr_t>(header + 1);
     for (uint32_t i = 0; i < num_entries; i++) {
-        struct sdt *table = reinterpret_cast<struct sdt*>(cur_table);
-        // if (!memcmp(table->sig, T::SIGNATURE, sizeof(table->sig)))
-        //     return std::make_optional(T{table});
-        cur_table += xsdt ? sizeof(uint64_t) : sizeof(uint32_t);
+        uintptr_t addr;
+        if (xsdt)
+            addr = reinterpret_cast<uint64_t*>(start)[i];
+        else
+            addr = reinterpret_cast<uint32_t*>(start)[i];
+        auto table = reinterpret_cast<struct sdt*>(addr);
+        if (!memcmp(table->sig, T::SIGNATURE, sizeof(table->sig)))
+            return std::make_optional(T{table});
     }
     return std::nullopt;
 }
