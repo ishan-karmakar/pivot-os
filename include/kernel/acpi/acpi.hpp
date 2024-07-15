@@ -4,7 +4,7 @@
 
 namespace acpi {
     class SDT {
-    public:
+    protected:
         struct [[gnu::packed]] sdt {
             char sig[4];
             uint32_t length;
@@ -25,12 +25,6 @@ namespace acpi {
             bool validate();
     };
 
-    class MADT : SDT {
-    public:
-        MADT(struct sdt* h) : SDT{h} {};
-        static constexpr const char * SIGNATURE = "APIC";
-    };
-
     class RSDT : SDT {
     public:
         RSDT(uintptr_t);
@@ -45,10 +39,7 @@ namespace acpi {
             char oemid[6];
             uint8_t revision;
             uint32_t rsdt_addr;
-        };
 
-        struct [[gnu::packed]] xsdp {
-            struct rsdp rsdp;
             uint32_t length;
             uint64_t xsdt_addr;
             uint8_t ext_checksum;

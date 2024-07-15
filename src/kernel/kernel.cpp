@@ -8,6 +8,7 @@
 #include <mem/vmm.hpp>
 #include <mem/heap.hpp>
 #include <acpi/acpi.hpp>
+#include <acpi/madt.hpp>
 #include <common.h>
 
 uint8_t CPU = 0;
@@ -36,7 +37,6 @@ extern "C" void __attribute__((noreturn)) init_kernel(struct boot_info *bi) {
     mem::Heap heap{vmm, PAGE_SIZE};
     acpi::RSDT rsdt{bi->rsdp};
     auto madt = rsdt.get_table<acpi::MADT>();
-    log(Verbose, "KERNEL", "%u", madt.has_value());
     while(1);
 }
 

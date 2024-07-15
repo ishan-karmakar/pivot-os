@@ -1,9 +1,10 @@
 #include <acpi/acpi.hpp>
+#include <acpi/madt.hpp>
 #include <util/logger.h>
 #include <libc/string.h>
 using namespace acpi;
 
-SDT::SDT(struct sdt *header) : header{header} {
+SDT::SDT(SDT::sdt *header) : header{header} {
     if (!validate())
         log(Warning, "ACPI", "Found invalid ACPI table");
 }
@@ -25,7 +26,7 @@ RSDT::RSDT(uintptr_t rsdp) : SDT{get_rsdt(reinterpret_cast<char*>(rsdp))} {
 
 template <class T>
 std::optional<T> RSDT::get_table() {
-    uint32_t num_entries = (header->length - sizeof(struct sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
+    uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);
     for (uint32_t i = 0; i < num_entries; i++) {
         uintptr_t addr;
@@ -33,27 +34,26 @@ std::optional<T> RSDT::get_table() {
             addr = reinterpret_cast<uint64_t*>(start)[i];
         else
             addr = reinterpret_cast<uint32_t*>(start)[i];
-        auto table = reinterpret_cast<struct sdt*>(addr);
+        auto table = reinterpret_cast<SDT::sdt*>(addr);
         if (!memcmp(table->sig, T::SIGNATURE, sizeof(table->sig)))
             return std::make_optional(T{table});
     }
     return std::nullopt;
 }
 
-struct SDT::sdt *RSDT::get_rsdt(char *sdp) {
-    auto rsdp = reinterpret_cast<struct rsdp*>(sdp);
+SDT::sdt *RSDT::get_rsdt(char *sdp) {
+    auto rsdp = reinterpret_cast<RSDT::rsdp*>(sdp);
     xsdt = false;
-    if (!(!memcmp(rsdp->signature, "RSD PTR ", sizeof(rsdp->signature)) && validate(sdp, sizeof(struct rsdp))))
+    if (!(!memcmp(rsdp->signature, "RSD PTR ", sizeof(rsdp->signature)) && validate(sdp, sizeof(RSDT::rsdp))))
         log(Warning, "ACPI", "RSDP is not valid");
     
     if (rsdp->revision != 2)
-        return reinterpret_cast<struct sdt*>(rsdp->rsdt_addr);
+        return reinterpret_cast<SDT::sdt*>(rsdp->rsdt_addr);
     
     xsdt = true;
-    auto xsdp = reinterpret_cast<struct xsdp*>(sdp);
-    if (!validate(sdp, xsdp->length))
+    if (!validate(sdp, rsdp->length))
         log(Warning, "ACPI", "XSDP is not valid");
-    return reinterpret_cast<struct sdt*>(xsdp->xsdt_addr);
+    return reinterpret_cast<SDT::sdt*>(rsdp->xsdt_addr);
 }
 
 template std::optional<MADT> RSDT::get_table();
