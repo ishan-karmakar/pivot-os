@@ -1,6 +1,6 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 namespace cpu {
     struct cpu_status {
@@ -31,25 +31,25 @@ namespace cpu {
     };
 
     [[noreturn]]
-    static inline void hcf() {
+    inline void hcf() {
         asm volatile ("cli; hlt");
         __builtin_unreachable();
     }
+
+    inline uint64_t rdmsr(uint32_t address) {
+        uint32_t low = 0, high = 0;
+        asm volatile (
+            "rdmsr"
+            : "=a" (low), "=d" (high)
+            : "c" (address)
+        );
+        return (uint64_t) low | ((uint64_t) high << 32);
+    }
+
+    inline void wrmsr(uint32_t address, uint64_t value) {
+        asm volatile ("wrmsr" : : "a" ((uint32_t) value), "d" (value >> 32), "c" (address));
+    }
 }
-
-// static inline uint64_t rdmsr(uint32_t address) {
-//     uint32_t low = 0, high = 0;
-//     asm volatile (
-//         "rdmsr"
-//         : "=a" (low), "=d" (high)
-//         : "c" (address)
-//     );
-//     return (uint64_t) low | ((uint64_t) high << 32);
-// }
-
-// static inline void wrmsr(uint32_t address, uint64_t value) {
-//     asm volatile ("wrmsr" : : "a" ((uint32_t) value), "d" (value >> 32), "c" (address));
-// }
 
 // __attribute__((always_inline))
 // static inline void load_cr3(uintptr_t addr) {

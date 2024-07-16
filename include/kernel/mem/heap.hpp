@@ -6,5 +6,6 @@ namespace mem {
     class Heap : public Bitmap {
     public:
         Heap(VMM&, size_t, size_t = 16);
+        void *calloc(size_t);
     };
 }

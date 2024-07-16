@@ -2,7 +2,7 @@
 #include <cpu/idt.hpp>
 #include <util/logger.h>
 #define EXTERN_ENTRY(num) extern void isr##num();
-#define SET_ENTRY(idx) idt.set_entry(idx, 0, (uintptr_t) isr##idx);
+#define SET_ENTRY(idx) idt.set_entry(idx, 0, isr##idx);
 
 extern "C" {
     EXTERN_ENTRY(0);

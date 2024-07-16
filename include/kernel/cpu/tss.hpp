@@ -1,11 +1,18 @@
 #pragma once
 #include <cpu/gdt.hpp>
+#include <mem/heap.hpp>
 
 namespace cpu {
-    template <uint16_t L>
     class TSS {
     public:
-        TSS(GDT<L>&);
+        TSS(GDT&, mem::Heap&);
+
+        [[gnu::always_inline]]
+        inline void set_rsp0() const {
+            uintptr_t rsp;
+            asm volatile ("mov %%rsp, %0" : "=r" (rsp));
+            set_rsp0(rsp);
+        }
 
     private:
         struct [[gnu::packed]] tss {
@@ -18,6 +25,8 @@ namespace cpu {
             uint16_t iopb;
         };
 
-        GDT<L>& gdt;
+        void set_rsp0(uintptr_t) const;
+
+        GDT& gdt;
     };
 }

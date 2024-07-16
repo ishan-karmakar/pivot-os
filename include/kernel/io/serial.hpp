@@ -1,6 +1,6 @@
 #pragma once
 #include <io/stdio.hpp>
-#include <stdint.h>
+#include <cstdint>
 
 namespace io {
     void outb(int port, uint8_t data);

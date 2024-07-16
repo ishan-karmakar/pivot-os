@@ -4,8 +4,7 @@
 namespace acpi {
     class MADT : SDT {
     public:
-        struct [[gnu::packed]] madt {
-            sdt header;
+        struct [[gnu::packed]] madt : public sdt {
             uint32_t lapic_addr;
             uint32_t flags;
         };
@@ -46,14 +45,12 @@ namespace acpi {
             uintptr_t end;
         };
 
-        MADT(sdt* h);
+        MADT(sdt*);
 
         template <class E>
         MADTIterator<E> iter() { return MADTIterator<E>{table}; };
 
         static constexpr const char *SIGNATURE = "APIC";
-
-    private:
         madt *table;
     };
 }

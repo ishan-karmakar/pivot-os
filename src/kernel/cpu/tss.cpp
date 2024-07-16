@@ -1,7 +1,31 @@
 #include <cpu/tss.hpp>
 using namespace cpu;
 
-template <uint16_t L>
-TSS<L>::TSS(GDT<L>& gdt) {
-    uint16_t idx = gdt.ff_idx();
+TSS::TSS(GDT& gdt, mem::Heap& heap) : gdt{gdt} {
+    uintptr_t tss = reinterpret_cast<uintptr_t>(heap.calloc(sizeof(struct tss)));
+    uint64_t gdt_entry = sizeof(struct tss) |
+                         (tss & 0xFFFF) << 16 |
+                         ((tss >> 16) & 0xFF) << 32 |
+                         0b10001001UL << 40 |
+                         ((tss >> 24) & 0xFF) << 56;
+    uint16_t seg = gdt.entries * 8;
+
+    gdt.set_entry(gdt.entries, { .raw = gdt_entry });
+    gdt.set_entry(gdt.entries, { .raw = (tss >> 32) & 0xFFFFFFFF });
+
+    gdt.load();
+    asm volatile ("ltr %0" : : "r" (seg));
+    log(Info, "TSS", "Initialized TSS");
+}
+
+void TSS::set_rsp0(uintptr_t rsp) const {
+    uint16_t tr;
+    asm volatile ("str %0" : "=rm" (tr));
+    GDT::gdt_desc entry0 = gdt.get_entry(tr / 8);
+    GDT::gdt_desc entry1 = gdt.get_entry(tr / 8 + 1);
+    tss *tss = (struct tss*) (entry0.field.base0 |
+                                (entry0.field.base1 << 16) |
+                                (entry0.field.base2 << 24) |
+                                ((entry1.raw & 0xFFFFFFFF) << 32));
+    tss->rsp0 = rsp;
 }
