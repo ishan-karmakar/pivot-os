@@ -31,18 +31,27 @@ namespace acpi {
             static constexpr uint8_t TYPE = 1;
         };
 
+        struct [[gnu::packed]] ioapic_so : public header {
+            uint8_t bus_source;
+            uint8_t irq_source;
+            uint32_t gsi_base;
+            uint16_t flags;
+
+            static constexpr uint8_t TYPE = 2;
+        };
+
         template <class E>
-        class MADTIterator {
+        class Iterator {
         public:
             using iterator_category = std::input_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = const E;
-            using pointer = value_type*;
-            using reference = value_type&;
+            using value_type = E;
+            using pointer = const value_type*;
+            using reference = const value_type&;
 
-            MADTIterator(const madt * const header);
+            Iterator(const madt * const header);
 
-            reference operator*() const;
+            value_type operator*() const;
             pointer operator->() const;
 
             void operator++();
@@ -56,7 +65,7 @@ namespace acpi {
         MADT(const sdt* const);
 
         template <class E>
-        MADTIterator<E> iter() const { return MADTIterator<E>{table}; };
+        Iterator<E> iter() const { return Iterator<E>{table}; };
 
         static constexpr const char *SIGNATURE = "APIC";
         const madt * const table;

@@ -5,13 +5,13 @@ using namespace acpi;
 MADT::MADT(const SDT::sdt * const header) : SDT{header}, table{reinterpret_cast<const madt*>(header)} {}
 
 template <class E>
-MADT::MADTIterator<E>::MADTIterator(const madt * const header) : ptr{reinterpret_cast<pointer>(header + 1)}, end{reinterpret_cast<uintptr_t>(header) + header->length} {
+MADT::Iterator<E>::Iterator(const madt * const header) : ptr{reinterpret_cast<pointer>(header + 1)}, end{reinterpret_cast<uintptr_t>(header) + header->length} {
     if (ptr->type != E::TYPE)
         ++*this;
 }
 
 template <class E>
-void MADT::MADTIterator<E>::operator++() {
+void MADT::Iterator<E>::operator++() {
     do {
         ptr = reinterpret_cast<pointer>(reinterpret_cast<const char*>(ptr) + ptr->length);
 
@@ -21,15 +21,16 @@ void MADT::MADTIterator<E>::operator++() {
 }
 
 template <class E>
-MADT::MADTIterator<E>::operator bool() const {
+MADT::Iterator<E>::operator bool() const {
     return reinterpret_cast<uintptr_t>(ptr) < end;
 }
 
 template <class E>
-typename MADT::MADTIterator<E>::pointer MADT::MADTIterator<E>::operator->() const { return ptr; }
+typename MADT::Iterator<E>::pointer MADT::Iterator<E>::operator->() const { return ptr; }
 
 template <class E>
-typename MADT::MADTIterator<E>::reference MADT::MADTIterator<E>::operator*() const { return *ptr; }
+typename MADT::Iterator<E>::value_type MADT::Iterator<E>::operator*() const { return *ptr; }
 
-template class MADT::MADTIterator<MADT::lapic>;
-template class MADT::MADTIterator<MADT::ioapic>;
+template class MADT::Iterator<MADT::lapic>;
+template class MADT::Iterator<MADT::ioapic>;
+template class MADT::Iterator<MADT::ioapic_so>;

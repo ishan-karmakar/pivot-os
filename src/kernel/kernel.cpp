@@ -14,17 +14,14 @@
 #include <cpu/lapic.hpp>
 #include <cpu/ioapic.hpp>
 #include <common.h>
+#define STACK_CHK_GUARD 0x595e9fbd94fda766
 
 uint8_t CPU = 0;
 cpu::GDT::gdt_desc initial_gdt[3];
+uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 
 cpu::GDT init_sgdt();
 cpu::GDT init_hgdt(cpu::GDT&, mem::Heap&, acpi::ACPI&);
-void init_idt(cpu::IDT&);
-
-[[noreturn]]
-extern "C" void __cxa_pure_virtual() { while(1); }
-extern "C" void abort() { while(1); }
 
 extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     call_constructors();
@@ -35,7 +32,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     sgdt.load();
 
     cpu::IDT idt;
-    init_idt(idt);
+    cpu::load_exceptions(idt);
     idt.load();
 
     mem::PMM pmm{bi};
@@ -49,6 +46,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     tss.set_rsp0();
     cpu::LAPIC lapic{mapper, pmm, idt, rsdt.get_table<acpi::MADT>().value()};
     cpu::IOAPIC ioapic{mapper, pmm, rsdt.get_table<acpi::MADT>().value()};
+    lapic.calibrate(ioapic);
     while(1);
 }
 
@@ -72,8 +70,19 @@ cpu::GDT init_hgdt(cpu::GDT& old, mem::Heap& heap, acpi::ACPI& acpi) {
     return gdt;
 }
 
-void init_idt(cpu::IDT& idt) {
-    cpu::load_exceptions(idt);
+[[noreturn]]
+extern "C" void __cxa_pure_virtual() {
+    log(Error, "KERNEL", "Could not find virtual function");
+    abort();
+}
 
-    // More interrupts here
+[[noreturn]]
+extern "C" void __stack_chk_fail() {
+    log(Error, "KERNEL", "Detected stack smashing");
+    abort();
+}
+
+extern "C" void abort() {
+    log(Error, "KERNEL", "Aborting code");
+    while(1);
 }

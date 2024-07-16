@@ -11,7 +11,7 @@ GDT& GDT::operator=(GDT& old) {
 }
 
 void GDT::set_entry(uint16_t idx, uint8_t access, uint8_t flags) {
-    gdt_desc desc { .field = { 0xFFFF, 0, 0, access, 0xF, flags, 0 } };
+    gdt_desc desc { { 0xFFFF, 0, 0, access, 0xF, flags, 0 } };
 
     set_entry(idx, desc);
 }

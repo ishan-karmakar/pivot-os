@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cpu/idt.hpp>
 #define PIT_IDT_ENT 34
+#define PIT_MS 1193
 
 namespace io {
     class PIT {
@@ -13,6 +14,6 @@ namespace io {
         static void cmd(bool, uint8_t, uint8_t, uint8_t);
         static void data(uint16_t);
 
-        static size_t ticks;
+        static volatile size_t ticks;
     };
 }

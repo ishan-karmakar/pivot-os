@@ -62,12 +62,13 @@ void create_image() {
     size_t efi_sectors = get_size(config_val("EFI"));
     size_t elf_sectors = get_size(config_val("ELF"));
     size_t b2_sectors = get_size(config_val("BIOS2"));
-    size_t fat_sectors = 4 + b2_sectors + std::stoi(config_val("NUM_SUBDIRECTORIES")) + efi_sectors + elf_sectors;
+    // Two additional sectors for padding
+    size_t fat_sectors = 2 + 4 + b2_sectors + std::stoi(config_val("NUM_SUBDIRECTORIES")) + efi_sectors + elf_sectors;
     fat_sectors = std::max(69UL, fat_sectors); // 69 blocks seems to be the minimum number of sectors needed to satisfy MKFS
     size_t os_sectors = 34 + 33 + fat_sectors;
     std::string out_str = config_val("OUT");
     const char *out = out_str.c_str();
-    
+
     std::remove("tmp.img");
     std::remove(out);
 
@@ -90,7 +91,7 @@ void create_image() {
     };
 
     create_subdirectories(config_val("EFI_PATH"), config_val("EFI"));
-    create_subdirectories(config_val("ELF_PATH"), config_val("ELF"));
+    create_subdirectories(config_val("ELF_PATH"), config_val("ELF")); // PROBLEM
 
     std::ofstream ofs(out, std::ios::binary);
     std::filesystem::resize_file(out, os_sectors * 512);
@@ -102,19 +103,6 @@ void create_image() {
     copy_file(ofs, std::ifstream(config_val("BIOS1"), std::ios::binary), 510, 510, 2, 1);
     copy_file(ofs, std::ifstream("tmp.img", std::ios::binary), 34, 0, fat_sectors, 512);
     copy_file(ofs, std::ifstream(config_val("BIOS2"), std::ios::binary), 35, 0, b2_sectors, 512);
-
-    // First copy tmp.img to OUT
-    // std::sprintf(buf, "dd status=none bs=512 if=tmp.img of=%s seek=34 conv=notrunc", out);
-    // run_command(buf);
-
-    // std::sprintf(buf, "dd status=none bs=512 if=%s of=%s seek=35 conv=notrunc", config_val("BIOS2").c_str(), out);
-    // run_command(buf);
-
-    // std::sprintf(buf, "dd status=none bs=1 if=%s of=%s count=446 conv=notrunc", config_val("BIOS1").c_str(), out);
-    // run_command(buf);
-
-    // std::sprintf(buf, "dd status=none bs=1 if=%s of=%s count=2 skip=510 seek?=510 conv=notrunc", config_val("BIOS1").c_str(), out);
-    // run_command(buf);
 }
 
 void copy_file(std::ofstream& out, std::ifstream in, size_t seek, size_t skip, size_t size, size_t bs) {

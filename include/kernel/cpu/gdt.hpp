@@ -22,7 +22,7 @@ namespace cpu {
                 uint8_t limit1:4;
                 uint8_t flags:4;
                 uint8_t base2;
-            } field;
+            };
             uint64_t raw;
         };
 
