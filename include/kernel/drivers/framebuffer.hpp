@@ -28,8 +28,8 @@ namespace drivers {
         size_t get_off();
         void putchar(char);
 
-        font *font;
-        char *buffer;
+        const font * const font;
+        char * const buffer;
         uint32_t hres, vres, pps;
         uint32_t num_cols, num_rows;
         uint32_t fg, bg;

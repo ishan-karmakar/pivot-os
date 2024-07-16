@@ -57,7 +57,7 @@ void Framebuffer::clear() {
 }
 
 void Framebuffer::putchar(char c) {
-    uint8_t *glyph = reinterpret_cast<uint8_t*>(font) + font->header_size + c * font->bpg;
+    const uint8_t * glyph = reinterpret_cast<const uint8_t*>(font) + font->header_size + c * font->bpg;
     size_t bpl = DIV_CEIL(font->width, 8);
     size_t off = get_off();
     for (uint32_t cy = 0, line = off; cy < font->height;

@@ -17,12 +17,12 @@ namespace acpi {
             uint32_t creator_revision;
         };
 
-        SDT(sdt*);
-        static bool validate(char*, uint32_t);
-        sdt *header;
+        SDT(const sdt* const);
+        static bool validate(const char* const, uint32_t);
+        const sdt * const header;
 
         private:
-            bool validate();
+            bool validate() const;
     };
 
     class ACPI : SDT {
@@ -30,7 +30,7 @@ namespace acpi {
         ACPI(uintptr_t);
 
         template <class T>
-        std::optional<T> get_table();
+        std::optional<const T> get_table() const;
 
     private:
         struct [[gnu::packed]] rsdp {
@@ -46,7 +46,7 @@ namespace acpi {
             uint8_t rsv[3];
         };
 
-        sdt *get_rsdt(char*);
+        const sdt *get_rsdt(const char* const);
         bool xsdt;
     };
 }

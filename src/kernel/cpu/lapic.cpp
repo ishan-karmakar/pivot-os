@@ -13,7 +13,7 @@ using namespace cpu;
 
 extern "C" void apic_periodic_irq();
 
-LAPIC::LAPIC(mem::PTMapper& mapper, mem::PMM& pmm, IDT& idt, acpi::MADT madt) {
+LAPIC::LAPIC(mem::PTMapper& mapper, mem::PMM& pmm, IDT& idt, const acpi::MADT madt) {
     uint64_t msr = rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))
         log(Warning, "LAPIC", "APIC is disabled globally");
@@ -47,20 +47,20 @@ LAPIC::LAPIC(mem::PTMapper& mapper, mem::PMM& pmm, IDT& idt, acpi::MADT madt) {
     log(Info, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
 }
 
-uint64_t LAPIC::read_reg(uint32_t off) {
+uint64_t LAPIC::read_reg(uint32_t off) const {
     if (x2mode)
         return rdmsr((off >> 4) + 0x800);
     else
         return *(volatile uint32_t*) (lapic + off);
 }
 
-void LAPIC::write_reg(uint32_t off, uint64_t val) {
+void LAPIC::write_reg(uint32_t off, uint64_t val) const {
     if (x2mode)
         wrmsr((off >> 4) + 0x800, val);
     else
         *(volatile uint32_t*)(lapic + off) = val;
 }
 
-extern "C" cpu::cpu_status *apic_periodic_handler(cpu_status *status) {
+extern "C" cpu::cpu_status *apic_periodic_handler(cpu_status * const status) {
     return status;
 }

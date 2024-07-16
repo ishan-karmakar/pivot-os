@@ -11,18 +11,13 @@ namespace mem {
         void *realloc(void*, size_t);
 
     protected:
-        // Allows only subclasses to call it. Only initializes values, doesn't do any operations
+        // Allows only subclasses to call it
         Bitmap(size_t, size_t, uint8_t*);
 
-        // Does initialization and accesses memory
-        // Constructor and init() are split so that subclass can choose to setup memory for init since base constructor must run before subclass constructor
-        // Ex: VMM maps the area that BM init will access
-        void init();
-    
     private:
         void set_id(size_t, uint8_t);
-        uint8_t get_id(size_t);
-        uint8_t unique_id(uint8_t, uint8_t);
+        uint8_t get_id(size_t) const;
+        uint8_t unique_id(uint8_t, uint8_t) const;
 
         size_t tsize, bsize;
         uint8_t *bm;

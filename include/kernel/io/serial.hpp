@@ -12,6 +12,6 @@ namespace io {
         void operator<<(char) override;
 
     private:
-        uint16_t port;
+        const uint16_t port;
     };
 }

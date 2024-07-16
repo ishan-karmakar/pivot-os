@@ -27,6 +27,6 @@ namespace cpu {
 
         void set_rsp0(uintptr_t) const;
 
-        GDT& gdt;
+        const GDT& gdt;
     };
 }

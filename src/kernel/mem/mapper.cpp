@@ -3,7 +3,7 @@
 #include <util/logger.h>
 using namespace mem;
 
-PTMapper::PTMapper(pg_tbl_t pml4, PMM& pmm) : pml4{pml4}, pmm{pmm} {}
+PTMapper::PTMapper(pg_tbl_t const pml4, PMM& pmm) : pml4{pml4}, pmm{pmm} {}
 
 void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags, size_t pages) {
     for (size_t i = 0; i < pages; i++)
@@ -51,7 +51,7 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
     p1_tbl[p1_idx] = phys | flags;
 }
 
-uintptr_t PTMapper::translate(uintptr_t virt) {
+uintptr_t PTMapper::translate(uintptr_t virt) const {
     virt = ALIGN_ADDR(virt);
     uint16_t p4_idx = P4_ENTRY(virt);
     uint16_t p3_idx = P3_ENTRY(virt);
@@ -70,11 +70,11 @@ uintptr_t PTMapper::translate(uintptr_t virt) {
     return p1_tbl[p1_idx] & SIGN_MASK;
 }
 
-void PTMapper::unmap(uintptr_t, size_t) {}
+void PTMapper::unmap(uintptr_t, size_t) const {}
 
-void PTMapper::unmap(uintptr_t) {}
+void PTMapper::unmap(uintptr_t) const {}
 
-void PTMapper::load() {
+void PTMapper::load() const {
     //
 }
 

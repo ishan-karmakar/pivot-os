@@ -11,7 +11,8 @@ namespace io {
 
         static void init(cpu::IDT&);
         static void cmd(bool, uint8_t, uint8_t, uint8_t);
+        static void data(uint16_t);
 
-        static uint16_t ticks;
+        static size_t ticks;
     };
 }

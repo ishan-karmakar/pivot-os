@@ -12,6 +12,7 @@
 #include <libc/string.h>
 #include <cpu/tss.hpp>
 #include <cpu/lapic.hpp>
+#include <cpu/ioapic.hpp>
 #include <common.h>
 
 uint8_t CPU = 0;
@@ -47,6 +48,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     cpu::TSS tss{hgdt, heap};
     tss.set_rsp0();
     cpu::LAPIC lapic{mapper, pmm, idt, rsdt.get_table<acpi::MADT>().value()};
+    cpu::IOAPIC ioapic{mapper, pmm, rsdt.get_table<acpi::MADT>().value()};
     while(1);
 }
 
@@ -62,7 +64,7 @@ cpu::GDT init_hgdt(cpu::GDT& old, mem::Heap& heap, acpi::ACPI& acpi) {
     size_t num_cpus = 0;
     if (!madt.has_value())
         log(Warning, "ACPI", "Could not find MADT");
-    for (auto iter = madt.value().iter<acpi::MADT::madt_lapic>(); iter; ++iter, num_cpus++);
+    for (auto iter = madt.value().iter<acpi::MADT::lapic>(); iter; ++iter, num_cpus++);
     log(Info, "KERNEL", "Number of CPUs: %u", num_cpus);
     auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(heap.alloc((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
     cpu::GDT gdt{heap_gdt};

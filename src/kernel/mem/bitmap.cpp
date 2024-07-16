@@ -99,13 +99,13 @@ void Bitmap::set_id(size_t block, uint8_t id) {
     bm[row] |= id << col;
 }
 
-uint8_t Bitmap::get_id(size_t block) {
+uint8_t Bitmap::get_id(size_t block) const {
     size_t row = block / BLOCKS_PER_INT;
     size_t col = (block % BLOCKS_PER_INT) * BITS_PER_ID;
     return (bm[row] & (((1 << BITS_PER_ID) - 1) << col)) >> col;
 }
 
-uint8_t Bitmap::unique_id(uint8_t a, uint8_t b) {
+uint8_t Bitmap::unique_id(uint8_t a, uint8_t b) const {
     uint8_t c = 1;
     for (; c == a || c == b; c++);
     return c;

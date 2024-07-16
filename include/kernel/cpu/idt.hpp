@@ -22,8 +22,8 @@ namespace cpu {
         };
     public:
         void set_entry(uint8_t, struct idt_desc);
-        void set_entry(uint8_t, uint8_t ring, void (*handler)());
-        void load();
+        void set_entry(uint8_t, uint8_t ring, void (* const handler)());
+        void load() const;
 
     private:
         struct idt_desc idt[256];
