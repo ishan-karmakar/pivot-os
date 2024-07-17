@@ -2,9 +2,16 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-typedef void (*char_printer_t)(char);
+typedef void (*char_printer_t)(unsigned char);
 extern char_printer_t char_printer;
 
-void printf(const char *format, ...);
-void vprintf(const char *c, va_list args);
-void flush_screen(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int printf(const char *format, ...);
+int vprintf(const char *c, va_list args);
+
+#ifdef __cplusplus
+}
+#endif

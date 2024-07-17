@@ -4,21 +4,20 @@
 namespace mem {
     class PMM {
     public:
-        // I should really create a separate struct
-        // to hold the information I want to pass to PMM instead of boot_info_t
-        // but I'll deal with it later
-        PMM(boot_info*);
-        
-        uintptr_t frame();
+        PMM() = delete;
 
-        void clear(uintptr_t, size_t);
-        void clear(uintptr_t);
+        static void init(boot_info*);
         
-        void set(uintptr_t, size_t);
-        void set(uintptr_t);
+        static uintptr_t frame();
+
+        static void clear(uintptr_t, size_t);
+        static void clear(uintptr_t);
+        
+        static void set(uintptr_t, size_t);
+        static void set(uintptr_t);
 
     private:
-        size_t bitmap_size;
-        uint8_t *bitmap;
+        static size_t bitmap_size;
+        static uint8_t *bitmap;
     };
 }

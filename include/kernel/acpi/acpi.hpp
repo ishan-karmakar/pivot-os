@@ -2,9 +2,16 @@
 #include <boot.h>
 #include <optional>
 
+/*
+This whole setup is really janky. Basically, SDT is the base class for all
+ACPI tables. It provides validation functions and allows passing around tables easily.
+RSDT is the Root SDT, and it is different from the rest of the tables because it is the entry point
+and needs additional functions to access the rest of tables. ACPI is kind of a wrapper class that facilitates
+the initialization of RSDT because I wanted the kernel to be able to access ACPI with static functions.
+*/
 namespace acpi {
     class SDT {
-    protected:
+    public:
         struct [[gnu::packed]] sdt {
             char sig[4];
             uint32_t length;
@@ -17,20 +24,22 @@ namespace acpi {
             uint32_t creator_revision;
         };
 
-        SDT(const sdt* const);
+        SDT() = default;
+        SDT(const sdt*);
         static bool validate(const char* const, uint32_t);
-        const sdt * const header;
+
+    protected:
+        const sdt *header;
 
         private:
             bool validate() const;
     };
 
-    class ACPI : SDT {
+    class RSDT : SDT {
     public:
-        ACPI(uintptr_t);
-
-        template <class T>
-        std::optional<const T> get_table() const;
+        RSDT() = default;
+        RSDT(uintptr_t);
+        sdt *get_table(const char*) const;
 
     private:
         struct [[gnu::packed]] rsdp {
@@ -46,7 +55,17 @@ namespace acpi {
             uint8_t rsv[3];
         };
 
-        const sdt *get_rsdt(const char* const);
+        const SDT::sdt *parse_rsdp(const char*);
         bool xsdt;
+    };
+
+    class ACPI {
+    public:
+        ACPI() = delete;
+
+        static void init(uintptr_t);
+
+        template <class T>
+        static std::optional<const T> get_table();
     };
 }

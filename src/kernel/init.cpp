@@ -12,6 +12,7 @@ extern char __stop_dtors;
 void call_constructors() {
     size_t num_entries = &__stop_ctors - &__start_ctors;
     uintptr_t *init_array = &__start_ctors;
-    for (size_t i = 0; i < num_entries; i++)
+    for (size_t i = 0; i < num_entries; i++) {
         ((void (*)()) init_array[i])();
+    }
 }

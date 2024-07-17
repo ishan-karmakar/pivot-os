@@ -4,7 +4,7 @@
 #include <util/logger.h>
 #include <stdarg.h>
 
-void efi_char_printer(char c) {
+void efi_char_printer(unsigned char c) {
     uint16_t s[2] = { c, 0 };
     gST->con_out->output_string(gST->con_out, s);
     if (c == '\n')

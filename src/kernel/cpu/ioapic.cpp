@@ -5,11 +5,14 @@
 
 using namespace cpu;
 
-IOAPIC::IOAPIC(mem::PTMapper& mapper, mem::PMM& pmm, acpi::MADT madt) : madt{madt} {
+uintptr_t IOAPIC::addr;
+
+void IOAPIC::init(mem::PTMapper& mapper) {
+    auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
     auto ioapic = *madt.iter<acpi::MADT::ioapic>();
     addr = ioapic.addr;
     mapper.map(addr, addr, KERNEL_PT_ENTRY);
-    pmm.set(addr);
+    mem::PMM::set(addr);
     uint32_t ioapic_version = read_reg(VER_OFF);
     log(Verbose, "IOAPIC", "Address: %x, GSI Base: %u, Max Redirections: %u", ioapic.addr, ioapic.gsi_base, ioapic_version >> 16);
     log(Info, "IOAPIC", "Initialized IOAPIC");
@@ -44,14 +47,15 @@ void IOAPIC::set_mask(uint8_t irq, bool mask) {
     write_red(irq, ent);
 }
 
-std::optional<const acpi::MADT::ioapic_so> IOAPIC::find_so(uint8_t irq) const {
+std::optional<const acpi::MADT::ioapic_so> IOAPIC::find_so(uint8_t irq) {
+    auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
     for (auto source_ovrds = madt.iter<acpi::MADT::ioapic_so>(); source_ovrds; ++source_ovrds)
         if (source_ovrds->irq_source == irq)
             return std::make_optional(*source_ovrds);
     return std::nullopt;
 }
 
-uint32_t IOAPIC::read_reg(uint32_t off) const {
+uint32_t IOAPIC::read_reg(uint32_t off) {
     *(volatile uint32_t*) addr = off;
     return *(volatile uint32_t*) (addr + 0x10);
 }
@@ -61,7 +65,7 @@ void IOAPIC::write_reg(uint32_t off, uint32_t val) {
     *(volatile uint32_t*) (addr + 0x10) = val;
 }
 
-IOAPIC::red_ent IOAPIC::read_red(uint8_t irq) const {
+IOAPIC::red_ent IOAPIC::read_red(uint8_t irq) {
     irq *= 2;
     irq += 0x10;
     uint32_t lower = read_reg(irq);

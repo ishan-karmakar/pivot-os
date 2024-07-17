@@ -19,8 +19,8 @@ namespace drivers {
         };
 
     public:
-        Framebuffer(boot_info*, mem::PTMapper&, mem::PMM&, uint32_t = 0xFFFFFFFF, uint32_t = 0);
-        void operator<<(char) override;
+        Framebuffer(boot_info*, mem::PTMapper&, uint32_t = 0xFFFFFFFF, uint32_t = 0);
+        void operator<<(unsigned char) override;
         void clear() override;
     
     private:

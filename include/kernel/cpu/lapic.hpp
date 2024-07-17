@@ -10,7 +10,10 @@
 namespace cpu {
     class LAPIC {
     public:
-        LAPIC(mem::PTMapper&, mem::PMM&, IDT&, const acpi::MADT);
+        LAPIC() = delete;
+
+        static void init(mem::PTMapper&, IDT&);
+        static void init();
         static void calibrate(IOAPIC&);
         static inline void eoi() { write_reg(0xB0, 0); }
 

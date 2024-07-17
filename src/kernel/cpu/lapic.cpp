@@ -23,7 +23,8 @@ uintptr_t LAPIC::lapic;
 bool LAPIC::x2mode;
 uint32_t LAPIC::ms_interval;
 
-LAPIC::LAPIC(mem::PTMapper& mapper, mem::PMM& pmm, IDT& idt, const acpi::MADT madt) {
+void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
+    auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
     uint64_t msr = rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))
         log(Warning, "LAPIC", "APIC is disabled globally");
@@ -38,7 +39,7 @@ LAPIC::LAPIC(mem::PTMapper& mapper, mem::PMM& pmm, IDT& idt, const acpi::MADT ma
         x2mode = false;
         lapic = VADDR(madt.table->lapic_addr);
         mapper.map(PADDR(lapic), lapic, KERNEL_PT_ENTRY);
-        pmm.set(PADDR(lapic));
+        mem::PMM::set(PADDR(lapic));
     } else {
         log(Error, "LAPIC", "No LAPIC is supported by this processor");
         return;

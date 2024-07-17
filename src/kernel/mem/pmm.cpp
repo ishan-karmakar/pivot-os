@@ -4,7 +4,10 @@
 #include <common.h>
 using namespace mem;
 
-PMM::PMM(boot_info* bi) {
+uint8_t *PMM::bitmap;
+size_t PMM::bitmap_size;
+
+void PMM::init(boot_info* bi) {
     log(Info, "PMM", "Found %u pages of physical memory (%u mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
     mmap_desc *cur_desc = bi->mmap;
     bitmap_size = DIV_CEIL(bi->mem_pages, 8);

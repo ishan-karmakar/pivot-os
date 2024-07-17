@@ -5,9 +5,10 @@
 namespace cpu {
     class IOAPIC {
     public:
-        IOAPIC(mem::PTMapper&, mem::PMM&, acpi::MADT);
-        void set_irq(uint8_t, uint8_t, uint8_t, uint32_t, bool);
-        void set_mask(uint8_t, bool);
+        IOAPIC() = delete;
+        static void init(mem::PTMapper&);
+        static void set_irq(uint8_t, uint8_t, uint8_t, uint32_t, bool);
+        static void set_mask(uint8_t, bool);
 
     private:
         union red_ent {
@@ -26,14 +27,13 @@ namespace cpu {
             uint64_t raw;
         };
 
-        std::optional<const acpi::MADT::ioapic_so> find_so(uint8_t) const;
+        static std::optional<const acpi::MADT::ioapic_so> find_so(uint8_t);
 
-        uint32_t read_reg(uint32_t) const;
-        void write_reg(uint32_t, uint32_t);
-        red_ent read_red(uint8_t) const;
-        void write_red(uint8_t, const red_ent&);
+        static uint32_t read_reg(uint32_t);
+        static void write_reg(uint32_t, uint32_t);
+        static red_ent read_red(uint8_t);
+        static void write_red(uint8_t, const red_ent&);
 
-        uintptr_t addr;
-        const acpi::MADT madt;
+        static uintptr_t addr;
     };
 }

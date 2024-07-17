@@ -12,15 +12,14 @@ namespace mem {
             User
         };
 
-        VMM(enum vmm_level, size_t, PTMapper&, PMM&);
+        VMM(enum vmm_level, size_t, PTMapper&);
         void *alloc(size_t) override;
         size_t free(void*) override;
 
     private:
-        uint8_t * map_bm(enum vmm_level, size_t, PTMapper&, PMM&);
+        uint8_t * map_bm(enum vmm_level, size_t, PTMapper&);
 
         size_t flags;
-        PMM& pmm;
         PTMapper& mapper;
     };
 }

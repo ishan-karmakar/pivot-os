@@ -7,13 +7,13 @@ using namespace drivers;
 
 extern char _binary_fonts_default_psf_start;
 
-Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, mem::PMM& pmm, uint32_t fg, uint32_t bg) :
+Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, uint32_t fg, uint32_t bg) :
     font{reinterpret_cast<struct font*>(&_binary_fonts_default_psf_start)}, buffer{reinterpret_cast<char*>(bi->fb_buf)},
     hres{bi->hres}, vres{bi->vres}, pps{bi->pps}, num_cols{hres / font->width}, num_rows{vres / font->height}, fg{fg}, bg{bg}
 {
     size_t fb_pages = DIV_CEIL(BPP * pps * vres, PAGE_SIZE);
     mapper.map(bi->fb_buf, bi->fb_buf, fb_pages, KERNEL_PT_ENTRY);
-    pmm.set(bi->fb_buf, fb_pages);
+    mem::PMM::set(bi->fb_buf, fb_pages);
 
     set_global();
     clear();
@@ -21,7 +21,7 @@ Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, mem::PMM& pmm, ui
     log(Info, "FB", "Initialized framebuffer");
 }
 
-void Framebuffer::operator<<(char c) {
+void Framebuffer::operator<<(unsigned char c) {
     switch (c) {
     case '\n':
         x = 0;

@@ -21,7 +21,8 @@ static void add_string(char* str) {
         buf[buf_pos++] = *str;
 }
 
-void vprintf(const char *c, va_list args) {
+int vprintf(const char *c, va_list args) {
+    int i = 0;
     for (; *c != '\0'; c++) {
         if (*c != '%' || (*c == '%' && *(c + 1) == '%'))
             buf[buf_pos++] = *c;
@@ -37,7 +38,7 @@ void vprintf(const char *c, va_list args) {
                         flush_screen();
                     break;
                 } case 'd': {
-                    buf_pos += itoa(va_arg(args, int64_t), buf + buf_pos, 21, 10);
+                    buf_pos += itoa(va_arg(args, int64_t), buf + buf_pos, 10);
                     break;
                 } case 'u': {
                     buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 10);
@@ -50,21 +51,26 @@ void vprintf(const char *c, va_list args) {
                     add_string("0b");
                     buf_pos += ultoa(va_arg(args, uint64_t), buf + buf_pos, 2);
                 } default: {
-                    printf("\n");
-                    return log(Warning, "STDIO", "Unrecognized identifier %%%c", *c);
+                    // printf("\n");
+                    // log(Warning, "STDIO", "Unrecognized identifier %%%c", *c++);
                 }
             }
-        if (*c == '\n')
+        if (*c == '\n') {
+            i += buf_pos;
             flush_screen();
+        }
     }
+    i += buf_pos;
+    return i;
 }
 
-void printf(const char *format, ...) {
+int printf(const char *format, ...) {
     while (atomic_flag_test_and_set(&mutex))
         asm ("pause");
     va_list args;
     va_start(args, format);
-    vprintf(format, args);
+    int ret = vprintf(format, args);
     va_end(args);
     atomic_flag_clear(&mutex);
+    return ret;
 }

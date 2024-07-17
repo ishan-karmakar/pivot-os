@@ -39,15 +39,13 @@ strcmp (const char *p1, const char *p2)
 }
 
 int
-itoa(int64_t num, char* str, int len, int base)
+itoa(int64_t num, char* str, int base)
 {
         int64_t sum = num;
         int i = 0;
         if (num < 0)
             sum = -sum;
         int digit;
-        if (len == 0)
-                return 0;
         do
         {
                 digit = sum % base;
@@ -56,9 +54,7 @@ itoa(int64_t num, char* str, int len, int base)
                 else
                         str[i++] = 'A' + digit - 0xA;
                 sum /= base;
-        }while (sum && (i < (len - 1)));
-        if (i == (len - 1) && sum)
-                return i;
+        }while (sum);
         if (num < 0)
             str[i++] = '-';
         strrev(str, i);
@@ -151,4 +147,21 @@ char* strncpy(char* dest, const char* src, size_t num)
     }
 
     return dest;
+}
+
+int
+strncmp(const char *s1, const char *s2, register size_t n)
+{
+  register unsigned char u1, u2;
+
+  while (n-- > 0)
+    {
+      u1 = (unsigned char) *s1++;
+      u2 = (unsigned char) *s2++;
+      if (u1 != u2)
+	return u1 - u2;
+      if (u1 == '\0')
+	return 0;
+    }
+  return 0;
 }

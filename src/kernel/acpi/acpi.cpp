@@ -4,7 +4,9 @@
 #include <libc/string.h>
 using namespace acpi;
 
-SDT::SDT(const SDT::sdt *header) : header{header} {
+RSDT rsdt;
+
+SDT::SDT(const sdt *header) : header{header} {
     if (!validate())
         log(Warning, "ACPI", "Found invalid ACPI table");
 }
@@ -20,12 +22,20 @@ bool SDT::validate() const {
     return validate(reinterpret_cast<const char*>(header), header->length);
 }
 
-ACPI::ACPI(uintptr_t rsdp) : SDT{get_rsdt(reinterpret_cast<const char*>(rsdp))} {
-    log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
+// ACPI::ACPI(uintptr_t rsdp) : SDT{get_rsdt(reinterpret_cast<const char*>(rsdp))} {
+//     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
+// }
+
+void ACPI::init(uintptr_t rsdp) {
+    rsdt = RSDT{rsdp};
 }
 
 template <class T>
-std::optional<const T> ACPI::get_table() const {
+std::optional<const T> ACPI::get_table() {
+    return T{rsdt.get_table(T::SIGNATURE)};
+}
+
+SDT::sdt *RSDT::get_table(const char *signature) const {
     uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);
     for (uint32_t i = 0; i < num_entries; i++) {
@@ -35,25 +45,27 @@ std::optional<const T> ACPI::get_table() const {
         else
             addr = reinterpret_cast<uint32_t*>(start)[i];
         auto table = reinterpret_cast<SDT::sdt*>(addr);
-        if (!memcmp(table->sig, T::SIGNATURE, sizeof(table->sig)))
-            return std::make_optional(T{table});
+        if (!memcmp(table->sig, signature, sizeof(table->sig)))
+            return table;
     }
-    return std::nullopt;
+    return 0;
 }
 
-const SDT::sdt *ACPI::get_rsdt(const char *sdp) {
-    auto rsdp = reinterpret_cast<const ACPI::rsdp*>(sdp);
-    xsdt = false;
-    if (!(!memcmp(rsdp->signature, "RSD PTR ", sizeof(rsdp->signature)) && validate(sdp, sizeof(ACPI::rsdp))))
+RSDT::RSDT(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))} {}
+
+const RSDT::sdt *RSDT::parse_rsdp(const char *sdp) {
+    auto rsdp = reinterpret_cast<const RSDT::rsdp*>(sdp);
+    if (!(!memcmp(rsdp->signature, "RSD PTR ", sizeof(rsdp->signature)) && SDT::validate(sdp, sizeof(RSDT::rsdp))))
         log(Warning, "ACPI", "RSDP is not valid");
-    
+
+    xsdt = false;
     if (rsdp->revision != 2)
         return reinterpret_cast<const SDT::sdt*>(rsdp->rsdt_addr);
     
-    xsdt = true;
     if (!validate(sdp, rsdp->length))
         log(Warning, "ACPI", "XSDP is not valid");
+    xsdt = true;
     return reinterpret_cast<const SDT::sdt*>(rsdp->xsdt_addr);
 }
 
-template std::optional<const MADT> ACPI::get_table() const;
+template std::optional<const MADT> ACPI::get_table();

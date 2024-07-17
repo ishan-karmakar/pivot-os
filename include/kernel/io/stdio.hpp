@@ -4,7 +4,7 @@
 namespace io {
     class OWriter {
     public:
-        virtual void operator<<(char) = 0;
+        virtual void operator<<(unsigned char) = 0;
         virtual void clear() {};
         void set_global();
     };
