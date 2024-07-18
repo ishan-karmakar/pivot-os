@@ -1,20 +1,13 @@
 #include <init.hpp>
-#include <io/serial.hpp>
-#include <cpu/gdt.hpp>
-#include <cpu/idt.hpp>
-#include <mem/pmm.hpp>
-#include <mem/mapper.hpp>
-#include <drivers/framebuffer.hpp>
-#include <mem/vmm.hpp>
-#include <mem/heap.hpp>
-#include <acpi/acpi.hpp>
-#include <acpi/madt.hpp>
-#include <libc/string.h>
-#include <cpu/tss.hpp>
 #include <cpu/lapic.hpp>
-#include <drivers/ioapic.hpp>
+#include <cpu/gdt.hpp>
+#include <cpu/tss.hpp>
 #include <cpu/cpu.hpp>
-#include <common.h>
+#include <drivers/ioapic.hpp>
+#include <drivers/framebuffer.hpp>
+#include <io/serial.hpp>
+#include <mem/heap.hpp>
+#include <libc/string.h>
 #define STACK_CHK_GUARD 0x595e9fbd94fda766
 
 uint8_t CPU = 0;
@@ -46,10 +39,13 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     mem::kheap = &heap;
 
     acpi::ACPI::init(bi->rsdp);
+    
     cpu::GDT hgdt{init_hgdt(sgdt, heap)};
     hgdt.load();
+    
     cpu::TSS tss{hgdt, heap};
     tss.set_rsp0();
+
     cpu::LAPIC::init(mapper, idt);
     drivers::IOAPIC::init(mapper);
     cpu::LAPIC::calibrate();
@@ -73,6 +69,8 @@ cpu::GDT init_hgdt(cpu::GDT& old, mem::Heap& heap) {
     auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(heap.alloc((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
     cpu::GDT gdt{heap_gdt};
     gdt = old;
+    gdt.set_entry(3, 0b11111011, 0b10);
+    gdt.set_entry(4, 0b11110011, 0);
     return gdt;
 }
 

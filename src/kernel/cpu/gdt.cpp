@@ -18,8 +18,7 @@ void GDT::set_entry(uint16_t idx, uint8_t access, uint8_t flags) {
 
 void GDT::set_entry(uint16_t idx, gdt_desc desc) {
     gdt[idx] = desc;
-    if (idx >= entries)
-        entries = idx + 1;
+    entries = std::max(static_cast<uint16_t>(idx + 1), entries);
 }
 
 GDT::gdt_desc GDT::get_entry(uint16_t idx) const { return gdt[idx]; }

@@ -1,7 +1,7 @@
 #include <acpi/acpi.hpp>
 #include <acpi/madt.hpp>
 #include <util/logger.h>
-#include <libc/string.h>
+#include <cstring>
 using namespace acpi;
 
 ACPI rsdt;

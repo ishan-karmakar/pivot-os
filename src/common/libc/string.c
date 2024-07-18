@@ -1,91 +1,19 @@
+#include <stdint.h>
+#include <stddef.h>
 #include <libc/string.h>
 
-size_t strlen(const char *str) {
-        const char *s;
-        for (s = str; *s; ++s)
-                ;
-        return (s - str);
-}
-
-void
-strrev(char *str, size_t len)
-{
-        int i;
-        int j;
-        char a;
-        for (i = 0, j = len - 1; i < j; i++, j--)
-        {
-                a = str[i];
-                str[i] = str[j];
-                str[j] = a;
-        }
-}
-
 int
-strcmp (const char *p1, const char *p2)
+memcmp (const void *str1, const void *str2, size_t count)
 {
-  const unsigned char *s1 = (const unsigned char *) p1;
-  const unsigned char *s2 = (const unsigned char *) p2;
-  unsigned char c1, c2;
-  do
+  register const unsigned char *s1 = (const unsigned char*)str1;
+  register const unsigned char *s2 = (const unsigned char*)str2;
+
+  while (count-- > 0)
     {
-      c1 = (unsigned char) *s1++;
-      c2 = (unsigned char) *s2++;
-      if (c1 == '\0')
-	return c1 - c2;
+      if (*s1++ != *s2++)
+	  return s1[-1] < s2[-1] ? -1 : 1;
     }
-  while (c1 == c2);
-  return c1 - c2;
-}
-
-int
-itoa(int64_t num, char* str, int base)
-{
-        int64_t sum = num;
-        int i = 0;
-        if (num < 0)
-            sum = -sum;
-        int digit;
-        do
-        {
-                digit = sum % base;
-                if (digit < 0xA)
-                        str[i++] = '0' + digit;
-                else
-                        str[i++] = 'A' + digit - 0xA;
-                sum /= base;
-        }while (sum);
-        if (num < 0)
-            str[i++] = '-';
-        strrev(str, i);
-        return i;
-}
-
-int ultoa(unsigned long num, char *str, int radix) {
-    char temp[65];
-    int temp_loc = 0;
-    int digit;
-    int str_loc = 0;
-
-    //construct a backward string of the number.
-    do {
-        digit = (unsigned long)num % radix;
-        if (digit < 10) 
-            temp[temp_loc++] = digit + '0';
-        else
-            temp[temp_loc++] = digit - 10 + 'A';
-        num /= radix;
-    } while ((unsigned long)num > 0);
-
-    temp_loc--;
-
-
-    //now reverse the string.
-    while ( temp_loc >=0 ) {// while there are still chars
-        str[str_loc++] = temp[temp_loc--];    
-    }
-
-    return str_loc;
+  return 0;
 }
 
 void *
@@ -107,61 +35,110 @@ memset (void *dest, int val, size_t len)
   return dest;
 }
 
-int
-memcmp (const void *str1, const void *str2, size_t count)
+void
+strrev(char *str, size_t len)
 {
-  register const unsigned char *s1 = (const unsigned char*)str1;
-  register const unsigned char *s2 = (const unsigned char*)str2;
-
-  while (count-- > 0)
+    int i;
+    int j;
+    char a;
+    for (i = 0, j = len - 1; i < j; i++, j--)
     {
-      if (*s1++ != *s2++)
-	  return s1[-1] < s2[-1] ? -1 : 1;
+            a = str[i];
+            str[i] = str[j];
+            str[j] = a;
     }
-  return 0;
-}
-
-char *strcpy(char *dst, const char *src) {
-    char* output = dst;
-    while (*src != '\0') {
-        *output++ = *src++;
-    }
-    *output = '\0';
-    return dst;
-}
-
-char* strncpy(char* dest, const char* src, size_t num)
-{
-    size_t i = 0;
-    while (src[i] != 0 && i < num)
-    {
-        dest[i] = src[i];
-        i++;
-    }
-
-    //as per spec, dest should be padded with zeroes so it is *num* chars long
-    while (i < num)
-    {
-        dest[i] = 0;
-        i++;
-    }
-
-    return dest;
 }
 
 int
-strncmp(const char *s1, const char *s2, register size_t n)
+itoa(int64_t num, char* str, int base)
 {
-  register unsigned char u1, u2;
-
-  while (n-- > 0)
+    int64_t sum = num;
+    int i = 0;
+    if (num < 0)
+        sum = -sum;
+    int digit;
+    do
     {
-      u1 = (unsigned char) *s1++;
-      u2 = (unsigned char) *s2++;
-      if (u1 != u2)
-	return u1 - u2;
-      if (u1 == '\0')
-	return 0;
+            digit = sum % base;
+            if (digit < 0xA)
+                    str[i++] = '0' + digit;
+            else
+                    str[i++] = 'A' + digit - 0xA;
+            sum /= base;
+    }while (sum);
+    if (num < 0)
+        str[i++] = '-';
+    strrev(str, i);
+    return i;
+}
+
+int ultoa(unsigned long num, char *str, int radix) {
+    int digit;
+    int i = 0;
+
+    //construct a backward string of the number.
+    do {
+        digit = (unsigned long)num % radix;
+        if (digit < 10) 
+            str[i++] = digit + '0';
+        else
+            str[i++] = digit - 10 + 'A';
+        num /= radix;
+    } while (num);
+
+    //now reverse the string.
+    strrev(str, i);
+    return i;
+}
+
+static char *add_string(char *buf, char *str) {
+    while (*str)
+        *buf++ = *str++;
+    return buf;
+}
+
+int vsprintf(char *buf, const char *c, va_list args) {
+    char *start = buf;
+    for (; *c; c++) {
+        if (*c == '%' && *(c + 1) == '%') {
+            *buf++ = '%';
+            c++;
+        } else if (*c != '%')
+            *buf++ = *c;
+        else
+            switch (*++c) {
+                case 's': {
+                    buf = add_string(buf, va_arg(args, char*));
+                    break;
+                } case 'c': {
+                    char ch = (char) va_arg(args, int);
+                    *buf++ = ch;
+                    break;
+                } case 'd': {
+                    buf += itoa(va_arg(args, int64_t), buf, 10);
+                    break;
+                } case 'u': {
+                    buf += ultoa(va_arg(args, uint64_t), buf, 10);
+                    break;
+                } case 'x': {
+                    buf = add_string(buf, "0x");
+                    buf += ultoa(va_arg(args, uint64_t), buf, 16);
+                    break;
+                } case 'b': {
+                    buf = add_string(buf, "0b");
+                    buf += ultoa(va_arg(args, uint64_t), buf, 2);
+                    break;
+                }
+            }
     }
-  return 0;
+    *buf = 0;
+    return buf - start;
+}
+
+int sprintf(char *str, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    int ret = vsprintf(str, fmt, args);
+    va_end(args);
+    return ret;
 }

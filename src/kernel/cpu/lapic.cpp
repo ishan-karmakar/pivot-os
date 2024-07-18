@@ -62,7 +62,7 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
 
 void LAPIC::calibrate() {
     asm volatile ("sti");
-    drivers::IOAPIC::set_irq(0, PIT_IDT_ENT, 0, 0, true);
+    drivers::IOAPIC::set_irq(0, PIT_IDT_ENT, 0, drivers::IOAPIC::Masked);
     drivers::PIT::cmd(false, 0b010, 0b11, 0);
     drivers::PIT::data(PIT_MS);
 

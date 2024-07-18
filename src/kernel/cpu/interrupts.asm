@@ -111,7 +111,7 @@ isr 31
 irq apic_periodic_irq, apic_periodic_handler
 ; irq apic_oneshot_irq, apic_oneshot_handler
 irq pit_irq, pit_handler
-; irq rtc_irq, rtc_handler
+irq rtc_irq, rtc_handler
 ; irq syscall_irq, syscall_handler
 ; irq keyboard_irq, keyboard_handler
 ; irq ipi_irq, ipi_handler

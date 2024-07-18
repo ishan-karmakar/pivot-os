@@ -5,9 +5,25 @@
 namespace drivers {
     class IOAPIC {
     public:
+        enum flags {
+            LowestPriority = (1 << 8),
+            SMI = (0b10 << 8),
+            NMI = (0b100 << 8),
+            INIT = (0b101 << 8),
+            ExtINT = (0b111 << 8),
+
+            LogicalDest = (1 << 11),
+
+            ActiveLow = (1 << 13),
+
+            LevelTrigger = (1 << 15),
+
+            Masked = (1 << 16)
+        };
+
         IOAPIC() = delete;
         static void init(mem::PTMapper&);
-        static void set_irq(uint8_t, uint8_t, uint8_t, uint32_t, bool);
+        static void set_irq(uint8_t, uint8_t, uint8_t, uint32_t);
         static void set_mask(uint8_t, bool);
 
     private:

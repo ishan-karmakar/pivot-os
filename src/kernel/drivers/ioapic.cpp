@@ -18,12 +18,11 @@ void IOAPIC::init(mem::PTMapper& mapper) {
     log(Info, "IOAPIC", "Initialized IOAPIC");
 }
 
-void IOAPIC::set_irq(uint8_t irq, uint8_t idt_ent, uint8_t dest, uint32_t flags, bool masked) {
+void IOAPIC::set_irq(uint8_t irq, uint8_t idt_ent, uint8_t dest, uint32_t flags) {
     red_ent ent;
     ent.raw = flags;
     ent.vector = idt_ent;
     ent.dest = dest;
-    ent.mask = masked;
 
     auto so = find_so(irq);
     if (so.has_value()) {

@@ -1,6 +1,6 @@
 #include <mem/heap.hpp>
 #include <util/logger.h>
-#include <libc/string.h>
+#include <cstring>
 #include <stdlib.h>
 
 using namespace mem;

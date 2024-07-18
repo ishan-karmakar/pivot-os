@@ -1,6 +1,6 @@
 #include <mem/pmm.hpp>
 #include <util/logger.h>
-#include <libc/string.h>
+#include <cstring>
 #include <common.h>
 using namespace mem;
 
