@@ -26,20 +26,25 @@ namespace acpi {
 
         SDT() = default;
         SDT(const sdt*);
-        static bool validate(const char* const, uint32_t);
 
     protected:
+        static bool validate(const char* const, uint32_t);
         const sdt *header;
 
-        private:
-            bool validate() const;
+    private:
+        bool validate() const;
     };
 
-    class RSDT : SDT {
+    class ACPI : SDT {
     public:
-        RSDT() = default;
-        RSDT(uintptr_t);
-        sdt *get_table(const char*) const;
+        ACPI() = default;
+        ACPI(uintptr_t);
+
+        // This should be called in the kernel, not the constructors
+        static void init(uintptr_t);
+
+        template <class T>
+        static std::optional<const T> get_table();
 
     private:
         struct [[gnu::packed]] rsdp {
@@ -57,15 +62,5 @@ namespace acpi {
 
         const SDT::sdt *parse_rsdp(const char*);
         bool xsdt;
-    };
-
-    class ACPI {
-    public:
-        ACPI() = delete;
-
-        static void init(uintptr_t);
-
-        template <class T>
-        static std::optional<const T> get_table();
     };
 }

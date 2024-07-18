@@ -6,7 +6,7 @@ file(GLOB_RECURSE CXX_FILES CONFIGURE_DEPENDS "*.cpp")
 set(PSF_OUT ${CMAKE_CURRENT_BINARY_DIR}/default.o)
 set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -mcmodel=kernel -fstack-protector")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -mcmodel=kernel")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -mcmodel=kernel -fno-rtti -fno-exceptions")
 add_executable(
     kernel
     EXCLUDE_FROM_ALL
@@ -29,4 +29,4 @@ add_custom_command(
 target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(kernel PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
-target_link_options(kernel PRIVATE -fuse-ld=lld -z norelro -T ${LINKER_SCRIPT} -lgcc_eh -lsupc++)
+target_link_options(kernel PRIVATE -fuse-ld=lld -z norelro -T ${LINKER_SCRIPT})

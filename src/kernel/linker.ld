@@ -24,18 +24,6 @@ SECTIONS
         __stop_ctors = .;
     }
 
-    .eh_frame_hdr ALIGN(0x1000) : AT (ADDR (.eh_frame_hdr) - _kern_virt_offset)
-    {
-        *(.eh_frame_hdr*)
-    }
-
-	.eh_frame ALIGN(0x1000) : AT (ADDR (.eh_frame) - _kern_virt_offset)
-	{
-        __start_eh_frame = .;
-		*(.eh_frame*)
-        QUAD(0)
-	}
-
 	.rodata ALIGN(0x1000) : AT (ADDR (.rodata) - _kern_virt_offset)
 	{
 		*(.rodata*)
@@ -59,5 +47,6 @@ SECTIONS
     {
         *(.note*)
         *(.comment*)
+        *(.eh_frame*)
     }
 }

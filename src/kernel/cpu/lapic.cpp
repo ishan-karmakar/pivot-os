@@ -59,20 +59,20 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
     log(Info, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
 }
 
-void LAPIC::calibrate(IOAPIC& ioapic) {
+void LAPIC::calibrate() {
     asm volatile ("sti");
-    ioapic.set_irq(0, PIT_IDT_ENT, 0, 0, true);
+    IOAPIC::set_irq(0, PIT_IDT_ENT, 0, 0, true);
     io::PIT::cmd(false, 0b010, 0b11, 0);
     io::PIT::data(PIT_MS);
 
     write_reg(INITIAL_COUNT_OFF, 0);
-    write_reg(CONFIG_OFF, 1);
+    write_reg(CONFIG_OFF, TIMER_DIV);
 
-    ioapic.set_mask(0, false);
+    IOAPIC::set_mask(0, false);
     write_reg(INITIAL_COUNT_OFF, (uint32_t) - 1);
     while (io::PIT::ticks < 500) asm ("pause");
     uint32_t cur_ticks = read_reg(CUR_COUNT_OFF);
-    ioapic.set_mask(0, true);
+    IOAPIC::set_mask(0, true);
     io::PIT::ticks = 0;
 
     uint32_t time_elapsed = ((uint32_t)-1) - cur_ticks;

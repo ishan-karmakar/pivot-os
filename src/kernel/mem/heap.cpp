@@ -2,7 +2,6 @@
 #include <util/logger.h>
 #include <libc/string.h>
 #include <stdlib.h>
-#include <memory>
 
 using namespace mem;
 
@@ -25,7 +24,7 @@ void *Heap::calloc(size_t size) {
 void *malloc(size_t size) {
     if (kheap)
         return kheap->alloc(size);
-    log(Error, "HEAP", "malloc called before Heap was initialized");
+    log(Error, "HEAP", "malloc called before heap was initialized");
     abort();
 }
 
@@ -41,4 +40,12 @@ void free(void *ptr) {
         kheap->free(ptr);
     log(Error, "HEAP", "free called before heap was initialized");
     abort();
+}
+
+void *operator new(size_t size) {
+    return malloc(size);
+}
+
+void operator delete(void *ptr) {
+    return free(ptr);
 }

@@ -14,7 +14,7 @@ namespace cpu {
 
         static void init(mem::PTMapper&, IDT&);
         static void init();
-        static void calibrate(IOAPIC&);
+        static void calibrate();
         static inline void eoi() { write_reg(0xB0, 0); }
 
         static uint32_t ms_interval;

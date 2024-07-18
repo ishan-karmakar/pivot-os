@@ -10,6 +10,11 @@ void io_char_printer(unsigned char c) {
     *writer << c;
 }
 
+[[gnu::constructor]]
+void set_char_printer() {
+    char_printer = io_char_printer;
+}
+
 void OWriter::set_global() { writer = this; }
 
 void clear_screen() { writer->clear(); }
