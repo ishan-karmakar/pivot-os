@@ -1,11 +1,11 @@
 #include <cpu/cpu.hpp>
-#include <io/pit.hpp>
+#include <drivers/pit.hpp>
 #include <io/serial.hpp>
 #include <cpu/lapic.hpp>
 #define CMD_REG 0x43
 #define DATA 0x40
 
-using namespace io;
+using namespace drivers;
 
 extern "C" void pit_irq();
 

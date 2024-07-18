@@ -37,14 +37,14 @@ namespace acpi {
 
     class ACPI : SDT {
     public:
-        ACPI() = default;
-        ACPI(uintptr_t);
-
         // This should be called in the kernel, not the constructors
+        ACPI() = default;
         static void init(uintptr_t);
-
         template <class T>
         static std::optional<const T> get_table();
+
+    protected:
+        ACPI(uintptr_t);
 
     private:
         struct [[gnu::packed]] rsdp {

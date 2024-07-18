@@ -55,7 +55,7 @@ ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))
 
 const SDT::sdt *ACPI::parse_rsdp(const char *sdp) {
     auto rsdp = reinterpret_cast<const ACPI::rsdp*>(sdp);
-    if (!(!memcmp(rsdp->signature, "RSD PTR ", sizeof(rsdp->signature)) && SDT::validate(sdp, sizeof(ACPI::rsdp))))
+    if (!(!memcmp(rsdp->signature, "RSD PTR ", sizeof(rsdp->signature)) && validate(sdp, sizeof(ACPI::rsdp))))
         log(Warning, "ACPI", "RSDP is not valid");
 
     xsdt = false;

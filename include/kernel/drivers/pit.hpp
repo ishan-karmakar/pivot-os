@@ -4,7 +4,7 @@
 #define PIT_IDT_ENT 34
 #define PIT_MS 1193
 
-namespace io {
+namespace drivers {
     class PIT {
     public:
         PIT() = delete;

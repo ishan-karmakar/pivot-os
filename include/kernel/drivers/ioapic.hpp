@@ -2,7 +2,7 @@
 #include <acpi/madt.hpp>
 #include <mem/mapper.hpp>
 
-namespace cpu {
+namespace drivers {
     class IOAPIC {
     public:
         IOAPIC() = delete;

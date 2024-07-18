@@ -12,7 +12,7 @@
 #include <libc/string.h>
 #include <cpu/tss.hpp>
 #include <cpu/lapic.hpp>
-#include <cpu/ioapic.hpp>
+#include <drivers/ioapic.hpp>
 #include <cpu/cpu.hpp>
 #include <common.h>
 #define STACK_CHK_GUARD 0x595e9fbd94fda766
@@ -45,14 +45,14 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     mem::Heap heap{vmm, HEAP_SIZE};
     mem::kheap = &heap;
 
+    acpi::ACPI::init(bi->rsdp);
     cpu::GDT hgdt{init_hgdt(sgdt, heap)};
-    // hgdt.load();
-    // cpu::TSS tss{hgdt, heap};
-    // tss.set_rsp0();
-    // acpi::ACPI::init(bi->rsdp);
-    // cpu::LAPIC::init(mapper, idt);
-    // cpu::IOAPIC::init(mapper);
-    // cpu::LAPIC::calibrate();
+    hgdt.load();
+    cpu::TSS tss{hgdt, heap};
+    tss.set_rsp0();
+    cpu::LAPIC::init(mapper, idt);
+    drivers::IOAPIC::init(mapper);
+    cpu::LAPIC::calibrate();
     while(1);
 }
 
@@ -64,7 +64,6 @@ cpu::GDT init_sgdt() {
 }
 
 cpu::GDT init_hgdt(cpu::GDT& old, mem::Heap& heap) {
-    log(Info, "KERNEL", "test");
     auto madt = acpi::ACPI::get_table<acpi::MADT>();
     size_t num_cpus = 0;
     if (!madt.has_value())

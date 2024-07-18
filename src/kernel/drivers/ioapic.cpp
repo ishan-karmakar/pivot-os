@@ -1,9 +1,9 @@
-#include <cpu/ioapic.hpp>
+#include <drivers/ioapic.hpp>
 #include <util/logger.h>
 #include <common.h>
 #define VER_OFF 1
 
-using namespace cpu;
+using namespace drivers;
 
 uintptr_t IOAPIC::addr;
 

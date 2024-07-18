@@ -1,8 +1,9 @@
 #include <cpu/lapic.hpp>
+#include <drivers/ioapic.hpp>
 #include <cpu/cpu.hpp>
 #include <util/logger.h>
 #include <io/serial.hpp>
-#include <io/pit.hpp>
+#include <drivers/pit.hpp>
 #include <cstdint>
 #include <cpuid.h>
 #include <common.h>
@@ -25,7 +26,7 @@ uint32_t LAPIC::ms_interval;
 
 void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
     auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
-    uint64_t msr = rdmsr(IA32_APIC_BASE);
+    uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))
         log(Warning, "LAPIC", "APIC is disabled globally");
     
@@ -45,7 +46,7 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
         return;
     }
 
-    wrmsr(IA32_APIC_BASE, msr);
+    cpu::wrmsr(IA32_APIC_BASE, msr);
 
     // Disable PIC
     io::outb(0x21, 0xFF);
@@ -54,26 +55,26 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
 
     write_reg(SPURIOUS_VEC_OFF, (1 << 8) | APIC_SPURIOUS_IDT_ENT);
     idt.set_entry(APIC_PERIODIC_IDT_ENT, 3, apic_periodic_irq);
-    io::PIT::init(idt);
+    drivers::PIT::init(idt);
 
     log(Info, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
 }
 
 void LAPIC::calibrate() {
     asm volatile ("sti");
-    IOAPIC::set_irq(0, PIT_IDT_ENT, 0, 0, true);
-    io::PIT::cmd(false, 0b010, 0b11, 0);
-    io::PIT::data(PIT_MS);
+    drivers::IOAPIC::set_irq(0, PIT_IDT_ENT, 0, 0, true);
+    drivers::PIT::cmd(false, 0b010, 0b11, 0);
+    drivers::PIT::data(PIT_MS);
 
     write_reg(INITIAL_COUNT_OFF, 0);
     write_reg(CONFIG_OFF, TIMER_DIV);
 
-    IOAPIC::set_mask(0, false);
+    drivers::IOAPIC::set_mask(0, false);
     write_reg(INITIAL_COUNT_OFF, (uint32_t) - 1);
-    while (io::PIT::ticks < 500) asm ("pause");
+    while (drivers::PIT::ticks < 500) asm ("pause");
     uint32_t cur_ticks = read_reg(CUR_COUNT_OFF);
-    IOAPIC::set_mask(0, true);
-    io::PIT::ticks = 0;
+    drivers::IOAPIC::set_mask(0, true);
+    drivers::PIT::ticks = 0;
 
     uint32_t time_elapsed = ((uint32_t)-1) - cur_ticks;
     ms_interval = time_elapsed / 500;
@@ -82,14 +83,14 @@ void LAPIC::calibrate() {
 
 uint64_t LAPIC::read_reg(uint32_t off) {
     if (x2mode)
-        return rdmsr((off >> 4) + 0x800);
+        return cpu::rdmsr((off >> 4) + 0x800);
     else
         return *(volatile uint32_t*) (lapic + off);
 }
 
 void LAPIC::write_reg(uint32_t off, uint64_t val) {
     if (x2mode)
-        wrmsr((off >> 4) + 0x800, val);
+        cpu::wrmsr((off >> 4) + 0x800, val);
     else
         *(volatile uint32_t*)(lapic + off) = val;
 }

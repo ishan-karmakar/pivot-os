@@ -2,7 +2,6 @@
 #include <mem/mapper.hpp>
 #include <acpi/madt.hpp>
 #include <cpu/idt.hpp>
-#include <cpu/ioapic.hpp>
 
 #define APIC_SPURIOUS_IDT_ENT 0xFF
 #define APIC_PERIODIC_IDT_ENT 32
@@ -12,8 +11,12 @@ namespace cpu {
     public:
         LAPIC() = delete;
 
+        // Init for BSP processor - Completes full initialization of APIC
         static void init(mem::PTMapper&, IDT&);
+
+        // Init for AP processors - Only enables APIC, as initialization is already done by BSP
         static void init();
+
         static void calibrate();
         static inline void eoi() { write_reg(0xB0, 0); }
 
