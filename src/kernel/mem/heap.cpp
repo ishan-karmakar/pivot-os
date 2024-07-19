@@ -1,7 +1,7 @@
 #include <mem/heap.hpp>
 #include <util/logger.h>
-#include <cstring>
-#include <stdlib.h>
+#include <libc/string.h>
+#include <cstdlib>
 
 using namespace mem;
 
@@ -36,7 +36,6 @@ void *realloc(void *old, size_t size) {
 }
 
 void free(void *ptr) {
-    log(Verbose, "HEAP", "Free called for pointer %p", ptr);
     if (kheap) {
         kheap->free(ptr);
         return;

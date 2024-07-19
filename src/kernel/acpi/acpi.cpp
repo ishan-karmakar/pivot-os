@@ -21,9 +21,12 @@ bool SDT::validate() const {
     return validate(reinterpret_cast<const char*>(header), header->length);
 }
 
-ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{4} {
-    log(Verbose, "ACPI", "%u", tables["test"]);
-    log(Verbose, "ACPI", "%u", tables["test"]);
+ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{1} {
+    tables["test1"] = 1;
+    tables["test2"] = 2;
+    tables["test3"] = 3;
+    log(Verbose, "ACPI", "%u", tables["test1"]);
+    log(Verbose, "ACPI", "%u", tables["test2"]);
     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
     uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);

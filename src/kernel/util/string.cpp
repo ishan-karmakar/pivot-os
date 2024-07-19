@@ -1,6 +1,7 @@
 #include <util/string.hpp>
 #include <libc/string.h>
 #include <util/hash.hpp>
+#include <io/stdio.hpp>
 using namespace util;
 
 string::string() : buffer{nullptr}, len{0} {}
@@ -16,7 +17,38 @@ string::~string() {
     delete[] buffer;
 }
 
-size_t hash<string>::operator()(string str) {
+string::string(const string& src) {
+    len = src.size() + 1;
+    buffer = new char[len];
+    strcpy(buffer, src.buffer);
+}
+
+string& string::operator=(const string& src) {
+    delete[] buffer;
+    len = src.size() + 1;
+    buffer = new char[len];
+    strcpy(buffer, src.buffer);
+    return *this;
+}
+
+inline size_t hash<string>::shift_mix(size_t v) const { return v ^ (v >> 47); }
+
+inline size_t hash<string>::load_bytes(const char *p, int n) const {
+    size_t result = 0;
+    --n;
+    do
+        result = (result << 8) + static_cast<unsigned char>(p[n]);
+    while (--n >= 0);
+    return result;
+}
+
+inline size_t hash<string>::unaligned_load(const char *p) const {
+    size_t result;
+    memcpy(&result, p, sizeof(result));
+    return result;
+}
+
+size_t hash<string>::operator()(const string& str) const {
     static const size_t mul = (((size_t) 0xc6a4a793UL) << 32UL)
                 + (size_t) 0x5bd1e995UL;
 

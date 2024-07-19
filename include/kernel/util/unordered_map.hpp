@@ -19,15 +19,15 @@ namespace util {
             item *p = arr[h];
             size_t i = 0;
             while (p) {
-                log(Verbose, "UMAP", "%s", p->key.c_str());
                 if (p->key == key)
                     return p->val;
                 p = p->next;
                 i++;
             }
+            log(Verbose, "UMAP", "%lu", i);
 
-            // if (i > UNORDERED_MAP_RESIZE_THRESHOLD)
-            //     resize();
+            if (i > UNORDERED_MAP_RESIZE_THRESHOLD)
+                resize();
 
             log(Verbose, "UMAP", "Creating default item");
             // Create default item
@@ -41,6 +41,7 @@ namespace util {
 
     private:
         void resize() {
+            log(Verbose, "UMAP", "Time to resize");
             size_t new_size = len * 2;
             item **new_arr = new item*[new_size]();
             for (size_t i = 0; i < len; i++) {
