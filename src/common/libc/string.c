@@ -35,6 +35,24 @@ memset (void *dest, int val, size_t len)
   return dest;
 }
 
+void *
+memmove (void *dest, const void *src, size_t len)
+{
+  char *d = dest;
+  const char *s = src;
+  if (d < s)
+    while (len--)
+      *d++ = *s++;
+  else
+    {
+      const char *lasts = s + (len-1);
+      char *lastd = d + (len-1);
+      while (len--)
+        *lastd-- = *lasts--;
+    }
+  return dest;
+}
+
 void
 strrev(char *str, size_t len)
 {
@@ -97,38 +115,95 @@ static char *add_string(char *buf, char *str) {
     return buf;
 }
 
+static char *add_int(char *buf, int len, char flags, char width) {
+    if (!flags) return buf + len;
+    switch (flags) {
+    case ' ':
+        if (*buf != '-') break;
+        memmove(buf + 1, buf, len);
+        *buf = ' ';
+        return buf + len + 1;
+    case '+':
+        if (*buf == '-') break;
+        memmove(buf + 1, buf, len);
+        *buf = '+';
+        return buf + len + 1;
+    case '0':
+        if (!width) break;
+        int num_zeroes = (width - '0') - len;
+        if (num_zeroes <= 0) break;
+        memmove(buf + num_zeroes, buf, len);
+        memset(buf, '0', num_zeroes);
+        return buf + len + num_zeroes;
+    }
+    return buf + len;
+}
+
+// I am not proud of this switch statement, but it works :/
 int vsprintf(char *buf, const char *c, va_list args) {
     char *start = buf;
+    char flags = 0;
+    char width = 0;
     for (; *c; c++) {
         if (*c == '%' && *(c + 1) == '%') {
             *buf++ = '%';
             c++;
         } else if (*c != '%')
             *buf++ = *c;
-        else
+        else {
+            switch_start:
             switch (*++c) {
-                case 's': {
+                case 's':
                     buf = add_string(buf, va_arg(args, char*));
                     break;
-                } case 'c': {
+                case 'c':
                     *buf++ = (char) va_arg(args, int);
                     break;
-                } case 'd': {
-                    buf += itoa(va_arg(args, int64_t), buf, 10);
+                case 'p':
+                    buf = add_int(buf, ultoa(va_arg(args, uint64_t), buf, 16), flags, width);
                     break;
-                } case 'u': {
-                    buf += ultoa(va_arg(args, uint64_t), buf, 10);
+                case 'b': // Not in stdio printf, but here for convenience
+                    buf = add_int(buf, ultoa(va_arg(args, uint64_t), buf, 2), flags, width);
                     break;
-                } case 'x': {
-                    buf = add_string(buf, "0x");
-                    buf += ultoa(va_arg(args, uint64_t), buf, 16);
+                case 'i':
+                case 'd':
+                    buf = add_int(buf, itoa(va_arg(args, int), buf, 10), flags, width);
                     break;
-                } case 'b': {
-                    buf = add_string(buf, "0b");
-                    buf += ultoa(va_arg(args, uint64_t), buf, 2);
+                case 'u':
+                    buf = add_int(buf, ultoa(va_arg(args, unsigned int), buf, 10), flags, width);
                     break;
-                }
+                case 'h':
+                    if (*++c == 'h') c++;
+                    switch (*c) {
+                    case 'i':
+                    case 'd':
+                        buf = add_int(buf, itoa(va_arg(args, int), buf, 10), flags, width);
+                        break;
+                    case 'u':
+                        buf = add_int(buf, ultoa(va_arg(args, unsigned int), buf, 10), flags, width);
+                        break;
+                    }
+                    break;
+                case 'l':
+                    if (*++c == 'l') c++;
+                    switch (*c) {
+                    case 'i':
+                    case 'd':
+                        buf = add_int(buf, itoa(va_arg(args, long int), buf, 10), flags, width);
+                        break;
+                    case 'u':
+                        buf = add_int(buf, ultoa(va_arg(args, unsigned long int), buf, 10), flags, width);
+                        break;
+                    }
+                    break;
+                default:
+                    if (!flags)
+                        flags = *c;
+                    else if (!width)
+                        width = *c;
+                    goto switch_start;
             }
+        }
     }
     *buf = 0;
     return buf - start;

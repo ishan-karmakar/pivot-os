@@ -8,7 +8,7 @@ uint8_t *PMM::bitmap;
 size_t PMM::bitmap_size;
 
 void PMM::init(boot_info* bi) {
-    log(Info, "PMM", "Found %u pages of physical memory (%u mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
+    log(Info, "PMM", "Found %lu pages of physical memory (%lu mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
     mmap_desc *cur_desc = bi->mmap;
     bitmap_size = DIV_CEIL(bi->mem_pages, 8);
     for (size_t i = 0; i < bi->mmap_entries; i++) {
@@ -20,13 +20,13 @@ void PMM::init(boot_info* bi) {
 
         cur_desc = reinterpret_cast<mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
     }
-    log(Verbose, "PMM", "Bitmap: %x, Size: %u", bitmap, bitmap_size);
+    log(Verbose, "PMM", "Bitmap: %p, Size: %lu", bitmap, bitmap_size);
 
     memset(bitmap, 0xFF, bitmap_size);
 
     cur_desc = bi->mmap;
     for (size_t i = 0; i < bi->mmap_entries; i++) {
-        log(Debug, "PMM", "[%u] Type: %u - Address: %x - Count: %u", i, cur_desc->type, cur_desc->phys, cur_desc->count);
+        log(Debug, "PMM", "[%lu] Type: %u - Address: 0x%p - Count: %lu", i, cur_desc->type, cur_desc->phys, cur_desc->count);
         uint32_t type = cur_desc->type;
         if ((type >= 3 && type <= 7) && cur_desc->phys != 0) {
             clear(cur_desc->phys, cur_desc->count);

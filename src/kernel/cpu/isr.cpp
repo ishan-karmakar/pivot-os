@@ -40,15 +40,15 @@ extern "C" {
 }
 
 void log_registers(cpu::cpu_status *status) {
-    log(Verbose, "ISR", "ss: %x, rsp: %x, rflags: %x, cs: %x",
+    log(Verbose, "ISR", "ss: %p, rsp: %p, rflags: %p, cs: %p",
         status->ss, status->rsp, status->rflags, status->cs);
-    log(Verbose, "ISR", "rip: %x, rax: %x, rbx: %x, rcx: %x",
+    log(Verbose, "ISR", "rip: %p, rax: %p, rbx: %p, rcx: %p",
         status->rip, status->rax, status->rbx, status->rcx);
-    log(Verbose, "ISR", "rdx: %x, rbp: %x, rsi: %x, rdi: %x",
+    log(Verbose, "ISR", "rdx: %p, rbp: %p, rsi: %p, rdi: %p",
         status->rdx, status->rbp, status->rsi, status->rdi);
-    log(Verbose, "ISR", "r8: %x, r9: %x, r10: %x, r11: %x",
+    log(Verbose, "ISR", "r8: %p, r9: %p, r10: %p, r11: %p",
         status->r8, status->r9, status->r10, status->r11);
-    log(Verbose, "ISR", "r12: %x, r13: %x, r14: %x, r15: %x",
+    log(Verbose, "ISR", "r12: %p, r13: %p, r14: %p, r15: %p",
         status->r12, status->r13, status->r14, status->r15);
 }
 
@@ -60,11 +60,11 @@ extern "C" void exception_handler(cpu::cpu_status *status) {
             log(Verbose, "ISR", "Error code: %b", status->err_code);
             uint64_t cr2 = 0;
             asm volatile ("mov %%cr2, %0" : "=r" (cr2));
-            log(Verbose, "ISR", "cr2: %x", cr2);
+            log(Verbose, "ISR", "cr2: %p", cr2);
             log_registers(status);
             cpu::hcf();
         } default: {
-            log(Error, "ISR", "Received interrupt number %u", status->int_no);
+            log(Error, "ISR", "Received interrupt number %lu", status->int_no);
             log_registers(status);
             cpu::hcf();
         }

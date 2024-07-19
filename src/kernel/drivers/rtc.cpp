@@ -67,7 +67,9 @@ extern "C" cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
     auto lims = io::cout.get_lims();
     auto old_pos = io::cout.get_pos();
     io::cout.set_pos({ lims.first - 8, 0 });
-    printf("%u:%u:%u", RTC::time.hour, RTC::time.minute, RTC::time.second);
+    printf("%02hhu:%02hhu:%02hhu", RTC::time.hour, RTC::time.minute, RTC::time.second);
+    io::cout.set_pos({ lims.first - 8, 1 });
+    printf("%02hhu/%02hhu/%02hhu", RTC::time.month, RTC::time.dom, RTC::time.year);
     io::cout.set_pos(old_pos);
     LAPIC::eoi();
     return status;

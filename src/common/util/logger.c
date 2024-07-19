@@ -19,7 +19,7 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
         return;
     va_list args;
     va_start(args, format);
-    printf("[%u][%s] %s: ", CPU, log_levels[log_level], target);
+    printf("[%hhu][%s] %s: ", CPU, log_levels[log_level], target);
     vprintf(format, args);
     printf("\n");
     va_end(args);

@@ -7,6 +7,7 @@ extern "C" {
 
 void * memcpy (void *dest, const void *src, size_t len);
 void * memset (void *dest, int val, size_t len);
+void *memmove(void*, const void*, size_t);
 int memcmp (const void *str1, const void *str2, size_t count);
 
 int vsprintf(char*, const char*, va_list);

@@ -14,7 +14,7 @@ void IOAPIC::init(mem::PTMapper& mapper) {
     mapper.map(addr, addr, KERNEL_PT_ENTRY);
     mem::PMM::set(addr);
     uint32_t ioapic_version = read_reg(VER_OFF);
-    log(Verbose, "IOAPIC", "Address: %x, GSI Base: %u, Max Redirections: %u", ioapic.addr, ioapic.gsi_base, ioapic_version >> 16);
+    log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", ioapic.addr, ioapic.gsi_base, ioapic_version >> 16);
     log(Info, "IOAPIC", "Initialized IOAPIC");
 }
 
@@ -27,14 +27,14 @@ void IOAPIC::set_irq(uint8_t irq, uint8_t idt_ent, uint8_t dest, uint32_t flags)
     auto so = find_so(irq);
     if (so.has_value()) {
         auto val = so.value();
-        log(Verbose, "IOAPIC", "Found SO - IRQ %u -> %u", irq, val.gsi_base);
+        log(Verbose, "IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi_base);
         irq = val.gsi_base;
         ent.pin_polarity = val.flags & 2;
         ent.trigger_mode = val.flags & 8;
     }
 
     write_red(irq, ent);
-    log(Verbose, "IOAPIC", "Setting IRQ %u to IDT entry %u", irq, idt_ent);
+    log(Verbose, "IOAPIC", "Setting IRQ %hhu to IDT entry %hhu", irq, idt_ent);
 }
 
 void IOAPIC::set_mask(uint8_t irq, bool mask) {

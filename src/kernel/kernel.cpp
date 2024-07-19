@@ -8,7 +8,6 @@
 #include <drivers/rtc.hpp>
 #include <io/serial.hpp>
 #include <mem/heap.hpp>
-#include <io/stdio.hpp>
 #define STACK_CHK_GUARD 0x595e9fbd94fda766
 
 uint8_t CPU = 0;
@@ -62,11 +61,11 @@ cpu::GDT init_sgdt() {
 
 cpu::GDT init_hgdt(cpu::GDT& old, mem::Heap& heap) {
     auto madt = acpi::ACPI::get_table<acpi::MADT>();
-    size_t num_cpus = 0;
+    uint8_t num_cpus = 0;
     if (!madt.has_value())
         log(Warning, "ACPI", "Could not find MADT");
     for (auto iter = madt.value().iter<acpi::MADT::lapic>(); iter; ++iter, num_cpus++);
-    log(Info, "KERNEL", "Number of CPUs: %u", num_cpus);
+    log(Info, "KERNEL", "Number of CPUs: %hhu", num_cpus);
     auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(heap.alloc((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
     cpu::GDT gdt{heap_gdt};
     gdt = old;

@@ -17,7 +17,7 @@ void scheduler_remove_thread(thread_t * volatile*, thread_t*);
 cpu_status_t *ready_thread(thread_t*, bool);
 
 cpu_status_t *schedule(cpu_status_t *cur_status) {
-    log(Verbose, "SMP", "%x", read_apic_register(APIC_TIMER_LVT_OFFSET));
+    log(Verbose, "SMP", "%p", read_apic_register(APIC_TIMER_LVT_OFFSET));
     return ready_thread(KSMP.idle, false);
     if (!KCPUS[CPU].threads && !KCPUS[CPU].wakeups)
         return ready_thread(KSMP.idle, false); // CR3 will already be set to idle_thread's
