@@ -1,6 +1,8 @@
 #pragma once
 #include <boot.h>
 #include <optional>
+#include <util/unordered_map.hpp>
+#include <util/string.hpp>
 
 /*
 This whole setup is really janky. Basically, SDT is the base class for all
@@ -62,5 +64,6 @@ namespace acpi {
 
         const SDT::sdt *parse_rsdp(const char*);
         bool xsdt;
+        util::unordered_map<util::string, int> tables;
     };
 }

@@ -36,8 +36,11 @@ void *realloc(void *old, size_t size) {
 }
 
 void free(void *ptr) {
-    if (kheap)
+    log(Verbose, "HEAP", "Free called for pointer %p", ptr);
+    if (kheap) {
         kheap->free(ptr);
+        return;
+    }
     log(Error, "HEAP", "free called before heap was initialized");
     abort();
 }
@@ -48,4 +51,12 @@ void *operator new(size_t size) {
 
 void operator delete(void *ptr) {
     return free(ptr);
+}
+
+void *operator new[](size_t size) {
+    return operator new(size);
+}
+
+void operator delete[](void *ptr) {
+    return operator delete(ptr);
 }

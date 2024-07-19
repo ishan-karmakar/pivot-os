@@ -38,17 +38,17 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
 
     acpi::ACPI::init(bi->rsdp);
     
-    cpu::GDT hgdt{init_hgdt(sgdt, heap)};
-    hgdt.load();
+    // cpu::GDT hgdt{init_hgdt(sgdt, heap)};
+    // hgdt.load();
     
-    cpu::TSS tss{hgdt, heap};
-    tss.set_rsp0();
+    // cpu::TSS tss{hgdt, heap};
+    // tss.set_rsp0();
 
-    cpu::LAPIC::init(mapper, idt);
-    drivers::IOAPIC::init(mapper);
-    cpu::LAPIC::calibrate();
+    // cpu::LAPIC::init(mapper, idt);
+    // drivers::IOAPIC::init(mapper);
+    // cpu::LAPIC::calibrate();
 
-    drivers::RTC::init(idt);
+    // drivers::RTC::init(idt);
     while(1);
 }
 
@@ -84,6 +84,10 @@ extern "C" void __stack_chk_fail() {
 extern "C" void __cxa_pure_virtual() {
     log(Error, "KERNEL", "Could not find virtual function");
     abort();
+}
+
+extern "C" int __cxa_atexit(void*, void*, void*) {
+    return 0;
 }
 
 void abort() { cpu::hcf(); }

@@ -1,7 +1,6 @@
 #include <acpi/acpi.hpp>
 #include <acpi/madt.hpp>
 #include <util/logger.h>
-#include <cstring>
 using namespace acpi;
 
 ACPI rsdt;
@@ -22,8 +21,28 @@ bool SDT::validate() const {
     return validate(reinterpret_cast<const char*>(header), header->length);
 }
 
-ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))} {
+ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{4} {
+    log(Verbose, "ACPI", "%u", tables["test"]);
+    log(Verbose, "ACPI", "%u", tables["test"]);
     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
+    uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
+    auto start = reinterpret_cast<uintptr_t>(header + 1);
+    for (uint32_t i = 0; i < num_entries; i++) {
+        uintptr_t addr;
+        if (xsdt)
+            addr = reinterpret_cast<uint64_t*>(start)[i];
+        else
+            addr = reinterpret_cast<uint32_t*>(start)[i];
+        auto table = reinterpret_cast<sdt*>(addr);
+        char sig[5];
+        memcpy(sig, table->sig, 4);
+        sig[4] = 0;
+        if (validate(reinterpret_cast<const char*>(table), table->length)) {
+            log(Verbose, "ACPI", "Found valid %s", sig);
+        } else {
+            log(Warning, "ACPI", "Found invalid %s", sig);
+        }
+    }
 }
 
 void ACPI::init(uintptr_t rsdp) {
@@ -36,6 +55,7 @@ std::optional<const T> ACPI::get_table() {
         log(Warning, "ACPI", "get_table called before RSDT is initialized");
         return std::nullopt;
     }
+
     uint32_t num_entries = (rsdt.header->length - sizeof(SDT::sdt)) / (rsdt.xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(rsdt.header + 1);
     for (uint32_t i = 0; i < num_entries; i++) {
