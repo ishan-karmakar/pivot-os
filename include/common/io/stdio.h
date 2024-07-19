@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-typedef void (*char_printer_t)(unsigned char);
+typedef void (*char_printer_t)(char);
 extern char_printer_t char_printer;
 
 #ifdef __cplusplus

@@ -25,7 +25,7 @@ SerialPort::SerialPort(uint16_t port) : port{port} {
     outb(port + 4, 0x0F);
 }
 
-void SerialPort::operator<<(unsigned char c) {
+void SerialPort::write_char(char c) {
     while (!(inb(port + 5) & 0x20));
     outb(port, c);
 }

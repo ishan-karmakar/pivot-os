@@ -5,7 +5,7 @@
  * @brief The 64-bit ELF header.
  */
 typedef struct s_elf64_hdr {
-	unsigned char	e_ident[16];
+	char	e_ident[16];
 	uint16_t e_type;
 	uint16_t e_machine;
 	uint32_t e_version;

@@ -20,10 +20,13 @@ namespace drivers {
 
     public:
         Framebuffer(boot_info*, mem::PTMapper&, uint32_t = 0xFFFFFFFF, uint32_t = 0);
-        void operator<<(unsigned char) override;
         void clear() override;
+        void set_pos(coord_t) override;
+        coord_t get_pos() override;
+        coord_t get_lims() override;
     
     private:
+        void write_char(char) override;
         void find_last();
         size_t get_off();
         void putchar(char);

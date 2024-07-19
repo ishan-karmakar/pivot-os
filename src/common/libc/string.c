@@ -5,8 +5,8 @@
 int
 memcmp (const void *str1, const void *str2, size_t count)
 {
-  register const unsigned char *s1 = (const unsigned char*)str1;
-  register const unsigned char *s2 = (const unsigned char*)str2;
+  register const char *s1 = (const char*)str1;
+  register const char *s2 = (const char*)str2;
 
   while (count-- > 0)
     {
@@ -29,7 +29,7 @@ memcpy (void *dest, const void *src, size_t len)
 void *
 memset (void *dest, int val, size_t len)
 {
-  unsigned char *ptr = dest;
+  char *ptr = dest;
   while (len-- > 0)
     *ptr++ = val;
   return dest;
@@ -111,8 +111,7 @@ int vsprintf(char *buf, const char *c, va_list args) {
                     buf = add_string(buf, va_arg(args, char*));
                     break;
                 } case 'c': {
-                    char ch = (char) va_arg(args, int);
-                    *buf++ = ch;
+                    *buf++ = (char) va_arg(args, int);
                     break;
                 } case 'd': {
                     buf += itoa(va_arg(args, int64_t), buf, 10);

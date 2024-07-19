@@ -21,7 +21,7 @@ Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, uint32_t fg, uint
     log(Info, "FB", "Initialized framebuffer");
 }
 
-void Framebuffer::operator<<(unsigned char c) {
+void Framebuffer::write_char(char c) {
     switch (c) {
     case '\n':
         x = 0;
@@ -86,6 +86,19 @@ void Framebuffer::find_last() {
             return;
         x--;
     }
+}
+
+void Framebuffer::set_pos(coord_t pos) {
+    x = pos.first;
+    y = pos.second;
+}
+
+Framebuffer::coord_t Framebuffer::get_pos() {
+    return { x, y };
+}
+
+Framebuffer::coord_t Framebuffer::get_lims() {
+    return { num_cols, num_rows };
 }
 
 size_t Framebuffer::get_off() {

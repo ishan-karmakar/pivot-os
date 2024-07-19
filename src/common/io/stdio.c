@@ -5,10 +5,12 @@
 #include <libc/string.h>
 
 static char buf[128];
-char_printer_t char_printer;
+char_printer_t char_printer = NULL;
 atomic_flag mutex = ATOMIC_FLAG_INIT;
 
 void flush_screen(void) {
+    if (char_printer == NULL)
+        return;
     char *t = buf;
     while (*t)
         char_printer(*t++);

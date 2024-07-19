@@ -5,9 +5,10 @@
 #include <cpu/cpu.hpp>
 #include <drivers/ioapic.hpp>
 #include <drivers/framebuffer.hpp>
+#include <drivers/rtc.hpp>
 #include <io/serial.hpp>
 #include <mem/heap.hpp>
-#include <libc/string.h>
+#include <io/stdio.hpp>
 #define STACK_CHK_GUARD 0x595e9fbd94fda766
 
 uint8_t CPU = 0;
@@ -16,8 +17,6 @@ uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 
 cpu::GDT init_sgdt();
 cpu::GDT init_hgdt(cpu::GDT&, mem::Heap&);
-
-extern void io_char_printer(unsigned char);
 
 extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     call_constructors();
@@ -49,6 +48,8 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     cpu::LAPIC::init(mapper, idt);
     drivers::IOAPIC::init(mapper);
     cpu::LAPIC::calibrate();
+
+    drivers::RTC::init(idt);
     while(1);
 }
 
@@ -86,7 +87,4 @@ extern "C" void __cxa_pure_virtual() {
     abort();
 }
 
-void abort() {
-    log(Error, "KERNEL", "Aborting code");
-    cpu::hcf();
-}
+void abort() { cpu::hcf(); }

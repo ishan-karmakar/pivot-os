@@ -22,9 +22,9 @@ bool SDT::validate() const {
     return validate(reinterpret_cast<const char*>(header), header->length);
 }
 
-// ACPI::ACPI(uintptr_t rsdp) : SDT{get_rsdt(reinterpret_cast<const char*>(rsdp))} {
-//     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
-// }
+ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))} {
+    log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
+}
 
 void ACPI::init(uintptr_t rsdp) {
     rsdt = ACPI{rsdp};
@@ -50,8 +50,6 @@ std::optional<const T> ACPI::get_table() {
     }
     return std::nullopt;
 }
-
-ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))} {}
 
 const SDT::sdt *ACPI::parse_rsdp(const char *sdp) {
     auto rsdp = reinterpret_cast<const ACPI::rsdp*>(sdp);
