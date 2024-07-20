@@ -1,8 +1,8 @@
 #include <common.h>
 #include <drivers/framebuffer.hpp>
 #include <util/logger.h>
-#define BPP 4
-#define TAB_SIZE 4
+#include <mem/mapper.hpp>
+#include <mem/pmm.hpp>
 using namespace drivers;
 
 extern char _binary_fonts_default_psf_start;

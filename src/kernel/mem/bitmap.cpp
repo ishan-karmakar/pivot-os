@@ -17,7 +17,7 @@ Bitmap::Bitmap(size_t tsize, size_t bsize, uint8_t *bm) : tsize{tsize}, bsize{bs
     log(Verbose, "BITMAP", "Initialized region with %lu bytes, %lu block size", tsize, bsize);
 }
 
-void *Bitmap::alloc(size_t nsize) {
+void *Bitmap::malloc(size_t nsize) {
     size_t tblocks = tsize / bsize;
     size_t nblocks = DIV_CEIL(nsize, bsize);
 
@@ -77,7 +77,7 @@ void *Bitmap::realloc(void *ptr, size_t new_size) {
     uintptr_t end = bm_addr + tsize;
     if (start > addr || addr >= end)
         return 0;
-    void *n = alloc(new_size);
+    void *n = malloc(new_size);
     size_t sblock = (addr - bm_addr) / bsize;
     uint8_t id = get_id(sblock);
     size_t i = 0;
@@ -85,6 +85,12 @@ void *Bitmap::realloc(void *ptr, size_t new_size) {
     memcpy(n, ptr, i * bsize);
     free(ptr);
     return n;
+}
+
+void *Bitmap::calloc(size_t size) {
+    void *ptr = malloc(size);
+    memset(ptr, 0, size);
+    return ptr;
 }
 
 void Bitmap::set_id(size_t block, uint8_t id) {

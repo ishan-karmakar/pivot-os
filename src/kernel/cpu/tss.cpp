@@ -1,8 +1,11 @@
+#include <mem/heap.hpp>
+#include <cpu/gdt.hpp>
 #include <cpu/tss.hpp>
+#include <util/logger.h>
 using namespace cpu;
 
-TSS::TSS(GDT& gdt, mem::Heap& heap) : gdt{gdt} {
-    uintptr_t tss = reinterpret_cast<uintptr_t>(heap.calloc(sizeof(struct tss)));
+TSS::TSS(GDT& gdt) : gdt{gdt} {
+    uintptr_t tss = reinterpret_cast<uintptr_t>(new struct tss());
     uint64_t gdt_entry = sizeof(struct tss) |
                          (tss & 0xFFFF) << 16 |
                          ((tss >> 16) & 0xFF) << 32 |

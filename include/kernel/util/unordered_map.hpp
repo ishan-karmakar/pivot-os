@@ -3,15 +3,14 @@
 #include <util/hash.hpp>
 #include <cstdlib>
 #include <util/logger.h>
-#define UMAP_RESIZE_THRESHOLD 2
 
 namespace util {
     template <typename K, typename V>
-    class unordered_map {
+    class UnorderedMap {
     public:
-        unordered_map() = default;
-        unordered_map(size_t init_size) : size{init_size}, table{new node*[init_size]()} {}
-        ~unordered_map() {
+        UnorderedMap() = default;
+        UnorderedMap(size_t init_size) : size{init_size}, table{new node*[init_size]()} {}
+        ~UnorderedMap() {
             for (size_t i = 0; i < size; i++) {
                 node *n = table[i];
                 while (n) {
@@ -25,11 +24,6 @@ namespace util {
 
         void insert(const K& key, const V& value) {
             size_t idx = hasher(key) % size;
-
-            if (should_resize(idx)) {
-                resize();
-                idx = hasher(key) % size;
-            }
 
             node *n = table[idx];
             node *p = nullptr;
@@ -51,6 +45,9 @@ namespace util {
                 p->next = nn;
             else
                 table[idx] = nn;
+            
+            if (should_resize(idx))
+                resize();
         }
 
         V& operator[](const K& key) {
@@ -66,9 +63,11 @@ namespace util {
         }
 
         bool find(const K& key) const {
+            #include <util/logger.h>
             size_t idx = hasher(key) % size;
             node *n = table[idx];
             while (n) {
+                log(Verbose, "UMAP", n->key.c_str());
                 if (n->key == key)
                     return true;
                 n = n->next;
@@ -119,7 +118,7 @@ namespace util {
             while (n) {
                 count++;
                 // Since we are calling this before inserting, we actually want to increase count by one manually
-                if ((count + 1) > UMAP_RESIZE_THRESHOLD)
+                if (count > RESIZE_THRESHOLD)
                     return true;
                 n = n->next;
             }
@@ -136,5 +135,7 @@ namespace util {
         node **table;
         int ecount;
         hash<K> hasher;
+
+        static constexpr int RESIZE_THRESHOLD = 2;
     };
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
-#include <util/logger.h>
 
 namespace cpu {
     class IDT {

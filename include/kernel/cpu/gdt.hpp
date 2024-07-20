@@ -1,8 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
-#include <util/logger.h>
-#include <algorithm>
 
 namespace cpu {
     class GDT {

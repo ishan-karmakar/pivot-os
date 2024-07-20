@@ -4,20 +4,20 @@
 #include <util/hash.hpp>
 
 namespace util {
-    class string {
+    class String {
     public:
-        string();
-        string(const char*);
-        string(const char*, size_t);
-        string(const string&);
-        string& operator=(const string&);
-        ~string() { delete[] buffer; }
+        String();
+        String(const char*);
+        String(const char*, size_t);
+        String(const String&);
+        String& operator=(const String&);
+        ~String() { delete[] buffer; }
         size_t size() const { return len - 1; }
         const char *c_str() const { return *this; }
         operator const char*() const { return buffer; }
         char operator[](int idx) const { return buffer[idx]; }
 
-        friend bool operator==(const string& s1, const string& s2) { return !strcmp(s1, s2); }
+        friend bool operator==(const String& s1, const String& s2) { return !strcmp(s1, s2); }
 
     private:
         char *buffer;
@@ -25,7 +25,7 @@ namespace util {
     };
 
     template<>
-    struct hash<string> {
-        size_t operator()(const string&) const;
+    struct hash<String> {
+        size_t operator()(const String&) const;
     };
 }

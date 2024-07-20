@@ -32,14 +32,13 @@ ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))
         else
             addr = reinterpret_cast<uint32_t*>(start)[i];
         auto table = reinterpret_cast<sdt*>(addr);
-        char sig[5];
-        memcpy(sig, table->sig, 4);
-        sig[4] = 0;
+        
         if (validate(reinterpret_cast<const char*>(table), table->length)) {
-            log(Verbose, "ACPI", "Found valid %s", sig);
+            util::String sig{table->sig, 4};
+            log(Verbose, "ACPI", "Found valid %s", sig.c_str());
             tables.insert(sig, table);
         } else {
-            log(Warning, "ACPI", "Found invalid %s", sig);
+            log(Warning, "ACPI", "Found invalid table");
         }
     }
 }
@@ -50,8 +49,9 @@ void ACPI::init(uintptr_t rsdp) {
 
 template <class T>
 std::optional<const T> ACPI::get_table() {
+    log(Verbose, "ACPI", "%hhu", rsdt.tables.find(T::SIGNATURE));
     if (rsdt.tables.find(T::SIGNATURE))
-        return rsdt.tables[T::SIGNATURE];
+        return T{rsdt.tables[T::SIGNATURE]};
     return std::nullopt;
 }
 

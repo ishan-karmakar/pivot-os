@@ -1,8 +1,4 @@
 #pragma once
-#include <cpu/idt.hpp>
-#include <cpu/cpu.hpp>
-#define RTC_IDT_ENT 34
-
 namespace cpu {
     extern "C" cpu::cpu_status *rtc_handler(cpu::cpu_status*);
 }
@@ -37,5 +33,7 @@ namespace drivers {
         static bool bcd;
 
         friend cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status*);
+
+        static constexpr int IDT_ENT = 34;
     };
 }

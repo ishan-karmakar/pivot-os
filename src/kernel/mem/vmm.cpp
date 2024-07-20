@@ -1,6 +1,8 @@
 #include <mem/vmm.hpp>
 #include <common.h>
 #include <util/logger.h>
+#include <mem/mapper.hpp>
+#include <mem/pmm.hpp>
 using namespace mem;
 
 VMM::VMM(enum vmm_level level, size_t max_pages, PTMapper& mapper) :
@@ -8,8 +10,8 @@ VMM::VMM(enum vmm_level level, size_t max_pages, PTMapper& mapper) :
     log(Info, "VMM", "Initialized VMM");
 }
 
-void *VMM::alloc(size_t size) {
-    void *addr = Bitmap::alloc(size * PAGE_SIZE);
+void *VMM::malloc(size_t size) {
+    void *addr = Bitmap::malloc(size * PAGE_SIZE);
     for (size_t i = 0; i < size; i++)
         mapper.map(PMM::frame(), reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
     return addr;

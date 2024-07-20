@@ -1,21 +1,26 @@
+#include <common.h>
 #include <init.hpp>
+#include <mem/heap.hpp>
+#include <mem/pmm.hpp>
+#include <mem/vmm.hpp>
+#include <mem/mapper.hpp>
 #include <cpu/lapic.hpp>
 #include <cpu/gdt.hpp>
 #include <cpu/tss.hpp>
 #include <cpu/cpu.hpp>
+#include <cpu/idt.hpp>
 #include <drivers/ioapic.hpp>
 #include <drivers/framebuffer.hpp>
 #include <drivers/rtc.hpp>
+#include <drivers/keyboard.hpp>
 #include <io/serial.hpp>
-#include <mem/heap.hpp>
-#define STACK_CHK_GUARD 0x595e9fbd94fda766
 
 uint8_t CPU = 0;
 cpu::GDT::gdt_desc initial_gdt[3];
-uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
+uintptr_t __stack_chk_guard = 0x595e9fbd94fda766;
 
 cpu::GDT init_sgdt();
-cpu::GDT init_hgdt(cpu::GDT&, mem::Heap&);
+cpu::GDT init_hgdt(cpu::GDT&);
 
 extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     call_constructors();
@@ -38,10 +43,10 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
 
     acpi::ACPI::init(bi->rsdp);
     
-    cpu::GDT hgdt{init_hgdt(sgdt, heap)};
+    cpu::GDT hgdt{init_hgdt(sgdt)};
     hgdt.load();
     
-    cpu::TSS tss{hgdt, heap};
+    cpu::TSS tss{hgdt};
     tss.set_rsp0();
 
     cpu::LAPIC::init(mapper, idt);
@@ -49,6 +54,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     cpu::LAPIC::calibrate();
 
     drivers::RTC::init(idt);
+    drivers::Keyboard::init(idt);
     while(1);
 }
 
@@ -59,14 +65,14 @@ cpu::GDT init_sgdt() {
     return sgdt;
 }
 
-cpu::GDT init_hgdt(cpu::GDT& old, mem::Heap& heap) {
+cpu::GDT init_hgdt(cpu::GDT& old) {
     auto madt = acpi::ACPI::get_table<acpi::MADT>();
     uint8_t num_cpus = 0;
     if (!madt.has_value())
         log(Warning, "ACPI", "Could not find MADT");
     for (auto iter = madt.value().iter<acpi::MADT::lapic>(); iter; ++iter, num_cpus++);
     log(Info, "KERNEL", "Number of CPUs: %hhu", num_cpus);
-    auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(heap.alloc((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
+    auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(operator new((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
     cpu::GDT gdt{heap_gdt};
     gdt = old;
     gdt.set_entry(3, 0b11111011, 0b10);

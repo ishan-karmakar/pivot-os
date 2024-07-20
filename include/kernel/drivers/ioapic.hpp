@@ -1,30 +1,28 @@
 #pragma once
 #include <acpi/madt.hpp>
-#include <mem/mapper.hpp>
+#include <optional>
+
+namespace mem {
+    class PTMapper;
+}
 
 namespace drivers {
     class IOAPIC {
     public:
-        enum flags {
-            LowestPriority = (1 << 8),
-            SMI = (0b10 << 8),
-            NMI = (0b100 << 8),
-            INIT = (0b101 << 8),
-            ExtINT = (0b111 << 8),
-
-            LogicalDest = (1 << 11),
-
-            ActiveLow = (1 << 13),
-
-            LevelTrigger = (1 << 15),
-
-            Masked = (1 << 16)
-        };
-
         IOAPIC() = delete;
         static void init(mem::PTMapper&);
         static void set_irq(uint8_t, uint8_t, uint8_t, uint32_t);
         static void set_mask(uint8_t, bool);
+        
+        static constexpr int LOWEST_PRIORITY = (1 << 8);
+        static constexpr int SMI = (0b10 << 8);
+        static constexpr int NMI = (0b100 << 8);
+        static constexpr int INIT = (0b101 << 8);
+        static constexpr int EXT_INT = (0b111 << 8);
+        static constexpr int LOGICAL_DEST = (1 << 11);
+        static constexpr int ACTIVE_LOW = (1 << 13);
+        static constexpr int LEVEL_TRIGGER = (1 << 15);
+        static constexpr int MASKED = (1 << 16);
 
     private:
         union red_ent {
@@ -43,7 +41,7 @@ namespace drivers {
             uint64_t raw;
         };
 
-        static std::optional<const acpi::MADT::ioapic_so> find_so(uint8_t);
+        static std::optional<acpi::MADT::ioapic_so> find_so(uint8_t);
 
         static uint32_t read_reg(uint32_t);
         static void write_reg(uint32_t, uint32_t);
@@ -51,5 +49,7 @@ namespace drivers {
         static void write_red(uint8_t, const red_ent&);
 
         static uintptr_t addr;
+
+        static constexpr int VERSION_OFF = 1;
     };
 }

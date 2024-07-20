@@ -1,10 +1,10 @@
 #pragma once
 #include <cstddef>
 #include <mem/bitmap.hpp>
-#include <mem/pmm.hpp>
-#include <mem/mapper.hpp>
 
 namespace mem {
+    class PTMapper;
+
     class VMM : public Bitmap {
     public:
         enum vmm_level {
@@ -13,7 +13,7 @@ namespace mem {
         };
 
         VMM(enum vmm_level, size_t, PTMapper&);
-        void *alloc(size_t) override;
+        void *malloc(size_t) override;
         size_t free(void*) override;
 
     private:

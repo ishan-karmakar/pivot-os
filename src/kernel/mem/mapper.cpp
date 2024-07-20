@@ -1,6 +1,7 @@
 #include <mem/mapper.hpp>
 #include <common.h>
 #include <util/logger.h>
+#include <mem/pmm.hpp>
 using namespace mem;
 
 PTMapper::PTMapper(pg_tbl_t const pml4) : pml4{pml4} {}

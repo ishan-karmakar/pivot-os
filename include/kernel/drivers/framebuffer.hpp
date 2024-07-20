@@ -1,8 +1,11 @@
 #pragma once
+#include <cstdint>
 #include <io/stdio.hpp>
-#include <mem/mapper.hpp>
-#include <mem/pmm.hpp>
 #include <boot.h>
+
+namespace mem {
+    class PTMapper;
+}
 
 namespace drivers {
     class Framebuffer : public io::OWriter {
@@ -37,5 +40,8 @@ namespace drivers {
         uint32_t num_cols, num_rows;
         uint32_t fg, bg;
         uint32_t x, y;
+
+        static constexpr int BPP = 4;
+        static constexpr int TAB_SIZE = 4;
     };
 }

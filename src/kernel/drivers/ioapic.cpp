@@ -1,8 +1,8 @@
 #include <drivers/ioapic.hpp>
 #include <util/logger.h>
 #include <common.h>
-#define VER_OFF 1
-
+#include <mem/mapper.hpp>
+#include <mem/pmm.hpp>
 using namespace drivers;
 
 uintptr_t IOAPIC::addr;
@@ -13,12 +13,12 @@ void IOAPIC::init(mem::PTMapper& mapper) {
     addr = ioapic.addr;
     mapper.map(addr, addr, KERNEL_PT_ENTRY);
     mem::PMM::set(addr);
-    uint32_t ioapic_version = read_reg(VER_OFF);
+    uint32_t ioapic_version = read_reg(VERSION_OFF);
     log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", ioapic.addr, ioapic.gsi_base, ioapic_version >> 16);
     log(Info, "IOAPIC", "Initialized IOAPIC");
 }
 
-void IOAPIC::set_irq(uint8_t irq, uint8_t idt_ent, uint8_t dest, uint32_t flags) {
+void IOAPIC::set_irq(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags) {
     red_ent ent;
     ent.raw = flags;
     ent.vector = idt_ent;
@@ -46,7 +46,7 @@ void IOAPIC::set_mask(uint8_t irq, bool mask) {
     write_red(irq, ent);
 }
 
-std::optional<const acpi::MADT::ioapic_so> IOAPIC::find_so(uint8_t irq) {
+std::optional<acpi::MADT::ioapic_so> IOAPIC::find_so(uint8_t irq) {
     auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
     for (auto source_ovrds = madt.iter<acpi::MADT::ioapic_so>(); source_ovrds; ++source_ovrds)
         if (source_ovrds->irq_source == irq)

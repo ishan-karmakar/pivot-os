@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
-#include <mem/pmm.hpp>
+#include <boot.h>
 
 namespace mem {
     class PTMapper {

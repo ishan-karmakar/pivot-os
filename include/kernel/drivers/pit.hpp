@@ -1,8 +1,8 @@
 #pragma once
-#include <cstdint>
-#include <cpu/idt.hpp>
-#define PIT_IDT_ENT 34
-#define PIT_MS 1193
+
+namespace cpu {
+    class IDT;
+}
 
 namespace drivers {
     class PIT {
@@ -15,5 +15,11 @@ namespace drivers {
         static void data(uint16_t);
 
         static volatile size_t ticks;
+        static constexpr int MS_TICKS = 1193;
+
+    private:
+        static constexpr int IDT_ENT = 34;
+        static constexpr int CMD_REG = 0x43;
+        static constexpr int DATA_REG = 0x40;
     };
 }

@@ -3,6 +3,7 @@
 #include <cpu/lapic.hpp>
 #include <io/serial.hpp>
 #include <drivers/rtc.hpp>
+#include <cpu/idt.hpp>
 
 using namespace drivers;
 extern "C" void rtc_irq();
@@ -11,8 +12,8 @@ bool RTC::bcd;
 union RTC::time RTC::time;
 
 void RTC::init(cpu::IDT& idt) {
-    idt.set_entry(RTC_IDT_ENT, 0, rtc_irq);
-    IOAPIC::set_irq(8, RTC_IDT_ENT, 0, IOAPIC::LowestPriority | IOAPIC::Masked);
+    idt.set_entry(IDT_ENT, 0, rtc_irq);
+    IOAPIC::set_irq(IDT_ENT, 8, 0, IOAPIC::LOWEST_PRIORITY | IOAPIC::MASKED);
 
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;
@@ -62,7 +63,7 @@ uint8_t RTC::get_dow(uint8_t y, uint8_t m, uint8_t dom) {
     return (dom +=m < 3 ? y-- : y - 2, 23 * m / 9 + dom + 4 + y / 4 - y / 100 + y / 400) % 7 + 1;
 }
 
-extern "C" cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
+cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
     RTC::get_time();
     auto lims = io::cout.get_lims();
     auto old_pos = io::cout.get_pos();

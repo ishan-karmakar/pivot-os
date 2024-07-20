@@ -1,11 +1,12 @@
 #pragma once
-#include <cpu/gdt.hpp>
-#include <mem/heap.hpp>
+#include <cstdint>
 
 namespace cpu {
+    class GDT;
+
     class TSS {
     public:
-        TSS(GDT&, mem::Heap&);
+        TSS(GDT&);
 
         [[gnu::always_inline]]
         inline void set_rsp0() const {

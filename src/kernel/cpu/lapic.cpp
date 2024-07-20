@@ -1,31 +1,27 @@
 #include <cpu/lapic.hpp>
-#include <drivers/ioapic.hpp>
 #include <cpu/cpu.hpp>
 #include <util/logger.h>
-#include <io/serial.hpp>
-#include <drivers/pit.hpp>
-#include <cstdint>
 #include <cpuid.h>
 #include <common.h>
+#include <mem/mapper.hpp>
+#include <mem/pmm.hpp>
+#include <drivers/pit.hpp>
+#include <drivers/ioapic.hpp>
+#include <cpu/idt.hpp>
+#include <io/serial.hpp>
 using namespace cpu;
 
-#define TIMER_DIV Div4
-
-#define IA32_APIC_BASE 0x1B
-
-#define SPURIOUS_VEC_OFF 0xF0
-#define INITIAL_COUNT_OFF 0x380
-#define CUR_COUNT_OFF 0x390
-#define CONFIG_OFF 0x3E0
-
-extern "C" void apic_periodic_irq();
+extern "C" void periodic_irq();
+extern "C" void spurious_irq();
 
 uintptr_t LAPIC::lapic;
 bool LAPIC::x2mode;
 uint32_t LAPIC::ms_interval;
 
 void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
+    log(Verbose, "LAPIC", "Test");
     auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
+    log(Verbose, "LAPIC", "%s", madt.table->sig);
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))
         log(Warning, "LAPIC", "APIC is disabled globally");
@@ -53,8 +49,9 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
     io::outb(0xA1, 0xFF);
     log(Verbose, "LAPIC", "Disabled 8259 PIC");
 
-    write_reg(SPURIOUS_VEC_OFF, (1 << 8) | APIC_SPURIOUS_IDT_ENT);
-    idt.set_entry(APIC_PERIODIC_IDT_ENT, 3, apic_periodic_irq);
+    write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_IDT_ENT);
+    idt.set_entry(PERIODIC_IDT_ENT, 3, periodic_irq);
+    idt.set_entry(SPURIOUS_IDT_ENT, 0, spurious_irq);
     drivers::PIT::init(idt);
 
     log(Info, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
@@ -62,12 +59,11 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
 
 void LAPIC::calibrate() {
     asm volatile ("sti");
-    drivers::IOAPIC::set_irq(0, PIT_IDT_ENT, 0, drivers::IOAPIC::Masked);
     drivers::PIT::cmd(false, 0b010, 0b11, 0);
-    drivers::PIT::data(PIT_MS);
+    drivers::PIT::data(drivers::PIT::MS_TICKS);
 
     write_reg(INITIAL_COUNT_OFF, 0);
-    write_reg(CONFIG_OFF, TIMER_DIV);
+    write_reg(CONFIG_OFF, TDIV);
 
     drivers::IOAPIC::set_mask(0, false);
     write_reg(INITIAL_COUNT_OFF, (uint32_t) - 1);
@@ -95,6 +91,11 @@ void LAPIC::write_reg(uint32_t off, uint64_t val) {
         *(volatile uint32_t*)(lapic + off) = val;
 }
 
-extern "C" cpu::cpu_status *apic_periodic_handler(cpu_status * const status) {
+extern "C" cpu::cpu_status *periodic_handler(cpu_status *status) {
+    LAPIC::eoi();
+    return status;
+}
+
+extern "C" cpu::cpu_status *spurious_handler(cpu_status *status) {
     return status;
 }

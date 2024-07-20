@@ -2,8 +2,8 @@
 #include <drivers/pit.hpp>
 #include <io/serial.hpp>
 #include <cpu/lapic.hpp>
-#define CMD_REG 0x43
-#define DATA 0x40
+#include <cpu/idt.hpp>
+#include <drivers/ioapic.hpp>
 
 using namespace drivers;
 
@@ -12,7 +12,8 @@ extern "C" void pit_irq();
 volatile size_t PIT::ticks = 0;
 
 void PIT::init(cpu::IDT& idt) {
-    idt.set_entry(PIT_IDT_ENT, 0, pit_irq);
+    idt.set_entry(IDT_ENT, 0, pit_irq);
+    IOAPIC::set_irq(IDT_ENT, 0, 0, drivers::IOAPIC::MASKED);
 }
 
 void PIT::cmd(bool bcd, uint8_t omode, uint8_t amode, uint8_t channel) {
@@ -21,8 +22,8 @@ void PIT::cmd(bool bcd, uint8_t omode, uint8_t amode, uint8_t channel) {
 }
 
 void PIT::data(uint16_t data) {
-    io::outb(DATA, data);
-    io::outb(DATA, data >> 8);
+    io::outb(DATA_REG, data);
+    io::outb(DATA_REG, data >> 8);
 }
 
 extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {

@@ -1,4 +1,6 @@
 #include <cpu/gdt.hpp>
+#include <algorithm>
+#include <util/logger.h>
 using namespace cpu;
 
 GDT::GDT(gdt_desc * const gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
