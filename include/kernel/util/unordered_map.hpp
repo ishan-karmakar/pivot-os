@@ -38,6 +38,7 @@ namespace util {
 
             node *nn = new node;
             nn->key = key;
+            log(Verbose, "UMAP", "%s", nn->key.c_str());
             nn->value = value;
             nn->next = nullptr;
 
@@ -63,7 +64,6 @@ namespace util {
         }
 
         bool find(const K& key) const {
-            #include <util/logger.h>
             size_t idx = hasher(key) % size;
             node *n = table[idx];
             while (n) {

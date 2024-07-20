@@ -3,7 +3,7 @@
 #include <io/stdio.hpp>
 using namespace util;
 
-String::String() : buffer{nullptr}, len{0} {}
+String::String() : len{0}, buffer{nullptr} {}
 
 String::String(const char *str) : String{str, strlen(str)} {}
 
@@ -13,9 +13,7 @@ String::String(const char *str, size_t size) : len{size + 1} {
     buffer[size] = 0;
 }
 
-String::String(const String& src) {
-    len = src.size() + 1;
-    buffer = new char[len];
+String::String(const String& src) : len{src.size() + 1}, buffer{new char[len]} {
     strcpy(buffer, src.buffer);
 }
 

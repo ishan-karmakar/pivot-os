@@ -22,6 +22,7 @@ bool SDT::validate() const {
 }
 
 ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{4} {
+    io::cout.clear();
     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
     uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);
@@ -49,9 +50,8 @@ void ACPI::init(uintptr_t rsdp) {
 
 template <class T>
 std::optional<const T> ACPI::get_table() {
-    log(Verbose, "ACPI", "%hhu", rsdt.tables.find(T::SIGNATURE));
     if (rsdt.tables.find(T::SIGNATURE))
-        return T{rsdt.tables[T::SIGNATURE]};
+        return std::make_optional(T{rsdt.tables[T::SIGNATURE]});
     return std::nullopt;
 }
 

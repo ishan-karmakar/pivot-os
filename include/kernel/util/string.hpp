@@ -2,6 +2,7 @@
 #include <libc/string.h>
 #include <cstddef>
 #include <util/hash.hpp>
+#include <io/stdio.hpp>
 
 namespace util {
     class String {
@@ -20,8 +21,8 @@ namespace util {
         friend bool operator==(const String& s1, const String& s2) { return !strcmp(s1, s2); }
 
     private:
-        char *buffer;
         size_t len;
+        char *buffer;
     };
 
     template<>
