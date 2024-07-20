@@ -1,88 +1,140 @@
 #pragma once
-#include <cstddef>
+#include <util/string.hpp>
 #include <util/hash.hpp>
+#include <cstdlib>
 #include <util/logger.h>
-#include <libc/string.h>
-#define UNORDERED_MAP_RESIZE_THRESHOLD 2
+#define UMAP_RESIZE_THRESHOLD 2
 
 namespace util {
     template <typename K, typename V>
     class unordered_map {
     public:
         unordered_map() = default;
-        unordered_map(size_t init_size) : arr{new item*[init_size]}, len{init_size} {
-            memset(arr, 0, init_size * sizeof(*arr));
+        unordered_map(size_t init_size) : size{init_size}, table{new node*[init_size]()} {}
+        ~unordered_map() {
+            for (size_t i = 0; i < size; i++) {
+                node *n = table[i];
+                while (n) {
+                    node *t = n;
+                    n = n->next;
+                    delete t;
+                }
+            }
+            delete[] table;
+        }
+
+        void insert(const K& key, const V& value) {
+            size_t idx = hasher(key) % size;
+
+            if (should_resize(idx)) {
+                resize();
+                idx = hasher(key) % size;
+            }
+
+            node *n = table[idx];
+            node *p = nullptr;
+            while (n) {
+                if (n->key == key) {
+                    n->value = value;
+                    return;
+                }
+                p = n;
+                n = n->next;
+            }
+
+            node *nn = new node;
+            nn->key = key;
+            nn->value = value;
+            nn->next = nullptr;
+
+            if (p)
+                p->next = nn;
+            else
+                table[idx] = nn;
         }
 
         V& operator[](const K& key) {
-            size_t h = hasher(key) % len;
-            log(Verbose, "UMAP", "L: %u", len);
-            log(Verbose, "UMAP", "%u", h);
-            item *p = arr[h];
-            size_t i = 0;
-            while (p) {
-                if (p->key == key)
-                    return p->val;
-                p = p->next;
-                i++;
+            size_t idx = hasher(key) % size;
+            node *n = table[idx];
+            while (n) {
+                if (n->key == key)
+                    return n->value;
+                n = n->next;
             }
-            log(Verbose, "UMAP", "%lu", i);
+            insert(key, V{});
+            return (*this)[key];
+        }
 
-            if (i > UNORDERED_MAP_RESIZE_THRESHOLD)
-                resize();
+        bool find(const K& key) const {
+            size_t idx = hasher(key) % size;
+            node *n = table[idx];
+            while (n) {
+                if (n->key == key)
+                    return true;
+                n = n->next;
+            }
+            return false;
+        }
 
-            log(Verbose, "UMAP", "Creating default item");
-            // Create default item
-            p = arr[h];
-            arr[h] = new item;
-            arr[h]->key = key;
-            arr[h]->val = V{};
-            arr[h]->next = p;
-            return arr[h]->val;
+        void remove(const K& key) {
+            size_t idx = hasher(key) % size;
+            node *n = table[idx];
+            node *p = nullptr;
+            while (n) {
+                if (n->key == key) {
+                    if (p)
+                        p->next = n->next;
+                    else
+                        table[idx] = n->next;
+                    delete n;
+                }
+                p = n;
+                n = n->next;
+            }
         }
 
     private:
         void resize() {
-            log(Verbose, "UMAP", "Time to resize");
-            size_t new_size = len * 2;
-            item **new_arr = new item*[new_size]();
-            for (size_t i = 0; i < len; i++) {
-                item *e = arr[i];
-                if (!e) continue;
-                log(Verbose, "UMAP", "E: %s", e->key.c_str());
-                while(1);
-                size_t new_hash = hasher(e->key) % new_size;
-                item *q = new_arr[new_hash];
-                item *t = e;
-                size_t nq, ne;
-                nq = ne = 0;
-                while (q) {
-                    q = q->next;
-                    nq++;
-                    if (t) {
-                        ne++;
-                        t = t->next;
-                    }
+            size_t new_size = size * 2;
+            node **new_tbl = new node*[new_size]();
+            for (size_t i = 0; i < size; i++) {
+                node *n = table[i];
+                while (n) {
+                    node *next = n->next;
+                    size_t new_idx = hasher(n->key) % new_size;
+                    n->next = new_tbl[new_idx];
+                    new_tbl[new_idx] = n;
+                    n = next;
                 }
-                if ((nq + ne) < UNORDERED_MAP_RESIZE_THRESHOLD)
-                    return resize();
-                if (q)
-                    q->next = e;
-                else
-                    new_arr[new_hash] = e;
             }
-            delete[] arr;
-            arr = new_arr;
-            len = new_size;
+
+            delete[] table;
+            table = new_tbl;
+            size = new_size;
         }
 
-        struct item {
+        bool should_resize(size_t idx) const {
+            node *n = table[idx];
+            size_t count = 0;
+            while (n) {
+                count++;
+                // Since we are calling this before inserting, we actually want to increase count by one manually
+                if ((count + 1) > UMAP_RESIZE_THRESHOLD)
+                    return true;
+                n = n->next;
+            }
+            return false;
+        }
+
+        struct node {
             K key;
-            V val;
-            item *next;
+            V value;
+            node *next;
         };
-        item **arr;
-        size_t len;
-        util::hash<K> hasher;
+
+        size_t size;
+        node **table;
+        int ecount;
+        hash<K> hasher;
     };
 }

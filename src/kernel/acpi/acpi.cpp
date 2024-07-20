@@ -21,13 +21,7 @@ bool SDT::validate() const {
     return validate(reinterpret_cast<const char*>(header), header->length);
 }
 
-ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{1} {
-    tables["test1"] = 1;
-    tables["test2"] = 2;
-    tables["test3"] = 3;
-    log(Verbose, "ACPI", "%u", tables["test1"]);
-    log(Verbose, "ACPI", "%u", tables["test2"]);
-    log(Verbose, "ACPI", "%u", tables["test3"]);
+ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{4} {
     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
     uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);
@@ -43,6 +37,7 @@ ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))
         sig[4] = 0;
         if (validate(reinterpret_cast<const char*>(table), table->length)) {
             log(Verbose, "ACPI", "Found valid %s", sig);
+            tables.insert(sig, table);
         } else {
             log(Warning, "ACPI", "Found invalid %s", sig);
         }
@@ -55,23 +50,8 @@ void ACPI::init(uintptr_t rsdp) {
 
 template <class T>
 std::optional<const T> ACPI::get_table() {
-    if (!rsdt.header) {
-        log(Warning, "ACPI", "get_table called before RSDT is initialized");
-        return std::nullopt;
-    }
-
-    uint32_t num_entries = (rsdt.header->length - sizeof(SDT::sdt)) / (rsdt.xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
-    auto start = reinterpret_cast<uintptr_t>(rsdt.header + 1);
-    for (uint32_t i = 0; i < num_entries; i++) {
-        uintptr_t addr;
-        if (rsdt.xsdt)
-            addr = reinterpret_cast<uint64_t*>(start)[i];
-        else
-            addr = reinterpret_cast<uint32_t*>(start)[i];
-        auto table = reinterpret_cast<SDT::sdt*>(addr);
-        if (!memcmp(table->sig, T::SIGNATURE, sizeof(table->sig)))
-            return T{table};
-    }
+    if (rsdt.tables.find(T::SIGNATURE))
+        return rsdt.tables[T::SIGNATURE];
     return std::nullopt;
 }
 
