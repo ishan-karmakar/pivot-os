@@ -27,6 +27,7 @@ ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))
     tables["test3"] = 3;
     log(Verbose, "ACPI", "%u", tables["test1"]);
     log(Verbose, "ACPI", "%u", tables["test2"]);
+    log(Verbose, "ACPI", "%u", tables["test3"]);
     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
     uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);

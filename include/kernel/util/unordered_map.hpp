@@ -16,6 +16,8 @@ namespace util {
 
         V& operator[](const K& key) {
             size_t h = hasher(key) % len;
+            log(Verbose, "UMAP", "L: %u", len);
+            log(Verbose, "UMAP", "%u", h);
             item *p = arr[h];
             size_t i = 0;
             while (p) {
@@ -47,6 +49,8 @@ namespace util {
             for (size_t i = 0; i < len; i++) {
                 item *e = arr[i];
                 if (!e) continue;
+                log(Verbose, "UMAP", "E: %s", e->key.c_str());
+                while(1);
                 size_t new_hash = hasher(e->key) % new_size;
                 item *q = new_arr[new_hash];
                 item *t = e;
