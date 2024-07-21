@@ -10,6 +10,7 @@ namespace drivers {
     class IOAPIC {
     public:
         IOAPIC() = delete;
+
         static void init(mem::PTMapper&);
         static void set_irq(uint8_t, uint8_t, uint8_t, uint32_t);
         static void set_mask(uint8_t, bool);

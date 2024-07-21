@@ -62,12 +62,13 @@ namespace acpi {
             uintptr_t end;
         };
 
-        MADT(const sdt* const);
+        MADT(const sdt *h) : SDT{h}, table{reinterpret_cast<const madt*>(h)} {};
 
         template <class E>
         Iterator<E> iter() const { return Iterator<E>{table}; };
 
+        const madt *table;
+
         static constexpr const char *SIGNATURE = "APIC";
-        const madt * const table;
     };
 }

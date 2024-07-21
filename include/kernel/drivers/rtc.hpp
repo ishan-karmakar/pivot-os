@@ -27,13 +27,14 @@ namespace drivers {
     private:
         static uint8_t read_reg(uint8_t);
         static void write_reg(uint8_t, uint8_t);
-        static void get_time();
+        static void fetch_time();
         static uint8_t bcd2bin(uint8_t);
-        static uint8_t get_dow(uint8_t, uint8_t, uint8_t);
-        static bool bcd;
+        static void set_dow();
 
         friend cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status*);
 
+        static bool bcd;
         static constexpr int IDT_ENT = 34;
+        static constexpr int IRQ_ENT = 8;
     };
 }

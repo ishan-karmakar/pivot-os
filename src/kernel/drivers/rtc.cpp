@@ -4,16 +4,17 @@
 #include <io/serial.hpp>
 #include <drivers/rtc.hpp>
 #include <cpu/idt.hpp>
+#include <util/logger.h>
 
 using namespace drivers;
 extern "C" void rtc_irq();
 
-bool RTC::bcd;
 union RTC::time RTC::time;
+bool RTC::bcd;
 
 void RTC::init(cpu::IDT& idt) {
     idt.set_entry(IDT_ENT, 0, rtc_irq);
-    IOAPIC::set_irq(IDT_ENT, 8, 0, IOAPIC::LOWEST_PRIORITY | IOAPIC::MASKED);
+    IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::LOWEST_PRIORITY | IOAPIC::MASKED);
 
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;
@@ -26,22 +27,22 @@ void RTC::init(cpu::IDT& idt) {
     IOAPIC::set_mask(8, false);
 }
 
-void RTC::get_time() {
-    uint8_t rtc_status = RTC::read_reg(0xC);
+void RTC::fetch_time() {
+    uint8_t rtc_status = read_reg(0xC);
     if (rtc_status & 0b10000) {
-        uint8_t century = RTC::read_reg(0x32);
-        RTC::time.century = century ? century : (bcd ? 0x20 : 20);
-        RTC::time.year = RTC::read_reg(0x9);
-        RTC::time.month = RTC::read_reg(0x8);
-        RTC::time.dom = RTC::read_reg(0x7);
-        RTC::time.hour = RTC::read_reg(0x4);
-        RTC::time.minute = RTC::read_reg(0x2);
-        RTC::time.second = RTC::read_reg(0);
+        uint8_t century = read_reg(0x32);
+        time.century = century ? century : (bcd ? 0x20 : 20);
+        time.year = read_reg(0x9);
+        time.month = read_reg(0x8);
+        time.dom = read_reg(0x7);
+        time.hour = read_reg(0x4);
+        time.minute = read_reg(0x2);
+        time.second = read_reg(0);
 
         if (bcd)
             for (int i = 0; i < 7; i++)
-                RTC::time.data[i] = bcd2bin(RTC::time.data[i]);
-        RTC::time.dow = get_dow(RTC::time.year, RTC::time.month, RTC::time.dom);
+                time.data[i] = bcd2bin(time.data[i]);
+        set_dow();
     }
 }
 
@@ -59,18 +60,22 @@ uint8_t RTC::bcd2bin(uint8_t num) {
     return ((num >> 4) * 10) + (num & 0xF);
 }
 
-uint8_t RTC::get_dow(uint8_t y, uint8_t m, uint8_t dom) {
-    return (dom +=m < 3 ? y-- : y - 2, 23 * m / 9 + dom + 4 + y / 4 - y / 100 + y / 400) % 7 + 1;
+void RTC::set_dow() {
+    uint8_t y = time.year;
+    uint8_t dom = time.dom;
+    uint8_t m = time.month;
+    time.dow = (dom +=m < 3 ? y-- : y - 2, 23 * m / 9 + dom + 4 + y / 4 - y / 100 + y / 400) % 7 + 1;
 }
 
 cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
-    RTC::get_time();
+    RTC::fetch_time();
     auto lims = io::cout.get_lims();
     auto old_pos = io::cout.get_pos();
     io::cout.set_pos({ lims.first - 8, 0 });
-    printf("%02hhu:%02hhu:%02hhu", RTC::time.hour, RTC::time.minute, RTC::time.second);
+    auto time = RTC::time;
+    printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
     io::cout.set_pos({ lims.first - 8, 1 });
-    printf("%02hhu/%02hhu/%02hhu", RTC::time.month, RTC::time.dom, RTC::time.year);
+    printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
     io::cout.set_pos(old_pos);
     LAPIC::eoi();
     return status;

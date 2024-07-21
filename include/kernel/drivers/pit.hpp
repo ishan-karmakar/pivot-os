@@ -18,6 +18,7 @@ namespace drivers {
         static constexpr int MS_TICKS = 1193;
 
     private:
+        static constexpr int IRQ_ENT = 0;
         static constexpr int IDT_ENT = 34;
         static constexpr int CMD_REG = 0x43;
         static constexpr int DATA_REG = 0x40;

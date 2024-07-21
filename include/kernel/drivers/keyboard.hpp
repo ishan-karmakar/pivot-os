@@ -116,10 +116,10 @@ namespace drivers {
 
         friend cpu::cpu_status *cpu::keyboard_handler(cpu::cpu_status*);
 
-        static constexpr int PORT = 0xF5;
+        static constexpr int PORT = 0x60;
         static constexpr int STATUS = 0x64;
-        static constexpr int DATA = 0x60;
 
         static constexpr int IDT_ENT = 35;
+        static constexpr int IRQ_ENT = 1;
     };
 }

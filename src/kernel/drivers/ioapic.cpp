@@ -5,16 +5,16 @@
 #include <mem/pmm.hpp>
 using namespace drivers;
 
-uintptr_t IOAPIC::addr;
+uintptr_t IOAPIC::addr = 0;
 
 void IOAPIC::init(mem::PTMapper& mapper) {
     auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
-    auto ioapic = *madt.iter<acpi::MADT::ioapic>();
-    addr = ioapic.addr;
+    auto mioapic = *madt.iter<acpi::MADT::ioapic>();
+    addr = mioapic.addr;
     mapper.map(addr, addr, KERNEL_PT_ENTRY);
     mem::PMM::set(addr);
     uint32_t ioapic_version = read_reg(VERSION_OFF);
-    log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", ioapic.addr, ioapic.gsi_base, ioapic_version >> 16);
+    log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", addr, mioapic.gsi_base, ioapic_version >> 16);
     log(Info, "IOAPIC", "Initialized IOAPIC");
 }
 

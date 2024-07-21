@@ -65,5 +65,6 @@ namespace acpi {
         const SDT::sdt *parse_rsdp(const char*);
         bool xsdt;
         util::UnorderedMap<util::String, sdt*> tables;
+        static ACPI *rsdt;
     };
 }

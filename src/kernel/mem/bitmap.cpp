@@ -2,6 +2,7 @@
 #include <util/logger.h>
 #include <cstring>
 #include <common.h>
+#include <io/stdio.hpp>
 using namespace mem;
 
 const uint8_t BITS_PER_ID = 2;

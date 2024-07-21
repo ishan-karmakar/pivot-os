@@ -13,7 +13,9 @@
 #include <drivers/framebuffer.hpp>
 #include <drivers/rtc.hpp>
 #include <drivers/keyboard.hpp>
+#include <drivers/ps2.hpp>
 #include <io/serial.hpp>
+#include <util/logger.h>
 
 uint8_t CPU = 0;
 cpu::GDT::gdt_desc initial_gdt[3];
@@ -35,6 +37,7 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     idt.load();
 
     mem::PMM::init(bi);
+
     mem::PTMapper mapper{bi->pml4};
     drivers::Framebuffer fb{bi, mapper};
     mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, mapper};
@@ -42,19 +45,19 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     mem::kheap = &heap;
 
     acpi::ACPI::init(bi->rsdp);
-    
+
     cpu::GDT hgdt{init_hgdt(sgdt)};
-    hgdt.load();
     
     cpu::TSS tss{hgdt};
     tss.set_rsp0();
 
-    cpu::LAPIC::init(mapper, idt);
     drivers::IOAPIC::init(mapper);
+    cpu::LAPIC::init(mapper, idt);
     cpu::LAPIC::calibrate();
 
     drivers::RTC::init(idt);
-    drivers::Keyboard::init(idt);
+    drivers::PS2::init();
+    // drivers::Keyboard::init(idt);
     while(1);
 }
 

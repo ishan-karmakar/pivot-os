@@ -1,9 +1,10 @@
 #include <acpi/acpi.hpp>
 #include <acpi/madt.hpp>
+#include <acpi/fadt.hpp>
 #include <util/logger.h>
 using namespace acpi;
 
-ACPI rsdt;
+ACPI *ACPI::rsdt = nullptr;
 
 SDT::SDT(const sdt *header) : header{header} {
     if (!validate())
@@ -22,7 +23,6 @@ bool SDT::validate() const {
 }
 
 ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))}, tables{4} {
-    io::cout.clear();
     log(Info, "ACPI", "Found %cSDT table", xsdt ? 'X' : 'R');
     uint32_t num_entries = (header->length - sizeof(SDT::sdt)) / (xsdt ? sizeof(uint64_t) : sizeof(uint32_t));
     auto start = reinterpret_cast<uintptr_t>(header + 1);
@@ -45,13 +45,13 @@ ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))
 }
 
 void ACPI::init(uintptr_t rsdp) {
-    rsdt = ACPI{rsdp};
+    rsdt = new ACPI{rsdp};
 }
 
 template <class T>
 std::optional<const T> ACPI::get_table() {
-    if (rsdt.tables.find(T::SIGNATURE))
-        return std::make_optional(T{rsdt.tables[T::SIGNATURE]});
+    if (rsdt->tables.find(T::SIGNATURE))
+        return std::make_optional(rsdt->tables[T::SIGNATURE]);
     return std::nullopt;
 }
 
@@ -71,3 +71,4 @@ const SDT::sdt *ACPI::parse_rsdp(const char *sdp) {
 }
 
 template std::optional<const MADT> ACPI::get_table();
+template std::optional<const FADT> ACPI::get_table();

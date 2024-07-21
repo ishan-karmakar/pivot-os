@@ -19,9 +19,7 @@ bool LAPIC::x2mode;
 uint32_t LAPIC::ms_interval;
 
 void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
-    log(Verbose, "LAPIC", "Test");
     auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
-    log(Verbose, "LAPIC", "%s", madt.table->sig);
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))
         log(Warning, "LAPIC", "APIC is disabled globally");
@@ -51,7 +49,7 @@ void LAPIC::init(mem::PTMapper& mapper, IDT& idt) {
 
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_IDT_ENT);
     idt.set_entry(PERIODIC_IDT_ENT, 3, periodic_irq);
-    idt.set_entry(SPURIOUS_IDT_ENT, 0, spurious_irq);
+    // idt.set_entry(SPURIOUS_IDT_ENT, 0, spurious_irq);
     drivers::PIT::init(idt);
 
     log(Info, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
@@ -72,7 +70,7 @@ void LAPIC::calibrate() {
     drivers::IOAPIC::set_mask(0, true);
     drivers::PIT::ticks = 0;
 
-    uint32_t time_elapsed = ((uint32_t)-1) - cur_ticks;
+    uint32_t time_elapsed = ((uint32_t) - 1) - cur_ticks;
     ms_interval = time_elapsed / 500;
     log(Verbose, "LAPIC", "APIC ticks per ms: %u", ms_interval);
 }

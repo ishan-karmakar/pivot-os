@@ -30,8 +30,6 @@ char shift_keymap[] = {
 
 void Keyboard::init(cpu::IDT& idt) {
     io::inb(PORT);
-    io::outb(PORT, 0xF5); // Disable sending scancodes
-    check_ack();
 
     io::outb(PORT, 0xF0); // Scancode set 1
     io::outb(PORT, 2);
@@ -39,14 +37,14 @@ void Keyboard::init(cpu::IDT& idt) {
 
     io::outb(STATUS, 0x20);
     while (io::inb(STATUS) & 0b10) asm ("pause");
-    uint8_t config_byte = io::inb(DATA);
+    uint8_t config_byte = io::inb(PORT);
     if (!(config_byte & (1 << 6)))
         return log(Error, "KEYBOARD", "Translation is not enabled");
     io::outb(PORT, 0xF4);
     check_ack();
 
     idt.set_entry(IDT_ENT, 0, keyboard_irq);
-    IOAPIC::set_irq(IDT_ENT, 2, 0, IOAPIC::LOWEST_PRIORITY);
+    IOAPIC::set_irq(IDT_ENT, 1, 0, IOAPIC::LOWEST_PRIORITY);
     log(Info, "KEYBOARD", "Initialized PS/2 keyboard");
 }
 

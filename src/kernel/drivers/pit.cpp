@@ -13,7 +13,7 @@ volatile size_t PIT::ticks = 0;
 
 void PIT::init(cpu::IDT& idt) {
     idt.set_entry(IDT_ENT, 0, pit_irq);
-    IOAPIC::set_irq(IDT_ENT, 0, 0, drivers::IOAPIC::MASKED);
+    IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, drivers::IOAPIC::MASKED);
 }
 
 void PIT::cmd(bool bcd, uint8_t omode, uint8_t amode, uint8_t channel) {

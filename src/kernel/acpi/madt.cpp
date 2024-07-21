@@ -2,8 +2,6 @@
 #include <util/logger.h>
 using namespace acpi;
 
-MADT::MADT(const SDT::sdt * const header) : SDT{header}, table{reinterpret_cast<const madt*>(header)} {}
-
 template <class E>
 MADT::Iterator<E>::Iterator(const madt * const header) : ptr{reinterpret_cast<pointer>(header + 1)}, end{reinterpret_cast<uintptr_t>(header) + header->length} {
     if (ptr->type != E::TYPE)

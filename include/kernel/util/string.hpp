@@ -2,7 +2,6 @@
 #include <libc/string.h>
 #include <cstddef>
 #include <util/hash.hpp>
-#include <io/stdio.hpp>
 
 namespace util {
     class String {

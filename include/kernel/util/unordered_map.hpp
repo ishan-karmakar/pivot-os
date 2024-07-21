@@ -2,7 +2,6 @@
 #include <util/string.hpp>
 #include <util/hash.hpp>
 #include <cstdlib>
-#include <util/logger.h>
 
 namespace util {
     template <typename K, typename V>
@@ -38,7 +37,6 @@ namespace util {
 
             node *nn = new node;
             nn->key = key;
-            log(Verbose, "UMAP", "%s", nn->key.c_str());
             nn->value = value;
             nn->next = nullptr;
 
@@ -67,7 +65,6 @@ namespace util {
             size_t idx = hasher(key) % size;
             node *n = table[idx];
             while (n) {
-                log(Verbose, "UMAP", n->key.c_str());
                 if (n->key == key)
                     return true;
                 n = n->next;
