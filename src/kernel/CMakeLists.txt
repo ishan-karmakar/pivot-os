@@ -1,4 +1,5 @@
 project(kernel C CXX ASM_NASM)
+include(${CMAKE_SOURCE_DIR}/uACPI/uacpi.cmake)
 
 file(GLOB_RECURSE ASM_FILES CONFIGURE_DEPENDS "*.asm")
 file(GLOB_RECURSE CXX_FILES CONFIGURE_DEPENDS "*.cpp")
@@ -30,3 +31,15 @@ target_include_directories(kernel PRIVATE ${CMAKE_SOURCE_DIR}/include/kernel ${C
 
 set_target_properties(kernel PROPERTIES LINK_DEPENDS ${LINKER_SCRIPT})
 target_link_options(kernel PRIVATE -fuse-ld=lld -z norelro -T ${LINKER_SCRIPT})
+
+target_sources(
+    kernel
+    PRIVATE
+    ${UACPI_SOURCES}
+)
+
+target_include_directories(
+    kernel
+    PRIVATE
+    ${UACPI_INCLUDES}
+)

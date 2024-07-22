@@ -1,6 +1,7 @@
 #include <io/stdio.h>
 #include <io/stdio.hpp>
 #include <util/logger.h>
+#include <uacpi/kernel_api.h>
 #include <cstdlib>
 #include <utility>
 using namespace io;

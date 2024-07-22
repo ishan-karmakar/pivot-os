@@ -6,8 +6,7 @@ typedef enum log_level {
     Warning,
     Info,
     Verbose,
-    Debug,
-    Trace
+    Debug
 } log_level_t;
 
 #ifdef __cplusplus

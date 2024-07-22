@@ -14,8 +14,10 @@
 #include <drivers/rtc.hpp>
 #include <drivers/keyboard.hpp>
 #include <drivers/ps2.hpp>
+#include <drivers/pit.hpp>
 #include <io/serial.hpp>
 #include <util/logger.h>
+#include <uacpi/uacpi.h>
 
 uint8_t CPU = 0;
 cpu::GDT::gdt_desc initial_gdt[3];
@@ -33,30 +35,44 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     sgdt.load();
 
     cpu::IDT idt;
+    cpu::kidt = &idt;
     cpu::load_exceptions(idt);
     idt.load();
 
     mem::PMM::init(bi);
 
     mem::PTMapper mapper{bi->pml4};
+    mem::kmapper = &mapper;
     drivers::Framebuffer fb{bi, mapper};
     mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, mapper};
     mem::Heap heap{vmm, HEAP_SIZE};
     mem::kheap = &heap;
 
-    acpi::ACPI::init(bi->rsdp);
+    uacpi_init_params init_params = {
+        .rsdp = bi->rsdp,
+        .log_level = UACPI_LOG_DEBUG,
+        .flags = 0
+    };
 
-    cpu::GDT hgdt{init_hgdt(sgdt)};
+    uacpi_status status = uacpi_initialize(&init_params);
+    if (uacpi_unlikely_error(status)) {
+        log(Error, "uACPI", "Error initializing uACPI");
+        abort();
+    }
+
+    // acpi::ACPI::init(bi->rsdp);
+
+    // cpu::GDT hgdt{init_hgdt(sgdt)};
     
-    cpu::TSS tss{hgdt};
-    tss.set_rsp0();
+    // cpu::TSS tss{hgdt};
+    // tss.set_rsp0();
 
-    drivers::IOAPIC::init(mapper);
-    cpu::LAPIC::init(mapper, idt);
-    cpu::LAPIC::calibrate();
+    // drivers::IOAPIC::init(mapper);
+    // cpu::LAPIC::init(mapper, idt);
+    // cpu::LAPIC::calibrate();
 
-    drivers::RTC::init(idt);
-    drivers::PS2::init();
+    // drivers::RTC::init(idt);
+    // drivers::PS2::init();
     // drivers::Keyboard::init(idt);
     while(1);
 }

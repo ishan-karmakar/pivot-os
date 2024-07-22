@@ -12,8 +12,8 @@ extern "C" void rtc_irq();
 union RTC::time RTC::time;
 bool RTC::bcd;
 
-void RTC::init(cpu::IDT& idt) {
-    idt.set_entry(IDT_ENT, 0, rtc_irq);
+void RTC::init() {
+    cpu::kidt->set_entry(IDT_ENT, 0, rtc_irq);
     IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::LOWEST_PRIORITY | IOAPIC::MASKED);
 
     uint8_t status = read_reg(0xB);
@@ -77,6 +77,6 @@ cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
     io::cout.set_pos({ lims.first - 8, 1 });
     printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
     io::cout.set_pos(old_pos);
-    LAPIC::eoi();
+    // LAPIC::eoi();
     return status;
 }

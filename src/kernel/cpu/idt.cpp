@@ -1,6 +1,9 @@
 #include <cpu/idt.hpp>
 #include <util/logger.h>
+#include <uacpi/kernel_api.h>
 using namespace cpu;
+
+IDT *cpu::kidt;
 
 void IDT::set_entry(uint8_t idx, idt_desc desc) {
     this->idt[idx] = desc;
@@ -22,4 +25,13 @@ void IDT::set_entry(uint8_t idx, uint8_t ring, void (*handler)()) {
 void IDT::load() const {
     asm volatile ("lidt %0" : : "rm" (idtr));
     log(Info, "IDT", "Loaded IDT");
+}
+
+uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32, uacpi_interrupt_handler, uacpi_handle, uacpi_handle*) {
+    log(Info, "uACPI", "uACPI requested to install interrupt handler");
+    return UACPI_STATUS_UNIMPLEMENTED;
+}
+
+uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle) {
+    return UACPI_STATUS_UNIMPLEMENTED;
 }

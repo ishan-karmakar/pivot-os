@@ -1,10 +1,9 @@
 #include <acpi/acpi.hpp>
 #include <acpi/madt.hpp>
-#include <acpi/fadt.hpp>
 #include <util/logger.h>
 using namespace acpi;
 
-ACPI *ACPI::rsdt = nullptr;
+ACPI rsdt;
 
 SDT::SDT(const sdt *header) : header{header} {
     if (!validate())
@@ -45,13 +44,13 @@ ACPI::ACPI(uintptr_t rsdp) : SDT{parse_rsdp(reinterpret_cast<const char*>(rsdp))
 }
 
 void ACPI::init(uintptr_t rsdp) {
-    rsdt = new ACPI{rsdp};
+    rsdt = ACPI{rsdp};
 }
 
 template <class T>
 std::optional<const T> ACPI::get_table() {
-    if (rsdt->tables.find(T::SIGNATURE))
-        return std::make_optional(rsdt->tables[T::SIGNATURE]);
+    if (rsdt.tables.find(T::SIGNATURE))
+        return std::make_optional(T{rsdt.tables[T::SIGNATURE]});
     return std::nullopt;
 }
 
@@ -71,4 +70,3 @@ const SDT::sdt *ACPI::parse_rsdp(const char *sdp) {
 }
 
 template std::optional<const MADT> ACPI::get_table();
-template std::optional<const FADT> ACPI::get_table();

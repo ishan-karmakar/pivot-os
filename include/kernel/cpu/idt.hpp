@@ -33,4 +33,5 @@ namespace cpu {
     };
 
     void load_exceptions(IDT&);
+    extern IDT *kidt;
 }

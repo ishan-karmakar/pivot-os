@@ -62,8 +62,8 @@ void create_image() {
     size_t efi_sectors = get_size(config_val("EFI"));
     size_t elf_sectors = get_size(config_val("ELF"));
     size_t b2_sectors = get_size(config_val("BIOS2"));
-    // Two additional sectors for padding
-    size_t fat_sectors = 2 + 4 + b2_sectors + std::stoi(config_val("NUM_SUBDIRECTORIES")) + efi_sectors + elf_sectors;
+    // 16 additional sectors for padding
+    size_t fat_sectors = 16 + 4 + b2_sectors + std::stoi(config_val("NUM_SUBDIRECTORIES")) + efi_sectors + elf_sectors;
     fat_sectors = std::max(69UL, fat_sectors); // 69 blocks seems to be the minimum number of sectors needed to satisfy MKFS
     size_t os_sectors = 34 + 33 + fat_sectors;
     std::string out_str = config_val("OUT");

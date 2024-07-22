@@ -21,7 +21,7 @@ namespace drivers {
             uint8_t data[8];
         };
 
-        static void init(cpu::IDT&);
+        static void init();
         static time time;
     
     private:

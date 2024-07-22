@@ -77,10 +77,11 @@ efi_status_t init_mem(void) {
 
     log(Info, "MEM", "Initialized page tables");
 
-    status = gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, KERNEL_STACK_PAGES, &gBI.stack);
+    size_t stack_pages = DIV_CEIL(KERNEL_STACK_SIZE, PAGE_SIZE);
+    status = gST->bs->alloc_pages(AllocateAnyPages, EfiLoaderData, stack_pages, &gBI.stack);
     if (EFI_ERR(status)) return status;
     gBI.stack = VADDR(gBI.stack);
-    status = map_range(PADDR(gBI.stack), gBI.stack, KERNEL_STACK_PAGES, gBI.pml4);
+    status = map_range(PADDR(gBI.stack), gBI.stack, stack_pages, gBI.pml4);
     if (EFI_ERR(status)) return status;
     log(Info, "MEM", "Allocated kernel stack");
     return 0;

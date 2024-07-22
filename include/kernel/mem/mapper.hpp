@@ -19,4 +19,6 @@ namespace mem {
 
         pg_tbl_t const pml4;
     };
+
+    extern PTMapper *kmapper;
 }

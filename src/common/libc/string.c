@@ -180,7 +180,11 @@ int vsprintf(char *buf, const char *c, va_list args) {
             *buf++ = *c;
         else {
             switch_start:
-            switch (*++c) {
+            // Since va_arg promotes char + short to int, %h doesn't mean anything to us
+            if (*++c == 'h')
+                if (*++c == 'h')
+                    ++c;
+            switch (*c) {
                 case 's':
                     buf = add_string(buf, va_arg(args, char*));
                     break;
@@ -188,7 +192,7 @@ int vsprintf(char *buf, const char *c, va_list args) {
                     *buf++ = (char) va_arg(args, int);
                     break;
                 case 'p':
-                    buf = add_int(buf, ultoa(va_arg(args, uint64_t), buf, 16), flags, width);
+                    buf = add_int(buf, ultoa(va_arg(args, uintptr_t), buf, 16), flags, width);
                     break;
                 case 'b': // Not in stdio printf, but here for convenience
                     buf = add_int(buf, ultoa(va_arg(args, uint64_t), buf, 2), flags, width);
@@ -200,17 +204,8 @@ int vsprintf(char *buf, const char *c, va_list args) {
                 case 'u':
                     buf = add_int(buf, ultoa(va_arg(args, unsigned int), buf, 10), flags, width);
                     break;
-                case 'h':
-                    if (*++c == 'h') c++;
-                    switch (*c) {
-                    case 'i':
-                    case 'd':
-                        buf = add_int(buf, itoa(va_arg(args, int), buf, 10), flags, width);
-                        break;
-                    case 'u':
-                        buf = add_int(buf, ultoa(va_arg(args, unsigned int), buf, 10), flags, width);
-                        break;
-                    }
+                case 'x':
+                    buf = add_int(buf, ultoa(va_arg(args, unsigned int), buf, 16), flags, width);
                     break;
                 case 'l':
                     if (*++c == 'l') c++;
@@ -221,6 +216,9 @@ int vsprintf(char *buf, const char *c, va_list args) {
                         break;
                     case 'u':
                         buf = add_int(buf, ultoa(va_arg(args, unsigned long int), buf, 10), flags, width);
+                        break;
+                    case 'x':
+                        buf = add_int(buf, ultoa(va_arg(args, unsigned long int), buf, 16), flags, width);
                         break;
                     }
                     break;
