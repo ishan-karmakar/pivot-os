@@ -1,45 +1,11 @@
 #pragma once
-#include <acpi/acpi.hpp>
+#include <uacpi/acpi.h>
+#include <uacpi/tables.h>
+#include <iterator>
 
 namespace acpi {
-    class MADT : SDT {
+    class MADT {
     public:
-        struct [[gnu::packed]] madt : public sdt {
-            uint32_t lapic_addr;
-            uint32_t flags;
-        };
-
-        struct [[gnu::packed]] header {
-            uint8_t type;
-            uint8_t length;
-        };
-
-        struct [[gnu::packed]] lapic : public header {
-            uint8_t acpi_id;
-            uint8_t apic_id;
-            uint32_t flags;
-
-            static constexpr uint8_t TYPE = 0;
-        };
-
-        struct [[gnu::packed]] ioapic : public header {
-            uint8_t id;
-            uint8_t rsv;
-            uint32_t addr;
-            uint32_t gsi_base;
-
-            static constexpr uint8_t TYPE = 1;
-        };
-
-        struct [[gnu::packed]] ioapic_so : public header {
-            uint8_t bus_source;
-            uint8_t irq_source;
-            uint32_t gsi_base;
-            uint16_t flags;
-
-            static constexpr uint8_t TYPE = 2;
-        };
-
         template <class E>
         class Iterator {
         public:
@@ -49,25 +15,36 @@ namespace acpi {
             using pointer = const value_type*;
             using reference = const value_type&;
 
-            Iterator(const madt * const header);
+            Iterator(const acpi_madt *table, uint8_t type) : type{type}, ptr{reinterpret_cast<pointer>(table + 1)}, end{reinterpret_cast<uintptr_t>(table) + table->hdr.length} {
+                if (ptr->hdr.type != type)
+                    ++*this;
+            }
 
-            value_type operator*() const;
-            pointer operator->() const;
+            void operator++() {
+                do {
+                    ptr = reinterpret_cast<pointer>(reinterpret_cast<const char*>(ptr) + ptr->hdr.length);
 
-            void operator++();
-            operator bool() const;
+                    if (ptr->hdr.type == type)
+                        break;
+                } while (reinterpret_cast<uintptr_t>(ptr) < end);
+            }
+
+            operator bool() const { return reinterpret_cast<uintptr_t>(ptr) < end; }
+            pointer operator->() const { return ptr; }
+            value_type operator*() const { return *ptr; }
 
         private:
+            uint8_t type;
             pointer ptr;
             uintptr_t end;
         };
 
-        MADT(const sdt *h) : SDT{h}, table{reinterpret_cast<const madt*>(h)} {};
+        MADT(void *h) : table{static_cast<const acpi_madt*>(h)} {};
 
         template <class E>
-        Iterator<E> iter() const { return Iterator<E>{table}; };
+        Iterator<E> iter(uint8_t t) const { return Iterator<E>{table, t}; };
 
-        const madt *table;
+        const acpi_madt *table;
 
         static constexpr const char *SIGNATURE = "APIC";
     };

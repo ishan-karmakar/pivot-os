@@ -6,6 +6,8 @@
 #include <drivers/ioapic.hpp>
 #include <uacpi/kernel_api.h>
 #include <uacpi/tables.h>
+#include <mem/mapper.hpp>
+#include <util/logger.h>
 
 using namespace drivers;
 
@@ -19,8 +21,9 @@ void PIT::init(cpu::IDT& idt) {
     idt.set_entry(IDT_ENT, 0, pit_irq);
     IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::MASKED);
     drivers::PIT::cmd(false, 0b010, 0b11, 0);
-    drivers::PIT::data(drivers::PIT::MS_TICKS);
+    drivers::PIT::data(drivers::PIT::MS_TICKS / 10);
     initialized = true;
+    log(Info, "PIT", "Initialized PIT");
 }
 
 void PIT::cmd(bool bcd, uint8_t omode, uint8_t amode, uint8_t channel) {
@@ -35,16 +38,18 @@ void PIT::data(uint16_t data) {
 
 extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
     PIT::ticks++;
-    // cpu::LAPIC::eoi();
+    cpu::LAPIC::eoi();
     return status;
 }
 
+// Microseconds, not milliseconds
 void uacpi_kernel_stall(uacpi_u8 ms) {
+    drivers::IOAPIC::init();
     PIT::init(*cpu::kidt);
+    cpu::LAPIC::init(*cpu::kidt);
+    PIT::ticks = 0;
     asm volatile ("sti");
-    size_t start = PIT::ticks;
     PIT::enable();
-    while (PIT::ticks < (start + ms)) asm ("pause");
+    while (PIT::ticks < (ms / 100)) asm ("pause");
     PIT::disable();
-    while(1);
 }

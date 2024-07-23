@@ -1,7 +1,7 @@
 #pragma once
 #include <mem/bitmap.hpp>
-// 8 KiB for kernel heap
-#define HEAP_SIZE (PAGE_SIZE * 2)
+// 64 KiB for kernel heap
+#define HEAP_SIZE 16
 
 namespace mem {
     class VMM;

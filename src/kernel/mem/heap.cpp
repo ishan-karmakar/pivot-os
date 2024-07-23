@@ -4,6 +4,7 @@
 #include <mem/vmm.hpp>
 #include <uacpi/kernel_api.h>
 #include <cstdlib>
+#include <common.h>
 
 using namespace mem;
 
@@ -12,7 +13,7 @@ mem::Heap *mem::kheap = nullptr;
 // Heap is basically just a clone of bitmap since nothing special is needed to add to it
 // All memory management is already taken care of by VMM
 Heap::Heap(VMM& vmm, size_t size, size_t bsize) :
-    Bitmap{size, bsize, reinterpret_cast<uint8_t*>(vmm.malloc(size))}
+    Bitmap{size * PAGE_SIZE, bsize, reinterpret_cast<uint8_t*>(vmm.malloc(size))}
 {
     log(Info, "HEAP", "Initialized heap");
 }
@@ -77,13 +78,11 @@ void uacpi_kernel_free(void *ptr) {
 
 // FIXME: Optimize this; every time we create a mutex we waste 15 bytes of memory
 uacpi_handle uacpi_kernel_create_mutex() {
-    log(Info, "uACPI", "uACPI requested to create mutex");
     return calloc(1);
 }
 
 // FIXME: Take into account timeout
 bool uacpi_kernel_acquire_mutex(void* m, uint16_t) {
-    log(Info, "uACPI", "uACPI requested to acquire mutex");
     volatile bool *mutex = static_cast<volatile bool*>(m);
     while (*mutex) asm ("pause");
     *mutex = true;
@@ -91,12 +90,10 @@ bool uacpi_kernel_acquire_mutex(void* m, uint16_t) {
 }
 
 void uacpi_kernel_release_mutex(void *mutex) {
-    log(Info, "uACPI", "uACPI requested to release mutex");
     *(bool*) mutex = false;
 }
 
 void uacpi_kernel_free_mutex(void *mutex) {
-    log(Info, "uACPI", "uACPI requested to free mutex");
     free(mutex);
 }
 

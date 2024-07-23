@@ -47,7 +47,6 @@ void *Bitmap::malloc(size_t nsize) {
 
         i += fblocks;
     }
-
     return 0;
 }
 
@@ -64,7 +63,7 @@ size_t Bitmap::free(void *ptr) {
     size_t i = 0;
     for (; get_id(sblock + i) == id && (sblock + i) < (tsize / bsize); i++)
         set_id(sblock + i, 0);
-    set_id(sblock, 0);
+    used -= i;
 
     if (sblock < ffa)
         ffa = sblock;

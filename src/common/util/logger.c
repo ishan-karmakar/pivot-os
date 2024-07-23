@@ -26,5 +26,5 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
 }
 
 void uacpi_kernel_log(log_level_t log_level, const char *str) {
-    printf("[%s]: %s\n", log_levels[log_level], str);
+    printf("[%hhu][%s] uACPI: %s", CPU, log_levels[log_level], str);
 }

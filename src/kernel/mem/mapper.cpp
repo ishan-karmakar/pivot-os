@@ -27,8 +27,6 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
     uint16_t p1_idx = P1_ENTRY(virt);
 
     if (!(pml4[p4_idx] & 1)) {
-        if (kheap)
-            log(Verbose, "MAPPER", "test");
         pg_tbl_t table = reinterpret_cast<pg_tbl_t>(PMM::frame());
         uintptr_t tbl_addr = reinterpret_cast<uintptr_t>(table);
         pml4[p4_idx] = tbl_addr | USER_PT_ENTRY;
@@ -38,8 +36,6 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
 
     pg_tbl_t p3_tbl = reinterpret_cast<pg_tbl_t>(pml4[p4_idx] & SIGN_MASK);
     if (!(p3_tbl[p3_idx] & 1)) {
-        if (kheap)
-            log(Verbose, "MAPPER", "test");
         pg_tbl_t table = reinterpret_cast<pg_tbl_t>(PMM::frame());
         uintptr_t tbl_addr = reinterpret_cast<uintptr_t>(table);
         p3_tbl[p3_idx] = tbl_addr | USER_PT_ENTRY;
@@ -49,16 +45,12 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
 
     pg_tbl_t p2_tbl = reinterpret_cast<pg_tbl_t>(p3_tbl[p3_idx] & SIGN_MASK);
     if (!(p2_tbl[p2_idx] & 1)) {
-        if (kheap)
-            log(Verbose, "MAPPER", "test");
         pg_tbl_t table = reinterpret_cast<pg_tbl_t>(PMM::frame());
         uintptr_t tbl_addr = reinterpret_cast<uintptr_t>(table);
         p2_tbl[p2_idx] = tbl_addr | USER_PT_ENTRY;
         clean_table(table);
         map(tbl_addr, tbl_addr, KERNEL_PT_ENTRY);
     }
-    if (kheap)
-        log(Verbose, "MAPPER", "test");
     pg_tbl_t p1_tbl = reinterpret_cast<pg_tbl_t>(p2_tbl[p2_idx] & SIGN_MASK);
     p1_tbl[p1_idx] = phys | flags;
 }

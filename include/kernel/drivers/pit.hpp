@@ -14,8 +14,8 @@ namespace drivers {
         static void init(cpu::IDT&);
         static void cmd(bool, uint8_t, uint8_t, uint8_t);
         static void data(uint16_t);
-        static void enable() { IOAPIC::set_mask(IRQ_ENT, false); }
-        static void disable() { IOAPIC::set_mask(IRQ_ENT, true); }
+        static inline void enable() { IOAPIC::set_mask(IRQ_ENT, false); }
+        static inline void disable() { IOAPIC::set_mask(IRQ_ENT, true); }
 
         static volatile size_t ticks;
         static constexpr int MS_TICKS = 1193;

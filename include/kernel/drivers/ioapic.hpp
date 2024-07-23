@@ -1,6 +1,6 @@
 #pragma once
-#include <acpi/madt.hpp>
 #include <optional>
+#include <uacpi/acpi.h>
 
 namespace mem {
     class PTMapper;
@@ -11,7 +11,7 @@ namespace drivers {
     public:
         IOAPIC() = delete;
 
-        static void init(mem::PTMapper&);
+        static void init();
         static void set_irq(uint8_t, uint8_t, uint8_t, uint32_t);
         static void set_mask(uint8_t, bool);
         
@@ -42,7 +42,7 @@ namespace drivers {
             uint64_t raw;
         };
 
-        static std::optional<acpi::MADT::ioapic_so> find_so(uint8_t);
+        static std::optional<acpi_madt_interrupt_source_override> find_so(uint8_t);
 
         static uint32_t read_reg(uint32_t);
         static void write_reg(uint32_t, uint32_t);
@@ -52,5 +52,6 @@ namespace drivers {
         static uintptr_t addr;
 
         static constexpr int VERSION_OFF = 1;
+        static bool initialized;
     };
 }

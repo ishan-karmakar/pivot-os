@@ -27,11 +27,13 @@ void IDT::load() const {
     log(Info, "IDT", "Loaded IDT");
 }
 
-uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32, uacpi_interrupt_handler, uacpi_handle, uacpi_handle*) {
+uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler handler, uacpi_handle ctx, uacpi_handle *out_handle) {
     log(Info, "uACPI", "uACPI requested to install interrupt handler");
+    log(Verbose, "uACPI", "%u", irq);
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle) {
+    log(Info, "uACPI", "uACPI requested to uninstall interrupt handler");
     return UACPI_STATUS_UNIMPLEMENTED;
 }

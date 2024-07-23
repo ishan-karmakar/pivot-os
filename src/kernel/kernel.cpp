@@ -18,6 +18,7 @@
 #include <io/serial.hpp>
 #include <util/logger.h>
 #include <uacpi/uacpi.h>
+#include <cstdlib>
 
 uint8_t CPU = 0;
 cpu::GDT::gdt_desc initial_gdt[3];
@@ -50,15 +51,21 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
 
     uacpi_init_params init_params = {
         .rsdp = bi->rsdp,
-        .log_level = UACPI_LOG_DEBUG,
+        .log_level = UACPI_LOG_TRACE,
         .flags = 0
     };
+    io::cout.clear();
 
     uacpi_status status = uacpi_initialize(&init_params);
     if (uacpi_unlikely_error(status)) {
         log(Error, "uACPI", "Error initializing uACPI");
         abort();
     }
+    log(Verbose, "KERNEL", "uACPI finished initialization");
+
+    drivers::IOAPIC::init();
+    // cpu::LAPIC::init(idt);
+    // drivers::PIT::init(idt);
 
     // acpi::ACPI::init(bi->rsdp);
 
@@ -84,20 +91,20 @@ cpu::GDT init_sgdt() {
     return sgdt;
 }
 
-cpu::GDT init_hgdt(cpu::GDT& old) {
-    auto madt = acpi::ACPI::get_table<acpi::MADT>();
-    uint8_t num_cpus = 0;
-    if (!madt.has_value())
-        log(Warning, "ACPI", "Could not find MADT");
-    for (auto iter = madt.value().iter<acpi::MADT::lapic>(); iter; ++iter, num_cpus++);
-    log(Info, "KERNEL", "Number of CPUs: %hhu", num_cpus);
-    auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(operator new((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
-    cpu::GDT gdt{heap_gdt};
-    gdt = old;
-    gdt.set_entry(3, 0b11111011, 0b10);
-    gdt.set_entry(4, 0b11110011, 0);
-    return gdt;
-}
+// cpu::GDT init_hgdt(cpu::GDT& old) {
+//     auto madt = acpi::ACPI::get_table<acpi::MADT>();
+//     uint8_t num_cpus = 0;
+//     if (!madt.has_value())
+//         log(Warning, "ACPI", "Could not find MADT");
+//     for (auto iter = madt.value().iter<acpi::MADT::lapic>(); iter; ++iter, num_cpus++);
+//     log(Info, "KERNEL", "Number of CPUs: %hhu", num_cpus);
+//     auto heap_gdt = reinterpret_cast<cpu::GDT::gdt_desc*>(operator new((5 + num_cpus * 2) * sizeof(cpu::GDT::gdt_desc)));
+//     cpu::GDT gdt{heap_gdt};
+//     gdt = old;
+//     gdt.set_entry(3, 0b11111011, 0b10);
+//     gdt.set_entry(4, 0b11110011, 0);
+//     return gdt;
+// }
 
 [[noreturn]]
 extern "C" void __stack_chk_fail() {

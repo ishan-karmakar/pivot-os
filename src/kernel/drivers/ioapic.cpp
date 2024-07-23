@@ -3,19 +3,35 @@
 #include <common.h>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
+#include <acpi/acpi.hpp>
+#include <acpi/madt.hpp>
+#include <uacpi/tables.h>
+#include <uacpi/acpi.h>
+#include <uacpi/uacpi.h>
+#include <uacpi/utilities.h>
 using namespace drivers;
 
 uintptr_t IOAPIC::addr = 0;
+bool IOAPIC::initialized = false;
 
-void IOAPIC::init(mem::PTMapper& mapper) {
-    auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
-    auto mioapic = *madt.iter<acpi::MADT::ioapic>();
-    addr = mioapic.addr;
-    mapper.map(addr, addr, KERNEL_PT_ENTRY);
+void IOAPIC::init() {
+    if (initialized) return;
+    auto madt = acpi::get_table<acpi::MADT>();
+    auto mioapic = *madt.iter<acpi_madt_ioapic>(ACPI_MADT_ENTRY_TYPE_IOAPIC);
+    addr = mioapic.address;
     mem::PMM::set(addr);
     uint32_t ioapic_version = read_reg(VERSION_OFF);
     log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", addr, mioapic.gsi_base, ioapic_version >> 16);
     log(Info, "IOAPIC", "Initialized IOAPIC");
+    initialized = true;
+    if (uacpi_unlikely(uacpi_namespace_load())) {
+        log(Error, "IOAPIC", "uACPI failed to load namespaces");
+        abort();
+    }
+    // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {
+    //     log(Error, "IOAPIC", "uACPI failed to set interrupt model");
+    //     abort();
+    // }
 }
 
 void IOAPIC::set_irq(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags) {
@@ -27,8 +43,8 @@ void IOAPIC::set_irq(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags)
     auto so = find_so(irq);
     if (so.has_value()) {
         auto val = so.value();
-        log(Verbose, "IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi_base);
-        irq = val.gsi_base;
+        log(Verbose, "IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi);
+        irq = val.gsi;
         ent.pin_polarity = val.flags & 2;
         ent.trigger_mode = val.flags & 8;
     }
@@ -40,16 +56,16 @@ void IOAPIC::set_irq(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags)
 void IOAPIC::set_mask(uint8_t irq, bool mask) {
     auto so = find_so(irq);
     if (so.has_value())
-        irq = so.value().gsi_base;
+        irq = so.value().gsi;
     red_ent ent = read_red(irq);
     ent.mask = mask;
     write_red(irq, ent);
 }
 
-std::optional<acpi::MADT::ioapic_so> IOAPIC::find_so(uint8_t irq) {
-    auto madt = acpi::ACPI::get_table<acpi::MADT>().value();
-    for (auto source_ovrds = madt.iter<acpi::MADT::ioapic_so>(); source_ovrds; ++source_ovrds)
-        if (source_ovrds->irq_source == irq)
+std::optional<acpi_madt_interrupt_source_override> IOAPIC::find_so(uint8_t irq) {
+    auto madt = acpi::get_table<acpi::MADT>();
+    for (auto source_ovrds = madt.iter<acpi_madt_interrupt_source_override>(ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE); source_ovrds; ++source_ovrds)
+        if (source_ovrds->source == irq)
             return std::make_optional(*source_ovrds);
     return std::nullopt;
 }
