@@ -105,3 +105,14 @@ void cpu::load_exceptions(cpu::IDT& idt) {
     SET_ENTRY(30);
     SET_ENTRY(31);
 }
+
+[[gnu::noinline]]
+uintptr_t get_rip() {
+    return reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+}
+
+extern "C" cpu::cpu_status *uacpi_handler(cpu::cpu_status *status) {
+    uintptr_t rip = get_rip();
+    log(Verbose, "ISR", "0x%p", rip);
+    return status;
+}

@@ -26,6 +26,7 @@ uintptr_t __stack_chk_guard = 0x595e9fbd94fda766;
 
 cpu::GDT init_sgdt();
 cpu::GDT init_hgdt(cpu::GDT&);
+extern "C" void uacpi_irq();
 
 extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     call_constructors();
@@ -49,21 +50,23 @@ extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     mem::Heap heap{vmm, HEAP_SIZE};
     mem::kheap = &heap;
 
-    uacpi_init_params init_params = {
-        .rsdp = bi->rsdp,
-        .log_level = UACPI_LOG_TRACE,
-        .flags = 0
-    };
-    io::cout.clear();
+    idt.set_entry(32 + 9, 0, uacpi_irq);
+    asm volatile ("int $41");
+    // uacpi_init_params init_params = {
+    //     .rsdp = bi->rsdp,
+    //     .log_level = UACPI_LOG_TRACE,
+    //     .flags = 0
+    // };
+    // io::cout.clear();
 
-    uacpi_status status = uacpi_initialize(&init_params);
-    if (uacpi_unlikely_error(status)) {
-        log(Error, "uACPI", "Error initializing uACPI");
-        abort();
-    }
-    log(Verbose, "KERNEL", "uACPI finished initialization");
+    // uacpi_status status = uacpi_initialize(&init_params);
+    // if (uacpi_unlikely_error(status)) {
+    //     log(Error, "uACPI", "Error initializing uACPI");
+    //     abort();
+    // }
+    // log(Verbose, "KERNEL", "uACPI finished initialization");
 
-    drivers::IOAPIC::init();
+    // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);
     // drivers::PIT::init(idt);
 

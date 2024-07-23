@@ -116,3 +116,4 @@ irq rtc_irq, rtc_handler
 irq keyboard_irq, keyboard_handler
 ; irq ipi_irq, ipi_handler
 irq spurious_irq, spurious_handler
+irq uacpi_irq, uacpi_handler
