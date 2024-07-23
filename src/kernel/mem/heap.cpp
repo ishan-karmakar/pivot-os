@@ -3,6 +3,7 @@
 #include <libc/string.h>
 #include <mem/vmm.hpp>
 #include <uacpi/kernel_api.h>
+#include <atomic>
 #include <cstdlib>
 #include <common.h>
 
@@ -78,33 +79,33 @@ void uacpi_kernel_free(void *ptr) {
 
 // FIXME: Optimize this; every time we create a mutex we waste 15 bytes of memory
 uacpi_handle uacpi_kernel_create_mutex() {
-    return calloc(1);
+    return new std::atomic_flag;
 }
 
 // FIXME: Take into account timeout
 bool uacpi_kernel_acquire_mutex(void* m, uint16_t) {
-    volatile bool *mutex = static_cast<volatile bool*>(m);
-    while (*mutex) asm ("pause");
-    *mutex = true;
+    std::atomic_flag *lock = static_cast<std::atomic_flag*>(m);
+    while (lock->test_and_set(std::memory_order_acquire)) asm ("pause");
     return true;
 }
 
-void uacpi_kernel_release_mutex(void *mutex) {
-    *(bool*) mutex = false;
+void uacpi_kernel_release_mutex(void *m) {
+    std::atomic_flag *lock = static_cast<std::atomic_flag*>(m);
+    lock->clear();
 }
 
 void uacpi_kernel_free_mutex(void *mutex) {
-    free(mutex);
+    delete static_cast<std::atomic_flag*>(mutex);
 }
 
 uacpi_handle uacpi_kernel_create_spinlock() {
+    // Right now, we treat mutexes and spinlocks the same
     log(Info, "uACPI", "uACPI requested to create spinlock");
-    return NULL;
+    return uacpi_kernel_create_mutex();
 }
 
-uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle) {
+uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle m) {
     log(Info, "uACPI", "uACPI requested to lock spinlock");
-    return 0;
 }
 
 void uacpi_kernel_spinlock_unlock(uacpi_handle, uacpi_cpu_flags) {
@@ -117,9 +118,10 @@ void uacpi_kernel_free_spinlock(uacpi_handle) {
 
 uacpi_handle uacpi_kernel_create_event() {
     log(Info, "uACPI", "uACPI requested to create event");
-    return NULL;
+    return new std::atomic_uint64_t;
 }
 
-void uacpi_kernel_free_event(uacpi_handle) {
+void uacpi_kernel_free_event(uacpi_handle e) {
     log(Info, "uACPI", "uACPI requested to free event");
+    delete static_cast<std::atomic_uint64_t*>(e);
 }
