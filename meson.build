@@ -1,0 +1,1 @@
+project("pivot-os", "c")
