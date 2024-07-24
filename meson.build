@@ -1,1 +1,0 @@
-project("pivot-os", "c")
