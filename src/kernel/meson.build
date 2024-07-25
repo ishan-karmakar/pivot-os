@@ -107,7 +107,7 @@ kernel = executable(
     link_args: link_args,
     link_depends: linker_script,
     link_with: [common_lib, uacpi_lib],
-    # dependencies: [frigg],
+    dependencies: frigg,
     implicit_include_directories: false,
     include_directories: ['../../include/kernel', common_includes, uacpi_includes],
     build_by_default: false
