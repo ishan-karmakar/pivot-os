@@ -1,0 +1,6 @@
+option(
+    'qemu_uefi',
+    type: 'boolean',
+    value: true,
+    description: 'Use UEFI instead of BIOS in QEMU'
+)

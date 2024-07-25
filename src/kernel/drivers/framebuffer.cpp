@@ -5,10 +5,10 @@
 #include <mem/pmm.hpp>
 using namespace drivers;
 
-extern char _binary_fonts_default_psf_start;
+extern char _binary_default_psf_start;
 
 Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, uint32_t fg, uint32_t bg) :
-    font{reinterpret_cast<struct font*>(&_binary_fonts_default_psf_start)}, buffer{reinterpret_cast<char*>(bi->fb_buf)},
+    font{reinterpret_cast<struct font*>(&_binary_default_psf_start)}, buffer{reinterpret_cast<char*>(bi->fb_buf)},
     hres{bi->hres}, vres{bi->vres}, pps{bi->pps}, num_cols{hres / font->width}, num_rows{vres / font->height}, fg{fg}, bg{bg}
 {
     size_t fb_pages = DIV_CEIL(BPP * pps * vres, PAGE_SIZE);

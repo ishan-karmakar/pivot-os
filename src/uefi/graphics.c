@@ -20,11 +20,11 @@ efi_status_t init_graphics(void) {
         status = gop->query_mode(gop, i, &mode_size, &mi);
         if (EFI_ERR(status)) return status;
 
-#ifdef DEBUG
+// #ifdef DEBUG
         if (mi->horizontal_res == 1024 && mi->vertical_res == 768) {
-#else
-        if (mi->horizontal_res > tmi->horizontal_res) {
-#endif
+// #else
+        // if (mi->horizontal_res > tmi->horizontal_res) {
+// #endif
             tmi = mi;
             video_mode = i;
         }

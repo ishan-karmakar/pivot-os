@@ -12,16 +12,13 @@ find_program(FAT_MKFS mkfs.fat REQUIRED)
 find_program(MMD mmd REQUIRED)
 find_program(MCOPY mcopy REQUIRED)
 
-configure_file(dmconfig dmconfig)
-file(GENERATE OUTPUT dmconfig INPUT ${CMAKE_CURRENT_BINARY_DIR}/dmconfig)
-
 find_program(QEMU_PATH qemu-system-x86_64)
 if (NOT QEMU_BIOS)
     list(APPEND QEMU_FLAGS -bios OVMF.fd)
 endif()
 
 if (QEMU_PATH AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_definitions(-DDEBUG)
+    # add_definitions(-DDEBUG)
     add_custom_target(
         run
         COMMAND ${QEMU_PATH} ${QEMU_FLAGS} -drive file=os.img,index=0,media=disk,format=raw
