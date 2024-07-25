@@ -6,6 +6,7 @@ namespace mem {
     // This class is meant to be inherited by another class such as VMM, Heap
     class Bitmap {
     public:
+        virtual ~Bitmap() = default;
         virtual void *malloc(size_t);
         virtual size_t free(void*);
         void *realloc(void*, size_t);

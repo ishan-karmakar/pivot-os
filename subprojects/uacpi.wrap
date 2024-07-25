@@ -1,0 +1,5 @@
+[wrap-git]
+directory = uacpi
+url = https://github.com/UltraOS/uACPI
+revision = master
+depth = 1

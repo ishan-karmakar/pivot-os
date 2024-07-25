@@ -9,6 +9,7 @@ namespace io {
     public:
         // A typedef for a point on the coordinate plane
         typedef std::pair<size_t, size_t> coord_t;
+        virtual ~OWriter() = default;
         void set_global();
         OWriter& operator<<(char);
         OWriter& operator<<(const char*);
@@ -24,6 +25,7 @@ namespace io {
 
     class IWriter {
     public:
+        virtual ~IWriter() = default;
         virtual void operator>>(char&) = 0;
     };
 

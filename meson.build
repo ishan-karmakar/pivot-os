@@ -2,7 +2,6 @@ project(
     'pivot-os',
     default_options: [
         'b_asneeded=false',
-        'b_lundef=false',
         'c_std=gnu17',
         'cpp_std=gnu++17'
     ]
@@ -15,7 +14,6 @@ args = [
 ]
 
 data = configuration_data()
-uacpi = subproject('uacpi', required: true)
 nasm = find_program('nasm', required: true)
 python3 = find_program('python3', required: true)
 qemu = find_program('qemu-system-x86_64', required: false)

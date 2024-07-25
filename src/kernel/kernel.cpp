@@ -29,6 +29,7 @@ cpu::GDT init_hgdt(cpu::GDT&);
 extern "C" void uacpi_irq();
 
 extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
+    while(1);
     call_constructors();
     io::SerialPort qemu{0x3F8};
     qemu.set_global();

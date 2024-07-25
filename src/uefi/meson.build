@@ -20,14 +20,11 @@ uefi = executable(
     'graphics.c',
     'con.c',
     'acpi.c',
-    common_files,
+    common_sources,
 
     c_args: c_args,
     link_args: link_args,
     implicit_include_directories: false,
-    include_directories: [
-        '../../include/uefi',
-        common_inc
-    ],
+    include_directories: ['../../include/uefi', common_includes],
     build_by_default: false
 )

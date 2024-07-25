@@ -49,6 +49,31 @@ font_target = custom_target(
     ]
 )
 
+uacpi = subproject('uacpi', required: true)
+frigg = dependency(
+    'frigg',
+    default_options: ['frigg_no_install=true'],
+    fallback: ['frigg', 'frigg_dep'],
+    required: true
+)
+
+common_lib = static_library(
+    'common',
+    common_sources,
+    include_directories: common_includes,
+    c_args: c_args,
+    pic: false
+)
+
+uacpi_includes = uacpi.get_variable('includes')
+uacpi_lib = static_library(
+    'uacpi',
+    uacpi.get_variable('sources'),
+    include_directories: uacpi_includes,
+    c_args: c_args,
+    pic: false
+)
+
 kernel = executable(
     'kernel.elf',
     'kernel.cpp',
@@ -75,19 +100,15 @@ kernel = executable(
     'util/string.cpp',
     nasm_gen.process('cpu/interrupts.asm'),
     nasm_gen.process('cpu/ap_trampoline.asm'),
-    common_files,
-    uacpi.get_variable('sources'),
     font_target,
     
     c_args: c_args,
     cpp_args: cpp_args,
     link_args: link_args,
     link_depends: linker_script,
+    link_with: [common_lib, uacpi_lib],
+    # dependencies: [frigg],
     implicit_include_directories: false,
-    include_directories: [
-        '../../include/kernel',
-        common_inc,
-        uacpi.get_variable('includes')
-    ],
+    include_directories: ['../../include/kernel', common_includes, uacpi_includes],
     build_by_default: false
 )
