@@ -1,3 +1,5 @@
+add_languages('c')
+
 common_files = files([
     'io/stdio.c',
     'libc/string.c',

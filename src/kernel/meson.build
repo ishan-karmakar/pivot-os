@@ -1,7 +1,9 @@
+add_languages('cpp')
+
 c_args = args
 cpp_args = args
-linker_script = join_paths(meson.current_source_dir(), 'linker.ld')
-font = join_paths(meson.global_source_root(), 'fonts/default.psf')
+linker_script = meson.current_source_dir() / 'linker.ld'
+font = meson.global_source_root() / 'fonts/default.psf'
 
 c_args += [
     '-static',
@@ -40,7 +42,7 @@ font_target = custom_target(
     input: font,
     output: '@PLAINNAME@.o',
     command: [
-        join_paths(meson.global_source_root(), 'util/compile_font.py'),
+        meson.global_source_root() / 'util/compile_font.py',
         objcopy,
         '@INPUT@',
         '@OUTPUT@'

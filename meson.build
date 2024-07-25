@@ -1,6 +1,5 @@
 project(
     'pivot-os',
-    'c', 'cpp',
     default_options: [
         'b_asneeded=false',
         'b_lundef=false',
@@ -20,12 +19,12 @@ uacpi = subproject('uacpi', required: true)
 nasm = find_program('nasm', required: true)
 python3 = find_program('python3', required: true)
 qemu = find_program('qemu-system-x86_64', required: false)
-debug = qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
-data.set('mkfs', find_program('mkfs.fat', required: true).full_path())
 data.set('mmd', find_program('mmd', required: true).full_path())
 data.set('mcopy', find_program('mcopy', required: true).full_path())
+data.set('mkfs', find_program('mkfs.fat', required: true).full_path())
 data.set('sgdisk', find_program('sgdisk', required: true).full_path())
 
+debug = qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
 if debug
     args += ['-DDEBUG']
 endif

@@ -1,3 +1,5 @@
+add_languages('c')
+
 c_args = args
 c_args += [
     '-fno-stack-protector',
