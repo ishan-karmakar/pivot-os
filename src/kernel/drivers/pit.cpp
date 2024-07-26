@@ -1,7 +1,7 @@
 #include <cpu/cpu.hpp>
 #include <drivers/pit.hpp>
 #include <io/serial.hpp>
-#include <cpu/lapic.hpp>
+#include <drivers/lapic.hpp>
 #include <cpu/idt.hpp>
 #include <drivers/ioapic.hpp>
 #include <uacpi/kernel_api.h>
@@ -37,8 +37,8 @@ void PIT::data(uint16_t data) {
 }
 
 extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
-    PIT::ticks++;
-    cpu::LAPIC::eoi();
+    PIT::ticks++; // FIXME: Use atomic
+    LAPIC::eoi();
     return status;
 }
 
@@ -46,7 +46,7 @@ extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
 void uacpi_kernel_stall(uacpi_u8 ms) {
     drivers::IOAPIC::init();
     PIT::init(*cpu::kidt);
-    cpu::LAPIC::init(*cpu::kidt);
+    LAPIC::init(*cpu::kidt);
     PIT::ticks = 0;
     asm volatile ("sti");
     PIT::enable();

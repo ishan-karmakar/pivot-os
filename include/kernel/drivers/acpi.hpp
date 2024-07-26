@@ -3,7 +3,11 @@
 #include <cstdlib>
 #include <util/logger.h>
 
-namespace acpi {
+struct boot_info;
+
+namespace drivers::acpi {
+    void init(boot_info*);
+
     template <class T>
     T get_table() {
         uacpi_table t;

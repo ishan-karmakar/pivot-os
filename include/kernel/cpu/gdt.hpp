@@ -24,7 +24,7 @@ namespace cpu {
             uint64_t raw;
         };
 
-        GDT(gdt_desc * const);
+        GDT(gdt_desc*);
         ~GDT() = default;
 
         GDT& operator=(GDT&);

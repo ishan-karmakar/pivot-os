@@ -1,7 +1,7 @@
-#include <cpu/lapic.hpp>
+#include <drivers/lapic.hpp>
 #include <cpu/cpu.hpp>
-#include <acpi/madt.hpp>
-#include <acpi/acpi.hpp>
+#include <drivers/madt.hpp>
+#include <drivers/acpi.hpp>
 #include <util/logger.h>
 #include <cpuid.h>
 #include <common.h>
@@ -12,7 +12,7 @@
 #include <cpu/idt.hpp>
 #include <io/serial.hpp>
 #include <uacpi/kernel_api.h>
-using namespace cpu;
+using namespace drivers;
 
 extern "C" void periodic_irq();
 extern "C" void spurious_irq();
@@ -22,7 +22,7 @@ bool LAPIC::x2mode;
 uint32_t LAPIC::ms_interval;
 bool LAPIC::initialized = false;
 
-void LAPIC::init(IDT& idt) {
+void LAPIC::init(cpu::IDT& idt) {
     if (initialized) return;
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))
@@ -36,9 +36,10 @@ void LAPIC::init(IDT& idt) {
         msr |= (1 << 10);
     } else if (xapic & (1 << 9)) {
         x2mode = false;
-        auto madt = acpi::get_table<acpi::MADT>();
-        lapic = VADDR(madt.table->local_interrupt_controller_address);
-        mem::PMM::set(PADDR(lapic));
+        // auto madt = drivers::acpi::get_table<drivers::MADT>();
+        // lapic = VADDR(madt.table->local_interrupt_controller_address);
+        // mem::kmapper->map(PADDR(lapic), lapic, KERNEL_PT_ENTRY);
+        // mem::PMM::set(PADDR(lapic));
     } else {
         log(Error, "LAPIC", "No LAPIC is supported by this processor");
         return;
@@ -47,6 +48,7 @@ void LAPIC::init(IDT& idt) {
     cpu::wrmsr(IA32_APIC_BASE, msr);
 
     // Disable PIC
+    // TODO: Move this to a separate PIC file and maybe support legacy PIC
     io::outb(0x21, 0xFF);
     io::outb(0xA1, 0xFF);
     log(Verbose, "LAPIC", "Disabled 8259 PIC");
@@ -90,12 +92,12 @@ void LAPIC::write_reg(uint32_t off, uint64_t val) {
         *(volatile uint32_t*)(lapic + off) = val;
 }
 
-extern "C" cpu::cpu_status *periodic_handler(cpu_status *status) {
+extern "C" cpu::cpu_status *periodic_handler(cpu::cpu_status *status) {
     // LAPIC::eoi();
     return status;
 }
 
-extern "C" cpu::cpu_status *spurious_handler(cpu_status *status) {
+extern "C" cpu::cpu_status *spurious_handler(cpu::cpu_status *status) {
     return status;
 }
 

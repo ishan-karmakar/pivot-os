@@ -2,8 +2,9 @@ project(
     'pivot-os',
     default_options: [
         'b_asneeded=false',
-        'c_std=gnu17',
-        'cpp_std=gnu++17'
+        'c_std=gnu20',
+        'cpp_std=gnu++20',
+        'warning_level=2'
     ]
 )
 
@@ -26,6 +27,13 @@ debug = qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 
 if debug
     args += ['-DDEBUG']
 endif
+
+frigg = dependency(
+    'frigg',
+    default_options: ['frigg_no_install=true'],
+    fallback: ['frigg', 'frigg_dep'],
+    required: true
+)
 
 subdir('src/common')
 subdir('src/uefi')

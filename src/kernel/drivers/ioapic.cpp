@@ -3,8 +3,8 @@
 #include <common.h>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
-#include <acpi/acpi.hpp>
-#include <acpi/madt.hpp>
+#include <drivers/acpi.hpp>
+#include <drivers/madt.hpp>
 #include <uacpi/tables.h>
 #include <uacpi/acpi.h>
 #include <uacpi/uacpi.h>
@@ -16,18 +16,18 @@ bool IOAPIC::initialized = false;
 
 void IOAPIC::init() {
     if (initialized) return;
-    auto madt = acpi::get_table<acpi::MADT>();
-    auto mioapic = *madt.iter<acpi_madt_ioapic>(ACPI_MADT_ENTRY_TYPE_IOAPIC);
-    addr = mioapic.address;
-    mem::PMM::set(addr);
-    uint32_t ioapic_version = read_reg(VERSION_OFF);
-    log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", addr, mioapic.gsi_base, ioapic_version >> 16);
-    log(Info, "IOAPIC", "Initialized IOAPIC");
-    initialized = true;
-    if (uacpi_unlikely(uacpi_namespace_load())) {
-        log(Error, "IOAPIC", "uACPI failed to load namespaces");
-        abort();
-    }
+    // auto madt = acpi::get_table<drivers::MADT>();
+    // auto mioapic = *madt.iter<acpi_madt_ioapic>(ACPI_MADT_ENTRY_TYPE_IOAPIC);
+    // addr = mioapic.address;
+    // mem::PMM::set(addr);
+    // uint32_t ioapic_version = read_reg(VERSION_OFF);
+    // log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", addr, mioapic.gsi_base, ioapic_version >> 16);
+    // log(Info, "IOAPIC", "Initialized IOAPIC");
+    // initialized = true;
+    // if (uacpi_unlikely(uacpi_namespace_load())) {
+    //     log(Error, "IOAPIC", "uACPI failed to load namespaces");
+    //     abort();
+    // }
     // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {
     //     log(Error, "IOAPIC", "uACPI failed to set interrupt model");
     //     abort();
@@ -62,12 +62,12 @@ void IOAPIC::set_mask(uint8_t irq, bool mask) {
     write_red(irq, ent);
 }
 
-std::optional<acpi_madt_interrupt_source_override> IOAPIC::find_so(uint8_t irq) {
-    auto madt = acpi::get_table<acpi::MADT>();
-    for (auto source_ovrds = madt.iter<acpi_madt_interrupt_source_override>(ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE); source_ovrds; ++source_ovrds)
-        if (source_ovrds->source == irq)
-            return std::make_optional(*source_ovrds);
-    return std::nullopt;
+frg::optional<acpi_madt_interrupt_source_override> IOAPIC::find_so(uint8_t irq) {
+    // auto madt = acpi::get_table<drivers::MADT>();
+    // for (auto source_ovrds = madt.iter<acpi_madt_interrupt_source_override>(ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE); source_ovrds; ++source_ovrds)
+    //     if (source_ovrds->source == irq)
+    //         return frg::optional(*source_ovrds);
+    return frg::null_opt;
 }
 
 uint32_t IOAPIC::read_reg(uint32_t off) {

@@ -1,7 +1,12 @@
 #include <cpu/cpu.hpp>
 #include <util/logger.h>
 #include <uacpi/kernel_api.h>
+#include <uacpi/uacpi.h>
 #include <cpu/idt.hpp>
+#include <drivers/acpi.hpp>
+#include <boot.h>
+using namespace drivers;
+
 constexpr int IDT_ENT = 36;
 constexpr int IRQ_ENT = 9;
 struct uacpi_handler_info {
@@ -11,6 +16,21 @@ struct uacpi_handler_info {
 uacpi_handler_info acpi_info;
 
 extern "C" void acpi_irq();
+
+void acpi::init(boot_info *bi) {
+    uacpi_init_params init_params = {
+        .rsdp = bi->rsdp,
+        .log_level = UACPI_LOG_TRACE,
+        .flags = 0
+    };
+
+    uacpi_status status = uacpi_initialize(&init_params);
+    if (uacpi_unlikely_error(status)) {
+        log(Error, "uACPI", "Error initializing uACPI");
+        abort();
+    }
+    uacpi_kernel_log(UACPI_LOG_INFO, "uACPI finished initialization\n");
+}
 
 extern "C" cpu::cpu_status *acpi_handler(cpu::cpu_status *status) {
     log(Info, "uACPI", "ACPI interrupt triggered");

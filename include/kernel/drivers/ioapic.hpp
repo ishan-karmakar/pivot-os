@@ -1,5 +1,5 @@
 #pragma once
-#include <optional>
+#include <frg/optional.hpp>
 #include <uacpi/acpi.h>
 
 namespace mem {
@@ -42,7 +42,7 @@ namespace drivers {
             uint64_t raw;
         };
 
-        static std::optional<acpi_madt_interrupt_source_override> find_so(uint8_t);
+        static frg::optional<acpi_madt_interrupt_source_override> find_so(uint8_t);
 
         static uint32_t read_reg(uint32_t);
         static void write_reg(uint32_t, uint32_t);

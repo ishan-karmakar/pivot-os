@@ -49,6 +49,22 @@ namespace cpu {
     inline void wrmsr(uint32_t address, uint64_t value) {
         asm volatile ("wrmsr" : : "a" ((uint32_t) value), "d" (value >> 32), "c" (address));
     }
+
+    inline void set_kgs(uint64_t a) {
+        wrmsr(0xC0000102, a);
+    }
+
+    inline void set_gs(uint64_t a) {
+        wrmsr(0xC0000101, a);
+    }
+
+    inline uint64_t get_kgs() {
+        return rdmsr(0xC0000102);
+    }
+
+    inline uint64_t get_gs() {
+        return rdmsr(0xC0000101);
+    }
 }
 
 // __attribute__((always_inline))

@@ -2,7 +2,7 @@
 #include <io/serial.hpp>
 #include <util/logger.h>
 #include <cpu/idt.hpp>
-#include <cpu/lapic.hpp>
+#include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
 using namespace drivers;
 
@@ -55,6 +55,6 @@ void Keyboard::check_ack() {
 
 cpu::cpu_status *cpu::keyboard_handler(cpu::cpu_status *status) {
     log(Verbose, "KEYBOARD", "Keyboard handler called");
-    // LAPIC::eoi();
+    LAPIC::eoi();
     return status;
 }

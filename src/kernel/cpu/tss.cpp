@@ -2,7 +2,6 @@
 #include <cpu/gdt.hpp>
 #include <cpu/tss.hpp>
 #include <util/logger.h>
-#include <acpi/madt.hpp>
 using namespace cpu;
 
 TSS::TSS(GDT& gdt) : gdt{gdt} {

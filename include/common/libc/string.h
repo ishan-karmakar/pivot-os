@@ -2,9 +2,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef __cplusplus
 
 void *memset (void *__s, int __c, size_t __n);
 void *memmove (void *__dest, const void *__src, size_t __n);
@@ -18,6 +16,4 @@ int strcmp (const char *__s1, const char *__s2);
 int vsprintf(char*, const char*, va_list);
 int sprintf(char*, const char*, ...);
 
-#ifdef __cplusplus
-}
 #endif

@@ -26,5 +26,6 @@ uefi = executable(
     link_args: link_args,
     implicit_include_directories: false,
     include_directories: ['../../include/uefi', common_includes],
+    # dependencies: frigg,
     build_by_default: false
 )

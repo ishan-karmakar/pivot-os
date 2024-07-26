@@ -4,8 +4,10 @@
 #include <mem/vmm.hpp>
 #include <uacpi/kernel_api.h>
 #include <atomic>
-#include <cstdlib>
 #include <common.h>
+#include <frg/manual_box.hpp>
+#include <frg/slab.hpp>
+#include <frg/spinlock.hpp>
 
 using namespace mem;
 
@@ -125,3 +127,10 @@ void uacpi_kernel_free_event(uacpi_handle e) {
     log(Info, "uACPI", "uACPI requested to free event");
     delete static_cast<std::atomic_uint64_t*>(e);
 }
+
+struct CoreSlabPolicy {
+    static constexpr size_t sb_size = PAGE_SIZE;
+    static constexpr size_t slabsize = PAGE_SIZE;
+};
+
+frg::manual_box<frg::slab_pool<CoreSlabPolicy, frg::simple_spinlock>> core_pool;

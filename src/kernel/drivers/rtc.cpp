@@ -1,6 +1,6 @@
 #include <cpu/cpu.hpp>
 #include <drivers/ioapic.hpp>
-#include <cpu/lapic.hpp>
+#include <drivers/lapic.hpp>
 #include <io/serial.hpp>
 #include <drivers/rtc.hpp>
 #include <cpu/idt.hpp>
@@ -77,6 +77,6 @@ cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
     io::cout.set_pos({ lims.first - 8, 1 });
     printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
     io::cout.set_pos(old_pos);
-    // LAPIC::eoi();
+    LAPIC::eoi();
     return status;
 }

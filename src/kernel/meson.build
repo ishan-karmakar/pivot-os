@@ -50,12 +50,6 @@ font_target = custom_target(
 )
 
 uacpi = subproject('uacpi', required: true)
-frigg = dependency(
-    'frigg',
-    default_options: ['frigg_no_install=true'],
-    fallback: ['frigg', 'frigg_dep'],
-    required: true
-)
 
 common_lib = static_library(
     'common',
@@ -77,19 +71,20 @@ uacpi_lib = static_library(
 kernel = executable(
     'kernel.elf',
     'kernel.cpp',
-    'init.cpp',
-    'acpi/acpi.cpp',
+    'misc/cxxabi.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
     'cpu/isr.cpp',
-    'cpu/lapic.cpp',
     'cpu/tss.cpp',
+    'cpu/smp.cpp',
+    'drivers/lapic.cpp',
     'drivers/framebuffer.cpp',
     'drivers/ioapic.cpp',
     'drivers/keyboard.cpp',
     'drivers/pit.cpp',
     'drivers/ps2.cpp',
     'drivers/rtc.cpp',
+    'drivers/acpi.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
     'mem/bitmap.cpp',

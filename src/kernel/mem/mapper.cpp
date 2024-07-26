@@ -92,7 +92,4 @@ void *uacpi_kernel_map(uintptr_t phys, size_t) {
     return reinterpret_cast<void*>(phys);
 }
 
-void uacpi_kernel_unmap(void *addr, size_t len) {
-    log(Info, "uACPI", "uACPI requested to unmap 0x%p", addr);
-    kmapper->unmap(reinterpret_cast<uintptr_t>(addr), DIV_CEIL(len, PAGE_SIZE));
-}
+void uacpi_kernel_unmap(void*, size_t) {}

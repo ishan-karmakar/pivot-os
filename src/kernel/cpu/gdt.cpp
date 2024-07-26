@@ -3,7 +3,7 @@
 #include <util/logger.h>
 using namespace cpu;
 
-GDT::GDT(gdt_desc * const gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
+GDT::GDT(gdt_desc *gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
 
 GDT& GDT::operator=(GDT& old) {
     for (uint16_t i = 0; i < old.entries; i++)
@@ -34,12 +34,12 @@ void GDT::load() {
         "push $.L%=;"
         "lretq;"
         ".L%=:"
-        "mov %1, %%ds;"
-        "mov %1, %%es;"
-        "mov %1, %%fs;"
-        "mov %1, %%gs;"
-        "mov %1, %%ss;"
-        : : "rm" (gdtr), "r" (0x10) : "memory"
+        "mov %%ax, %%ds;"
+        "mov %%ax, %%es;"
+        "mov %%ax, %%fs;"
+        "mov %%ax, %%gs;"
+        "mov %%ax, %%ss;"
+        : : "rm" (gdtr), "a" (0x10) : "memory"
     );
     log(Info, "GDT", "Loaded GDT");
 };
