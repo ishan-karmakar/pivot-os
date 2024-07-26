@@ -13,7 +13,7 @@ Framebuffer::Framebuffer(boot_info* bi, mem::PTMapper& mapper, uint32_t fg, uint
 {
     size_t fb_pages = DIV_CEIL(BPP * pps * vres, PAGE_SIZE);
     mapper.map(bi->fb_buf, bi->fb_buf, fb_pages, KERNEL_PT_ENTRY);
-    mem::PMM::set(bi->fb_buf, fb_pages);
+    mem::pmm::set(bi->fb_buf, fb_pages);
 
     set_global();
     clear();

@@ -17,7 +17,7 @@ namespace mem {
         size_t free(void*) override;
 
     private:
-        uint8_t * map_bm(enum vmm_level, size_t, PTMapper&);
+        uint8_t *map_bm(enum vmm_level, size_t, PTMapper&);
 
         size_t flags;
         PTMapper& mapper;

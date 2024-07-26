@@ -13,14 +13,14 @@ VMM::VMM(enum vmm_level level, size_t max_pages, PTMapper& mapper) :
 void *VMM::malloc(size_t size) {
     void *addr = Bitmap::malloc(size * PAGE_SIZE);
     for (size_t i = 0; i < size; i++)
-        mapper.map(PMM::frame(), reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
+        mapper.map(pmm::frame(), reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
     return addr;
 }
 
 size_t VMM::free(void *addr) {
     size_t pages = Bitmap::free(addr);
     for (size_t i = 0; i < pages; i++)
-        PMM::clear(mapper.translate(reinterpret_cast<uintptr_t>(pages) + i * PAGE_SIZE));
+        pmm::clear(mapper.translate(reinterpret_cast<uintptr_t>(pages) + i * PAGE_SIZE));
     return pages;
 }
 
@@ -34,6 +34,6 @@ uint8_t *VMM::map_bm(enum vmm_level level, size_t max_pages, PTMapper& mapper) {
         bm = PAGE_SIZE;
     }
     for (size_t i = 0; i < DIV_CEIL(max_pages, PAGE_SIZE); i++)
-        mapper.map(PMM::frame(), bm + i * PAGE_SIZE, flags);
+        mapper.map(pmm::frame(), bm + i * PAGE_SIZE, flags);
     return reinterpret_cast<uint8_t*>(bm);
 }

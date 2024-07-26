@@ -10,24 +10,35 @@
 #include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
 #include <util/logger.h>
+#include <frg/slab.hpp>
+#include <frg/manual_box.hpp>
+#include <frg/spinlock.hpp>
 #include <cstdlib>
 
 uint8_t CPU = 0;
 uintptr_t __stack_chk_guard = 0x595e9fbd94fda766;
 
+extern "C" void frg_log(const char *s) {
+    printf("%s\n", s);
+}
+
+extern "C" void frg_panic(const char *s) {
+    frg_log(s);
+    abort();
+}
+
 extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
     io::SerialPort qemu{0x3F8};
     qemu.set_global();
     cxxabi::call_constructors();
-    mem::PMM::init(bi);
-    mem::PTMapper mapper{bi->pml4};
-    mem::kmapper = &mapper;
-    mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, mapper};
+    mem::pmm::init(bi);
+    mem::mapper::init(bi->pml4);
+    mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, *mem::kmapper};
     mem::Heap heap{vmm, HEAP_SIZE};
-    mem::kheap = &heap;
-    drivers::Framebuffer fb{bi, mapper};
-    drivers::acpi::init(bi);
-    cpu::smp::init_bsp();
+    // mem::kheap = &heap;
+    // drivers::Framebuffer fb{bi, mapper};
+    // drivers::acpi::init(bi);
+    // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);
     // drivers::PIT::init(idt);

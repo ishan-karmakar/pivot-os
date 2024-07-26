@@ -5,10 +5,10 @@
 #include <uacpi/kernel_api.h>
 using namespace mem;
 
-uint8_t *PMM::bitmap;
-size_t PMM::bitmap_size;
+uint8_t *bitmap;
+size_t bitmap_size;
 
-void PMM::init(boot_info* bi) {
+void pmm::init(boot_info* bi) {
     log(Info, "PMM", "Found %lu pages of physical memory (%lu mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
     mmap_desc *cur_desc = bi->mmap;
     bitmap_size = DIV_CEIL(bi->mem_pages, 8);
@@ -41,7 +41,7 @@ void PMM::init(boot_info* bi) {
     log(Info, "PMM", "Initialized PMM");
 }
 
-uintptr_t PMM::frame() {
+uintptr_t pmm::frame() {
     for (uint16_t row = 0; row < bitmap_size; row++)
         if (bitmap[row] != 0xFF)
             for (uint16_t col = 0; col < 8; col++)
@@ -54,24 +54,24 @@ uintptr_t PMM::frame() {
     return 0;
 }
 
-void PMM::clear(uintptr_t addr, size_t count) {
+void pmm::clear(uintptr_t addr, size_t count) {
     for (size_t i = 0; i < count; i++)
         clear(addr + i * PAGE_SIZE);
 }
 
-void PMM::clear(uintptr_t addr) {
+void pmm::clear(uintptr_t addr) {
     addr /= PAGE_SIZE;
     if (addr >= (bitmap_size * 8))
         return;
     bitmap[addr / 8] &= ~(1 << (addr % 8));
 }
 
-void PMM::set(uintptr_t addr, size_t count) {
+void pmm::set(uintptr_t addr, size_t count) {
     for (size_t i = 0; i < count; i++)
         set(addr + i * PAGE_SIZE);
 }
 
-void PMM::set(uintptr_t addr) {
+void pmm::set(uintptr_t addr) {
     addr /= PAGE_SIZE;
     if (addr >= (bitmap_size * 8))
         return;

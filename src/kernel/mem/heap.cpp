@@ -5,13 +5,10 @@
 #include <uacpi/kernel_api.h>
 #include <atomic>
 #include <common.h>
-#include <frg/manual_box.hpp>
-#include <frg/slab.hpp>
-#include <frg/spinlock.hpp>
 
 using namespace mem;
 
-mem::Heap *mem::kheap = nullptr;
+frg::manual_box<Heap> mem::kheap;
 
 // Heap is basically just a clone of bitmap since nothing special is needed to add to it
 // All memory management is already taken care of by VMM
@@ -21,58 +18,56 @@ Heap::Heap(VMM& vmm, size_t size, size_t bsize) :
     log(Info, "HEAP", "Initialized heap");
 }
 
-void *malloc(size_t size) {
-    if (kheap)
-        return kheap->malloc(size);
-    log(Error, "HEAP", "malloc called before heap was initialized");
-    abort();
-}
+// void *malloc(size_t size) {
+//     return kheap->malloc(size);
+// }
 
-void *calloc(size_t size) {
-    if (kheap)
-        return kheap->calloc(size);
-    log(Error, "HEAP", "calloc called before heap was initialized");
-    abort();
-}
+// void *calloc(size_t size) {
+//     if (kheap)
+//         return kheap->calloc(size);
+//     log(Error, "HEAP", "calloc called before heap was initialized");
+//     abort();
+// }
 
-void *realloc(void *old, size_t size) {
-    if (kheap)
-        return kheap->realloc(old, size);
-    log(Error, "HEAP", "realloc called before heap was initialized");
-    abort();
-}
+// void *realloc(void *old, size_t size) {
+//     if (kheap)
+//         return kheap->realloc(old, size);
+//     log(Error, "HEAP", "realloc called before heap was initialized");
+//     abort();
+// }
 
-void free(void *ptr) {
-    if (kheap) {
-        kheap->free(ptr);
-        return;
-    }
-    log(Error, "HEAP", "free called before heap was initialized");
-    abort();
-}
+// void free(void *ptr) {
+//     if (kheap) {
+//         kheap->free(ptr);
+//         return;
+//     }
+//     log(Error, "HEAP", "free called before heap was initialized");
+//     abort();
+// }
 
-void *operator new(size_t size) {
-    return malloc(size);
-}
+// void *operator new(size_t size) {
+//     log(Verbose, "HEAP", "test");
+//     return malloc(size);
+// }
 
-void operator delete(void *ptr) {
-    return free(ptr);
-}
+// void operator delete(void *ptr) {
+//     return free(ptr);
+// }
 
-void *operator new[](size_t size) {
-    return operator new(size);
-}
+// void *operator new[](size_t size) {
+//     return operator new(size);
+// }
 
-void operator delete[](void *ptr) {
-    return operator delete(ptr);
-}
+// void operator delete[](void *ptr) {
+//     return operator delete(ptr);
+// }
 
 void *uacpi_kernel_alloc(size_t size) {
     return malloc(size);
 }
 
 void *uacpi_kernel_calloc(size_t count, size_t size) {
-    return calloc(count * size);
+    // return calloc(count * size);
 }
 
 void uacpi_kernel_free(void *ptr) {
@@ -127,10 +122,3 @@ void uacpi_kernel_free_event(uacpi_handle e) {
     log(Info, "uACPI", "uACPI requested to free event");
     delete static_cast<std::atomic_uint64_t*>(e);
 }
-
-struct CoreSlabPolicy {
-    static constexpr size_t sb_size = PAGE_SIZE;
-    static constexpr size_t slabsize = PAGE_SIZE;
-};
-
-frg::manual_box<frg::slab_pool<CoreSlabPolicy, frg::simple_spinlock>> core_pool;
