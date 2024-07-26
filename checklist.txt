@@ -1,0 +1,39 @@
++ = Implemented
+- = Not implemented
+/ = Somewhat implemented
+
++ UEFI
+- BIOS
++ Serial
+/ Standard library (switching to managarm/libc and frigg)
++ GDT
++ IDT
+/ TSS
++ PMM
++ VMM
+/ Heap (switching to slab allocator)
++ Framebuffer
+/ ACPI (switching to uACPI)
++ I/O APIC
++ LAPIC
+- Legacy PIC
++ PIT
+- HPET
++ RTC
+- PS/2 Controller
+/ PS/2 Keyboard
+- USB 2 / 3
+- PCI(e)
+- MSI(-X)
+- FPU
+- SSE
+- Ethernet
+- IPv4
+- IPv6
+- ELF
+- SMP
+- Syscalls
+- Terminal
+- FAT(12, 16, 32)
+- EXT4
+- Modules

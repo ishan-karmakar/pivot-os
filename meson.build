@@ -2,7 +2,7 @@ project(
     'pivot-os',
     default_options: [
         'b_asneeded=false',
-        'c_std=gnu20',
+        'c_std=gnu2x',
         'cpp_std=gnu++20',
         'warning_level=2'
     ]
