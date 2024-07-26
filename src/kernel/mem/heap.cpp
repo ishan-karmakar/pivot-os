@@ -18,49 +18,49 @@ Heap::Heap(VMM& vmm, size_t size, size_t bsize) :
     log(Info, "HEAP", "Initialized heap");
 }
 
-// void *malloc(size_t size) {
-//     return kheap->malloc(size);
-// }
+void *malloc(size_t size) {
+    return kheap->malloc(size);
+}
 
-// void *calloc(size_t size) {
-//     if (kheap)
-//         return kheap->calloc(size);
-//     log(Error, "HEAP", "calloc called before heap was initialized");
-//     abort();
-// }
+void *calloc(size_t size) {
+    if (kheap)
+        return kheap->calloc(size);
+    log(Error, "HEAP", "calloc called before heap was initialized");
+    abort();
+}
 
-// void *realloc(void *old, size_t size) {
-//     if (kheap)
-//         return kheap->realloc(old, size);
-//     log(Error, "HEAP", "realloc called before heap was initialized");
-//     abort();
-// }
+void *realloc(void *old, size_t size) {
+    if (kheap)
+        return kheap->realloc(old, size);
+    log(Error, "HEAP", "realloc called before heap was initialized");
+    abort();
+}
 
-// void free(void *ptr) {
-//     if (kheap) {
-//         kheap->free(ptr);
-//         return;
-//     }
-//     log(Error, "HEAP", "free called before heap was initialized");
-//     abort();
-// }
+void free(void *ptr) {
+    if (kheap) {
+        kheap->free(ptr);
+        return;
+    }
+    log(Error, "HEAP", "free called before heap was initialized");
+    abort();
+}
 
-// void *operator new(size_t size) {
-//     log(Verbose, "HEAP", "test");
-//     return malloc(size);
-// }
+void *operator new(size_t size) {
+    log(Verbose, "HEAP", "test");
+    return malloc(size);
+}
 
-// void operator delete(void *ptr) {
-//     return free(ptr);
-// }
+void operator delete(void *ptr) {
+    return free(ptr);
+}
 
-// void *operator new[](size_t size) {
-//     return operator new(size);
-// }
+void *operator new[](size_t size) {
+    return operator new(size);
+}
 
-// void operator delete[](void *ptr) {
-//     return operator delete(ptr);
-// }
+void operator delete[](void *ptr) {
+    return operator delete(ptr);
+}
 
 void *uacpi_kernel_alloc(size_t size) {
     return malloc(size);

@@ -20,8 +20,9 @@ python3 = find_program('python3', required: true)
 qemu = find_program('qemu-system-x86_64', required: false)
 data.set('mmd', find_program('mmd', required: true).full_path())
 data.set('mcopy', find_program('mcopy', required: true).full_path())
-data.set('mkfs', find_program('mkfs.fat', required: true).full_path())
+data.set('mformat', find_program('mformat', required: true).full_path())
 data.set('sgdisk', find_program('sgdisk', required: true).full_path())
+data.set('make', find_program('make', required: true).full_path())
 
 debug = qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
 if debug
@@ -36,26 +37,22 @@ frigg = dependency(
 )
 
 subdir('src/common')
-subdir('src/uefi')
-subdir('src/bios')
+# subdir('src/uefi')
+# subdir('src/bios')
 subdir('src/kernel')
 
-data.set('bios1', bios1.full_path())
-data.set('bios2', bios2.full_path())
-data.set('efi', uefi.full_path())
+# data.set('bios1', bios1.full_path())
+# data.set('bios2', bios2.full_path())
+# data.set('efi', uefi.full_path())
 data.set('elf', kernel.full_path())
 
-diskmaker = configure_file(
-    input: 'util/diskmaker.py',
-    output: 'diskmaker.py',
-    configuration: data
-)
+diskmaker = configure_file(input: 'util/diskmaker.py', output: 'diskmaker.py', configuration: data)
 
 os = custom_target(
     'os',
     output: 'os.img',
     command: [python3, diskmaker, '@OUTPUT@'],
-    depends: [bios1, bios2, uefi, kernel],
+    depends: [uefi, kernel],
     build_by_default: true
 )
 

@@ -105,5 +105,5 @@ kernel = executable(
     dependencies: frigg,
     implicit_include_directories: false,
     include_directories: ['../../include/kernel', common_includes, uacpi_includes],
-    build_by_default: false
+    build_by_default: false,
 )

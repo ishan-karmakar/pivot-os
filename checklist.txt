@@ -32,8 +32,10 @@
 - IPv6
 - ELF
 - SMP
+- Scheduler
 - Syscalls
 - Terminal
 - FAT(12, 16, 32)
 - EXT4
 - Modules
+- TmpFS
