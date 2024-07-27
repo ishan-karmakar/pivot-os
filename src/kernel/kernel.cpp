@@ -13,6 +13,7 @@
 #include <frg/slab.hpp>
 #include <frg/manual_box.hpp>
 #include <frg/spinlock.hpp>
+#include <limine.h>
 #include <cstdlib>
 
 uint8_t CPU = 0;
@@ -27,14 +28,31 @@ extern "C" void frg_panic(const char *s) {
     abort();
 }
 
-extern "C" void __attribute__((noreturn)) init_kernel(boot_info *bi) {
+extern void io_char_printer(char);
+
+[[section(".requests")]]
+static volatile LIMINE_BASE_REVISION(2);
+
+[[section(".requests")]]
+static volatile limine_framebuffer_request framebuffer_request = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 0
+};
+
+[[section(".requests.start")]]
+static volatile LIMINE_REQUESTS_START_MARKER;
+
+[[section(".requests.end")]]
+static volatile LIMINE_REQUESTS_END_MARKER;
+
+extern "C" void __attribute__((noreturn)) init_kernel() {
     io::SerialPort qemu{0x3F8};
     qemu.set_global();
     cxxabi::call_constructors();
-    mem::pmm::init(bi);
-    mem::mapper::init(bi->pml4);
-    mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, *mem::kmapper};
-    mem::Heap heap{vmm, HEAP_SIZE};
+    // mem::pmm::init(bi);
+    // mem::mapper::init(bi->pml4);
+    // mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, *mem::kmapper};
+    // mem::Heap heap{vmm, HEAP_SIZE};
     // mem::kheap = &heap;
     // drivers::Framebuffer fb{bi, mapper};
     // drivers::acpi::init(bi);

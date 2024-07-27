@@ -1,20 +1,25 @@
 add_languages('cpp')
 
 c_args = args
-cpp_args = args
 linker_script = meson.current_source_dir() / 'linker.ld'
 font = meson.global_source_root() / 'fonts/default.psf'
 
 c_args += [
     '-static',
-    '-fstack-protector'
+    '-fstack-protector',
+    '-m64',
+    '-march=x86-64',
+    '-mno-80387',
+    '-mno-mmx',
+    '-mno-sse',
+    '-mno-sse2'
 ]
 
-cpp_args += [
-    '-static',
-    '-fstack-protector',
+cpp_args = [
+    c_args,
     '-fno-rtti',
-    '-fno-exceptions'
+    '-fno-exceptions',
+    '-fno-use-cxa-atexit',
 ]
 
 link_args = cpp_args
@@ -102,7 +107,12 @@ kernel = executable(
     link_with: [common_lib, uacpi_lib],
     dependencies: frigg,
     implicit_include_directories: false,
-    include_directories: ['../../include/kernel', common_includes, uacpi_includes],
+    include_directories: [
+        '../../include/kernel',
+        common_includes,
+        uacpi_includes,
+        include_directories('../../subprojects/limine')
+    ],
     build_by_default: false,
     pie: true
 )

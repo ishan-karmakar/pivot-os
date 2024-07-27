@@ -1,52 +1,63 @@
+OUTPUT_FORMAT(elf64-x86-64)
+OUTPUT_ARCH(i386:x86-64)
+
 ENTRY (init_kernel)
+
+PHDRS
+{
+    headers PT_PHDR PHDRS;
+    text PT_LOAD FILEHDR PHDRS;
+    rodata PT_LOAD;
+    data PT_LOAD;
+}
 
 SECTIONS
 {
     _kern_virt_offset = 0xFFFFFFFF80000000;
     . = _kern_virt_offset + SIZEOF_HEADERS;
 
-	.text ALIGN (0x1000) : AT (ADDR (.text) - _kern_virt_offset)
-	{
+	.text ALIGN(CONSTANT(MAXPAGESIZE)) : {
 		*(.text*)
-        *(.gnu.linkonce.t*)
-	}
+	} :text
 
-    .cdtors ALIGN(0x1000) : AT (ADDR (.cdtors) - _kern_virt_offset)
-    {
+	.rodata ALIGN(CONSTANT(MAXPAGESIZE)) :	{
+		*(.rodata*)
+	} :rodata
+
+	.data ALIGN(CONSTANT(MAXPAGESIZE)) : {
+		*(.data*)
+	} :data
+
+    .limine : {
+        KEEP(*(.requests.start))
+        KEEP(*(.requests))
+        KEEP(*(.requests.end))
+    } :data
+
+    .ctors ALIGN(4) : {
         __start_ctors = .;
         *(.init_array)
         *(SORT(.ctors*))
         __stop_ctors = .;
+    } :data
 
+    .dtors ALIGN(4) : {
         __start_dtors = .;
         *(.fini_array)
         *(SORT(.dtors*))
         __stop_ctors = .;
-    }
+    } :data
 
-	.rodata ALIGN(0x1000) : AT (ADDR (.rodata) - _kern_virt_offset)
-	{
-		*(.rodata*)
-        *(.gnu.linkonce.r*)
-	}
-
-	.data ALIGN(0x1000) : AT (ADDR (.data) - _kern_virt_offset)
-	{
-		*(.data*)
-        *(.gnu.linkonce.d*)
-	}
-
-	.bss ALIGN(0x1000) : AT (ADDR (.bss) - _kern_virt_offset)
-	{
-        *(COMMON)
+	.bss : {
 		*(.bss*)
-        *(.gnu.linkonce.b*)
-	}
+        *(COMMON)
+	} :data
 
     /DISCARD/ :
     {
         *(.note*)
         *(.comment*)
         *(.eh_frame*)
+        *(.interp)
     }
 }
