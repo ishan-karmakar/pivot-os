@@ -3,7 +3,7 @@ ENTRY (init_kernel)
 SECTIONS
 {
     _kern_virt_offset = 0xFFFFFFFF80000000;
-    . = _kern_virt_offset;
+    . = _kern_virt_offset + SIZEOF_HEADERS;
 
 	.text ALIGN (0x1000) : AT (ADDR (.text) - _kern_virt_offset)
 	{

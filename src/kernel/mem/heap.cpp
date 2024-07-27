@@ -54,6 +54,10 @@ void operator delete(void *ptr) {
     return free(ptr);
 }
 
+void operator delete(void *ptr, size_t size) {
+    log(Verbose, "HEAP", "Operator delete called with 0x%p, %lu", ptr, size);
+}
+
 void *operator new[](size_t size) {
     return operator new(size);
 }
@@ -62,12 +66,14 @@ void operator delete[](void *ptr) {
     return operator delete(ptr);
 }
 
+void operator delete[](void*, size_t) {}
+
 void *uacpi_kernel_alloc(size_t size) {
     return malloc(size);
 }
 
 void *uacpi_kernel_calloc(size_t count, size_t size) {
-    // return calloc(count * size);
+    return calloc(count * size);
 }
 
 void uacpi_kernel_free(void *ptr) {

@@ -19,18 +19,20 @@ void cxxabi::call_constructors() {
     log(Info, "CXXABI", "Called global constructors");
 }
 
-[[noreturn]]
-extern "C" void __stack_chk_fail() {
-    log(Error, "KERNEL", "Detected stack smashing");
-    abort();
-}
+extern "C" {
+    [[noreturn]]
+    void __stack_chk_fail() {
+        log(Error, "KERNEL", "Detected stack smashing");
+        abort();
+    }
 
-[[noreturn]]
-extern "C" void __cxa_pure_virtual() {
-    log(Error, "KERNEL", "Could not find virtual function");
-    abort();
-}
+    // [[noreturn]]
+    // void __cxa_pure_virtual() {
+    //     log(Error, "KERNEL", "Could not find virtual function");
+    //     abort();
+    // }
 
-extern "C" int __cxa_atexit(void*, void*, void*) {
-    return 0;
+    int __cxa_atexit(void*, void*, void*) {
+        return 0;
+    }
 }

@@ -52,21 +52,23 @@ void log_registers(cpu::cpu_status *status) {
         status->r12, status->r13, status->r14, status->r15);
 }
 
-[[noreturn]]
-extern "C" void exception_handler(cpu::cpu_status *status) {
-    switch (status->int_no) {
-        case 14: {
-            log(Error, "ISR", "Received interrupt number 14");
-            log(Verbose, "ISR", "Error code: %b", status->err_code);
-            uint64_t cr2 = 0;
-            asm volatile ("mov %%cr2, %0" : "=r" (cr2));
-            log(Verbose, "ISR", "cr2: %p", cr2);
-            log_registers(status);
-            cpu::hcf();
-        } default: {
-            log(Error, "ISR", "Received interrupt number %lu", status->int_no);
-            log_registers(status);
-            cpu::hcf();
+extern "C" {
+    [[noreturn]]
+    void exception_handler(cpu::cpu_status *status) {
+        switch (status->int_no) {
+            case 14: {
+                log(Error, "ISR", "Received interrupt number 14");
+                log(Verbose, "ISR", "Error code: %b", status->err_code);
+                uint64_t cr2 = 0;
+                asm volatile ("mov %%cr2, %0" : "=r" (cr2));
+                log(Verbose, "ISR", "cr2: %p", cr2);
+                log_registers(status);
+                cpu::hcf();
+            } default: {
+                log(Error, "ISR", "Received interrupt number %lu", status->int_no);
+                log_registers(status);
+                cpu::hcf();
+            }
         }
     }
 }
@@ -109,10 +111,4 @@ void cpu::load_exceptions(cpu::IDT& idt) {
 [[gnu::noinline]]
 uintptr_t get_rip() {
     return reinterpret_cast<uintptr_t>(__builtin_return_address(0));
-}
-
-extern "C" cpu::cpu_status *uacpi_handler(cpu::cpu_status *status) {
-    uintptr_t rip = get_rip();
-    log(Verbose, "ISR", "0x%p", rip);
-    return status;
 }

@@ -7,13 +7,11 @@ font = meson.global_source_root() / 'fonts/default.psf'
 
 c_args += [
     '-static',
-    '-mcmodel=kernel',
     '-fstack-protector'
 ]
 
 cpp_args += [
     '-static',
-    '-mcmodel=kernel',
     '-fstack-protector',
     '-fno-rtti',
     '-fno-exceptions'
@@ -106,4 +104,5 @@ kernel = executable(
     implicit_include_directories: false,
     include_directories: ['../../include/kernel', common_includes, uacpi_includes],
     build_by_default: false,
+    pie: true
 )

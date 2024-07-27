@@ -45,6 +45,7 @@ subdir('src/kernel')
 # data.set('bios2', bios2.full_path())
 # data.set('efi', uefi.full_path())
 data.set('elf', kernel.full_path())
+data.set('src_root', meson.global_source_root())
 
 diskmaker = configure_file(input: 'util/diskmaker.py', output: 'diskmaker.py', configuration: data)
 
@@ -52,7 +53,7 @@ os = custom_target(
     'os',
     output: 'os.img',
     command: [python3, diskmaker, '@OUTPUT@'],
-    depends: [uefi, kernel],
+    depends: kernel,
     build_by_default: true
 )
 
