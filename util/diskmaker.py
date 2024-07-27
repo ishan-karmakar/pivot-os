@@ -17,7 +17,7 @@ MAKE = '@make@'
 SRC_ROOT = '@src_root@'
 OUT = sys.argv[1]
 
-limine_dir = SRC_ROOT + '/subprojects/limine'
+limine_dir = SRC_ROOT + '/limine'
 os.system(f'{MAKE} -C {limine_dir}')
 with open(OUT, 'w+b') as f:
     f.truncate(1024 * 1024 * 64)

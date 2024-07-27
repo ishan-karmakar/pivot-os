@@ -6,6 +6,9 @@
 #define DIV_CEIL(num, dividend) (((num) + ((dividend) - 1)) / (dividend))
 #define ALIGN_ADDR(address) ((address) & -PAGE_SIZE)
 #define HIGHER_HALF_OFFSET 0xFFFF800000000000
+
+// FIXME: Remove all references to VADDR + PADDR, now Limine gives a dynamic offset
+// Replaced by virt_addr + phys_addr
 #define VADDR(addr) (((uintptr_t) (addr)) | HIGHER_HALF_OFFSET)
 #define PADDR(addr) (((uintptr_t) (addr) & ~HIGHER_HALF_OFFSET))
 

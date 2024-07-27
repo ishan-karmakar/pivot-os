@@ -10,9 +10,7 @@
 #include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
 #include <util/logger.h>
-#include <frg/slab.hpp>
-#include <frg/manual_box.hpp>
-#include <frg/spinlock.hpp>
+#include <frg/printf.hpp>
 #include <limine.h>
 #include <cstdlib>
 
@@ -30,26 +28,33 @@ extern "C" void frg_panic(const char *s) {
 
 extern void io_char_printer(char);
 
-[[section(".requests")]]
+__attribute__((used, section(".requests")))
 static volatile LIMINE_BASE_REVISION(2);
 
-[[section(".requests")]]
-static volatile limine_framebuffer_request framebuffer_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST,
-    .revision = 0
-};
-
-[[section(".requests.start")]]
+__attribute__((used, section(".requests.start")))
 static volatile LIMINE_REQUESTS_START_MARKER;
 
-[[section(".requests.end")]]
+__attribute__((used, section(".requests.end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
+
+void test(const char *s, ...) {
+    va_list args;
+    va_start(args, s);
+    frg::va_struct struc = {
+        .arg_list = args,
+        .args = nullptr,
+        .num_args = 0
+    };
+    frg::printf_format(io_char_printer, s, );
+    va_end(args);
+}
 
 extern "C" void __attribute__((noreturn)) init_kernel() {
     io::SerialPort qemu{0x3F8};
     qemu.set_global();
     cxxabi::call_constructors();
-    // mem::pmm::init(bi);
+    mem::pmm::init();
+    frg::printf_format(io_char_printer, "test", );
     // mem::mapper::init(bi->pml4);
     // mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, *mem::kmapper};
     // mem::Heap heap{vmm, HEAP_SIZE};

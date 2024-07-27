@@ -3,40 +3,71 @@
 #include <cstring>
 #include <common.h>
 #include <uacpi/kernel_api.h>
+#include <limine.h>
+#include <cstdlib>
+#define LIMINE_MMAP_ENTRY(i) mmap_request.response->entries[(i)]
 using namespace mem;
+
+__attribute__((used, section(".requests")))
+static volatile limine_memmap_request mmap_request = { LIMINE_MEMMAP_REQUEST, 0, nullptr };
+
+__attribute__((used, section(".requests")))
+static volatile limine_hhdm_request hhdm_request = { LIMINE_HHDM_REQUEST, 0, nullptr };
+
+__attribute__((used, section(".requests")))
+static volatile limine_paging_mode_request paging_request = {
+    .id = LIMINE_PAGING_MODE_REQUEST,
+    .revision = 1,
+    .response = nullptr,
+    .mode = LIMINE_PAGING_MODE_X86_64_4LVL,
+    .max_mode = LIMINE_PAGING_MODE_X86_64_4LVL,
+    .min_mode = LIMINE_PAGING_MODE_X86_64_4LVL
+};
 
 uint8_t *bitmap;
 size_t bitmap_size;
 
-void pmm::init(boot_info* bi) {
-    log(Info, "PMM", "Found %lu pages of physical memory (%lu mib)", bi->mem_pages, DIV_CEIL(bi->mem_pages, 256));
-    mmap_desc *cur_desc = bi->mmap;
-    bitmap_size = DIV_CEIL(bi->mem_pages, 8);
-    for (size_t i = 0; i < bi->mmap_entries; i++) {
-        uint32_t type = cur_desc->type;
-        if ((type >= 3 && type <= 7) && cur_desc->phys != 0 && cur_desc->count >= DIV_CEIL(bitmap_size, PAGE_SIZE)) {
-            bitmap = reinterpret_cast<uint8_t*>(cur_desc->phys);
+void pmm::init() {
+    if (mmap_request.response == nullptr) {
+        log(Error, "PMM", "Limine failed to respond to MMAP request");
+        abort();
+    }
+
+    if (hhdm_request.response == nullptr) {
+        log(Error, "PMM", "Limine failed to respond to HHDM request");
+        abort();
+    }
+
+    size_t num_entries = mmap_request.response->entry_count;
+    size_t mem_pages;
+    {
+        size_t i = num_entries - 1;
+        auto entry = LIMINE_MMAP_ENTRY(i);
+        // I don't know if BIOS has the framebuffer in physical memory, and it might make the memory less than it should be
+        for (; entry->type == LIMINE_MEMMAP_FRAMEBUFFER; entry = LIMINE_MMAP_ENTRY(--i));
+        mem_pages = DIV_CEIL(entry->base + entry->length, PAGE_SIZE);
+    }
+    log(Info, "PMM", "Found %lu pages of physical memory", mem_pages);
+
+    bitmap_size = DIV_CEIL(mem_pages, 8);
+    for (size_t i = 0; i < num_entries; i++) {
+        auto entry = LIMINE_MMAP_ENTRY(i);
+        if (entry->type == 0 && entry->length >= bitmap_size) {
+            bitmap = reinterpret_cast<uint8_t*>(virt_addr(entry->base));
             break;
         }
-
-        cur_desc = reinterpret_cast<mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
     }
     log(Verbose, "PMM", "Bitmap: 0x%p, Size: %lu", bitmap, bitmap_size);
 
     memset(bitmap, 0xFF, bitmap_size);
-
-    cur_desc = bi->mmap;
-    for (size_t i = 0; i < bi->mmap_entries; i++) {
-        log(Debug, "PMM", "[%lu] Type: %u - Address: 0x%p - Count: %lu", i, cur_desc->type, cur_desc->phys, cur_desc->count);
-        uint32_t type = cur_desc->type;
-        if ((type >= 3 && type <= 7) && cur_desc->phys != 0) {
-            clear(cur_desc->phys, cur_desc->count);
-        }
-
-        cur_desc = reinterpret_cast<mmap_desc*>(reinterpret_cast<uint8_t*>(cur_desc) + bi->desc_size);
+    for (size_t i = 0; i < num_entries; i++) {
+        auto entry = LIMINE_MMAP_ENTRY(i);
+        log(Debug, "PMM", "MMAP[%lu] - Base: 0x%p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
+        if (entry->type == 0)
+            clear(entry->base, DIV_CEIL(entry->length, PAGE_SIZE));
     }
 
-    set(reinterpret_cast<uintptr_t>(bitmap), DIV_CEIL(bitmap_size, PAGE_SIZE));
+    set(phys_addr(reinterpret_cast<uintptr_t>(bitmap)), DIV_CEIL(bitmap_size, PAGE_SIZE));
     set(0x8000);
     log(Info, "PMM", "Initialized PMM");
 }
@@ -76,6 +107,14 @@ void pmm::set(uintptr_t addr) {
     if (addr >= (bitmap_size * 8))
         return;
     bitmap[addr / 8] |= 1 << (addr % 8);
+}
+
+uintptr_t virt_addr(uintptr_t phys) {
+    return phys + hhdm_request.response->offset;
+}
+
+uintptr_t phys_addr(uintptr_t virt) {
+    return virt - hhdm_request.response->offset;
 }
 
 uacpi_status uacpi_kernel_raw_memory_read(uacpi_phys_addr address, uacpi_u8 byte_width, uacpi_u64 *out_value) {

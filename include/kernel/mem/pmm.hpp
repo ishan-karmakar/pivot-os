@@ -3,7 +3,7 @@
 
 namespace mem {
     namespace pmm {
-        void init(boot_info*);
+        void init();
         
         uintptr_t frame();
 
@@ -14,3 +14,6 @@ namespace mem {
         void set(uintptr_t);
     };
 }
+
+uintptr_t virt_addr(uintptr_t);
+uintptr_t phys_addr(uintptr_t);

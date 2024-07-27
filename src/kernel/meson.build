@@ -111,7 +111,7 @@ kernel = executable(
         '../../include/kernel',
         common_includes,
         uacpi_includes,
-        include_directories('../../subprojects/limine')
+        include_directories('../../limine')
     ],
     build_by_default: false,
     pie: true
