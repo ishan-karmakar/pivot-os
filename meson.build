@@ -33,13 +33,8 @@ frigg = dependency(
 )
 
 subdir('src/common')
-# subdir('src/uefi')
-# subdir('src/bios')
 subdir('src/kernel')
 
-# data.set('bios1', bios1.full_path())
-# data.set('bios2', bios2.full_path())
-# data.set('efi', uefi.full_path())
 data.set('elf', kernel.full_path())
 data.set('src_root', meson.global_source_root())
 
