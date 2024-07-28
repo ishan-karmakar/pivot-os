@@ -23,11 +23,7 @@ data.set('mcopy', find_program('mcopy', required: true).full_path())
 data.set('mformat', find_program('mformat', required: true).full_path())
 data.set('sgdisk', find_program('sgdisk', required: true).full_path())
 data.set('make', find_program('make', required: true).full_path())
-
 debug = qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
-if debug
-    args += ['-DDEBUG']
-endif
 
 frigg = dependency(
     'frigg',
@@ -63,7 +59,7 @@ if debug
         '-smp', '2',
         '-serial', 'stdio',
         '-no-reboot',
-        '-no-shutdown'
+        '-no-shutdown',
     ]
     if get_option('qemu_uefi')
         qemu_flags += ['-bios', 'OVMF.fd']

@@ -1,21 +1,20 @@
-#include <common.h>
+// #include <common.h>
 #include <misc/cxxabi.hpp>
-#include <mem/heap.hpp>
-#include <mem/pmm.hpp>
-#include <mem/vmm.hpp>
-#include <mem/mapper.hpp>
+// #include <mem/heap.hpp>
+// #include <mem/pmm.hpp>
+// #include <mem/vmm.hpp>
+// #include <mem/mapper.hpp>
 #include <cpu/cpu.hpp>
-#include <cpu/smp.hpp>
-#include <drivers/acpi.hpp>
-#include <drivers/framebuffer.hpp>
+// #include <cpu/smp.hpp>
+// #include <drivers/acpi.hpp>
+// #include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
-#include <util/logger.h>
+// #include <util/logger.h>
 #include <frg/printf.hpp>
 #include <limine.h>
 #include <cstdlib>
 
 uint8_t CPU = 0;
-uintptr_t __stack_chk_guard = 0x595e9fbd94fda766;
 
 extern "C" void frg_log(const char *s) {
     printf("%s\n", s);
@@ -37,24 +36,11 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".requests.end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
-void test(const char *s, ...) {
-    va_list args;
-    va_start(args, s);
-    frg::va_struct struc = {
-        .arg_list = args,
-        .args = nullptr,
-        .num_args = 0
-    };
-    frg::printf_format(io_char_printer, s, );
-    va_end(args);
-}
-
 extern "C" void __attribute__((noreturn)) init_kernel() {
     io::SerialPort qemu{0x3F8};
     qemu.set_global();
     cxxabi::call_constructors();
-    mem::pmm::init();
-    frg::printf_format(io_char_printer, "test", );
+    // mem::pmm::init();
     // mem::mapper::init(bi->pml4);
     // mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, *mem::kmapper};
     // mem::Heap heap{vmm, HEAP_SIZE};

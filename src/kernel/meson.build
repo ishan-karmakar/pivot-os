@@ -6,25 +6,17 @@ font = meson.global_source_root() / 'fonts/default.psf'
 
 c_args += [
     '-static',
-    '-fstack-protector',
-    '-m64',
-    '-march=x86-64',
-    '-mno-80387',
-    '-mno-mmx',
-    '-mno-sse',
-    '-mno-sse2'
+    '-fno-stack-protector',
 ]
 
 cpp_args = [
     c_args,
     '-fno-rtti',
     '-fno-exceptions',
-    '-fno-use-cxa-atexit',
 ]
 
 link_args = cpp_args
 link_args += [
-    '-z', 'norelro',
     '-Wl,--build-id=none',
     '-T', linker_script
 ]
@@ -114,5 +106,5 @@ kernel = executable(
         include_directories('../../limine')
     ],
     build_by_default: false,
-    pie: true
+    pie: false
 )

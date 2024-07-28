@@ -1,35 +1,23 @@
 #pragma once
-#include <cstdarg>
-#include <cstddef>
-#include <utility>
-#include <io/stdio.h>
+#include <frg/printf.hpp>
 
 namespace io {
-    class OWriter {
-    public:
-        // A typedef for a point on the coordinate plane
-        typedef std::pair<size_t, size_t> coord_t;
-        virtual ~OWriter() = default;
-        void set_global();
-        OWriter& operator<<(char);
-        OWriter& operator<<(const char*);
-        virtual void clear();
-        virtual void set_pos(coord_t);
-        virtual coord_t get_pos();
-        // Get limits (max cols, max rows)
-        virtual coord_t get_lims();
-
-    protected:
-        virtual void write_char(char) {}
+    struct OWriter {
+        virtual void append(char) = 0;
+        virtual void append(const char *s) {
+            while (*s) append(*s++);
+        }
     };
 
-    class IWriter {
+    class CharPrinter {
     public:
-        virtual ~IWriter() = default;
-        virtual void operator>>(char&) = 0;
+        static OWriter *writer;
+        CharPrinter(frg::va_struct *args) : args{args} {};
+
+    private:
+        frg::expected<frg::format_error> operator()(char);
+        frg::expected<frg::format_error> operator()(const char*, size_t);
+        frg::expected<frg::format_error> operator()(char, frg::format_options&, frg::printf_size_mod);
+        frg::va_struct *args;
     };
-
-    class IOWriter : public IWriter, public OWriter {};
-
-    extern OWriter cout;
 }

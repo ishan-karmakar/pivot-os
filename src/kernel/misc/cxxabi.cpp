@@ -20,12 +20,6 @@ void cxxabi::call_constructors() {
 }
 
 extern "C" {
-    [[noreturn]]
-    void __stack_chk_fail() {
-        log(Error, "KERNEL", "Detected stack smashing");
-        abort();
-    }
-
     int __popcountdi2(long long a) {
         unsigned long long x2 = (unsigned long long)a;
         x2 = x2 - ((x2 >> 1) & 0x5555555555555555uLL);

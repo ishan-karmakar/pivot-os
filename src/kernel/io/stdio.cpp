@@ -1,56 +1,60 @@
-#include <io/stdio.h>
+#include <frg/printf.hpp>
 #include <io/stdio.hpp>
-#include <util/logger.h>
-#include <uacpi/kernel_api.h>
-#include <cstdlib>
-#include <utility>
 using namespace io;
 
-static OWriter *writer;
-OWriter io::cout;
+OWriter *CharPrinter::writer = nullptr;
 
-// Wrapper to make things work between C and C++ classes
-void io_char_printer(char c) {
-    cout << c;
+frg::expected<frg::format_error> CharPrinter::operator()(char c) {
+    writer->append(c);
+    return frg::success;
 }
 
-[[gnu::constructor]]
-void set_char_printer() {
-    char_printer = io_char_printer;
+frg::expected<frg::format_error> CharPrinter::operator()(const char *s, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        auto e = operator()(s[i]);
+        if (e) return e;
+    }
+
+    return frg::success;
 }
 
-void OWriter::set_global() { writer = this; }
+frg::expected<frg::format_error> CharPrinter::operator()(char c, frg::format_options& opts, frg::printf_size_mod size_mod) {
+    switch (c) {
+    case 'p':
+    case 'c':
+    case 's':
+        frg::do_printf_chars(*writer, c, opts, size_mod, args);
+        break;
+    
+    case 'd':
+    case 'i':
+    case 'o':
+    case 'x':
+    case 'X':
+    case 'u':
+        frg::do_printf_ints(*writer, c, opts, size_mod, args);
+        break;
 
-OWriter& OWriter::operator<<(char c) {
-    if (writer)
-        writer->write_char(c);
-    return *this;
+    case 'f':
+    case 'F':
+    case 'g':
+    case 'G':
+    case 'e':
+    case 'E':
+        frg::do_printf_floats(*writer, c, opts, size_mod, args);
+        break;
+    };
+
+    return frg::success;
 }
 
-OWriter& OWriter::operator<<(const char *str) {
-    while (*str)
-        writer->write_char(*str++);
-    return *this;
-}
+int printf(const char *fmt, ...) {
+    frg::va_struct args;
+    va_start(args.args, fmt);
+    CharPrinter cp{&args};
+    frg::printf_format(cp, fmt, &args);
+    va_end(args.args);
 
-void OWriter::clear() {
-    if (writer)
-        writer->clear();
-}
-
-void OWriter::set_pos(coord_t pos) {
-    if (writer)
-        writer->set_pos(pos);
-}
-
-OWriter::coord_t OWriter::get_pos() {
-    if (writer)
-        return writer->get_pos();
-    return { 0, 0 };
-}
-
-OWriter::coord_t OWriter::get_lims() {
-    if (writer)
-        return writer->get_lims();
-    return { 0, 0 };
+    // TODO: Return number of characters written
+    return 0;
 }
