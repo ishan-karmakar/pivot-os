@@ -22,10 +22,23 @@ void HeapSlabPolicy::unmap(uintptr_t addr) {
 frg::manual_box<Heap> mem::kheap;
 constinit HeapSlabPolicy heapSlabPolicy;
 frg::manual_box<frg::slab_pool<HeapSlabPolicy, frg::simple_spinlock>> heapPool;
+class Test {
+public:
+    Test(size_t i) : t{i} {};
+    size_t t;
+};
 
+class Child : public Test {
+public:
+    Child(size_t i) : Test{i} {};
+};
+
+char test[sizeof(Child)];
 void heap::init() {
-    heapPool.initialize(heapSlabPolicy);
-    log(Verbose, "HEAP", "%p", heapPool->allocate(5));
+    Child *child = new(static_cast<void*>(test)) Child{4};
+    log(Verbose, "KERNEL", "%lu", child->t);
+    // heapPool.initialize(heapSlabPolicy);
+    // log(Verbose, "HEAP", "%p", heapPool->allocate(5));
     // kheap.initialize(*mem::kvmm, HEAP_SIZE);
 }
 
