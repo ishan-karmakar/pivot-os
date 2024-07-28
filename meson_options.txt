@@ -4,3 +4,10 @@ option(
     value: true,
     description: 'Use UEFI instead of BIOS in QEMU'
 )
+
+option(
+    'qemu_int',
+    type: 'boolean',
+    value: false,
+    description: 'Log interrupts in QEMU'
+)

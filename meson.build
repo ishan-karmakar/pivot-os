@@ -8,47 +8,45 @@ project(
     ]
 )
 
-args = [
-    '-ffreestanding',
-    '-nostdlib',
-    '-mno-red-zone'
-]
+env = environment()
+uacpi = dependency('uacpi', required: true)
+frigg = dependency('frigg', default_options: ['frigg_no_install=true'], required: true)
+limine = subproject('limine', required: true)
 
-data = configuration_data()
-nasm = find_program('nasm', required: true)
-python3 = find_program('python3', required: true)
-qemu = find_program('qemu-system-x86_64', required: false)
-data.set('mmd', find_program('mmd', required: true).full_path())
-data.set('mcopy', find_program('mcopy', required: true).full_path())
-data.set('mformat', find_program('mformat', required: true).full_path())
-data.set('sgdisk', find_program('sgdisk', required: true).full_path())
-data.set('make', find_program('make', required: true).full_path())
-debug = qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
-
-frigg = dependency(
-    'frigg',
-    default_options: ['frigg_no_install=true'],
-    fallback: ['frigg', 'frigg_dep'],
-    required: true
+env.set('objcopy', find_program('objcopy', required: true).full_path())
+font_target = custom_target(
+    'font',
+    input: 'fonts/default.psf',
+    output: '@PLAINNAME@.o',
+    command: [
+        'util/compile_font.py',
+        '@INPUT@',
+        '@OUTPUT@'
+    ],
+    env: env
 )
 
-subdir('src/common')
-subdir('src/kernel')
+subdir('src')
 
-data.set('elf', kernel.full_path())
-data.set('src_root', meson.global_source_root())
+env.set('mmd', find_program('mmd', required: true).full_path())
+env.set('mcopy', find_program('mcopy', required: true).full_path())
+env.set('mformat', find_program('mformat', required: true).full_path())
+env.set('sgdisk', find_program('sgdisk', required: true).full_path())
+env.set('elf', kernel.full_path())
+env.set('src_root', meson.global_source_root())
 
-diskmaker = configure_file(input: 'util/diskmaker.py', output: 'diskmaker.py', configuration: data)
 
 os = custom_target(
     'os',
     output: 'os.img',
-    command: [python3, diskmaker, '@OUTPUT@'],
-    depends: kernel,
+    command: ['util/diskmaker.py', '@OUTPUT@'],
+    depends: [limine.get_variable('limine_exec'), kernel],
+    env: env,
     build_by_default: true
 )
 
-if debug
+qemu = find_program('qemu-system-x86_64', required: false)
+if qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
     qemu_flags = [
         '-m', '128M',
         '-smp', '2',
@@ -56,8 +54,13 @@ if debug
         '-no-reboot',
         '-no-shutdown',
     ]
+
     if get_option('qemu_uefi')
         qemu_flags += ['-bios', 'OVMF.fd']
+    endif
+
+    if get_option('qemu_int')
+        qemu_flags += ['-d', 'int']
     endif
 
     run_target(

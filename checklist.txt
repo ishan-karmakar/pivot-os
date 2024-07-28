@@ -2,15 +2,14 @@
 - = Not implemented
 / = Somewhat implemented
 
-+ UEFI
-- BIOS
++ Limine
 + Serial
-/ Standard library (switching to managarm/libc and frigg)
++ Standard Library (powered by Frigg)
 + GDT
 + IDT
-/ TSS
++ TSS
 + PMM
-+ VMM
+/ VMM (Experimenting with AVL tree)
 / Heap (switching to slab allocator)
 + Framebuffer
 / ACPI (switching to uACPI)
@@ -39,3 +38,5 @@
 - EXT4
 - Modules
 - TmpFS
+- UBSanitizer
+- mlibc

@@ -1,24 +1,22 @@
 #! /usr/bin/env python3
 
 import os, sys
-from os import path
+from os import environ
 
-ELF = '@elf@'
+ELF = environ['elf']
 
 EFI_PATH = '/EFI/BOOT'
 ELF_PATH = '/'
 
-MFORMAT = '@mformat@'
-MMD = '@mmd@'
-MCOPY = '@mcopy@'
-SGDISK = '@sgdisk@'
-MAKE = '@make@'
+SGDISK = environ['sgdisk']
+MFORMAT = environ['mformat']
+MMD = environ['mmd']
+MCOPY = environ['mcopy']
 
-SRC_ROOT = '@src_root@'
 OUT = sys.argv[1]
 
-limine_dir = SRC_ROOT + '/limine'
-os.system(f'{MAKE} -C {limine_dir}')
+SRC_ROOT = environ['src_root']
+limine_dir = SRC_ROOT + '/subprojects/limine'
 with open(OUT, 'w+b') as f:
     f.truncate(1024 * 1024 * 64)
 

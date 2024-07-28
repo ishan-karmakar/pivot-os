@@ -1,5 +1,5 @@
 build/
 subprojects/*/
-!subprojects/limine
+!subprojects/packagefiles
 .vscode/
 .gdb_history
