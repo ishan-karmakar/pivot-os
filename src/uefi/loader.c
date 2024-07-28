@@ -3,7 +3,7 @@
 #include <boot.h>
 #include <common.h>
 #include <mem.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <libc/string.h>
 #define KERNEL_PATH L"\\kernel.elf"
 

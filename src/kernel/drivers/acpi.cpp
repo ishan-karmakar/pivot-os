@@ -1,5 +1,5 @@
 #include <cpu/cpu.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <uacpi/kernel_api.h>
 #include <uacpi/uacpi.h>
 #include <cpu/idt.hpp>

@@ -9,8 +9,8 @@
 // #include <drivers/acpi.hpp>
 // #include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
-// #include <util/logger.h>
-#include <frg/printf.hpp>
+#include <util/logger.hpp>
+#include <frg/manual_box.hpp>
 #include <limine.h>
 #include <cstdlib>
 
@@ -36,10 +36,12 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".requests.end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
+frg::manual_box<io::SerialPort> qemu;
+
 extern "C" void __attribute__((noreturn)) init_kernel() {
-    io::SerialPort qemu{0x3F8};
-    qemu.set_global();
-    cxxabi::call_constructors();
+    qemu.initialize(0x3F8);
+    io::writer = qemu.get();
+    // cxxabi::call_constructors();
     // mem::pmm::init();
     // mem::mapper::init(bi->pml4);
     // mem::VMM vmm{mem::VMM::Supervisor, bi->mem_pages, *mem::kmapper};

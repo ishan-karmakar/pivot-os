@@ -1,7 +1,7 @@
 #pragma once
 #include <uacpi/tables.h>
 #include <cstdlib>
-#include <util/logger.h>
+#include <util/logger.hpp>
 
 struct boot_info;
 

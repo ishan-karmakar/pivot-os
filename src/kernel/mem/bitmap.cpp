@@ -1,5 +1,5 @@
 #include <mem/bitmap.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <cstring>
 #include <common.h>
 #include <io/stdio.hpp>
@@ -82,14 +82,14 @@ void *Bitmap::realloc(void *ptr, size_t new_size) {
     uint8_t id = get_id(sblock);
     size_t i = 0;
     for (; get_id(sblock + i) == id && (sblock + i) < (tsize / bsize); i++);
-    memcpy(n, ptr, i * bsize);
+    // memcpy(n, ptr, i * bsize);
     free(ptr);
     return n;
 }
 
 void *Bitmap::calloc(size_t size) {
     void *ptr = malloc(size);
-    memset(ptr, 0, size);
+    // memset(ptr, 0, size);
     return ptr;
 }
 

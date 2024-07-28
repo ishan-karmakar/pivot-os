@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <misc/cxxabi.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <cstdlib>
 typedef void (*func_t)(void);
 

@@ -1,6 +1,6 @@
 #include <mem/vmm.hpp>
 #include <common.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
 using namespace mem;

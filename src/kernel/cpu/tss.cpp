@@ -1,7 +1,7 @@
 #include <mem/heap.hpp>
 #include <cpu/gdt.hpp>
 #include <cpu/tss.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 using namespace cpu;
 
 TSS::TSS(GDT& gdt) : gdt{gdt} {

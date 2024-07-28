@@ -1,7 +1,7 @@
 #include <uefi.h>
 #include <boot.h>
 #include <acpi.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <common.h>
 #include <libc/string.h>
 

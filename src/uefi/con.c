@@ -1,7 +1,7 @@
 #include <uefi.h>
 #include <con.h>
 #include <io/stdio.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <stdarg.h>
 
 void efi_char_printer(char c) {

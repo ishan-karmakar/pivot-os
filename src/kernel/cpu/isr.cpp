@@ -1,6 +1,6 @@
 #include <cpu/cpu.hpp>
 #include <cpu/idt.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #define EXTERN_ENTRY(num) extern void isr##num();
 #define SET_ENTRY(idx) idt.set_entry(idx, 0, isr##idx);
 

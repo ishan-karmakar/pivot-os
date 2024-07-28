@@ -9,9 +9,7 @@ namespace io {
     class SerialPort : public OWriter {
     public:
         SerialPort(uint16_t);
-    
-    protected:
-        void write_char(char) override;
+        void append(char) override;
 
     private:
         const uint16_t port;

@@ -1,5 +1,5 @@
 #include <io/serial.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 
 using namespace io;
 
@@ -25,7 +25,7 @@ SerialPort::SerialPort(uint16_t port) : port{port} {
     outb(port + 4, 0x0F);
 }
 
-void SerialPort::write_char(char c) {
+void SerialPort::append(char c) {
     while (!(inb(port + 5) & 0x20));
     outb(port, c);
 }

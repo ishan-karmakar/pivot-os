@@ -18,14 +18,17 @@ SECTIONS
 
 	.text ALIGN(CONSTANT(MAXPAGESIZE)) : {
 		*(.text*)
+        *(.gnu.linkonce.t*)
 	} :text
 
 	.rodata ALIGN(CONSTANT(MAXPAGESIZE)) :	{
 		*(.rodata*)
+        *(.gnu.linkonce.r*)
 	} :rodata
 
 	.data ALIGN(CONSTANT(MAXPAGESIZE)) : {
 		*(.data*)
+        *(.gnu.linkonce.d*)
 	} :data
 
     .limine : {

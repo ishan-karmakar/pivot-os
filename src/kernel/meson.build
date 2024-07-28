@@ -60,13 +60,14 @@ uacpi_lib = static_library(
     uacpi.get_variable('sources'),
     include_directories: uacpi_includes,
     c_args: c_args,
-    pic: false
+    pic: true
 )
 
 kernel = executable(
     'kernel.elf',
     'kernel.cpp',
     'misc/cxxabi.cpp',
+    'misc/mem.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
     'cpu/isr.cpp',
@@ -87,7 +88,7 @@ kernel = executable(
     'mem/mapper.cpp',
     'mem/pmm.cpp',
     'mem/vmm.cpp',
-    'util/string.cpp',
+    'util/logger.cpp',
     nasm_gen.process('cpu/interrupts.asm'),
     nasm_gen.process('cpu/ap_trampoline.asm'),
     font_target,
@@ -106,5 +107,5 @@ kernel = executable(
         include_directories('../../limine')
     ],
     build_by_default: false,
-    pie: false
+    pie: true
 )

@@ -1,5 +1,5 @@
 #include <drivers/ioapic.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <common.h>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>

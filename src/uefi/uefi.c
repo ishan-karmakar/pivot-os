@@ -6,7 +6,7 @@
 #include <uefi.h>
 #include <common.h>
 #include <boot.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 
 efi_system_table_t *gST;
 struct boot_info gBI;

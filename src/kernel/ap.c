@@ -1,4 +1,4 @@
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <cpu/tss.h>
 #include <cpu/lapic.h>
 #include <cpu/ioapic.h>

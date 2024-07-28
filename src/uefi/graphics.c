@@ -1,6 +1,6 @@
 #include <uefi.h>
 #include <graphics.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <con.h>
 #include <boot.h>
 

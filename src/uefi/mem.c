@@ -2,7 +2,7 @@
 #include <boot.h>
 #include <common.h>
 #include <mem.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 
 efi_status_t alloc_table(pg_tbl_t *table) {
     efi_status_t status;

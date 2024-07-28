@@ -1,6 +1,6 @@
 #include <mem/mapper.hpp>
 #include <common.h>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <mem/pmm.hpp>
 #include <mem/heap.hpp>
 #include <uacpi/kernel_api.h>

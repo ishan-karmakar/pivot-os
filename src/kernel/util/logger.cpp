@@ -1,11 +1,7 @@
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <io/stdio.h>
-#include <stdatomic.h>
-#include <stdint.h>
 
-extern uint8_t CPU;
-
-static char *log_levels[] = {
+static const char *log_levels[] = {
     "ERROR",
     "WARNING",
     "INFO",
@@ -19,12 +15,12 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
         return;
     va_list args;
     va_start(args, format);
-    printf("[%hhu][%s] %s: ", CPU, log_levels[log_level], target);
+    printf("[%hhu][%s] %s: ", 0, log_levels[log_level], target);
     vprintf(format, args);
     printf("\n");
     va_end(args);
 }
 
-void uacpi_kernel_log(log_level_t log_level, const char *str) {
-    printf("[%hhu][%s] uACPI: %s", CPU, log_levels[log_level], str);
+extern "C" void uacpi_kernel_log(log_level_t log_level, const char *str) {
+    printf("[%hhu][%s] uACPI: %s", 0, log_levels[log_level], str);
 }

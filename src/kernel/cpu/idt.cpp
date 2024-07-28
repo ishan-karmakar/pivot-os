@@ -1,5 +1,5 @@
 #include <cpu/idt.hpp>
-#include <util/logger.h>
+#include <util/logger.hpp>
 #include <uacpi/kernel_api.h>
 using namespace cpu;
 

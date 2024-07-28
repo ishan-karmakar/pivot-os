@@ -1,10 +1,10 @@
 #include <mem/heap.hpp>
-#include <util/logger.h>
-#include <libc/string.h>
+#include <util/logger.hpp>
 #include <mem/vmm.hpp>
 #include <uacpi/kernel_api.h>
 #include <atomic>
 #include <common.h>
+#include <cstring>
 
 using namespace mem;
 
