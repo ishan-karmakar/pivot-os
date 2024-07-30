@@ -1,10 +1,17 @@
 #pragma once
 #include <frg/printf.hpp>
+#include <utility>
 
 namespace io {
     struct OWriter {
+        typedef std::pair<size_t, size_t> coord_t;
+        virtual ~OWriter() = default;
+        virtual coord_t get_pos() { return { 0, 0 }; }
+        virtual void set_pos(coord_t) {}
+        virtual coord_t get_constraints() { return { 0, 0 }; }
         virtual void append(char) = 0;
         void append(const char *s) { while (*s) append(*s++); }
+        virtual void clear() {}
     };
 
     extern OWriter *writer;

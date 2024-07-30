@@ -11,3 +11,10 @@ option(
     value: false,
     description: 'Log interrupts in QEMU'
 )
+
+option(
+    'qemu_debug',
+    type: 'boolean',
+    value: false,
+    description: 'Enable QEMU GDB debugging'
+)

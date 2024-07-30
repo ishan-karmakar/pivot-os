@@ -7,13 +7,12 @@
 #include <cpu/cpu.hpp>
 // #include <cpu/smp.hpp>
 // #include <drivers/acpi.hpp>
-// #include <drivers/framebuffer.hpp>
+#include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
 #include <util/logger.hpp>
 #include <frg/manual_box.hpp>
 #include <limine.h>
 #include <cstdlib>
-#include <frg/allocation.hpp>
 
 uint8_t CPU = 0;
 
@@ -39,6 +38,14 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::SerialPort> qemu;
 
+class Test {
+public:
+    Test(uint8_t t) : t{t} {
+        log(Verbose, "KERNEL", "%p", this);
+    }
+    uint8_t t;
+};
+
 extern "C" void __attribute__((noreturn)) init_kernel() {
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
@@ -47,8 +54,8 @@ extern "C" void __attribute__((noreturn)) init_kernel() {
     mem::mapper::init();
     mem::vmm::init();
     mem::heap::init();
-    // mem::kheap = &heap;
-    // drivers::Framebuffer fb{bi, mapper};
+    // drivers::fb::init();
+    Test *g = new Test{2};
     // drivers::acpi::init(bi);
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();

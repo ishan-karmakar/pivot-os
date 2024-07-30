@@ -63,6 +63,10 @@ if qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plai
         qemu_flags += ['-d', 'int']
     endif
 
+    if get_option('qemu_debug')
+        qemu_flags += ['-s', '-S']
+    endif
+
     run_target(
         'run',
         command: [qemu, qemu_flags, '-drive', 'file=@0@,index=0,media=disk,format=raw'.format(os.full_path())],

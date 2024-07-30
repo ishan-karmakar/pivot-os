@@ -8,16 +8,16 @@
 #define LIMINE_MMAP_ENTRY(i) mmap_request.response->entries[(i)]
 using namespace mem;
 
-__attribute__((used, section(".requests")))
-static volatile limine_memmap_request mmap_request = { LIMINE_MEMMAP_REQUEST, 0, nullptr };
+__attribute__((section(".requests")))
+volatile limine_memmap_request mmap_request = { LIMINE_MEMMAP_REQUEST, 2, nullptr };
 
-__attribute__((used, section(".requests")))
-static volatile limine_hhdm_request hhdm_request = { LIMINE_HHDM_REQUEST, 0, nullptr };
+__attribute__((section(".requests")))
+static volatile limine_hhdm_request hhdm_request = { LIMINE_HHDM_REQUEST, 2, nullptr };
 
 __attribute__((used, section(".requests")))
 static volatile limine_paging_mode_request paging_request = {
     .id = LIMINE_PAGING_MODE_REQUEST,
-    .revision = 1,
+    .revision = 2,
     .response = nullptr,
     .mode = LIMINE_PAGING_MODE_X86_64_4LVL,
     .max_mode = LIMINE_PAGING_MODE_X86_64_4LVL,
@@ -62,7 +62,7 @@ void pmm::init() {
     memset(bitmap, 0xFF, bitmap_size);
     for (size_t i = 0; i < num_entries; i++) {
         auto entry = LIMINE_MMAP_ENTRY(i);
-        log(Debug, "PMM", "MMAP[%lu] - Base: 0x%p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
+        log(Debug, "PMM", "MMAP[%lu] - Base: %p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
         if (entry->type == 0)
             clear(entry->base, DIV_CEIL(entry->length, PAGE_SIZE));
     }

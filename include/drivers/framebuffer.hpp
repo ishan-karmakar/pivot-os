@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <io/stdio.hpp>
 
+struct limine_framebuffer;
+
 namespace mem {
     class PTMapper;
 }
@@ -21,26 +23,32 @@ namespace drivers {
         };
 
     public:
-        Framebuffer(boot_info*, mem::PTMapper&, uint32_t = 0xFFFFFFFF, uint32_t = 0);
+        Framebuffer(mem::PTMapper&, limine_framebuffer*, uint32_t = 0xFFFFFFFF, uint32_t = 0);
         void clear() override;
         void set_pos(coord_t) override;
         coord_t get_pos() override;
-        coord_t get_lims() override;
+        coord_t get_constraints() override;
     
     private:
-        void write_char(char) override;
+        void append(char) override;
         void find_last();
         size_t get_off();
         void putchar(char);
 
-        const font * const font;
-        char * const buffer;
-        uint32_t hres, vres, pps;
-        uint32_t num_cols, num_rows;
+        char *buffer;
+        limine_framebuffer *info;
+        uint64_t num_cols, num_rows;
         uint32_t fg, bg;
         uint32_t x, y;
 
+        static const struct font *font;
         static constexpr int BPP = 4;
         static constexpr int TAB_SIZE = 4;
     };
+
+    namespace fb {
+        void init();
+    }
+
+    extern Framebuffer *kfb;
 }
