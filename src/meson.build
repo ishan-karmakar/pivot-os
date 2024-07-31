@@ -9,7 +9,8 @@ c_args = [
     '-mno-red-zone',
     '-static',
     '-fno-stack-protector',
-    '-mcmodel=large'
+    '-mcmodel=kernel',
+    '-mno-sse'
 ]
 
 cpp_args = [
@@ -72,5 +73,5 @@ kernel = executable(
     implicit_include_directories: false,
     include_directories: '../include',
     build_by_default: false,
-    pie: true
+    pie: false
 )

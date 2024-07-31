@@ -8,6 +8,8 @@ namespace io {
 
     class SerialPort : public OWriter {
     public:
+        using OWriter::append;
+
         SerialPort(uint16_t);
         void append(char) override;
 

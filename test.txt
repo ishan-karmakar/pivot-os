@@ -1,0 +1,143 @@
+/snap/cmake/1408/bin/cmake -P /home/ishank/pivot-os/build/CMakeFiles/VerifyGlobs.cmake
+/snap/cmake/1408/bin/cmake -S/home/ishank/pivot-os -B/home/ishank/pivot-os/build --check-build-system CMakeFiles/Makefile.cmake 0
+/snap/cmake/1408/bin/cmake -E cmake_progress_start /home/ishank/pivot-os/build/CMakeFiles /home/ishank/pivot-os/build//CMakeFiles/progress.marks
+make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/home/ishank/pivot-os/build'
+make  -f diskmaker/CMakeFiles/diskmaker.dir/build.make diskmaker/CMakeFiles/diskmaker.dir/depend
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+cd /home/ishank/pivot-os/build && /snap/cmake/1408/bin/cmake -E cmake_depends "Unix Makefiles" /home/ishank/pivot-os /home/ishank/pivot-os/src/diskmaker /home/ishank/pivot-os/build /home/ishank/pivot-os/build/diskmaker /home/ishank/pivot-os/build/diskmaker/CMakeFiles/diskmaker.dir/DependInfo.cmake "--color="
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+make  -f diskmaker/CMakeFiles/diskmaker.dir/build.make diskmaker/CMakeFiles/diskmaker.dir/build
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+[  2%] Building CXX object diskmaker/CMakeFiles/diskmaker.dir/diskmaker.cpp.o
+cd /home/ishank/pivot-os/build/diskmaker && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -std=gnu++17 -MD -MT diskmaker/CMakeFiles/diskmaker.dir/diskmaker.cpp.o -MF CMakeFiles/diskmaker.dir/diskmaker.cpp.o.d -o CMakeFiles/diskmaker.dir/diskmaker.cpp.o -c /home/ishank/pivot-os/src/diskmaker/diskmaker.cpp
+[  4%] Linking CXX executable diskmaker
+cd /home/ishank/pivot-os/build/diskmaker && /snap/cmake/1408/bin/cmake -E cmake_link_script CMakeFiles/diskmaker.dir/link.txt --verbose=1
+/usr/bin/clang++ CMakeFiles/diskmaker.dir/diskmaker.cpp.o -o diskmaker
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+[  4%] Built target diskmaker
+make  -f kernel/CMakeFiles/kernel.dir/build.make kernel/CMakeFiles/kernel.dir/depend
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+[  6%] Generating default.o
+cd /home/ishank/pivot-os && /usr/bin/llvm-objcopy -O elf64-x86-64 -B i386 -I binary fonts/default.psf /home/ishank/pivot-os/build/kernel/default.o
+cd /home/ishank/pivot-os/build && /snap/cmake/1408/bin/cmake -E cmake_depends "Unix Makefiles" /home/ishank/pivot-os /home/ishank/pivot-os/src/kernel /home/ishank/pivot-os/build /home/ishank/pivot-os/build/kernel /home/ishank/pivot-os/build/kernel/CMakeFiles/kernel.dir/DependInfo.cmake "--color="
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+make  -f kernel/CMakeFiles/kernel.dir/build.make kernel/CMakeFiles/kernel.dir/build
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+[  9%] Building CXX object kernel/CMakeFiles/kernel.dir/acpi/acpi.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/acpi/acpi.cpp.o -MF CMakeFiles/kernel.dir/acpi/acpi.cpp.o.d -o CMakeFiles/kernel.dir/acpi/acpi.cpp.o -c /home/ishank/pivot-os/src/kernel/acpi/acpi.cpp
+[ 11%] Building CXX object kernel/CMakeFiles/kernel.dir/acpi/madt.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/acpi/madt.cpp.o -MF CMakeFiles/kernel.dir/acpi/madt.cpp.o.d -o CMakeFiles/kernel.dir/acpi/madt.cpp.o -c /home/ishank/pivot-os/src/kernel/acpi/madt.cpp
+[ 13%] Building CXX object kernel/CMakeFiles/kernel.dir/cpu/gdt.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/cpu/gdt.cpp.o -MF CMakeFiles/kernel.dir/cpu/gdt.cpp.o.d -o CMakeFiles/kernel.dir/cpu/gdt.cpp.o -c /home/ishank/pivot-os/src/kernel/cpu/gdt.cpp
+[ 16%] Building CXX object kernel/CMakeFiles/kernel.dir/cpu/idt.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/cpu/idt.cpp.o -MF CMakeFiles/kernel.dir/cpu/idt.cpp.o.d -o CMakeFiles/kernel.dir/cpu/idt.cpp.o -c /home/ishank/pivot-os/src/kernel/cpu/idt.cpp
+[ 18%] Building CXX object kernel/CMakeFiles/kernel.dir/cpu/isr.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/cpu/isr.cpp.o -MF CMakeFiles/kernel.dir/cpu/isr.cpp.o.d -o CMakeFiles/kernel.dir/cpu/isr.cpp.o -c /home/ishank/pivot-os/src/kernel/cpu/isr.cpp
+[ 20%] Building CXX object kernel/CMakeFiles/kernel.dir/cpu/lapic.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/cpu/lapic.cpp.o -MF CMakeFiles/kernel.dir/cpu/lapic.cpp.o.d -o CMakeFiles/kernel.dir/cpu/lapic.cpp.o -c /home/ishank/pivot-os/src/kernel/cpu/lapic.cpp
+[ 23%] Building CXX object kernel/CMakeFiles/kernel.dir/cpu/tss.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/cpu/tss.cpp.o -MF CMakeFiles/kernel.dir/cpu/tss.cpp.o.d -o CMakeFiles/kernel.dir/cpu/tss.cpp.o -c /home/ishank/pivot-os/src/kernel/cpu/tss.cpp
+[ 25%] Building CXX object kernel/CMakeFiles/kernel.dir/drivers/framebuffer.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/drivers/framebuffer.cpp.o -MF CMakeFiles/kernel.dir/drivers/framebuffer.cpp.o.d -o CMakeFiles/kernel.dir/drivers/framebuffer.cpp.o -c /home/ishank/pivot-os/src/kernel/drivers/framebuffer.cpp
+[ 27%] Building CXX object kernel/CMakeFiles/kernel.dir/drivers/ioapic.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/drivers/ioapic.cpp.o -MF CMakeFiles/kernel.dir/drivers/ioapic.cpp.o.d -o CMakeFiles/kernel.dir/drivers/ioapic.cpp.o -c /home/ishank/pivot-os/src/kernel/drivers/ioapic.cpp
+[ 30%] Building CXX object kernel/CMakeFiles/kernel.dir/drivers/pit.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/drivers/pit.cpp.o -MF CMakeFiles/kernel.dir/drivers/pit.cpp.o.d -o CMakeFiles/kernel.dir/drivers/pit.cpp.o -c /home/ishank/pivot-os/src/kernel/drivers/pit.cpp
+[ 32%] Building CXX object kernel/CMakeFiles/kernel.dir/drivers/rtc.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/drivers/rtc.cpp.o -MF CMakeFiles/kernel.dir/drivers/rtc.cpp.o.d -o CMakeFiles/kernel.dir/drivers/rtc.cpp.o -c /home/ishank/pivot-os/src/kernel/drivers/rtc.cpp
+[ 34%] Building CXX object kernel/CMakeFiles/kernel.dir/init.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/init.cpp.o -MF CMakeFiles/kernel.dir/init.cpp.o.d -o CMakeFiles/kernel.dir/init.cpp.o -c /home/ishank/pivot-os/src/kernel/init.cpp
+[ 37%] Building CXX object kernel/CMakeFiles/kernel.dir/io/serial.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/io/serial.cpp.o -MF CMakeFiles/kernel.dir/io/serial.cpp.o.d -o CMakeFiles/kernel.dir/io/serial.cpp.o -c /home/ishank/pivot-os/src/kernel/io/serial.cpp
+[ 39%] Building CXX object kernel/CMakeFiles/kernel.dir/io/stdio.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/io/stdio.cpp.o -MF CMakeFiles/kernel.dir/io/stdio.cpp.o.d -o CMakeFiles/kernel.dir/io/stdio.cpp.o -c /home/ishank/pivot-os/src/kernel/io/stdio.cpp
+[ 41%] Building CXX object kernel/CMakeFiles/kernel.dir/kernel.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/kernel.cpp.o -MF CMakeFiles/kernel.dir/kernel.cpp.o.d -o CMakeFiles/kernel.dir/kernel.cpp.o -c /home/ishank/pivot-os/src/kernel/kernel.cpp
+[ 44%] Building CXX object kernel/CMakeFiles/kernel.dir/mem/bitmap.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/mem/bitmap.cpp.o -MF CMakeFiles/kernel.dir/mem/bitmap.cpp.o.d -o CMakeFiles/kernel.dir/mem/bitmap.cpp.o -c /home/ishank/pivot-os/src/kernel/mem/bitmap.cpp
+[ 46%] Building CXX object kernel/CMakeFiles/kernel.dir/mem/heap.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/mem/heap.cpp.o -MF CMakeFiles/kernel.dir/mem/heap.cpp.o.d -o CMakeFiles/kernel.dir/mem/heap.cpp.o -c /home/ishank/pivot-os/src/kernel/mem/heap.cpp
+[ 48%] Building CXX object kernel/CMakeFiles/kernel.dir/mem/mapper.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/mem/mapper.cpp.o -MF CMakeFiles/kernel.dir/mem/mapper.cpp.o.d -o CMakeFiles/kernel.dir/mem/mapper.cpp.o -c /home/ishank/pivot-os/src/kernel/mem/mapper.cpp
+[ 51%] Building CXX object kernel/CMakeFiles/kernel.dir/mem/pmm.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/mem/pmm.cpp.o -MF CMakeFiles/kernel.dir/mem/pmm.cpp.o.d -o CMakeFiles/kernel.dir/mem/pmm.cpp.o -c /home/ishank/pivot-os/src/kernel/mem/pmm.cpp
+[ 53%] Building CXX object kernel/CMakeFiles/kernel.dir/mem/vmm.cpp.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang++ -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -std=gnu++17 -MD -MT kernel/CMakeFiles/kernel.dir/mem/vmm.cpp.o -MF CMakeFiles/kernel.dir/mem/vmm.cpp.o.d -o CMakeFiles/kernel.dir/mem/vmm.cpp.o -c /home/ishank/pivot-os/src/kernel/mem/vmm.cpp
+[ 55%] Building ASM_NASM object kernel/CMakeFiles/kernel.dir/cpu/ap_trampoline.asm.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/nasm -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel  -MD CMakeFiles/kernel.dir/cpu/ap_trampoline.asm.o.d -MT kernel/CMakeFiles/kernel.dir/cpu/ap_trampoline.asm.o -f elf64 -o CMakeFiles/kernel.dir/cpu/ap_trampoline.asm.o /home/ishank/pivot-os/src/kernel/cpu/ap_trampoline.asm
+[ 58%] Building ASM_NASM object kernel/CMakeFiles/kernel.dir/cpu/interrupts.asm.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/nasm -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel  -MD CMakeFiles/kernel.dir/cpu/interrupts.asm.o.d -MT kernel/CMakeFiles/kernel.dir/cpu/interrupts.asm.o -f elf64 -o CMakeFiles/kernel.dir/cpu/interrupts.asm.o /home/ishank/pivot-os/src/kernel/cpu/interrupts.asm
+[ 60%] Building C object kernel/CMakeFiles/kernel.dir/__/common/io/stdio.c.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -static -mcmodel=kernel -fstack-protector -MD -MT kernel/CMakeFiles/kernel.dir/__/common/io/stdio.c.o -MF CMakeFiles/kernel.dir/__/common/io/stdio.c.o.d -o CMakeFiles/kernel.dir/__/common/io/stdio.c.o -c /home/ishank/pivot-os/src/common/io/stdio.c
+[ 62%] Building C object kernel/CMakeFiles/kernel.dir/__/common/libc/string.c.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -static -mcmodel=kernel -fstack-protector -MD -MT kernel/CMakeFiles/kernel.dir/__/common/libc/string.c.o -MF CMakeFiles/kernel.dir/__/common/libc/string.c.o.d -o CMakeFiles/kernel.dir/__/common/libc/string.c.o -c /home/ishank/pivot-os/src/common/libc/string.c
+[ 65%] Building C object kernel/CMakeFiles/kernel.dir/__/common/util/logger.c.o
+cd /home/ishank/pivot-os/build/kernel && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/kernel -I/home/ishank/pivot-os/src/kernel -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -static -mcmodel=kernel -fstack-protector -MD -MT kernel/CMakeFiles/kernel.dir/__/common/util/logger.c.o -MF CMakeFiles/kernel.dir/__/common/util/logger.c.o.d -o CMakeFiles/kernel.dir/__/common/util/logger.c.o -c /home/ishank/pivot-os/src/common/util/logger.c
+[ 67%] Linking CXX executable kernel.elf
+cd /home/ishank/pivot-os/build/kernel && /snap/cmake/1408/bin/cmake -E cmake_link_script CMakeFiles/kernel.dir/link.txt --verbose=1
+/usr/bin/clang++  -Wall -Wextra -ffreestanding -nostdlib -fno-stack-protector -mno-red-zone -static -mcmodel=kernel -fno-rtti -fno-exceptions -fuse-ld=lld -z norelro -T /home/ishank/pivot-os/src/kernel/linker.ld CMakeFiles/kernel.dir/acpi/acpi.cpp.o CMakeFiles/kernel.dir/acpi/madt.cpp.o CMakeFiles/kernel.dir/cpu/gdt.cpp.o CMakeFiles/kernel.dir/cpu/idt.cpp.o CMakeFiles/kernel.dir/cpu/isr.cpp.o CMakeFiles/kernel.dir/cpu/lapic.cpp.o CMakeFiles/kernel.dir/cpu/tss.cpp.o CMakeFiles/kernel.dir/drivers/framebuffer.cpp.o CMakeFiles/kernel.dir/drivers/ioapic.cpp.o CMakeFiles/kernel.dir/drivers/pit.cpp.o CMakeFiles/kernel.dir/drivers/rtc.cpp.o CMakeFiles/kernel.dir/init.cpp.o CMakeFiles/kernel.dir/io/serial.cpp.o CMakeFiles/kernel.dir/io/stdio.cpp.o CMakeFiles/kernel.dir/kernel.cpp.o CMakeFiles/kernel.dir/mem/bitmap.cpp.o CMakeFiles/kernel.dir/mem/heap.cpp.o CMakeFiles/kernel.dir/mem/mapper.cpp.o CMakeFiles/kernel.dir/mem/pmm.cpp.o CMakeFiles/kernel.dir/mem/vmm.cpp.o CMakeFiles/kernel.dir/cpu/ap_trampoline.asm.o CMakeFiles/kernel.dir/cpu/interrupts.asm.o CMakeFiles/kernel.dir/__/common/io/stdio.c.o CMakeFiles/kernel.dir/__/common/libc/string.c.o CMakeFiles/kernel.dir/__/common/util/logger.c.o default.o -o kernel.elf
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+[ 67%] Built target kernel
+make  -f bios/CMakeFiles/bios1.dir/build.make bios/CMakeFiles/bios1.dir/depend
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+cd /home/ishank/pivot-os/build && /snap/cmake/1408/bin/cmake -E cmake_depends "Unix Makefiles" /home/ishank/pivot-os /home/ishank/pivot-os/src/bios /home/ishank/pivot-os/build /home/ishank/pivot-os/build/bios /home/ishank/pivot-os/build/bios/CMakeFiles/bios1.dir/DependInfo.cmake "--color="
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+make  -f bios/CMakeFiles/bios1.dir/build.make bios/CMakeFiles/bios1.dir/build
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+[ 69%] Generating bios2.bin
+cd /home/ishank/pivot-os/src/bios && /usr/bin/nasm -o /home/ishank/pivot-os/build/bios/bios2.bin boot2.asm
+[ 72%] Generating bios1.bin
+cd /home/ishank/pivot-os/src/bios && /usr/bin/nasm -o /home/ishank/pivot-os/build/bios/bios1.bin boot1.asm
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+[ 72%] Built target bios1
+make  -f bios/CMakeFiles/bios2.dir/build.make bios/CMakeFiles/bios2.dir/depend
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+cd /home/ishank/pivot-os/build && /snap/cmake/1408/bin/cmake -E cmake_depends "Unix Makefiles" /home/ishank/pivot-os /home/ishank/pivot-os/src/bios /home/ishank/pivot-os/build /home/ishank/pivot-os/build/bios /home/ishank/pivot-os/build/bios/CMakeFiles/bios2.dir/DependInfo.cmake "--color="
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+make  -f bios/CMakeFiles/bios2.dir/build.make bios/CMakeFiles/bios2.dir/build
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+make[2]: Nothing to be done for 'bios/CMakeFiles/bios2.dir/build'.
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+[ 74%] Built target bios2
+make  -f uefi/CMakeFiles/uefi.dir/build.make uefi/CMakeFiles/uefi.dir/depend
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+cd /home/ishank/pivot-os/build && /snap/cmake/1408/bin/cmake -E cmake_depends "Unix Makefiles" /home/ishank/pivot-os /home/ishank/pivot-os/src/uefi /home/ishank/pivot-os/build /home/ishank/pivot-os/build/uefi /home/ishank/pivot-os/build/uefi/CMakeFiles/uefi.dir/DependInfo.cmake "--color="
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+make  -f uefi/CMakeFiles/uefi.dir/build.make uefi/CMakeFiles/uefi.dir/build
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+[ 76%] Building C object uefi/CMakeFiles/uefi.dir/acpi.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/acpi.c.o -MF CMakeFiles/uefi.dir/acpi.c.o.d -o CMakeFiles/uefi.dir/acpi.c.o -c /home/ishank/pivot-os/src/uefi/acpi.c
+[ 79%] Building C object uefi/CMakeFiles/uefi.dir/con.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/con.c.o -MF CMakeFiles/uefi.dir/con.c.o.d -o CMakeFiles/uefi.dir/con.c.o -c /home/ishank/pivot-os/src/uefi/con.c
+[ 81%] Building C object uefi/CMakeFiles/uefi.dir/graphics.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/graphics.c.o -MF CMakeFiles/uefi.dir/graphics.c.o.d -o CMakeFiles/uefi.dir/graphics.c.o -c /home/ishank/pivot-os/src/uefi/graphics.c
+[ 83%] Building C object uefi/CMakeFiles/uefi.dir/loader.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/loader.c.o -MF CMakeFiles/uefi.dir/loader.c.o.d -o CMakeFiles/uefi.dir/loader.c.o -c /home/ishank/pivot-os/src/uefi/loader.c
+[ 86%] Building C object uefi/CMakeFiles/uefi.dir/mem.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/mem.c.o -MF CMakeFiles/uefi.dir/mem.c.o.d -o CMakeFiles/uefi.dir/mem.c.o -c /home/ishank/pivot-os/src/uefi/mem.c
+[ 88%] Building C object uefi/CMakeFiles/uefi.dir/uefi.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/uefi.c.o -MF CMakeFiles/uefi.dir/uefi.c.o.d -o CMakeFiles/uefi.dir/uefi.c.o -c /home/ishank/pivot-os/src/uefi/uefi.c
+[ 90%] Building C object uefi/CMakeFiles/uefi.dir/__/common/io/stdio.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/__/common/io/stdio.c.o -MF CMakeFiles/uefi.dir/__/common/io/stdio.c.o.d -o CMakeFiles/uefi.dir/__/common/io/stdio.c.o -c /home/ishank/pivot-os/src/common/io/stdio.c
+[ 93%] Building C object uefi/CMakeFiles/uefi.dir/__/common/libc/string.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/__/common/libc/string.c.o -MF CMakeFiles/uefi.dir/__/common/libc/string.c.o.d -o CMakeFiles/uefi.dir/__/common/libc/string.c.o -c /home/ishank/pivot-os/src/common/libc/string.c
+[ 95%] Building C object uefi/CMakeFiles/uefi.dir/__/common/util/logger.c.o
+cd /home/ishank/pivot-os/build/uefi && /usr/bin/clang -DDEBUG -I/home/ishank/pivot-os/include/common -I/home/ishank/pivot-os/include/uefi -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -MD -MT uefi/CMakeFiles/uefi.dir/__/common/util/logger.c.o -MF CMakeFiles/uefi.dir/__/common/util/logger.c.o.d -o CMakeFiles/uefi.dir/__/common/util/logger.c.o -c /home/ishank/pivot-os/src/common/util/logger.c
+[ 97%] Linking C executable BOOTX64.efi
+cd /home/ishank/pivot-os/build/uefi && /snap/cmake/1408/bin/cmake -E cmake_link_script CMakeFiles/uefi.dir/link.txt --verbose=1
+/usr/bin/clang  -Wall -Wextra -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -target x86_64-unknown-windows -fshort-wchar -fuse-ld=lld -Wl,-entry:efi_main,-subsystem:efi_application CMakeFiles/uefi.dir/acpi.c.o CMakeFiles/uefi.dir/con.c.o CMakeFiles/uefi.dir/graphics.c.o CMakeFiles/uefi.dir/loader.c.o CMakeFiles/uefi.dir/mem.c.o CMakeFiles/uefi.dir/uefi.c.o CMakeFiles/uefi.dir/__/common/io/stdio.c.o CMakeFiles/uefi.dir/__/common/libc/string.c.o CMakeFiles/uefi.dir/__/common/util/logger.c.o -o BOOTX64.efi
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+[ 97%] Built target uefi
+make  -f CMakeFiles/os.dir/build.make CMakeFiles/os.dir/depend
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+cd /home/ishank/pivot-os/build && /snap/cmake/1408/bin/cmake -E cmake_depends "Unix Makefiles" /home/ishank/pivot-os /home/ishank/pivot-os /home/ishank/pivot-os/build /home/ishank/pivot-os/build /home/ishank/pivot-os/build/CMakeFiles/os.dir/DependInfo.cmake "--color="
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+make  -f CMakeFiles/os.dir/build.make CMakeFiles/os.dir/build
+make[2]: Entering directory '/home/ishank/pivot-os/build'
+[100%] Generating os.img
+diskmaker/diskmaker
+make[2]: Leaving directory '/home/ishank/pivot-os/build'
+[100%] Built target os
+make[1]: Leaving directory '/home/ishank/pivot-os/build'
+/snap/cmake/1408/bin/cmake -E cmake_progress_start /home/ishank/pivot-os/build/CMakeFiles 0

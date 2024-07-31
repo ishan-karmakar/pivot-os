@@ -9,7 +9,7 @@ namespace io {
         virtual coord_t get_pos() { return { 0, 0 }; }
         virtual void set_pos(coord_t) {}
         virtual coord_t get_constraints() { return { 0, 0 }; }
-        virtual void append(char) = 0;
+        virtual void append(char) {}
         void append(const char *s) { while (*s) append(*s++); }
         virtual void clear() {}
     };

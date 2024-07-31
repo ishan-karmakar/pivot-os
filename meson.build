@@ -46,7 +46,7 @@ os = custom_target(
 )
 
 qemu = find_program('qemu-system-x86_64', required: false)
-if qemu.found() and get_option('buildtype') in ['debug', 'debugoptimized', 'plain']
+if qemu.found()
     qemu_flags = [
         '-m', '128M',
         '-smp', '2',

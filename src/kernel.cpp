@@ -41,12 +41,12 @@ frg::manual_box<io::SerialPort> qemu;
 class Test {
 public:
     Test(uint8_t t) : t{t} {
-        log(Verbose, "KERNEL", "%p", this);
+        log(Verbose, "KERNEL", "%p", this->t);
     }
     uint8_t t;
 };
 
-extern "C" void __attribute__((noreturn)) init_kernel() {
+extern "C" void init_kernel() {
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
     cxxabi::call_constructors();
