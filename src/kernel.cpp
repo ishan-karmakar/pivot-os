@@ -5,6 +5,7 @@
 #include <mem/vmm.hpp>
 #include <mem/mapper.hpp>
 #include <cpu/cpu.hpp>
+#include <cpu/gdt.hpp>
 // #include <cpu/smp.hpp>
 // #include <drivers/acpi.hpp>
 #include <drivers/framebuffer.hpp>
@@ -38,24 +39,16 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::SerialPort> qemu;
 
-class Test {
-public:
-    Test(uint8_t t) : t{t} {
-        log(Verbose, "KERNEL", "%p", this->t);
-    }
-    uint8_t t;
-};
-
 extern "C" void init_kernel() {
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
-    cxxabi::call_constructors();
+    cpu::gdt::early_init();
     mem::pmm::init();
     mem::mapper::init();
     mem::vmm::init();
     mem::heap::init();
+    cxxabi::call_constructors();
     // drivers::fb::init();
-    Test *g = new Test{2};
     // drivers::acpi::init(bi);
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();

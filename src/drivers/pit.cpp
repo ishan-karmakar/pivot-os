@@ -37,7 +37,7 @@ void PIT::data(uint16_t data) {
 }
 
 extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
-    PIT::ticks++; // FIXME: Use atomic
+    // PIT::ticks++; // FIXME: Use atomic
     LAPIC::eoi();
     return status;
 }

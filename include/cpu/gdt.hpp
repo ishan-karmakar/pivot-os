@@ -1,17 +1,16 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <frg/manual_box.hpp>
 
 namespace cpu {
-    class GDT {
-    private:
+    namespace gdt {
         struct [[gnu::packed]] gdtr {
             uint16_t size;
             uintptr_t addr;
         };
-    
-    public:
-        union gdt_desc {
+
+        union desc {
             struct [[gnu::packed]] alignas(8) {
                 uint16_t limit0;
                 uint16_t base0;
@@ -24,19 +23,27 @@ namespace cpu {
             uint64_t raw;
         };
 
-        GDT(gdt_desc*);
+        void early_init();
+        void init();
+    }
+
+    class GDT {
+    public:
+        GDT(gdt::desc*);
         ~GDT() = default;
 
         GDT& operator=(GDT&);
         void set_entry(uint16_t, uint8_t, uint8_t);
-        void set_entry(uint16_t, gdt_desc);
-        gdt_desc get_entry(uint16_t) const;
+        void set_entry(uint16_t, gdt::desc);
+        gdt::desc get_entry(uint16_t) const;
         void load();
 
         uint16_t entries;
 
     private:
-        gdt_desc * const gdt;
-        gdtr gdtr{ 0, reinterpret_cast<uintptr_t>(gdt) };
+        gdt::desc *gdt;
+        gdt::gdtr gdtr{ 0, reinterpret_cast<uintptr_t>(gdt) };
     };
+
+    extern frg::manual_box<GDT> kgdt;
 }

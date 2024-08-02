@@ -62,7 +62,7 @@ void IOAPIC::set_mask(uint8_t irq, bool mask) {
     write_red(irq, ent);
 }
 
-frg::optional<acpi_madt_interrupt_source_override> IOAPIC::find_so(uint8_t irq) {
+frg::optional<acpi_madt_interrupt_source_override> IOAPIC::find_so(uint8_t) {
     // auto madt = acpi::get_table<drivers::MADT>();
     // for (auto source_ovrds = madt.iter<acpi_madt_interrupt_source_override>(ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE); source_ovrds; ++source_ovrds)
     //     if (source_ovrds->source == irq)

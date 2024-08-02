@@ -3,7 +3,17 @@
 #include <util/logger.hpp>
 using namespace cpu;
 
-GDT::GDT(gdt_desc *gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
+frg::manual_box<GDT> cpu::kgdt;
+constinit gdt::desc sgdt[3];
+
+void gdt::early_init() {
+    kgdt.initialize(sgdt);
+    kgdt->set_entry(1, 0b10011011, 0b10); // Kernel CS
+    kgdt->set_entry(2, 0b10010011, 0); // Kernel DS
+    kgdt->load();
+}
+
+GDT::GDT(gdt::desc *gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
 
 GDT& GDT::operator=(GDT& old) {
     for (uint16_t i = 0; i < old.entries; i++)
@@ -13,20 +23,20 @@ GDT& GDT::operator=(GDT& old) {
 }
 
 void GDT::set_entry(uint16_t idx, uint8_t access, uint8_t flags) {
-    gdt_desc desc { { 0xFFFF, 0, 0, access, 0xF, flags, 0 } };
+    gdt::desc desc { { 0xFFFF, 0, 0, access, 0xF, flags, 0 } };
 
     set_entry(idx, desc);
 }
 
-void GDT::set_entry(uint16_t idx, gdt_desc desc) {
+void GDT::set_entry(uint16_t idx, gdt::desc desc) {
     gdt[idx] = desc;
     entries = std::max(static_cast<uint16_t>(idx + 1), entries);
 }
 
-GDT::gdt_desc GDT::get_entry(uint16_t idx) const { return gdt[idx]; }
+gdt::desc GDT::get_entry(uint16_t idx) const { return gdt[idx]; }
 
 void GDT::load() {
-    gdtr.size = entries * sizeof(gdt_desc) - 1;
+    gdtr.size = entries * sizeof(gdt::desc) - 1;
     asm volatile (
         "cli;"
         "lgdt %0;"

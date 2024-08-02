@@ -23,7 +23,7 @@ namespace drivers {
         };
 
     public:
-        Framebuffer(mem::PTMapper&, limine_framebuffer*, uint32_t = 0xFFFFFFFF, uint32_t = 0);
+        Framebuffer(limine_framebuffer*, uint32_t = 0xFFFFFFFF, uint32_t = 0);
         void clear() override;
         void set_pos(coord_t) override;
         coord_t get_pos() override;

@@ -6,14 +6,34 @@
 #include <kernel.hpp>
 #include <cstring>
 #include <frg/manual_box.hpp>
+#include <frg/slab.hpp>
+#include <frg/spinlock.hpp>
+#include <frg/allocation.hpp>
 using namespace frg;
 using namespace mem;
 
 frg::manual_box<Heap> mem::kheap;
+constinit HeapSlabPolicy heap_slab_policy;
+frg::manual_box<frg::slab_pool<HeapSlabPolicy, frg::simple_spinlock>> heap_pool;
+
+uintptr_t HeapSlabPolicy::map(size_t size) {
+    return reinterpret_cast<uintptr_t>(mem::kvmm->malloc(DIV_CEIL(size, PAGE_SIZE)));
+}
+
+void HeapSlabPolicy::unmap(uintptr_t, size_t) {
+    // TODO: Implement free
+};
 
 void heap::init() {
-    kheap.initialize(*mem::kvmm, HEAP_SIZE);
-    log(Info, "HEAP", "Initialized kernel heap");
+    heap_pool.initialize(heap_slab_policy);
+    log(Info, "HEAP", "Initialized kernel heap slab allocator");
+    // kheap.initialize(*mem::kvmm, HEAP_SIZE);
+    // log(Info, "HEAP", "Initialized kernel heap");
+}
+
+HeapAllocator& heap::allocator() {
+    static HeapAllocator alloc{heap_pool.get()};
+    return alloc;
 }
 
 // Heap is basically just a clone of bitmap since nothing special is needed to add to it
@@ -22,33 +42,33 @@ Heap::Heap(VMM& vmm, size_t size, size_t bsize) :
     Bitmap{size * PAGE_SIZE, bsize, reinterpret_cast<uint8_t*>(vmm.malloc(size))} {}
 
 void *malloc(size_t size) {
-    return kheap->malloc(size);
+    return heap::allocator().allocate(size);
 }
 
 void *calloc(size_t size) {
-    return kheap->calloc(size);
+    void *ptr = malloc(size);
+    memset(ptr, 0, size);
+    return ptr;
 }
 
 void *realloc(void *old, size_t size) {
-    return kheap->realloc(old, size);
+    return heap::allocator().reallocate(old, size);
 }
 
 void free(void *ptr) {
-    kheap->free(ptr);
+    return heap::allocator().free(ptr);
 }
 
 void *operator new(size_t size) {
-    auto addr = malloc(size);
-    log(Verbose, "HEAP", "%p", addr);
-    return addr;
+    return malloc(size);
 }
 
 void operator delete(void *ptr) {
     return free(ptr);
 }
 
-void operator delete(void *ptr, size_t size) {
-    log(Verbose, "HEAP", "Operator delete called with 0x%p, %lu", ptr, size);
+void operator delete(void *ptr, size_t) {
+    return operator delete(ptr);
 }
 
 void *operator new[](size_t size) {
@@ -59,7 +79,9 @@ void operator delete[](void *ptr) {
     return operator delete(ptr);
 }
 
-void operator delete[](void*, size_t) {}
+void operator delete[](void *ptr, size_t) {
+    return operator delete[](ptr);
+}
 
 void *uacpi_kernel_alloc(size_t size) {
     return malloc(size);
@@ -73,7 +95,6 @@ void uacpi_kernel_free(void *ptr) {
     return free(ptr);
 }
 
-// FIXME: Optimize this; every time we create a mutex we waste 15 bytes of memory
 uacpi_handle uacpi_kernel_create_mutex() {
     return new std::atomic_flag;
 }
@@ -100,8 +121,9 @@ uacpi_handle uacpi_kernel_create_spinlock() {
     return uacpi_kernel_create_mutex();
 }
 
-uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle m) {
+uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle) {
     log(Info, "uACPI", "uACPI requested to lock spinlock");
+    return 0;
 }
 
 void uacpi_kernel_spinlock_unlock(uacpi_handle, uacpi_cpu_flags) {

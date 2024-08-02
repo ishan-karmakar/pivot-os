@@ -24,8 +24,8 @@ TSS::TSS(GDT& gdt) : gdt{gdt} {
 void TSS::set_rsp0(uintptr_t rsp) const {
     uint16_t tr;
     asm volatile ("str %0" : "=rm" (tr));
-    GDT::gdt_desc entry0 = gdt.get_entry(tr / 8);
-    GDT::gdt_desc entry1 = gdt.get_entry(tr / 8 + 1);
+    gdt::desc entry0 = gdt.get_entry(tr / 8);
+    gdt::desc entry1 = gdt.get_entry(tr / 8 + 1);
     tss *tss = (struct tss*) (entry0.base0 |
                                 (entry0.base1 << 16) |
                                 (entry0.base2 << 24) |

@@ -7,6 +7,8 @@ using namespace mem;
 
 frg::manual_box<VMM> mem::kvmm;
 
+// TODO: Place mem start after framebuffer, current only works when total physical memory is a little under 2 GB
+
 void vmm::init() {
     kvmm.initialize(VMM::Supervisor, mem::num_pages, *mem::kmapper);
 }

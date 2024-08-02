@@ -19,22 +19,16 @@ extern volatile limine_memmap_request mmap_request;
 // TODO: Support BPP != 4
 
 void fb::init() {
-    kfb = new Framebuffer{*mem::kmapper, fb_request.response->framebuffers[0]};
+    kfb = new Framebuffer{fb_request.response->framebuffers[0]};
+    io::writer = kfb;
     log(Info, "FB", "Initialized kernel framebuffer");
 }
 
-Framebuffer::Framebuffer(mem::PTMapper& mapper, limine_framebuffer *info, uint32_t fg, uint32_t bg) :
-    buffer{reinterpret_cast<char*>(5)},
+Framebuffer::Framebuffer(limine_framebuffer *info, uint32_t fg, uint32_t bg) :
+    buffer{reinterpret_cast<char*>(info->address)},
     info{info}, num_cols{info->width / font->width}, num_rows{info->height / font->height}, fg{fg}, bg{bg}
 {
-    uintptr_t addr = reinterpret_cast<uintptr_t>(info->address);
-    for (size_t i = 0; i < mmap_request.response->entry_count; i++) {
-        auto ent = mmap_request.response->entries[i];
-        if (ent->type == LIMINE_MEMMAP_FRAMEBUFFER)
-            mapper.map(ent->base, virt_addr(ent->base), KERNEL_PT_ENTRY, DIV_CEIL(ent->length, PAGE_SIZE));
-    }
-    log(Verbose, "FB", "%p", buffer);
-    // clear();
+    clear();
 }
 
 void Framebuffer::append(char c) {
@@ -78,7 +72,7 @@ void Framebuffer::putchar(char c) {
     size_t bpl = DIV_CEIL(font->width, 8);
     size_t off = get_off();
     for (uint32_t cy = 0, line = off; cy < font->height;
-        cy++, glyph += bpl, off += BPP * info->pitch, line = off)
+        cy++, glyph += bpl, off += info->pitch, line = off)
         for (uint32_t cx = 0; cx < font->width; cx++, line += BPP)
             *((uint32_t*) (buffer + line)) = glyph[cx / 8] & (0x80 >> (cx & 7)) ? fg : bg;
 }

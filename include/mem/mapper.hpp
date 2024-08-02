@@ -3,6 +3,9 @@
 #include <cstddef>
 #include <frg/manual_box.hpp>
 
+#define KERNEL_PT_ENTRY 0b10
+#define USER_PT_ENTRY 0b110
+
 namespace mem {
     typedef uint64_t* pg_tbl_t;
 
