@@ -7,12 +7,13 @@ void log(log_level_t log_level, const char *target, const char *format, ...) {
         return;
     va_list args;
     va_start(args, format);
-    printf("[%hhu][%s] %s: ", 0, magic_enum::enum_name(log_level), target);
+    auto test = magic_enum::enum_name(log_level);
+    printf("[%hhu][%s] %s: ", 0, magic_enum::enum_name(log_level).begin(), target);
     vprintf(format, args);
     printf("\n");
     va_end(args);
 }
 
 extern "C" void uacpi_kernel_log(log_level_t log_level, const char *str) {
-    printf("[%hhu][%s] uACPI: %s", 0, magic_enum::enum_name(log_level), str);
+    log(log_level, "UACPI", str);
 }

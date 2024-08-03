@@ -39,12 +39,13 @@ env.set('sgdisk', find_program('sgdisk', required: true).full_path())
 env.set('elf', kernel.full_path())
 env.set('src_root', meson.global_source_root())
 
-
+limine_exec = limine.get_variable('limine_exec')
+env.set('limine', limine_exec.full_path())
 os = custom_target(
     'os',
     output: 'os.img',
     command: ['util/diskmaker.py', '@OUTPUT@'],
-    depends: [limine.get_variable('limine_exec'), kernel],
+    depends: [limine_exec, kernel],
     env: env,
     build_by_default: true
 )

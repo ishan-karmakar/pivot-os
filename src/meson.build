@@ -39,6 +39,7 @@ kernel = executable(
     'kernel.cpp',
     'misc/cxxabi.cpp',
     'misc/mem.cpp',
+    'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
     'cpu/isr.cpp',

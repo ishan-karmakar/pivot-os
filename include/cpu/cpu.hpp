@@ -65,6 +65,8 @@ namespace cpu {
     inline uint64_t get_gs() {
         return rdmsr(0xC0000101);
     }
+
+    void init();
 }
 
 // __attribute__((always_inline))

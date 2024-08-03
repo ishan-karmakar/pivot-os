@@ -45,6 +45,7 @@ extern "C" void init_kernel() {
     io::writer = qemu.get();
     cpu::gdt::early_init();
     cpu::idt::init();
+    cpu::init();
     mem::pmm::init();
     mem::mapper::init();
     mem::vmm::init();
