@@ -1,11 +1,11 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <frg/manual_box.hpp>
 
 namespace cpu {
-    class IDT {
-    private:
-        struct [[gnu::packed]] idt_desc {
+    namespace idt {
+        struct [[gnu::packed]] desc {
             uint16_t offset0;
             uint16_t segment_selector;
             uint8_t ist;
@@ -19,19 +19,24 @@ namespace cpu {
             uint16_t size;
             uintptr_t addr;
         };
+
+        void load_exceptions();
+        void init();
+    }
+
+    class IDT {
     public:
-        void set_entry(uint8_t, struct idt_desc);
+        void set_entry(uint8_t, struct idt::desc);
         void set_entry(uint8_t, uint8_t ring, void (*handler)());
         void load() const;
 
     private:
-        struct idt_desc idt[256];
-        struct idtr idtr{
-            256 * sizeof(idt_desc) - 1,
+        struct idt::desc idt[256];
+        struct idt::idtr idtr{
+            256 * sizeof(idt::desc) - 1,
             reinterpret_cast<uintptr_t>(&idt)
         };
     };
 
-    void load_exceptions(IDT&);
-    extern IDT *kidt;
+    extern frg::manual_box<IDT> kidt;
 }

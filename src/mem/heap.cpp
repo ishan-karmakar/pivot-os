@@ -26,9 +26,9 @@ void HeapSlabPolicy::unmap(uintptr_t, size_t) {
 
 void heap::init() {
     heap_pool.initialize(heap_slab_policy);
-    log(Info, "HEAP", "Initialized kernel heap slab allocator");
+    log(INFO, "HEAP", "Initialized kernel heap slab allocator");
     // kheap.initialize(*mem::kvmm, HEAP_SIZE);
-    // log(Info, "HEAP", "Initialized kernel heap");
+    // log(INFO, "HEAP", "Initialized kernel heap");
 }
 
 HeapAllocator& heap::allocator() {
@@ -117,29 +117,29 @@ void uacpi_kernel_free_mutex(void *mutex) {
 
 uacpi_handle uacpi_kernel_create_spinlock() {
     // Right now, we treat mutexes and spinlocks the same
-    log(Info, "uACPI", "uACPI requested to create spinlock");
+    log(INFO, "uACPI", "uACPI requested to create spinlock");
     return uacpi_kernel_create_mutex();
 }
 
 uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle) {
-    log(Info, "uACPI", "uACPI requested to lock spinlock");
+    log(INFO, "uACPI", "uACPI requested to lock spinlock");
     return 0;
 }
 
 void uacpi_kernel_spinlock_unlock(uacpi_handle, uacpi_cpu_flags) {
-    log(Info, "uACPI", "uACPI requested to unlock spinlock");
+    log(INFO, "uACPI", "uACPI requested to unlock spinlock");
 }
 
 void uacpi_kernel_free_spinlock(uacpi_handle) {
-    log(Info, "uACPI", "uACPI requested to free spinlock");
+    log(INFO, "uACPI", "uACPI requested to free spinlock");
 }
 
 uacpi_handle uacpi_kernel_create_event() {
-    log(Info, "uACPI", "uACPI requested to create event");
+    log(INFO, "uACPI", "uACPI requested to create event");
     return new std::atomic_uint64_t;
 }
 
 void uacpi_kernel_free_event(uacpi_handle e) {
-    log(Info, "uACPI", "uACPI requested to free event");
+    log(INFO, "uACPI", "uACPI requested to free event");
     delete static_cast<std::atomic_uint64_t*>(e);
 }

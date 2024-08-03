@@ -39,22 +39,22 @@ void Keyboard::init(cpu::IDT& idt) {
     while (io::inb(STATUS) & 0b10) asm ("pause");
     uint8_t config_byte = io::inb(PORT);
     if (!(config_byte & (1 << 6)))
-        return log(Error, "KEYBOARD", "Translation is not enabled");
+        return log(ERROR, "KEYBOARD", "Translation is not enabled");
     io::outb(PORT, 0xF4);
     check_ack();
 
     idt.set_entry(IDT_ENT, 0, keyboard_irq);
     IOAPIC::set_irq(IDT_ENT, 1, 0, IOAPIC::LOWEST_PRIORITY);
-    log(Info, "KEYBOARD", "Initialized PS/2 keyboard");
+    log(INFO, "KEYBOARD", "Initialized PS/2 keyboard");
 }
 
 void Keyboard::check_ack() {
     if (io::inb(PORT) != 0xFA)
-        log(Warning, "KEYBOARD", "Keyboard failed to acknowledge");
+        log(WARNING, "KEYBOARD", "Keyboard failed to acknowledge");
 }
 
 cpu::cpu_status *cpu::keyboard_handler(cpu::cpu_status *status) {
-    log(Verbose, "KEYBOARD", "Keyboard handler called");
+    log(VERBOSE, "KEYBOARD", "Keyboard handler called");
     LAPIC::eoi();
     return status;
 }

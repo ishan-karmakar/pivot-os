@@ -30,12 +30,12 @@ size_t mem::num_pages = 0;
 
 void pmm::init() {
     if (mmap_request.response == nullptr) {
-        log(Error, "PMM", "Limine failed to respond to MMAP request");
+        log(ERROR, "PMM", "Limine failed to respond to MMAP request");
         abort();
     }
 
     if (hhdm_request.response == nullptr) {
-        log(Error, "PMM", "Limine failed to respond to HHDM request");
+        log(ERROR, "PMM", "Limine failed to respond to HHDM request");
         abort();
     }
 
@@ -47,7 +47,7 @@ void pmm::init() {
         for (; entry->type == LIMINE_MEMMAP_FRAMEBUFFER; entry = LIMINE_MMAP_ENTRY(--i));
         mem::num_pages = DIV_CEIL(entry->base + entry->length, PAGE_SIZE);
     }
-    log(Info, "PMM", "Found %lu pages of physical memory", num_pages);
+    log(INFO, "PMM", "Found %lu pages of physical memory", num_pages);
 
     bitmap_size = DIV_CEIL(num_pages, 8);
     for (size_t i = 0; i < num_entries; i++) {
@@ -57,19 +57,19 @@ void pmm::init() {
             break;
         }
     }
-    log(Verbose, "PMM", "Bitmap: %p, Size: %lu", bitmap, bitmap_size);
+    log(VERBOSE, "PMM", "Bitmap: %p, Size: %lu", bitmap, bitmap_size);
 
     memset(bitmap, 0xFF, bitmap_size);
     for (size_t i = 0; i < num_entries; i++) {
         auto entry = LIMINE_MMAP_ENTRY(i);
-        log(Debug, "PMM", "MMAP[%lu] - Base: %p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
+        log(DEBUG, "PMM", "MMAP[%lu] - Base: %p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
         if (entry->type == 0)
             clear(entry->base, DIV_CEIL(entry->length, PAGE_SIZE));
     }
 
     set(phys_addr(reinterpret_cast<uintptr_t>(bitmap)), DIV_CEIL(bitmap_size, PAGE_SIZE));
     set(0x8000);
-    log(Info, "PMM", "Initialized PMM");
+    log(INFO, "PMM", "Initialized PMM");
 }
 
 uintptr_t pmm::frame() {
@@ -81,7 +81,7 @@ uintptr_t pmm::frame() {
                     set(new_frame);
                     return new_frame;
                 }
-    log(Warning, "PMM", "Could not find free page in bitmap");
+    log(WARNING, "PMM", "Could not find free page in bitmap");
     return 0;
 }
 
@@ -197,31 +197,31 @@ uacpi_status uacpi_kernel_raw_io_write(uacpi_io_addr addr, uacpi_u8 byte_width, 
 }
 
 uacpi_status uacpi_kernel_io_map(uacpi_io_addr, uacpi_size, uacpi_handle*) {
-    log(Verbose, "uACPI", "io_map");
+    log(VERBOSE, "uACPI", "io_map");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 void uacpi_kernel_io_unmap(uacpi_handle) {
-    log(Info, "uACPI", "uACPI requested to unmap io address");
+    log(INFO, "uACPI", "uACPI requested to unmap io address");
 }
 
 uacpi_status uacpi_kernel_io_read(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64*) {
-    log(Verbose, "uACPI", "io_read");
+    log(VERBOSE, "uACPI", "io_read");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 uacpi_status uacpi_kernel_io_write(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64) {
-    log(Verbose, "uACPI", "io_write");
+    log(VERBOSE, "uACPI", "io_write");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 uacpi_status uacpi_kernel_pci_read(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64*) {
-    log(Verbose, "uACPI", "pci_read");
+    log(VERBOSE, "uACPI", "pci_read");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 uacpi_status uacpi_kernel_pci_write(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64) {
-    log(Verbose, "uACPI", "pci_write");
+    log(VERBOSE, "uACPI", "pci_write");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
@@ -234,6 +234,6 @@ uacpi_status uacpi_kernel_wait_for_work_completion() {
 }
 
 uacpi_thread_id uacpi_kernel_get_thread_id() {
-    log(Info, "uACPI", "uACPI requested thread id");
+    log(INFO, "uACPI", "uACPI requested thread id");
     return UACPI_THREAD_ID_NONE;
 }

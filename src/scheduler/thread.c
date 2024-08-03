@@ -44,7 +44,7 @@ thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety) {
 
     thread->ef->rsp = thread->stack + THREAD_STACK_PAGES * PAGE_SIZE; // Stack top
     thread->ef->rbp = 0;
-    log(Verbose,  "THREAD", "Created %s thread", thread->name);
+    log(VERBOSE,  "THREAD", "Created %s thread", thread->name);
     return thread;
 }
 

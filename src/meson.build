@@ -68,7 +68,7 @@ kernel = executable(
     cpp_args: cpp_args,
     link_args: link_args,
     link_depends: linker_script,
-    dependencies: [uacpi, frigg, limine.get_variable('limine_dep')],
+    dependencies: deps,
     implicit_include_directories: false,
     include_directories: '../include',
     build_by_default: false,

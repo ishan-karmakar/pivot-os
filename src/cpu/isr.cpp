@@ -2,7 +2,7 @@
 #include <cpu/idt.hpp>
 #include <util/logger.hpp>
 #define EXTERN_ENTRY(num) extern void isr##num();
-#define SET_ENTRY(idx) idt.set_entry(idx, 0, isr##idx);
+#define SET_ENTRY(idx) kidt->set_entry(idx, 0, isr##idx);
 
 extern "C" {
     EXTERN_ENTRY(0);
@@ -40,15 +40,15 @@ extern "C" {
 }
 
 void log_registers(cpu::cpu_status *status) {
-    log(Verbose, "ISR", "ss: %p, rsp: %p, rflags: %p, cs: %p",
+    log(VERBOSE, "ISR", "ss: %p, rsp: %p, rflags: %p, cs: %p",
         status->ss, status->rsp, status->rflags, status->cs);
-    log(Verbose, "ISR", "rip: %p, rax: %p, rbx: %p, rcx: %p",
+    log(VERBOSE, "ISR", "rip: %p, rax: %p, rbx: %p, rcx: %p",
         status->rip, status->rax, status->rbx, status->rcx);
-    log(Verbose, "ISR", "rdx: %p, rbp: %p, rsi: %p, rdi: %p",
+    log(VERBOSE, "ISR", "rdx: %p, rbp: %p, rsi: %p, rdi: %p",
         status->rdx, status->rbp, status->rsi, status->rdi);
-    log(Verbose, "ISR", "r8: %p, r9: %p, r10: %p, r11: %p",
+    log(VERBOSE, "ISR", "r8: %p, r9: %p, r10: %p, r11: %p",
         status->r8, status->r9, status->r10, status->r11);
-    log(Verbose, "ISR", "r12: %p, r13: %p, r14: %p, r15: %p",
+    log(VERBOSE, "ISR", "r12: %p, r13: %p, r14: %p, r15: %p",
         status->r12, status->r13, status->r14, status->r15);
 }
 
@@ -57,15 +57,15 @@ extern "C" {
     void exception_handler(cpu::cpu_status *status) {
         switch (status->int_no) {
             case 14: {
-                log(Error, "ISR", "Received interrupt number 14");
-                log(Verbose, "ISR", "Error code: %b", status->err_code);
+                log(ERROR, "ISR", "Received interrupt number 14");
+                log(VERBOSE, "ISR", "ERROR code: %b", status->err_code);
                 uint64_t cr2 = 0;
                 asm volatile ("mov %%cr2, %0" : "=r" (cr2));
-                log(Verbose, "ISR", "cr2: %p", cr2);
+                log(VERBOSE, "ISR", "cr2: %p", cr2);
                 log_registers(status);
                 cpu::hcf();
             } default: {
-                log(Error, "ISR", "Received interrupt number %lu", status->int_no);
+                log(ERROR, "ISR", "Received interrupt number %lu", status->int_no);
                 log_registers(status);
                 cpu::hcf();
             }
@@ -73,7 +73,7 @@ extern "C" {
     }
 }
 
-void cpu::load_exceptions(cpu::IDT& idt) {
+void cpu::idt::load_exceptions() {
     SET_ENTRY(0);
     SET_ENTRY(1);
     SET_ENTRY(2);

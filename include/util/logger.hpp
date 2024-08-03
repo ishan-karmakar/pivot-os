@@ -1,12 +1,13 @@
 #pragma once
-#define MIN_LOG_LEVEL Debug
 
 typedef enum log_level {
-    Error,
-    Warning,
-    Info,
-    Verbose,
-    Debug
+    ERROR,
+    WARNING,
+    INFO,
+    VERBOSE,
+    DEBUG
 } log_level_t;
+
+constexpr log_level_t MIN_LOG_LEVEL = DEBUG;
 
 void log(log_level_t log_level, const char*, const char*, ...);

@@ -13,6 +13,9 @@ void gdt::early_init() {
     kgdt->load();
 }
 
+void gdt::init() {
+}
+
 GDT::GDT(gdt::desc *gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
 
 GDT& GDT::operator=(GDT& old) {
@@ -51,5 +54,5 @@ void GDT::load() {
         "mov %%ax, %%ss;"
         : : "rm" (gdtr), "a" (0x10) : "memory"
     );
-    log(Info, "GDT", "Loaded GDT");
+    log(INFO, "GDT", "Loaded GDT");
 };

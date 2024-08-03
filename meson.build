@@ -9,9 +9,13 @@ project(
 )
 
 env = environment()
-uacpi = dependency('uacpi', required: true)
-frigg = dependency('frigg', default_options: ['frigg_no_install=true'], required: true)
 limine = subproject('limine', required: true)
+deps = [
+    dependency('uacpi', required: true),
+    dependency('frigg', default_options: ['frigg_no_install=true'], required: true),
+    dependency('magic_enum', default_options: ['hash=true', 'test=false'], required: true),
+    limine.get_variable('limine_dep')
+]
 
 env.set('objcopy', find_program('objcopy', required: true).full_path())
 font_target = custom_target(

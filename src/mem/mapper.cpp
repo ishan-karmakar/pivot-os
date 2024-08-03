@@ -16,7 +16,7 @@ void mem::mapper::init() {
     asm volatile ("mov %%cr3, %0" : "=r" (cr3));
     cr3 = virt_addr(cr3);
     kmapper.initialize(reinterpret_cast<pg_tbl_t>(cr3));
-    log(Info, "MAPPER", "Initialized kernel PT mapper (%p)", cr3);
+    log(INFO, "MAPPER", "Initialized kernel PT mapper (%p)", cr3);
 }
 
 PTMapper::PTMapper(pg_tbl_t pml4) : pml4{pml4} {}

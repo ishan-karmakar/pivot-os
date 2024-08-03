@@ -1,32 +1,47 @@
 #pragma once
 #include <cstddef>
-#include <mem/bitmap.hpp>
 #include <frg/manual_box.hpp>
+#include <frg/rbtree.hpp>
+#include <kernel.hpp>
 
 namespace mem {
     class PTMapper;
 
-    class VMM : public Bitmap {
+    namespace vmm {
+        void init();
+    }
+
+    class VMM {
     public:
         enum vmm_level {
             Supervisor,
             User
         };
 
-        VMM(enum vmm_level, size_t, PTMapper&);
-        void *malloc(size_t) override;
-        size_t free(void*) override;
+        VMM(enum vmm_level, PTMapper&);
+        void *malloc(size_t);
+        size_t free(void*);
 
     private:
-        uint8_t *map_bm(enum vmm_level, size_t, PTMapper&);
+        struct node {
+            frg::rbtree_hook hook;
+            uintptr_t base;
+            size_t size;
+        };
+
+        struct VMMComparator {
+            bool operator()(node *left, node *right) {
+                return left->base <= right->base;
+            }
+        };
+
+        node *find_inactive(node*);
 
         size_t flags;
         PTMapper& mapper;
+        frg::rbtree<node, &node::hook, VMMComparator> tree;
+        static constexpr int NODES_PER_PAGE = PAGE_SIZE / sizeof(node);
     };
-
-    namespace vmm {
-        void init();
-    }
 
     extern frg::manual_box<VMM> kvmm;
 }

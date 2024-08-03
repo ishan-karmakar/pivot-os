@@ -25,20 +25,20 @@ void acpi::init() {
 
     uacpi_status status = uacpi_initialize(&init_params);
     if (uacpi_unlikely_error(status)) {
-        log(Error, "uACPI", "Error initializing uACPI");
+        log(ERROR, "uACPI", "ERROR initializing uACPI");
         abort();
     }
     uacpi_kernel_log(UACPI_LOG_INFO, "uACPI finished initialization\n");
 }
 
 extern "C" cpu::cpu_status *acpi_handler(cpu::cpu_status *status) {
-    log(Info, "uACPI", "ACPI interrupt triggered");
+    log(INFO, "uACPI", "ACPI interrupt triggered");
     acpi_info.handler(acpi_info.ctx);
     return status;
 }
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler handler, uacpi_handle ctx, uacpi_handle *out_handle) {
-    log(Info, "uACPI", "uACPI requested to install interrupt handler");
+    log(INFO, "uACPI", "uACPI requested to install interrupt handler");
     switch (irq) {
     case IRQ_ENT:
         cpu::kidt->set_entry(IDT_ENT, 0, acpi_irq);
@@ -51,6 +51,6 @@ uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interru
 }
 
 uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle) {
-    log(Info, "uACPI", "uACPI requested to uninstall interrupt handler");
+    log(INFO, "uACPI", "uACPI requested to uninstall interrupt handler");
     return UACPI_STATUS_UNIMPLEMENTED;
 }

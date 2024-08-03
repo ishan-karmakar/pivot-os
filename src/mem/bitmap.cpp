@@ -15,7 +15,7 @@ Bitmap::Bitmap(size_t tsize, size_t bsize, uint8_t *bm) : tsize{tsize}, bsize{bs
     for (size_t i = used; i < tsize / bsize - used; i++)
         set_id(i, 0);
 
-    log(Verbose, "BITMAP", "Initialized region with %lu bytes, %lu block size", tsize, bsize);
+    log(VERBOSE, "BITMAP", "Initialized region with %lu bytes, %lu block size", tsize, bsize);
 }
 
 void *Bitmap::malloc(size_t nsize) {

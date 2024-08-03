@@ -17,7 +17,7 @@ void cxxabi::call_constructors() {
     uintptr_t *init_array = &__start_ctors;
     for (size_t i = 0; i < num_entries; i++)
         ((func_t) init_array[i])();
-    log(Info, "CXXABI", "Called global constructors");
+    log(INFO, "CXXABI", "Called global constructors");
 }
 
 extern "C" {

@@ -21,15 +21,15 @@ void IOAPIC::init() {
     // addr = mioapic.address;
     // mem::PMM::set(addr);
     // uint32_t ioapic_version = read_reg(VERSION_OFF);
-    // log(Verbose, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", addr, mioapic.gsi_base, ioapic_version >> 16);
-    // log(Info, "IOAPIC", "Initialized IOAPIC");
+    // log(VERBOSE, "IOAPIC", "Address: %p, GSI Base: %u, Max Redirections: %hu", addr, mioapic.gsi_base, ioapic_version >> 16);
+    // log(INFO, "IOAPIC", "Initialized IOAPIC");
     // initialized = true;
     // if (uacpi_unlikely(uacpi_namespace_load())) {
-    //     log(Error, "IOAPIC", "uACPI failed to load namespaces");
+    //     log(ERROR, "IOAPIC", "uACPI failed to load namespaces");
     //     abort();
     // }
     // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {
-    //     log(Error, "IOAPIC", "uACPI failed to set interrupt model");
+    //     log(ERROR, "IOAPIC", "uACPI failed to set interrupt model");
     //     abort();
     // }
 }
@@ -43,14 +43,14 @@ void IOAPIC::set_irq(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags)
     auto so = find_so(irq);
     if (so.has_value()) {
         auto val = so.value();
-        log(Verbose, "IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi);
+        log(VERBOSE, "IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi);
         irq = val.gsi;
         ent.pin_polarity = val.flags & 2;
         ent.trigger_mode = val.flags & 8;
     }
 
     write_red(irq, ent);
-    log(Verbose, "IOAPIC", "Setting IRQ %hhu to IDT entry %hhu", irq, idt_ent);
+    log(VERBOSE, "IOAPIC", "Setting IRQ %hhu to IDT entry %hhu", irq, idt_ent);
 }
 
 void IOAPIC::set_mask(uint8_t irq, bool mask) {

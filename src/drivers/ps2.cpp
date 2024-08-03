@@ -12,7 +12,7 @@
 //     // Maybe QEMU isn't emulating correctly, but boot_arch_flags is always clear
 //     // auto fadt = acpi::ACPI::get_table<acpi::FADT>().value();
 //     // if (!(fadt.table->boot_arch_flags & 0b10))
-//     //     return log(Info, "PS2", "No PS/2 controller exists, skipping initialization");
+//     //     return log(INFO, "PS2", "No PS/2 controller exists, skipping initialization");
 
 //     // Disable both channels
 //     io::outb(PORT, 0xAD);
@@ -24,7 +24,7 @@
 //     // Self test
 //     io::outb(PORT, 0xAA);
 //     if (io::inb(PORT) != 0x55)
-//         return log(Error, "PS/2", "PS/2 controller failed self check");
+//         return log(ERROR, "PS/2", "PS/2 controller failed self check");
 
 //     // Set config byte
 //     uint8_t cfg = get_config();
@@ -42,12 +42,12 @@
 //     // Interface tests
 //     io::outb(PORT, 0xAB);
 //     if (io::inb(PORT))
-//         return log(Error, "PS/2", "Port 1 failed self test");
+//         return log(ERROR, "PS/2", "Port 1 failed self test");
     
 //     if (dchannel) {
 //         io::outb(PORT, 0xA9);
 //         if (io::inb(PORT)) {
-//             log(Warning, "PS/2", "Port 2 failed self test");
+//             log(WARNING, "PS/2", "Port 2 failed self test");
 //             dchannel = false;
 //         }
 //     }

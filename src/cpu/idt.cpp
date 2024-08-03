@@ -3,9 +3,15 @@
 #include <uacpi/kernel_api.h>
 using namespace cpu;
 
-IDT *cpu::kidt;
+frg::manual_box<IDT> cpu::kidt;
 
-void IDT::set_entry(uint8_t idx, idt_desc desc) {
+void idt::init() {
+    kidt.initialize();
+    load_exceptions();
+    kidt->load();
+}
+
+void IDT::set_entry(uint8_t idx, idt::desc desc) {
     this->idt[idx] = desc;
 }
 
@@ -24,5 +30,5 @@ void IDT::set_entry(uint8_t idx, uint8_t ring, void (*handler)()) {
 
 void IDT::load() const {
     asm volatile ("lidt %0" : : "rm" (idtr));
-    log(Info, "IDT", "Loaded IDT");
+    log(INFO, "IDT", "Loaded IDT");
 }
