@@ -35,48 +35,47 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
     uint16_t p2_idx = P_ENTRY(virt, 21);
     uint16_t p1_idx = P_ENTRY(virt, 12);
 
-    if (!(pml4[p4_idx] & 1)) {
-        pg_tbl_t table = reinterpret_cast<pg_tbl_t>(virt_addr(pmm::frame()));
-        uintptr_t tbl_addr = reinterpret_cast<uintptr_t>(table);
-        pml4[p4_idx] = tbl_addr | USER_PT_ENTRY;
-        clean_table(table);
-        map(tbl_addr, tbl_addr, KERNEL_PT_ENTRY);
-    }
+    if (!(pml4[p4_idx] & 1))
+        pml4[p4_idx] = alloc_table();
 
     pg_tbl_t p3_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(pml4[p4_idx] & SIGN_MASK));
-    if (!(p3_tbl[p3_idx] & 1)) {
-        pg_tbl_t table = reinterpret_cast<pg_tbl_t>(virt_addr(pmm::frame()));
-        uintptr_t tbl_addr = phys_addr(reinterpret_cast<uintptr_t>(table));
-        p3_tbl[p3_idx] = tbl_addr | USER_PT_ENTRY;
-        clean_table(table);
-        map(tbl_addr, tbl_addr, KERNEL_PT_ENTRY);
-    }
+    if (!(p3_tbl[p3_idx] & 1))
+        p3_tbl[p3_idx] = alloc_table();
 
     pg_tbl_t p2_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
     if (flags & 0x80) {
-        phys = DIV_FLOOR(phys, HUGEPAGE_SIZE);
+        phys = div_floor(phys, HUGEPAGE_SIZE);
         p2_tbl[p2_idx] = phys | flags | 1;
         return;
     }
 
-    if (!(p2_tbl[p2_idx] & 1)) {
-        pg_tbl_t table = reinterpret_cast<pg_tbl_t>(virt_addr(pmm::frame()));
-        uintptr_t tbl_addr = reinterpret_cast<uintptr_t>(table);
-        p2_tbl[p2_idx] = tbl_addr | USER_PT_ENTRY;
-        clean_table(table);
-        map(tbl_addr, tbl_addr, KERNEL_PT_ENTRY);
-    } else if (p2_tbl[p2_idx] & 0x80) {
-        p2_tbl[p2_idx] &= ~0x80UL;
-        map(p2_tbl[p2_idx] & SIGN_MASK, DIV_FLOOR(virt, HUGEPAGE_SIZE), flags, HUGEPAGE_SIZE / PAGE_SIZE);
+    if (!(p2_tbl[p2_idx] & 1))
+        p2_tbl[p2_idx] = alloc_table();
+    else if (p2_tbl[p2_idx] & 0x80) {
+        uintptr_t start = p2_tbl[p2_idx] & SIGN_MASK;
+        uintptr_t addr = alloc_table();
+        pg_tbl_t table = reinterpret_cast<pg_tbl_t>(virt_addr(addr));
+        for (int i = 0; i < 512; i++)
+            table[i] = (start + PAGE_SIZE * i) | flags;
+        p2_tbl[p2_idx] = addr;
     }
 
-    phys = DIV_FLOOR(phys, PAGE_SIZE);
+    phys = div_floor(phys, PAGE_SIZE);
     pg_tbl_t p1_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
     p1_tbl[p1_idx] = phys | flags | 1;
 }
 
+uintptr_t PTMapper::alloc_table() {
+    uintptr_t paddr = pmm::frame();
+    uintptr_t vaddr = virt_addr(paddr);
+    pg_tbl_t table = reinterpret_cast<pg_tbl_t>(vaddr);
+    clean_table(table);
+    map(paddr, vaddr, 0x80 | KERNEL_PT_ENTRY);
+    return paddr;
+}
+
 uintptr_t PTMapper::translate(uintptr_t virt) const {
-    virt = DIV_FLOOR(virt, PAGE_SIZE);
+    virt = div_floor(virt, PAGE_SIZE);
     // uint16_t p4_idx = P4_ENTRY(virt);
     // uint16_t p3_idx = P3_ENTRY(virt);
     // uint16_t p2_idx = P2_ENTRY(virt);

@@ -21,6 +21,7 @@ namespace mem {
 
     private:
         static void clean_table(pg_tbl_t);
+        uintptr_t alloc_table();
 
         pg_tbl_t const pml4;
     };

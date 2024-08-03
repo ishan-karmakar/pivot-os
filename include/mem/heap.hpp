@@ -6,6 +6,7 @@
 #include <kernel.hpp>
 // 64 KiB for kernel heap
 #define HEAP_SIZE 16
+constexpr size_t KHEAP_SIZE = PAGE_SIZE * 4;
 
 namespace mem {
     class VMM;

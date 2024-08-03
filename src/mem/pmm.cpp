@@ -41,11 +41,11 @@ void pmm::init() {
         auto entry = LIMINE_MMAP_ENTRY(i);
         // I don't know if BIOS has the framebuffer in physical memory, and it might make the memory less than it should be
         for (; entry->type == LIMINE_MEMMAP_FRAMEBUFFER; entry = LIMINE_MMAP_ENTRY(--i));
-        mem::num_pages = DIV_CEIL(entry->base + entry->length, PAGE_SIZE);
+        mem::num_pages = div_ceil(entry->base + entry->length, PAGE_SIZE);
     }
     log(INFO, "PMM", "Found %lu pages of physical memory", num_pages);
 
-    bitmap_size = DIV_CEIL(num_pages, 8);
+    bitmap_size = div_ceil(num_pages, 8);
     for (size_t i = 0; i < num_entries; i++) {
         auto entry = LIMINE_MMAP_ENTRY(i);
         if (entry->type == 0 && entry->length >= bitmap_size) {
@@ -60,10 +60,10 @@ void pmm::init() {
         auto entry = LIMINE_MMAP_ENTRY(i);
         log(DEBUG, "PMM", "MMAP[%lu] - Base: %p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
         if (entry->type == 0)
-            clear(entry->base, DIV_CEIL(entry->length, PAGE_SIZE));
+            clear(entry->base, div_ceil(entry->length, PAGE_SIZE));
     }
 
-    set(phys_addr(reinterpret_cast<uintptr_t>(bitmap)), DIV_CEIL(bitmap_size, PAGE_SIZE));
+    set(phys_addr(reinterpret_cast<uintptr_t>(bitmap)), div_ceil(bitmap_size, PAGE_SIZE));
     set(0x8000);
     log(INFO, "PMM", "Initialized PMM");
 }

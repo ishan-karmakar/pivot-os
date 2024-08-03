@@ -1,7 +1,15 @@
 #pragma once
+#include <cstddef>
 
-#define HUGEPAGE_SIZE 0x200000
-#define PAGE_SIZE 0x1000
-#define KERNEL_STACK_SIZE (PAGE_SIZE * 4)
-#define DIV_CEIL(num, dividend) (((num) + ((dividend) - 1)) / (dividend))
-#define DIV_FLOOR(num, dividend) ((num) / dividend * dividend)
+constexpr size_t HUGEPAGE_SIZE = 0x200000;
+constexpr size_t PAGE_SIZE = 0x1000;
+
+template <typename L, typename R>
+inline L div_ceil(L num, R dividend) {
+    return (num + (dividend - 1)) / dividend;
+}
+
+template <typename L, typename R>
+inline L div_floor(L num, R dividend) {
+    return static_cast<size_t>(num / dividend) * dividend;
+}

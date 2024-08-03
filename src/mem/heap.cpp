@@ -17,7 +17,7 @@ constinit HeapSlabPolicy heap_slab_policy;
 frg::manual_box<frg::slab_pool<HeapSlabPolicy, frg::simple_spinlock>> heap_pool;
 
 uintptr_t HeapSlabPolicy::map(size_t size) {
-    return reinterpret_cast<uintptr_t>(mem::kvmm->malloc(DIV_CEIL(size, PAGE_SIZE)));
+    return reinterpret_cast<uintptr_t>(mem::kvmm->malloc(div_ceil(size, PAGE_SIZE)));
 }
 
 void HeapSlabPolicy::unmap(uintptr_t, size_t) {

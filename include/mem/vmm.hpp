@@ -33,9 +33,18 @@ namespace mem {
             bool operator()(node& left, node& right) { return left.base < right.base; }
         };
 
+        node *new_node();
+
         frg::rbtree<node, &node::hook, VMMComparator> tree;
+        struct {
+            uint32_t num_nodes;
+            uint32_t num_pages;
+            node nodes[];
+        } *nodes;
         size_t flags;
         PTMapper &mapper;
+
+        static constexpr int NODES_PER_PAGE = (PAGE_SIZE - sizeof(uint64_t)) / sizeof(node);
     };
 
     extern frg::manual_box<VMM> kvmm;
