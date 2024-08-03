@@ -58,8 +58,8 @@ extern "C" {
         switch (status->int_no) {
             case 14: {
                 log(ERROR, "ISR", "Received interrupt number 14");
-                log(VERBOSE, "ISR", "ERROR code: %b", status->err_code);
-                uint64_t cr2 = 0;
+                log(VERBOSE, "ISR", "ERROR code: 0x%lx", status->err_code);
+                uint64_t cr2;
                 asm volatile ("mov %%cr2, %0" : "=r" (cr2));
                 log(VERBOSE, "ISR", "cr2: %p", cr2);
                 log_registers(status);

@@ -43,9 +43,9 @@ frg::manual_box<io::SerialPort> qemu;
 extern "C" void init_kernel() {
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
+    cpu::init();
     cpu::gdt::early_init();
     cpu::idt::init();
-    cpu::init();
     mem::pmm::init();
     mem::mapper::init();
     mem::vmm::init();

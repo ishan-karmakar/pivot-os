@@ -18,7 +18,7 @@ namespace mem {
             User
         };
 
-        VMM(enum vmm_level, PTMapper&);
+        VMM(uintptr_t start, size_t flags, PTMapper&);
         void *malloc(size_t);
         size_t free(void*);
 
@@ -26,21 +26,16 @@ namespace mem {
         struct node {
             frg::rbtree_hook hook;
             uintptr_t base;
-            size_t size;
+            size_t length;
         };
 
         struct VMMComparator {
-            bool operator()(node *left, node *right) {
-                return left->base <= right->base;
-            }
+            bool operator()(node& left, node& right) { return left.base < right.base; }
         };
 
-        node *find_inactive(node*);
-
-        size_t flags;
-        PTMapper& mapper;
         frg::rbtree<node, &node::hook, VMMComparator> tree;
-        static constexpr int NODES_PER_PAGE = PAGE_SIZE / sizeof(node);
+        size_t flags;
+        PTMapper &mapper;
     };
 
     extern frg::manual_box<VMM> kvmm;

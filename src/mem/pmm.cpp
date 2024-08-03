@@ -29,15 +29,11 @@ size_t bitmap_size;
 size_t mem::num_pages = 0;
 
 void pmm::init() {
-    if (mmap_request.response == nullptr) {
-        log(ERROR, "PMM", "Limine failed to respond to MMAP request");
-        abort();
-    }
+    if (mmap_request.response == nullptr)
+        panic("PMM", "Limine failed to respond to MMAP request");
 
-    if (hhdm_request.response == nullptr) {
-        log(ERROR, "PMM", "Limine failed to respond to HHDM request");
-        abort();
-    }
+    if (hhdm_request.response == nullptr)
+        panic("PMM", "Limine failed to respond to HHDM request");
 
     size_t num_entries = mmap_request.response->entry_count;
     {

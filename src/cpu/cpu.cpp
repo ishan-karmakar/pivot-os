@@ -5,11 +5,13 @@ using namespace cpu;
 
 void enable_sse();
 void enable_avx();
+void enable_smap(uint32_t);
+void enable_smep(uint32_t);
 
 void cpu::init() {
     // Enable SSE
-    uint32_t ignored, ecx, edx;
-    __get_cpuid(1, &ignored, &ignored, &ecx, &edx);
+    uint32_t eax, ebx, ecx, edx;
+    __cpuid(1, eax, ebx, ecx, edx);
 
     if (edx & (1 << 25)) {
         enable_sse();
@@ -22,11 +24,15 @@ void cpu::init() {
             ecx & (1 << 6) ? ", 4A" : ""
         );
 
-        if (ecx & (1 << 28)) {
+        if (ecx & (1 << 28)) // UNTESTED
             enable_avx();
-        }
     } else
-        log(VERBOSE, "CPU", "SSE is not available");
+        panic("CPU", "SSE is not available");
+
+    // UNTESTED
+    __cpuid_count(7, 0, eax, ebx, ecx, edx);
+    enable_smap(ebx);
+    enable_smep(ebx);
 }
 
 void enable_sse() {
@@ -43,4 +49,37 @@ void enable_sse() {
     log(VERBOSE, "CPU", "Enabled SSE");
 }
 
-void enable_avx() {}
+void enable_avx() {
+    asm volatile (
+        "mov $0, %%rcx;"
+        "xgetbv;"
+        "or $7, %%rax;"
+        "xsetbv;"
+        : : : "rdx", "rcx", "rax"
+    );
+    log(VERBOSE, "CPU", "Enabled AVX");
+}
+
+void enable_smap(uint32_t ebx) {
+    if (ebx & (1 << 7)) {
+        asm volatile (
+            "mov %%cr4, %%rax;"
+            "or $0x100000, %%rax;"
+            "mov %%rax, %%cr4;"
+            : : : "rax"
+        );
+        log(VERBOSE, "CPU", "Enabled SMAP");
+    }
+}
+
+void enable_smep(uint32_t ebx) {
+    if (ebx & (1 << 20)) {
+        asm volatile (
+            "mov %%cr4, %%rax;"
+            "or $0x200000, %%rax;"
+            "mov %%rax, %%cr4;"
+            : : : "rax"
+        );
+        log(VERBOSE, "CPU", "Enabled SMEP");
+    }
+}

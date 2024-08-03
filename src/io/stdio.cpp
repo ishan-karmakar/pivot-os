@@ -1,5 +1,6 @@
 #include <frg/printf.hpp>
 #include <io/stdio.hpp>
+#include <cpu/cpu.hpp>
 using namespace io;
 
 OWriter *io::writer = nullptr;
@@ -51,7 +52,7 @@ frg::expected<frg::format_error> CharPrinter::operator()(char c, frg::format_opt
     case 'G':
     case 'e':
     case 'E':
-        // frg::do_printf_floats(*writer, c, opts, size_mod, args);
+        frg::do_printf_floats(*writer, c, opts, size_mod, args);
         break;
     };
 

@@ -9,7 +9,6 @@ c_args = [
     '-mno-red-zone',
     '-static',
     '-fno-stack-protector',
-    '-mno-sse'
 ]
 
 cpp_args = [
