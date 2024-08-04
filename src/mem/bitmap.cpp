@@ -8,7 +8,7 @@ using namespace mem;
 const uint8_t BITS_PER_ID = 2;
 const uint8_t BLOCKS_PER_INT = sizeof(uint8_t) * 8 / BITS_PER_ID;
 
-Bitmap::Bitmap(size_t tsize, size_t bsize, uint8_t *bm) : tsize{tsize}, bsize{bsize}, bm{bm}, hblocks{div_ceil(div_ceil(tsize / bsize, BLOCKS_PER_INT), bsize)}, used{hblocks}, ffa{used} {
+Bitmap::Bitmap(size_t tsize, size_t bsize, uint8_t *bm) : tsize{tsize}, bsize{bsize}, bm{bm}, hblocks{div_ceil(div_ceil<size_t>(tsize / bsize, BLOCKS_PER_INT), bsize)}, used{hblocks}, ffa{used} {
     for (size_t i = 0; i < used; i++)
         set_id(i, 1);
 
