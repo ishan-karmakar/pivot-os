@@ -4,11 +4,7 @@
 
 struct limine_framebuffer;
 
-namespace mem {
-    class PTMapper;
-}
-
-namespace drivers {
+namespace fb {
     class Framebuffer : public io::OWriter {
     private:
         struct font {
@@ -45,10 +41,8 @@ namespace drivers {
         static constexpr int BPP = 4;
         static constexpr int TAB_SIZE = 4;
     };
-
-    namespace fb {
-        void init();
-    }
+    
+    void init();
 
     extern Framebuffer *kfb;
 }

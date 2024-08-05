@@ -4,7 +4,9 @@
 namespace cpu {
     struct cpu_status;
     extern "C" cpu::cpu_status *keyboard_handler(cpu::cpu_status*);
+}
 
+namespace idt {
     class IDT;
 }
 
@@ -12,7 +14,7 @@ namespace drivers {
     class Keyboard {
     public:
         Keyboard() = delete;
-        static void init(cpu::IDT&);
+        static void init(idt::IDT&);
     
     private:
         enum code {

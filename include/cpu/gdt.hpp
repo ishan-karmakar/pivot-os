@@ -3,29 +3,27 @@
 #include <cstddef>
 #include <frg/manual_box.hpp>
 
-namespace cpu {
-    namespace gdt {
-        struct [[gnu::packed]] gdtr {
-            uint16_t size;
-            uintptr_t addr;
-        };
+namespace gdt {
+    struct [[gnu::packed]] gdtr {
+        uint16_t size;
+        uintptr_t addr;
+    };
 
-        union desc {
-            struct [[gnu::packed]] alignas(8) {
-                uint16_t limit0;
-                uint16_t base0;
-                uint8_t base1;
-                uint8_t access_byte;
-                uint8_t limit1:4;
-                uint8_t flags:4;
-                uint8_t base2;
-            };
-            uint64_t raw;
+    union desc {
+        struct [[gnu::packed]] alignas(8) {
+            uint16_t limit0;
+            uint16_t base0;
+            uint8_t base1;
+            uint8_t access_byte;
+            uint8_t limit1:4;
+            uint8_t flags:4;
+            uint8_t base2;
         };
+        uint64_t raw;
+    };
 
-        void early_init();
-        void init();
-    }
+    void early_init();
+    void init();
 
     class GDT {
     public:
@@ -47,3 +45,4 @@ namespace cpu {
 
     extern frg::manual_box<GDT> kgdt;
 }
+

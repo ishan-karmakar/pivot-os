@@ -7,6 +7,9 @@ void enable_sse();
 void enable_avx();
 void enable_smap(uint32_t);
 void enable_smep(uint32_t);
+void enable_ne();
+
+constexpr uint32_t IA32_EFER = 0xC0000080;
 
 void cpu::init() {
     // Enable SSE
@@ -49,6 +52,7 @@ void enable_sse() {
     log(VERBOSE, "CPU", "Enabled SSE");
 }
 
+[[gnu::always_inline]]
 void enable_avx() {
     asm volatile (
         "mov $0, %%rcx;"
@@ -60,6 +64,7 @@ void enable_avx() {
     log(VERBOSE, "CPU", "Enabled AVX");
 }
 
+[[gnu::always_inline]]
 void enable_smap(uint32_t ebx) {
     if (ebx & (1 << 7)) {
         asm volatile (
@@ -72,6 +77,7 @@ void enable_smap(uint32_t ebx) {
     }
 }
 
+[[gnu::always_inline]]
 void enable_smep(uint32_t ebx) {
     if (ebx & (1 << 20)) {
         asm volatile (
@@ -82,4 +88,10 @@ void enable_smep(uint32_t ebx) {
         );
         log(VERBOSE, "CPU", "Enabled SMEP");
     }
+}
+
+[[gnu::always_inline]]
+void enable_ne() {
+    wrmsr(IA32_EFER, rdmsr(IA32_EFER) | (1 << 11));
+    log(VERBOSE, "CPU", "Enabled NE bit in EFER");
 }

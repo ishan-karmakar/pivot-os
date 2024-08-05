@@ -1,9 +1,10 @@
 #include <cpu/idt.hpp>
+#include <cpu/isr.hpp>
 #include <util/logger.hpp>
 #include <uacpi/kernel_api.h>
-using namespace cpu;
+using namespace idt;
 
-frg::manual_box<IDT> cpu::kidt;
+frg::manual_box<IDT> idt::kidt;
 
 void idt::init() {
     kidt.initialize();

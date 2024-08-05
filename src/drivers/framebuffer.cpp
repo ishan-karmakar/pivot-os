@@ -4,10 +4,10 @@
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
 #include <limine.h>
-using namespace drivers;
+using namespace fb;
 
 extern char _binary_default_psf_start;
-Framebuffer *drivers::kfb = nullptr;
+Framebuffer *fb::kfb = nullptr;
 const struct Framebuffer::font *Framebuffer::font = reinterpret_cast<struct font*>(&_binary_default_psf_start);
 
 __attribute__((section(".requests")))
@@ -20,7 +20,7 @@ extern volatile limine_memmap_request mmap_request;
 
 void fb::init() {
     kfb = new Framebuffer{fb_request.response->framebuffers[0]};
-    io::writer = kfb;
+    // io::writer = kfb;
     log(INFO, "FB", "Initialized kernel framebuffer");
 }
 
@@ -28,7 +28,7 @@ Framebuffer::Framebuffer(limine_framebuffer *info, uint32_t fg, uint32_t bg) :
     buffer{reinterpret_cast<char*>(info->address)},
     info{info}, num_cols{info->width / font->width}, num_rows{info->height / font->height}, fg{fg}, bg{bg}
 {
-    clear();
+    // clear();
 }
 
 void Framebuffer::append(char c) {

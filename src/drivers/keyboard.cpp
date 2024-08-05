@@ -28,7 +28,7 @@ char shift_keymap[] = {
     '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'
 };
 
-void Keyboard::init(cpu::IDT& idt) {
+void Keyboard::init(idt::IDT& idt) {
     io::inb(PORT);
 
     io::outb(PORT, 0xF0); // Scancode set 1

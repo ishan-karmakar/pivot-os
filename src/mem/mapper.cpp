@@ -6,12 +6,12 @@
 #include <uacpi/kernel_api.h>
 #define P_ENTRY(addr, offset) (((addr) >> (offset)) & 0x1FF)
 
-using namespace mem;
+using namespace mapper;
 constexpr uintptr_t SIGN_MASK = 0x000ffffffffff00;
 
-frg::manual_box<PTMapper> mem::kmapper;
+frg::manual_box<PTMapper> mapper::kmapper;
 
-void mem::mapper::init() {
+void mapper::init() {
     uintptr_t cr3;
     asm volatile ("mov %%cr3, %0" : "=r" (cr3));
     cr3 = virt_addr(cr3);
@@ -30,6 +30,7 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
     if (phys == 0 || virt == 0)
         return;
 
+    flags |= 1;
     uint16_t p4_idx = P_ENTRY(virt, 39);
     uint16_t p3_idx = P_ENTRY(virt, 30);
     uint16_t p2_idx = P_ENTRY(virt, 21);
@@ -45,7 +46,7 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
     pg_tbl_t p2_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
     if (flags & 0x80) {
         phys = div_floor(phys, HUGEPAGE_SIZE);
-        p2_tbl[p2_idx] = phys | flags | 1;
+        p2_tbl[p2_idx] = phys | flags;
         return;
     }
 
@@ -57,12 +58,12 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
         pg_tbl_t table = reinterpret_cast<pg_tbl_t>(virt_addr(addr));
         for (int i = 0; i < 512; i++)
             table[i] = (start + PAGE_SIZE * i) | flags;
-        p2_tbl[p2_idx] = addr;
+        p2_tbl[p2_idx] = addr | flags;
     }
 
     phys = div_floor(phys, PAGE_SIZE);
     pg_tbl_t p1_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
-    p1_tbl[p1_idx] = phys | flags | 1;
+    p1_tbl[p1_idx] = phys | flags;
 }
 
 uintptr_t PTMapper::alloc_table() {
@@ -70,7 +71,7 @@ uintptr_t PTMapper::alloc_table() {
     uintptr_t vaddr = virt_addr(paddr);
     pg_tbl_t table = reinterpret_cast<pg_tbl_t>(vaddr);
     clean_table(table);
-    map(paddr, vaddr, 0x80 | KERNEL_PT_ENTRY);
+    map(paddr, vaddr, KERNEL_ENTRY);
     return paddr;
 }
 

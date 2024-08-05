@@ -6,7 +6,7 @@
 #include <limine.h>
 #include <cstdlib>
 #define LIMINE_MMAP_ENTRY(i) mmap_request.response->entries[(i)]
-using namespace mem;
+using namespace pmm;
 
 __attribute__((section(".requests")))
 volatile limine_memmap_request mmap_request = { LIMINE_MEMMAP_REQUEST, 2, nullptr };
@@ -26,7 +26,7 @@ static volatile limine_paging_mode_request paging_request = {
 
 uint8_t *bitmap;
 size_t bitmap_size;
-size_t mem::num_pages = 0;
+size_t pmm::num_pages = 0;
 
 void pmm::init() {
     if (mmap_request.response == nullptr)
@@ -41,7 +41,7 @@ void pmm::init() {
         auto entry = LIMINE_MMAP_ENTRY(i);
         // I don't know if BIOS has the framebuffer in physical memory, and it might make the memory less than it should be
         for (; entry->type == LIMINE_MEMMAP_FRAMEBUFFER; entry = LIMINE_MMAP_ENTRY(--i));
-        mem::num_pages = div_ceil(entry->base + entry->length, PAGE_SIZE);
+        num_pages = div_ceil(entry->base + entry->length, PAGE_SIZE);
     }
     log(INFO, "PMM", "Found %lu pages of physical memory", num_pages);
 

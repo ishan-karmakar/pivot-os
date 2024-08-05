@@ -10,14 +10,13 @@
 #include <frg/spinlock.hpp>
 #include <frg/allocation.hpp>
 using namespace frg;
-using namespace mem;
+using namespace heap;
 
-frg::manual_box<Heap> mem::kheap;
 constinit HeapSlabPolicy heap_slab_policy;
 frg::manual_box<frg::slab_pool<HeapSlabPolicy, frg::simple_spinlock>> heap_pool;
 
 uintptr_t HeapSlabPolicy::map(size_t size) {
-    return reinterpret_cast<uintptr_t>(mem::kvmm->malloc(div_ceil(size, PAGE_SIZE)));
+    return reinterpret_cast<uintptr_t>(vmm::kvmm->malloc(round_up(size, PAGE_SIZE)));;
 }
 
 void HeapSlabPolicy::unmap(uintptr_t, size_t) {
@@ -27,19 +26,12 @@ void HeapSlabPolicy::unmap(uintptr_t, size_t) {
 void heap::init() {
     heap_pool.initialize(heap_slab_policy);
     log(INFO, "HEAP", "Initialized kernel heap slab allocator");
-    // kheap.initialize(*mem::kvmm, HEAP_SIZE);
-    // log(INFO, "HEAP", "Initialized kernel heap");
 }
 
 HeapAllocator& heap::allocator() {
     static HeapAllocator alloc{heap_pool.get()};
     return alloc;
 }
-
-// Heap is basically just a clone of bitmap since nothing special is needed to add to it
-// All memory management is already taken care of by VMM
-Heap::Heap(VMM& vmm, size_t size, size_t bsize) :
-    Bitmap{size * PAGE_SIZE, bsize, reinterpret_cast<uint8_t*>(vmm.malloc(size))} {}
 
 void *malloc(size_t size) {
     return heap::allocator().allocate(size);

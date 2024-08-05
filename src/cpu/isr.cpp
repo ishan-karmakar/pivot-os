@@ -1,4 +1,5 @@
 #include <cpu/cpu.hpp>
+#include <cpu/isr.hpp>
 #include <cpu/idt.hpp>
 #include <util/logger.hpp>
 #define EXTERN_ENTRY(num) extern void isr##num();
@@ -73,7 +74,7 @@ extern "C" {
     }
 }
 
-void cpu::idt::load_exceptions() {
+void idt::load_exceptions() {
     SET_ENTRY(0);
     SET_ENTRY(1);
     SET_ENTRY(2);

@@ -3,26 +3,23 @@
 #include <cstddef>
 #include <frg/manual_box.hpp>
 
-namespace cpu {
-    namespace idt {
-        struct [[gnu::packed]] desc {
-            uint16_t offset0;
-            uint16_t segment_selector;
-            uint8_t ist;
-            uint8_t flags;
-            uint16_t offset1;
-            uint32_t offset2;
-            uint32_t rsv;
-        };
+namespace idt {
+    struct [[gnu::packed]] desc {
+        uint16_t offset0;
+        uint16_t segment_selector;
+        uint8_t ist;
+        uint8_t flags;
+        uint16_t offset1;
+        uint32_t offset2;
+        uint32_t rsv;
+    };
 
-        struct [[gnu::packed]] idtr {
-            uint16_t size;
-            uintptr_t addr;
-        };
+    struct [[gnu::packed]] idtr {
+        uint16_t size;
+        uintptr_t addr;
+    };
 
-        void load_exceptions();
-        void init();
-    }
+    void init();
 
     class IDT {
     public:
@@ -40,3 +37,4 @@ namespace cpu {
 
     extern frg::manual_box<IDT> kidt;
 }
+

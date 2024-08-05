@@ -5,7 +5,7 @@ namespace mem {
     class PTMapper;
 }
 
-namespace cpu {
+namespace idt {
     class IDT;
 }
 
@@ -16,7 +16,7 @@ namespace drivers {
         LAPIC() = delete;
 
         // Init for BSP processor - Completes full initialization of APIC
-        static void init(cpu::IDT&);
+        static void init(idt::IDT&);
 
         // Init for AP processors - Only enables APIC, as initialization is already done by BSP
         static void init();

@@ -54,7 +54,6 @@ kernel = executable(
     'drivers/acpi.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
-    'mem/bitmap.cpp',
     'mem/heap.cpp',
     'mem/mapper.cpp',
     'mem/pmm.cpp',

@@ -1,12 +1,14 @@
 #pragma once
 #include <cstdint>
 
-namespace cpu {
+namespace gdt {
     class GDT;
+}
 
+namespace tss {
     class TSS {
     public:
-        TSS(GDT&);
+        TSS(gdt::GDT&);
 
         [[gnu::always_inline]]
         inline void set_rsp0() const {
@@ -28,6 +30,6 @@ namespace cpu {
 
         void set_rsp0(uintptr_t) const;
 
-        const GDT& gdt;
+        const gdt::GDT& gdt;
     };
 }

@@ -3,9 +3,7 @@
 #include <cstdlib>
 #include <util/logger.hpp>
 
-struct boot_info;
-
-namespace drivers::acpi {
+namespace acpi {
     void init();
 
     template <class T>

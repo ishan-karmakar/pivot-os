@@ -1,9 +1,9 @@
 #include <cpu/gdt.hpp>
 #include <algorithm>
 #include <util/logger.hpp>
-using namespace cpu;
+using namespace gdt;
 
-frg::manual_box<GDT> cpu::kgdt;
+frg::manual_box<GDT> gdt::kgdt;
 constinit gdt::desc sgdt[3];
 
 void gdt::early_init() {

@@ -1,14 +1,14 @@
 #pragma once
 
-typedef enum log_level {
+enum LogLevel {
     ERROR,
     WARNING,
     INFO,
     VERBOSE,
     DEBUG
-} log_level_t;
+};
 
-constexpr log_level_t MIN_LOG_LEVEL = DEBUG;
+constexpr LogLevel MIN_LOG_LEVEL = DEBUG;
 
-void log(log_level_t log_level, const char*, const char*, ...);
+void log(LogLevel log_level, const char*, const char*, ...);
 void panic(const char*, const char *, ...);

@@ -2,13 +2,13 @@
 #include <io/stdio.hpp>
 #include <magic_enum.hpp>
 
-void vlog(log_level_t log_level, const char *target, const char *format, va_list args) {
+void vlog(LogLevel log_level, const char *target, const char *format, va_list args) {
     printf("[%hhu][%s] %s: ", 0, magic_enum::enum_name(log_level).begin(), target);
     vprintf(format, args);
     printf("\n");
 }
 
-void log(log_level_t log_level, const char *target, const char *format, ...) {
+void log(LogLevel log_level, const char *target, const char *format, ...) {
     if (log_level > MIN_LOG_LEVEL)
         return;
     va_list args;
@@ -25,6 +25,6 @@ void panic(const char *target, const char *format, ...) {
 
 }
 
-extern "C" void uacpi_kernel_log(log_level_t log_level, const char *str) {
+extern "C" void uacpi_kernel_log(LogLevel log_level, const char *str) {
     log(log_level, "UACPI", str);
 }

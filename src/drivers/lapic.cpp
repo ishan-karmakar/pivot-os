@@ -22,7 +22,7 @@ bool LAPIC::x2mode;
 uint32_t LAPIC::ms_interval;
 bool LAPIC::initialized = false;
 
-void LAPIC::init(cpu::IDT& idt) {
+void LAPIC::init(idt::IDT& idt) {
     if (initialized) return;
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     if (!(msr & (1 << 11)))

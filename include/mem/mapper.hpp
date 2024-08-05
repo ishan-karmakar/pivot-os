@@ -3,11 +3,20 @@
 #include <cstddef>
 #include <frg/manual_box.hpp>
 
-#define KERNEL_PT_ENTRY 0b10
-#define USER_PT_ENTRY 0b110
+typedef uint64_t* pg_tbl_t;
 
-namespace mem {
-    typedef uint64_t* pg_tbl_t;
+namespace mapper {
+    enum PagingFlags {
+        Writable = (1 << 1),
+        User = (1 << 2),
+        WriteThrough = (1 << 3),
+        CacheDisable = (1 << 4),
+        Hugepage = (1 << 7),
+        NoExecute = (1 << 63)
+    };
+
+    constexpr size_t KERNEL_ENTRY = Writable;
+    constexpr size_t USER_ENTRY = Writable | User;
 
     class PTMapper {
     public:
@@ -26,9 +35,7 @@ namespace mem {
         pg_tbl_t const pml4;
     };
 
-    namespace mapper {
-        void init();
-    }
+    void init();
 
     extern frg::manual_box<PTMapper> kmapper;
 }

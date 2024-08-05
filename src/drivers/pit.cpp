@@ -16,7 +16,7 @@ extern "C" void pit_irq();
 volatile size_t PIT::ticks = 0;
 bool PIT::initialized = false;
 
-void PIT::init(cpu::IDT& idt) {
+void PIT::init(idt::IDT& idt) {
     if (initialized) return;
     idt.set_entry(IDT_ENT, 0, pit_irq);
     IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::MASKED);
@@ -45,8 +45,8 @@ extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
 // Microseconds, not milliseconds
 void uacpi_kernel_stall(uacpi_u8 ms) {
     drivers::IOAPIC::init();
-    PIT::init(*cpu::kidt);
-    LAPIC::init(*cpu::kidt);
+    PIT::init(*idt::kidt);
+    LAPIC::init(*idt::kidt);
     PIT::ticks = 0;
     asm volatile ("sti");
     PIT::enable();

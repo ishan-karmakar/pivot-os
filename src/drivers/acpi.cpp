@@ -4,7 +4,7 @@
 #include <uacpi/uacpi.h>
 #include <cpu/idt.hpp>
 #include <drivers/acpi.hpp>
-using namespace drivers;
+using namespace acpi;
 
 constexpr int IDT_ENT = 36;
 constexpr int IRQ_ENT = 9;
@@ -41,7 +41,7 @@ uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interru
     log(INFO, "uACPI", "uACPI requested to install interrupt handler");
     switch (irq) {
     case IRQ_ENT:
-        cpu::kidt->set_entry(IDT_ENT, 0, acpi_irq);
+        idt::kidt->set_entry(IDT_ENT, 0, acpi_irq);
         acpi_info.handler = handler;
         acpi_info.ctx = ctx;
         break;

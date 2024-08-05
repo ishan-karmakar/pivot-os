@@ -4,27 +4,22 @@
 #include <kernel.hpp>
 #include <buddy_alloc.h>
 
-namespace mem {
+namespace mapper {
     class PTMapper;
+}
 
-    namespace vmm {
-        void init();
-    }
+namespace vmm {
+    void init();
 
     class VMM {
     public:
-        enum vmm_level {
-            Supervisor,
-            User
-        };
-
-        VMM(uintptr_t start, size_t size, size_t flags, PTMapper&);
+        VMM(uintptr_t start, size_t size, size_t flags, mapper::PTMapper&);
         void *malloc(size_t);
         void free(void*);
 
     private:
         size_t flags;
-        PTMapper &mapper;
+        mapper::PTMapper &mpr;
         struct buddy *buddy;
     };
 

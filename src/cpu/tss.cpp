@@ -2,9 +2,9 @@
 #include <cpu/gdt.hpp>
 #include <cpu/tss.hpp>
 #include <util/logger.hpp>
-using namespace cpu;
+using namespace tss;
 
-TSS::TSS(GDT& gdt) : gdt{gdt} {
+TSS::TSS(gdt::GDT& gdt) : gdt{gdt} {
     uintptr_t tss = reinterpret_cast<uintptr_t>(new struct tss());
     uint64_t gdt_entry = sizeof(struct tss) |
                          (tss & 0xFFFF) << 16 |
