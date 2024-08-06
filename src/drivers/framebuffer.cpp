@@ -8,7 +8,7 @@ using namespace fb;
 
 extern char _binary_default_psf_start;
 Framebuffer *fb::kfb = nullptr;
-const struct Framebuffer::font *Framebuffer::font = reinterpret_cast<struct font*>(&_binary_default_psf_start);
+const struct fb::font *fb::font = reinterpret_cast<struct font*>(&_binary_default_psf_start);
 
 __attribute__((section(".requests")))
 static volatile limine_framebuffer_request fb_request = { LIMINE_FRAMEBUFFER_REQUEST, 2, nullptr };
@@ -20,16 +20,15 @@ extern volatile limine_memmap_request mmap_request;
 
 void fb::init() {
     kfb = new Framebuffer{fb_request.response->framebuffers[0]};
-    // io::writer = kfb;
+    io::writer = kfb;
     log(INFO, "FB", "Initialized kernel framebuffer");
 }
 
+// Create new instance of Framebuffer - Doesn't clear screen automatically
 Framebuffer::Framebuffer(limine_framebuffer *info, uint32_t fg, uint32_t bg) :
     buffer{reinterpret_cast<char*>(info->address)},
     info{info}, num_cols{info->width / font->width}, num_rows{info->height / font->height}, fg{fg}, bg{bg}
-{
-    // clear();
-}
+{}
 
 void Framebuffer::append(char c) {
     switch (c) {

@@ -37,28 +37,33 @@ void PTMapper::map(uintptr_t phys, uintptr_t virt, size_t flags) {
     uint16_t p1_idx = P_ENTRY(virt, 12);
 
     if (!(pml4[p4_idx] & 1))
-        pml4[p4_idx] = alloc_table();
+        pml4[p4_idx] = alloc_table() | PT_ENTRY;
 
     pg_tbl_t p3_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(pml4[p4_idx] & SIGN_MASK));
     if (!(p3_tbl[p3_idx] & 1))
-        p3_tbl[p3_idx] = alloc_table();
+        p3_tbl[p3_idx] = alloc_table() | PT_ENTRY;
 
     pg_tbl_t p2_tbl = reinterpret_cast<pg_tbl_t>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
-    if (flags & 0x80) {
-        phys = div_floor(phys, HUGEPAGE_SIZE);
-        p2_tbl[p2_idx] = phys | flags;
+
+    // Will keep hugepage mapping if:
+    // - Already using hugepages
+    // - Mapping does not require 4K
+    // - Phys addrs point to same hugepage
+    uintptr_t hp_phys = round_down(phys, HUGEPAGE_SIZE);
+    if (flags & 0x80 && flags & NoRequires4K && (p2_tbl[p2_idx] & SIGN_MASK) == hp_phys)
         return;
-    }
+    flags &= ~NoRequires4K;
 
     if (!(p2_tbl[p2_idx] & 1))
-        p2_tbl[p2_idx] = alloc_table();
+        p2_tbl[p2_idx] = alloc_table() | PT_ENTRY;
     else if (p2_tbl[p2_idx] & 0x80) {
-        uintptr_t start = p2_tbl[p2_idx] & SIGN_MASK;
+        uintptr_t original = p2_tbl[p2_idx];
+        original &= ~NoRequires4K;
         uintptr_t addr = alloc_table();
         pg_tbl_t table = reinterpret_cast<pg_tbl_t>(virt_addr(addr));
         for (int i = 0; i < 512; i++)
-            table[i] = (start + PAGE_SIZE * i) | flags;
-        p2_tbl[p2_idx] = addr | flags;
+            table[i] = ((original & SIGN_MASK) + PAGE_SIZE * i) | (original & ~SIGN_MASK);
+        p2_tbl[p2_idx] = addr | PT_ENTRY;
     }
 
     phys = div_floor(phys, PAGE_SIZE);

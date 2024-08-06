@@ -52,7 +52,8 @@ void free(void *ptr) {
 }
 
 void *operator new(size_t size) {
-    return malloc(size);
+    auto t = malloc(size);
+    return t;
 }
 
 void operator delete(void *ptr) {
