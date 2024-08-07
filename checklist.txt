@@ -8,7 +8,7 @@
 + GDT
 + IDT
 + TSS
-+ PMM
++ PMM (Hugepages)
 / VMM (Experimenting with AVL tree)
 / Heap (switching to slab allocator)
 + Framebuffer

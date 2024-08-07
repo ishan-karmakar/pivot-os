@@ -3,6 +3,7 @@
 #include <util/logger.hpp>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
+#include <mem/heap.hpp>
 #include <limine.h>
 using namespace fb;
 
