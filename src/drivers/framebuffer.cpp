@@ -69,7 +69,7 @@ void Framebuffer::clear() {
 
 void Framebuffer::putchar(char c) {
     const uint8_t * glyph = reinterpret_cast<const uint8_t*>(font) + font->header_size + c * font->bpg;
-    size_t bpl = div_ceil<uint32_t>(font->width, 8);
+    size_t bpl = div_ceil(font->width, 8);
     size_t off = get_off();
     for (uint32_t cy = 0, line = off; cy < font->height;
         cy++, glyph += bpl, off += info->pitch, line = off)
@@ -113,5 +113,5 @@ Framebuffer::coord_t Framebuffer::get_constraints() {
 }
 
 size_t Framebuffer::get_off() {
-    return (y * font->height * BPP * info->pitch) + (x * font->width * BPP);
+    return (y * font->height * info->pitch) + (x * font->width * BPP);
 }

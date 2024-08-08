@@ -8,7 +8,7 @@
 #include <cpu/gdt.hpp>
 #include <cpu/idt.hpp>
 // #include <cpu/smp.hpp>
-// #include <drivers/acpi.hpp>
+#include <drivers/acpi.hpp>
 #include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
 #include <util/logger.hpp>
@@ -53,7 +53,7 @@ extern "C" void init_kernel() {
     gdt::init();
     cxxabi::call_constructors();
     fb::init();
-    // drivers::acpi::init(bi);
+    acpi::init();
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);

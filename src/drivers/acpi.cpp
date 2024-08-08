@@ -4,6 +4,7 @@
 #include <uacpi/uacpi.h>
 #include <cpu/idt.hpp>
 #include <drivers/acpi.hpp>
+#include <limine.h>
 using namespace acpi;
 
 constexpr int IDT_ENT = 36;
@@ -14,11 +15,17 @@ struct uacpi_handler_info {
 };
 uacpi_handler_info acpi_info;
 
+__attribute__((section(".requests")))
+static volatile limine_rsdp_request rsdp_request = { LIMINE_RSDP_REQUEST, 2, nullptr };
+
 extern "C" void acpi_irq();
 
 void acpi::init() {
+    if (rsdp_request.response == nullptr)
+        panic("ACPI[INIT]", "Limine failed to respond to RSDP request");
+
     uacpi_init_params init_params = {
-        // .rsdp = bi->rsdp,
+        .rsdp = reinterpret_cast<uintptr_t>(rsdp_request.response->address),
         .log_level = UACPI_LOG_TRACE,
         .flags = 0
     };

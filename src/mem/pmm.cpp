@@ -45,7 +45,7 @@ void pmm::init() {
     }
     log(INFO, "PMM", "Found %lu pages of physical memory", num_pages);
 
-    bitmap_size = div_ceil<size_t>(num_pages, 8);
+    bitmap_size = div_ceil(num_pages, 8);
     for (size_t i = 0; i < num_entries; i++) {
         auto entry = LIMINE_MMAP_ENTRY(i);
         if (entry->type == 0 && entry->length >= bitmap_size) {

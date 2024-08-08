@@ -5,6 +5,9 @@
 #define EXTERN_ENTRY(num) extern void isr##num();
 #define SET_ENTRY(idx) kidt->set_entry(idx, 0, isr##idx);
 
+// TODO: Seperate stack (IST)
+// TODO: Return from recoverable exceptions
+
 extern "C" {
     EXTERN_ENTRY(0);
     EXTERN_ENTRY(1);
@@ -41,6 +44,7 @@ extern "C" {
 }
 
 void log_registers(cpu::cpu_status *status) {
+    log(VERBOSE, "ISR", "ERROR code: 0x%lx", status->err_code);
     log(VERBOSE, "ISR", "ss: %p, rsp: %p, rflags: %p, cs: %p",
         status->ss, status->rsp, status->rflags, status->cs);
     log(VERBOSE, "ISR", "rip: %p, rax: %p, rbx: %p, rcx: %p",
@@ -56,21 +60,18 @@ void log_registers(cpu::cpu_status *status) {
 extern "C" {
     [[noreturn]]
     void exception_handler(cpu::cpu_status *status) {
+        log(ERROR, "ISR", "Received interrupt number %lu", status->int_no);
         switch (status->int_no) {
-            case 14: {
-                log(ERROR, "ISR", "Received interrupt number 14");
-                log(VERBOSE, "ISR", "ERROR code: 0x%lx", status->err_code);
+            case 14:
                 uint64_t cr2;
                 asm volatile ("mov %%cr2, %0" : "=r" (cr2));
                 log(VERBOSE, "ISR", "cr2: %p", cr2);
                 log_registers(status);
-                cpu::hcf();
-            } default: {
-                log(ERROR, "ISR", "Received interrupt number %lu", status->int_no);
+                break;
+            default:
                 log_registers(status);
-                cpu::hcf();
-            }
         }
+        cpu::hcf();
     }
 }
 
