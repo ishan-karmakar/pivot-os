@@ -18,7 +18,7 @@ void cpu::init() {
 
     if (edx & (1 << 25)) {
         enable_sse();
-        log(VERBOSE, "CPU", "%sSSE%s%s%s%s%s is available",
+        logger::verbose("CPU[SSE]", "%sSSE%s%s%s%s%s is available",
             ecx & (1 << 9) ? "SSSE3, " : "",
             edx & (1 << 26) ? "2" : "",
             ecx & 1 ? ", 3" : "",
@@ -30,7 +30,7 @@ void cpu::init() {
         if (ecx & (1 << 28)) // UNTESTED
             enable_avx();
     } else
-        panic("CPU", "SSE is not available");
+        logger::panic("CPU[INIT]", "SSE is not available");
 
     // UNTESTED
     __cpuid_count(7, 0, eax, ebx, ecx, edx);
@@ -38,7 +38,8 @@ void cpu::init() {
     enable_smep(ebx);
 }
 
-void enable_sse() {
+[[gnu::always_inline]]
+inline void enable_sse() {
     asm volatile (
         "mov %%cr0, %%rax;"
         "and $0xFFFFFFFFFFFFFFFB, %%rax;"
@@ -49,11 +50,11 @@ void enable_sse() {
         "mov %%rax, %%cr4;"
         : : : "rax"
     );
-    log(VERBOSE, "CPU", "Enabled SSE");
+    logger::verbose("CPU[SSE]", "Enabled");
 }
 
 [[gnu::always_inline]]
-void enable_avx() {
+inline void enable_avx() {
     asm volatile (
         "mov $0, %%rcx;"
         "xgetbv;"
@@ -61,11 +62,11 @@ void enable_avx() {
         "xsetbv;"
         : : : "rdx", "rcx", "rax"
     );
-    log(VERBOSE, "CPU", "Enabled AVX");
+    logger::verbose("CPU[AVX]", "Enabled");
 }
 
 [[gnu::always_inline]]
-void enable_smap(uint32_t ebx) {
+inline void enable_smap(uint32_t ebx) {
     if (ebx & (1 << 7)) {
         asm volatile (
             "mov %%cr4, %%rax;"
@@ -73,12 +74,12 @@ void enable_smap(uint32_t ebx) {
             "mov %%rax, %%cr4;"
             : : : "rax"
         );
-        log(VERBOSE, "CPU", "Enabled SMAP");
+        logger::verbose("CPU[SMAP]", "Enabled");
     }
 }
 
 [[gnu::always_inline]]
-void enable_smep(uint32_t ebx) {
+inline void enable_smep(uint32_t ebx) {
     if (ebx & (1 << 20)) {
         asm volatile (
             "mov %%cr4, %%rax;"
@@ -86,12 +87,12 @@ void enable_smep(uint32_t ebx) {
             "mov %%rax, %%cr4;"
             : : : "rax"
         );
-        log(VERBOSE, "CPU", "Enabled SMEP");
+        logger::verbose("CPU[SMEP]", "Enabled");
     }
 }
 
 [[gnu::always_inline]]
-void enable_ne() {
+inline void enable_ne() {
     wrmsr(IA32_EFER, rdmsr(IA32_EFER) | (1 << 11));
-    log(VERBOSE, "CPU", "Enabled NE bit in EFER");
+    logger::verbose("CPU[NE]", "Enabled");
 }

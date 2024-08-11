@@ -50,10 +50,10 @@ extern "C" void init_kernel() {
     mapper::init();
     vmm::init();
     heap::init();
-    gdt::init();
     cxxabi::call_constructors();
     fb::init();
     acpi::init();
+    gdt::init();
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);

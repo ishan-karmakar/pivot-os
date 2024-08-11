@@ -23,7 +23,7 @@ void PIT::init(idt::IDT& idt) {
     drivers::PIT::cmd(false, 0b010, 0b11, 0);
     drivers::PIT::data(drivers::PIT::MS_TICKS / 10);
     initialized = true;
-    log(INFO, "PIT", "Initialized PIT");
+    logger::info("PIT", "Initialized PIT");
 }
 
 void PIT::cmd(bool bcd, uint8_t omode, uint8_t amode, uint8_t channel) {

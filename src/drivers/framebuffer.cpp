@@ -22,7 +22,8 @@ extern volatile limine_memmap_request mmap_request;
 void fb::init() {
     kfb = new Framebuffer{fb_request.response->framebuffers[0]};
     io::writer = kfb;
-    log(INFO, "FB", "Initialized kernel framebuffer");
+    kfb->clear();
+    logger::info("FB[INIT]", "Initialized kernel framebuffer");
 }
 
 // Create new instance of Framebuffer - Doesn't clear screen automatically

@@ -10,6 +10,7 @@ void idt::init() {
     kidt.initialize();
     load_exceptions();
     kidt->load();
+    logger::info("IDT[INIT]", "Loaded IDT");
 }
 
 void IDT::set_entry(uint8_t idx, idt::desc desc) {
@@ -31,5 +32,4 @@ void IDT::set_entry(uint8_t idx, uint8_t ring, void (*handler)()) {
 
 void IDT::load() const {
     asm volatile ("lidt %0" : : "rm" (idtr));
-    log(INFO, "IDT", "Loaded IDT");
 }

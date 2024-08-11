@@ -9,6 +9,7 @@ c_args = [
     '-mno-red-zone',
     '-static',
     '-fno-stack-protector',
+    '-DLOG_LEVEL=' + get_option('log_level').to_upper()
 ]
 
 cpp_args = [

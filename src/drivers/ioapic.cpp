@@ -25,11 +25,11 @@ void IOAPIC::init() {
     // log(INFO, "IOAPIC", "Initialized IOAPIC");
     // initialized = true;
     // if (uacpi_unlikely(uacpi_namespace_load())) {
-    //     log(ERROR, "IOAPIC", "uACPI failed to load namespaces");
+    //     logger::error("IOAPIC", "uACPI failed to load namespaces");
     //     abort();
     // }
     // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {
-    //     log(ERROR, "IOAPIC", "uACPI failed to set interrupt model");
+    //     logger::error("IOAPIC", "uACPI failed to set interrupt model");
     //     abort();
     // }
 }
@@ -43,14 +43,14 @@ void IOAPIC::set_irq(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags)
     auto so = find_so(irq);
     if (so.has_value()) {
         auto val = so.value();
-        log(VERBOSE, "IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi);
+        logger::verbose("IOAPIC", "Found SO - IRQ %hhu -> %u", irq, val.gsi);
         irq = val.gsi;
         ent.pin_polarity = val.flags & 2;
         ent.trigger_mode = val.flags & 8;
     }
 
     write_red(irq, ent);
-    log(VERBOSE, "IOAPIC", "Setting IRQ %hhu to IDT entry %hhu", irq, idt_ent);
+    logger::verbose("IOAPIC", "Setting IRQ %hhu to IDT entry %hhu", irq, idt_ent);
 }
 
 void IOAPIC::set_mask(uint8_t irq, bool mask) {

@@ -47,7 +47,7 @@
 //     if (dchannel) {
 //         io::outb(PORT, 0xA9);
 //         if (io::inb(PORT)) {
-//             log(WARNING, "PS/2", "Port 2 failed self test");
+//             logger::warning("PS/2", "Port 2 failed self test");
 //             dchannel = false;
 //         }
 //     }

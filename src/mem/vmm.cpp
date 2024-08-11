@@ -23,7 +23,7 @@ VMM::VMM(uintptr_t start, size_t size, size_t flags, mapper::PTMapper& mpr) : fl
         mpr.map(pmm::frame(), start + i * PAGE_SIZE, flags);
     uint8_t *at = reinterpret_cast<uint8_t*>(start);
     buddy = buddy_init_alignment(at, at + metadata_pages * PAGE_SIZE, size - metadata_pages * PAGE_SIZE, PAGE_SIZE);
-    log(INFO, "VMM", "Initialized VMM");
+    logger::info("VMM[INIT]", "Initialized VMM");
 }
 
 void *VMM::malloc(size_t size) {
@@ -36,5 +36,14 @@ void *VMM::malloc(size_t size) {
 }
 
 void VMM::free(void *addr) {
+    auto buddy_callback = [](void *taddr, void *addr, size_t size, size_t a) -> void* {
+        if (taddr == addr && a)
+            return reinterpret_cast<void*>(size);
+        return NULL;
+    };
+
+    size_t pages = div_ceil(reinterpret_cast<size_t>(buddy_walk(buddy, buddy_callback, addr)), PAGE_SIZE);
     buddy_free(buddy, addr);
+    for (size_t i = 0; i < pages; i++)
+        mpr.unmap(reinterpret_cast<size_t>(addr), pages);
 }

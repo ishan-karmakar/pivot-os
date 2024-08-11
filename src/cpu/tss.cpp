@@ -18,7 +18,7 @@ TSS::TSS(gdt::GDT& gdt) : gdt{gdt} {
 
     gdt.load();
     asm volatile ("ltr %0" : : "r" (seg));
-    log(INFO, "TSS", "Initialized TSS");
+    logger::info("TSS", "Initialized TSS");
 }
 
 void TSS::set_rsp0(uintptr_t rsp) const {

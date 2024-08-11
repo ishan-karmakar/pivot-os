@@ -44,28 +44,28 @@ extern "C" {
 }
 
 void log_registers(cpu::cpu_status *status) {
-    log(VERBOSE, "ISR", "ERROR code: 0x%lx", status->err_code);
-    log(VERBOSE, "ISR", "ss: %p, rsp: %p, rflags: %p, cs: %p",
+    logger::verbose("ISR", "ERROR code: 0x%lx", status->err_code);
+    logger::verbose("ISR", "ss: %p, rsp: %p, rflags: %p, cs: %p",
         status->ss, status->rsp, status->rflags, status->cs);
-    log(VERBOSE, "ISR", "rip: %p, rax: %p, rbx: %p, rcx: %p",
+    logger::verbose("ISR", "rip: %p, rax: %p, rbx: %p, rcx: %p",
         status->rip, status->rax, status->rbx, status->rcx);
-    log(VERBOSE, "ISR", "rdx: %p, rbp: %p, rsi: %p, rdi: %p",
+    logger::verbose("ISR", "rdx: %p, rbp: %p, rsi: %p, rdi: %p",
         status->rdx, status->rbp, status->rsi, status->rdi);
-    log(VERBOSE, "ISR", "r8: %p, r9: %p, r10: %p, r11: %p",
+    logger::verbose("ISR", "r8: %p, r9: %p, r10: %p, r11: %p",
         status->r8, status->r9, status->r10, status->r11);
-    log(VERBOSE, "ISR", "r12: %p, r13: %p, r14: %p, r15: %p",
+    logger::verbose("ISR", "r12: %p, r13: %p, r14: %p, r15: %p",
         status->r12, status->r13, status->r14, status->r15);
 }
 
 extern "C" {
     [[noreturn]]
     void exception_handler(cpu::cpu_status *status) {
-        log(ERROR, "ISR", "Received interrupt number %lu", status->int_no);
+        logger::error("ISR", "Received interrupt number %lu", status->int_no);
         switch (status->int_no) {
             case 14:
                 uint64_t cr2;
                 asm volatile ("mov %%cr2, %0" : "=r" (cr2));
-                log(VERBOSE, "ISR", "cr2: %p", cr2);
+                logger::verbose("ISR", "cr2: %p", cr2);
                 log_registers(status);
                 break;
             default:

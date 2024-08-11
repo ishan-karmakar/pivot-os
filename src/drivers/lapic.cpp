@@ -25,8 +25,7 @@ bool LAPIC::initialized = false;
 void LAPIC::init(idt::IDT& idt) {
     if (initialized) return;
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
-    if (!(msr & (1 << 11)))
-        log(WARNING, "LAPIC", "APIC is disabled globally");
+    logger::assert(msr & (1 << 11), "LAPIC[INIT]", "APIC is disabled globally");
     
     uint32_t ignored, xapic = 0, x2apic = 0;
     __get_cpuid(1, &ignored, &ignored, &x2apic, &xapic);
@@ -40,10 +39,8 @@ void LAPIC::init(idt::IDT& idt) {
         // lapic = VADDR(madt.table->local_interrupt_controller_address);
         // mem::kmapper->map(PADDR(lapic), lapic, KERNEL_PT_ENTRY);
         // mem::PMM::set(PADDR(lapic));
-    } else {
-        log(ERROR, "LAPIC", "No LAPIC is supported by this processor");
-        return;
-    }
+    } else
+        logger::panic("LAPIC[INIT]", "No LAPIC is supported by the processor");
 
     cpu::wrmsr(IA32_APIC_BASE, msr);
 
@@ -51,13 +48,13 @@ void LAPIC::init(idt::IDT& idt) {
     // TODO: Move this to a separate PIC file and maybe support legacy PIC
     io::outb(0x21, 0xFF);
     io::outb(0xA1, 0xFF);
-    log(VERBOSE, "LAPIC", "Disabled 8259 PIC");
+    logger::verbose("LAPIC", "Disabled 8259 PIC");
 
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_IDT_ENT);
     idt.set_entry(PERIODIC_IDT_ENT, 3, periodic_irq);
     // idt.set_entry(SPURIOUS_IDT_ENT, 0, spurious_irq);
 
-    log(INFO, "LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
+    logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");
     initialized = true;
 }
 
@@ -75,7 +72,7 @@ void LAPIC::calibrate() {
 
     uint32_t time_elapsed = ((uint32_t) - 1) - cur_ticks;
     ms_interval = time_elapsed / 500;
-    log(VERBOSE, "LAPIC", "APIC ticks per ms: %u", ms_interval);
+    logger::verbose("LAPIC", "APIC ticks per ms: %u", ms_interval);
 }
 
 uint64_t LAPIC::read_reg(uint32_t off) {
@@ -102,24 +99,24 @@ extern "C" cpu::cpu_status *spurious_handler(cpu::cpu_status *status) {
 }
 
 void uacpi_kernel_sleep(uacpi_u64) {
-    log(INFO, "uACPI", "uACPI requested to sleep");
+    logger::info("uACPI", "uACPI requested to sleep");
 }
 
 uacpi_u64 uacpi_kernel_get_ticks() {
-    log(INFO, "uACPI", "uACPI requested timer ticks");
+    logger::info("uACPI", "uACPI requested timer ticks");
     return 0;
 }
 
 void uacpi_kernel_signal_event(uacpi_handle) {
-    log(INFO, "uACPI", "uACPI requested to signal event");
+    logger::info("uACPI", "uACPI requested to signal event");
 }
 
 void uacpi_kernel_reset_event(uacpi_handle) {
-    log(INFO, "uACPI", "uACPI requested to reset event");
+    logger::info("uACPI", "uACPI requested to reset event");
 }
 
 uacpi_bool uacpi_kernel_wait_for_event(uacpi_handle, uacpi_u16) {
-    log(INFO, "uACPI", "uACPI requested to wait for event");
+    logger::info("uACPI", "uACPI requested to wait for event");
     return UACPI_TRUE;
 }
 

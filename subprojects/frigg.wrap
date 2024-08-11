@@ -1,6 +1,6 @@
 [wrap-git]
 directory = frigg
-url = https://github.com/managarm/frigg
+url = https://github.com/ishan-karmakar/frigg
 revision = master
 depth = 1
 

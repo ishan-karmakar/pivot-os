@@ -18,3 +18,10 @@ option(
     value: false,
     description: 'Enable QEMU GDB debugging'
 )
+
+option(
+    'log_level',
+    type: 'string',
+    value: 'info',
+    description: 'Log level to use in kernel'
+)
