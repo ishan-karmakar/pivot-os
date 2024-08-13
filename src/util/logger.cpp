@@ -54,6 +54,7 @@ extern "C" void uacpi_kernel_log(LogLevel log_level, const char *str) {
     char *buffer = new char[len];
     memcpy(buffer, str, --len);
     buffer[len] = 0;
-    logger::vlog(log_level, "UACPI", buffer, va_list{});
+    va_list args;
+    logger::vlog(log_level, "UACPI", buffer, args);
     delete[] buffer;
 }

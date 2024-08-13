@@ -3,7 +3,7 @@
 #include <cpu/idt.hpp>
 #include <util/logger.hpp>
 #define EXTERN_ENTRY(num) extern void isr##num();
-#define SET_ENTRY(idx) kidt->set_entry(idx, 0, isr##idx);
+#define SET_ENTRY(idx) kidt->set_entry(idx, 0, (void*) &isr##idx);
 
 // TODO: Seperate stack (IST)
 // TODO: Return from recoverable exceptions

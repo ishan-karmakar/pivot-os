@@ -8,12 +8,6 @@
 using namespace acpi;
 
 constexpr int IDT_ENT = 36;
-constexpr int IRQ_ENT = 9;
-struct uacpi_handler_info {
-    uacpi_interrupt_handler handler;
-    uacpi_handle ctx;
-};
-uacpi_handler_info acpi_info;
 
 __attribute__((section(".requests")))
 static volatile limine_rsdp_request rsdp_request = { LIMINE_RSDP_REQUEST, 2, nullptr };
@@ -39,20 +33,12 @@ SDT::SDT(const acpi_sdt_hdr *header) : header{header} {
 
 extern "C" cpu::cpu_status *acpi_handler(cpu::cpu_status *status) {
     logger::info("uACPI", "ACPI interrupt triggered");
-    acpi_info.handler(acpi_info.ctx);
     return status;
 }
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler handler, uacpi_handle ctx, uacpi_handle *out_handle) {
     logger::info("uACPI", "uACPI requested to install interrupt handler");
-    switch (irq) {
-    case IRQ_ENT:
-        idt::kidt->set_entry(IDT_ENT, 0, acpi_irq);
-        acpi_info.handler = handler;
-        acpi_info.ctx = ctx;
-        break;
-    }
-    *out_handle = &acpi_info;
+    // idt::kidt->set_entry(IDT_ENT, 0, [handler, ctx]() {});
     return UACPI_STATUS_OK;
 }
 

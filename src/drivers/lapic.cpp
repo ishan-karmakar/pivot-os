@@ -51,7 +51,7 @@ void LAPIC::init(idt::IDT& idt) {
     logger::verbose("LAPIC", "Disabled 8259 PIC");
 
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_IDT_ENT);
-    idt.set_entry(PERIODIC_IDT_ENT, 3, periodic_irq);
+    idt.set_entry(PERIODIC_IDT_ENT, 3, (void*) &periodic_irq);
     // idt.set_entry(SPURIOUS_IDT_ENT, 0, spurious_irq);
 
     logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");

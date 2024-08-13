@@ -18,7 +18,7 @@ bool PIT::initialized = false;
 
 void PIT::init(idt::IDT& idt) {
     if (initialized) return;
-    idt.set_entry(IDT_ENT, 0, pit_irq);
+    idt.set_entry(IDT_ENT, 0, (void*) &pit_irq);
     IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::MASKED);
     drivers::PIT::cmd(false, 0b010, 0b11, 0);
     drivers::PIT::data(drivers::PIT::MS_TICKS / 10);

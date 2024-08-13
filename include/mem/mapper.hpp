@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <frg/manual_box.hpp>
-#include <frg/array.hpp>
+#include <array>
 
 typedef uint64_t* pg_tbl_t;
 
@@ -31,7 +31,7 @@ namespace mapper {
     private:
         static void clean_table(pg_tbl_t);
         uintptr_t alloc_table();
-        static frg::array<uint16_t, 4> get_entries(const uintptr_t&);
+        static std::array<uint16_t, 4> get_entries(const uintptr_t&);
 
         pg_tbl_t pml4;
     };

@@ -14,7 +14,6 @@ c_args = [
 
 cpp_args = [
     c_args,
-    '-fno-rtti',
     '-fno-exceptions',
 ]
 

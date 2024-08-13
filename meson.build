@@ -4,7 +4,8 @@ project(
         'b_asneeded=false',
         'c_std=gnu2x',
         'cpp_std=gnu++20',
-        'warning_level=2'
+        'warning_level=2',
+        'cpp_rtti=false'
     ]
 )
 

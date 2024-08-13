@@ -17,7 +17,7 @@ void IDT::set_entry(uint8_t idx, idt::desc desc) {
     this->idt[idx] = desc;
 }
 
-void IDT::set_entry(uint8_t idx, uint8_t ring, void (*handler)()) {
+void IDT::set_entry(uint8_t idx, uint8_t ring, void *handler) {
     uintptr_t addr = reinterpret_cast<uintptr_t>(handler);
     set_entry(idx, {
         static_cast<uint16_t>(addr),

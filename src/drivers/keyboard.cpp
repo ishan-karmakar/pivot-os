@@ -42,7 +42,7 @@ void Keyboard::init(idt::IDT& idt) {
     io::outb(PORT, 0xF4);
     check_ack();
 
-    idt.set_entry(IDT_ENT, 0, keyboard_irq);
+    idt.set_entry(IDT_ENT, 0, (void*) &keyboard_irq);
     IOAPIC::set_irq(IDT_ENT, 1, 0, IOAPIC::LOWEST_PRIORITY);
     logger::info("KEYBOARD[INIT]", "Initialized PS/2 keyboard");
 }

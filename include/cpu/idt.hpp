@@ -21,10 +21,11 @@ namespace idt {
 
     void init();
 
+    // TODO: Dynamically allocate and reserve interrupt handlers
     class IDT {
     public:
         void set_entry(uint8_t, struct idt::desc);
-        void set_entry(uint8_t, uint8_t ring, void (*handler)());
+        void set_entry(uint8_t, uint8_t, void*);
         void load() const;
 
     private:

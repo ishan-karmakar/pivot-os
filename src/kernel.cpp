@@ -52,8 +52,8 @@ extern "C" void init_kernel() {
     heap::init();
     cxxabi::call_constructors();
     fb::init();
-    acpi::init();
-    gdt::init();
+    // acpi::init();
+    // gdt::init();
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);

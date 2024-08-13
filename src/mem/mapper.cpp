@@ -142,8 +142,8 @@ void PTMapper::clean_table(pg_tbl_t tbl) {
         tbl[i] = 0;
 }
 
-frg::array<uint16_t, 4> PTMapper::get_entries(const uintptr_t& addr) {
-    frg::array<uint16_t, 4> entries;
+std::array<uint16_t, 4> PTMapper::get_entries(const uintptr_t& addr) {
+    std::array<uint16_t, 4> entries;
     for (int i = 0, e = 39; i < 4; i++, e -= 9)
         entries[i] = (addr >> e) & 0x1FF;
     return entries;
