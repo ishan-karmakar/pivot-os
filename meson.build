@@ -1,11 +1,10 @@
 project(
     'pivot-os',
     default_options: [
-        'b_asneeded=false',
         'c_std=gnu2x',
         'cpp_std=gnu++20',
         'warning_level=2',
-        'cpp_rtti=false'
+        'cpp_rtti=false',
     ]
 )
 
@@ -16,7 +15,8 @@ deps = [
     dependency('frigg', default_options: ['frigg_no_install=true'], required: true),
     dependency('magic_enum', default_options: ['hash=true', 'test=false'], required: true),
     dependency('buddy', required: true),
-    limine.get_variable('limine_dep')
+    dependency('fmt', required: true),
+    limine.get_variable('limine_dep'),
 ]
 
 env.set('objcopy', find_program('objcopy', required: true).full_path())

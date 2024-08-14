@@ -11,7 +11,7 @@ namespace drivers {
         PIT() = delete;
         ~PIT() = delete;
 
-        static void init(idt::IDT&);
+        static void init();
         static void cmd(bool, uint8_t, uint8_t, uint8_t);
         static void data(uint16_t);
         static inline void enable() { IOAPIC::set_mask(IRQ_ENT, false); }

@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <cstddef>
 #include <frg/manual_box.hpp>
+#include <cpu/cpu.hpp>
+#include <util/logger.hpp>
 
 namespace idt {
     struct [[gnu::packed]] desc {
@@ -19,23 +21,27 @@ namespace idt {
         uintptr_t addr;
     };
 
-    void init();
-
-    // TODO: Dynamically allocate and reserve interrupt handlers
-    class IDT {
-    public:
-        void set_entry(uint8_t, struct idt::desc);
-        void set_entry(uint8_t, uint8_t, void*);
-        void load() const;
-
+    class Handler {
     private:
-        struct idt::desc idt[256];
-        struct idt::idtr idtr{
-            256 * sizeof(idt::desc) - 1,
-            reinterpret_cast<uintptr_t>(&idt)
-        };
+        std::function<cpu::status* (cpu::status*)> handler;
+
+    public:
+        bool operator=(decltype(handler) f) {
+            if (handler) return false;
+            handler = f;
+            return true;
+        }
+
+        operator bool() { return static_cast<bool>(handler); }
+        cpu::status *operator()(cpu::status *status) { return handler(status); }
+        void reset() { handler = nullptr; }
     };
 
-    extern frg::manual_box<IDT> kidt;
+    void init();
+    void set(uint8_t, idt::desc);
+    void set(uint8_t, uint8_t, void*);
+    std::pair<Handler&, uint8_t> allocate_handler();
+    std::pair<Handler&, uint8_t> allocate_handler(uint8_t);
+    void free_handler(uint8_t);
 }
 

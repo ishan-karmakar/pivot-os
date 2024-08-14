@@ -2,8 +2,8 @@
 #include <cstdint>
 
 namespace cpu {
-    struct cpu_status;
-    extern "C" cpu::cpu_status *keyboard_handler(cpu::cpu_status*);
+    struct status;
+    extern "C" cpu::status *keyboard_handler(cpu::status*);
 }
 
 namespace idt {
@@ -116,7 +116,7 @@ namespace drivers {
         static void update_modifiers(bool);
         static void check_ack();
 
-        friend cpu::cpu_status *cpu::keyboard_handler(cpu::cpu_status*);
+        friend cpu::status *cpu::keyboard_handler(cpu::status*);
 
         static constexpr int PORT = 0x60;
         static constexpr int STATUS = 0x64;

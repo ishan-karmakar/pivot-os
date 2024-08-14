@@ -44,15 +44,15 @@ void GDT::load() {
     asm volatile (
         "cli;"
         "lgdt %0;"
-        "push $0x8;"
-        "push $.L%=;"
+        "push %1;"
+        "push $%=;"
         "lretq;"
-        ".L%=:"
+        "%=:"
         "mov %%ax, %%ds;"
         "mov %%ax, %%es;"
         "mov %%ax, %%fs;"
         "mov %%ax, %%gs;"
         "mov %%ax, %%ss;"
-        : : "rm" (gdtr), "a" (0x10) : "memory"
+        : : "rm" (gdtr), "i" (KCODE), "a" (KDATA) : "memory"
     );
 };

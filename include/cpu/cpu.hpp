@@ -3,7 +3,7 @@
 #include <cstdint>
 
 namespace cpu {
-    struct cpu_status {
+    struct status {
         uint64_t r15;
         uint64_t r14;
         uint64_t r13;
@@ -65,6 +65,9 @@ namespace cpu {
     inline uint64_t get_gs() {
         return rdmsr(0xC0000101);
     }
+
+    [[gnu::noinline]]
+    uintptr_t rip();
 
     void init();
 }

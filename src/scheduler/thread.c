@@ -19,7 +19,7 @@ void init_thread_vmm(thread_t*);
 
 thread_t *create_thread(char *name, thread_fn_t entry_point, bool safety) {
     thread_t *thread = halloc(sizeof(thread_t), KHEAP);
-    thread->ef = halloc(sizeof(cpu_status_t), KHEAP);
+    thread->ef = halloc(sizeof(status_t), KHEAP);
     init_thread_vmm(thread);
 
     thread->status = NEW;
@@ -102,7 +102,7 @@ void thread_yield(void) {
     asm volatile ("int %0" : : "n" (APIC_PERIODIC_IDT_ENTRY));
 }
 
-void thread_sleep_syscall(cpu_status_t *status) {
+void thread_sleep_syscall(status_t *status) {
     KCPUS[CPU].cur->status = SLEEP;
     KCPUS[CPU].cur->wakeup_time = KCPUS[CPU].ticks + status->rdi;
 }

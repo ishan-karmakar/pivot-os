@@ -28,7 +28,7 @@ typedef struct thread {
     uintptr_t stack;
     thread_status_t status;
     size_t ticks;
-    cpu_status_t *ef;
+    status_t *ef;
     size_t wakeup_time;
     vmm_t vmm;
     heap_t *heap;
@@ -40,5 +40,5 @@ void free_thread(thread_t*);
 void idle(void);
 void thread_sleep(size_t);
 void thread_yield(void);
-void thread_sleep_syscall(cpu_status_t*);
+void thread_sleep_syscall(status_t*);
 void thread_dead_syscall(void);

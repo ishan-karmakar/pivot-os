@@ -14,9 +14,9 @@
 
 thread_t *scheduler_next_thread(thread_t*);
 void scheduler_remove_thread(thread_t * volatile*, thread_t*);
-cpu_status_t *ready_thread(thread_t*, bool);
+status_t *ready_thread(thread_t*, bool);
 
-cpu_status_t *schedule(cpu_status_t *cur_status) {
+status_t *schedule(status_t *cur_status) {
     logger::verbose("SMP", "%p", read_apic_register(APIC_TIMER_LVT_OFFSET));
     return ready_thread(KSMP.idle, false);
     if (!KCPUS[CPU].threads && !KCPUS[CPU].wakeups)
@@ -31,7 +31,7 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
         if (KCPUS[CPU].cur->status != DEAD && KCPUS[CPU].cur->status != SLEEP)
             KCPUS[CPU].cur->status = READY;
 
-        memcpy(KCPUS[CPU].cur->ef, cur_status, sizeof(cpu_status_t));
+        memcpy(KCPUS[CPU].cur->ef, cur_status, sizeof(status_t));
 
         if (KCPUS[CPU].cur->status == DEAD) {
             scheduler_remove_thread(&KCPUS[CPU].threads, KCPUS[CPU].cur);
@@ -69,7 +69,7 @@ cpu_status_t *schedule(cpu_status_t *cur_status) {
     return ready_thread(KSMP.idle, false);
 }
 
-cpu_status_t *ready_thread(thread_t *thread, bool safety) {
+status_t *ready_thread(thread_t *thread, bool safety) {
     if (safety)
         KCPUS[CPU].cur = thread;
     

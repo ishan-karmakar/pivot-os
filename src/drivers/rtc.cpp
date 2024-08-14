@@ -67,7 +67,7 @@
 //     time.dow = (dom +=m < 3 ? y-- : y - 2, 23 * m / 9 + dom + 4 + y / 4 - y / 100 + y / 400) % 7 + 1;
 // }
 
-cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status *status) {
+cpu::status *cpu::rtc_handler(cpu::status *status) {
 //     RTC::fetch_time();
 //     auto lims = io::cout.get_lims();
 //     auto old_pos = io::cout.get_pos();

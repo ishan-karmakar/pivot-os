@@ -16,10 +16,10 @@ namespace drivers {
         LAPIC() = delete;
 
         // Init for BSP processor - Completes full initialization of APIC
-        static void init(idt::IDT&);
+        static void bsp_init();
 
         // Init for AP processors - Only enables APIC, as initialization is already done by BSP
-        static void init();
+        static void ap_init();
 
         static void calibrate();
         static inline void eoi() { write_reg(0xB0, 0); }

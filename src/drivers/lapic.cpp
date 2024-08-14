@@ -14,15 +14,12 @@
 #include <uacpi/kernel_api.h>
 using namespace drivers;
 
-extern "C" void periodic_irq();
-extern "C" void spurious_irq();
-
 uintptr_t LAPIC::lapic;
 bool LAPIC::x2mode;
 uint32_t LAPIC::ms_interval;
 bool LAPIC::initialized = false;
 
-void LAPIC::init(idt::IDT& idt) {
+void LAPIC::bsp_init() {
     if (initialized) return;
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     logger::assert(msr & (1 << 11), "LAPIC[INIT]", "APIC is disabled globally");
@@ -51,7 +48,7 @@ void LAPIC::init(idt::IDT& idt) {
     logger::verbose("LAPIC", "Disabled 8259 PIC");
 
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_IDT_ENT);
-    idt.set_entry(PERIODIC_IDT_ENT, 3, (void*) &periodic_irq);
+    // idt.set_entry(PERIODIC_IDT_ENT, 3, (void*) &periodic_irq);
     // idt.set_entry(SPURIOUS_IDT_ENT, 0, spurious_irq);
 
     logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");
@@ -89,12 +86,12 @@ void LAPIC::write_reg(uint32_t off, uint64_t val) {
         *(volatile uint32_t*)(lapic + off) = val;
 }
 
-extern "C" cpu::cpu_status *periodic_handler(cpu::cpu_status *status) {
+extern "C" cpu::status *periodic_handler(cpu::status *status) {
     // LAPIC::eoi();
     return status;
 }
 
-extern "C" cpu::cpu_status *spurious_handler(cpu::cpu_status *status) {
+extern "C" cpu::status *spurious_handler(cpu::status *status) {
     return status;
 }
 

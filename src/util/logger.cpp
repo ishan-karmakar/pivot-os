@@ -1,7 +1,7 @@
 #include <util/logger.hpp>
-#include <io/stdio.hpp>
 #include <frg/string.hpp>
 #include <magic_enum.hpp>
+#include <io/stdio.hpp>
 
 namespace logger {
     void vlog(LogLevel log_level, const char *target, const char *format, va_list args) {
@@ -39,6 +39,7 @@ namespace logger {
         va_end(args);
     }
 
+    [[noreturn]]
     void panic(const char *target, const char *format, ...) {
         va_list args;
         va_start(args, format);

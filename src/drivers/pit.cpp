@@ -11,14 +11,12 @@
 
 using namespace drivers;
 
-extern "C" void pit_irq();
-
 volatile size_t PIT::ticks = 0;
 bool PIT::initialized = false;
 
-void PIT::init(idt::IDT& idt) {
+void PIT::init() {
     if (initialized) return;
-    idt.set_entry(IDT_ENT, 0, (void*) &pit_irq);
+    // idt.set_entry(IDT_ENT, 0, (void*) &pit_irq);
     IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::MASKED);
     drivers::PIT::cmd(false, 0b010, 0b11, 0);
     drivers::PIT::data(drivers::PIT::MS_TICKS / 10);
@@ -36,7 +34,7 @@ void PIT::data(uint16_t data) {
     io::outb(DATA_REG, data >> 8);
 }
 
-extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
+extern "C" cpu::status *pit_handler(cpu::status *status) {
     // PIT::ticks++; // FIXME: Use atomic
     LAPIC::eoi();
     return status;
@@ -45,8 +43,8 @@ extern "C" cpu::cpu_status *pit_handler(cpu::cpu_status *status) {
 // Microseconds, not milliseconds
 void uacpi_kernel_stall(uacpi_u8 ms) {
     drivers::IOAPIC::init();
-    PIT::init(*idt::kidt);
-    LAPIC::init(*idt::kidt);
+    PIT::init();
+    LAPIC::bsp_init();
     PIT::ticks = 0;
     asm volatile ("sti");
     PIT::enable();

@@ -31,18 +31,7 @@ void acpi::init() {
 SDT::SDT(const acpi_sdt_hdr *header) : header{header} {
 }
 
-extern "C" cpu::cpu_status *acpi_handler(cpu::cpu_status *status) {
+extern "C" cpu::status *acpi_handler(cpu::status *status) {
     logger::info("uACPI", "ACPI interrupt triggered");
     return status;
-}
-
-uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler handler, uacpi_handle ctx, uacpi_handle *out_handle) {
-    logger::info("uACPI", "uACPI requested to install interrupt handler");
-    // idt::kidt->set_entry(IDT_ENT, 0, [handler, ctx]() {});
-    return UACPI_STATUS_OK;
-}
-
-uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle) {
-    logger::info("uACPI", "uACPI requested to uninstall interrupt handler");
-    return UACPI_STATUS_UNIMPLEMENTED;
 }

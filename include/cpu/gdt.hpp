@@ -4,6 +4,11 @@
 #include <frg/manual_box.hpp>
 
 namespace gdt {
+    constexpr uint16_t KCODE = 0x8;
+    constexpr uint16_t KDATA = 0x10;
+    constexpr uint16_t UCODE =  0x18;
+    constexpr uint16_t UDATA = 0x20;
+
     struct [[gnu::packed]] gdtr {
         uint16_t size;
         uintptr_t addr;

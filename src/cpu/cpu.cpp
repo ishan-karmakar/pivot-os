@@ -96,3 +96,8 @@ inline void enable_ne() {
     wrmsr(IA32_EFER, rdmsr(IA32_EFER) | (1 << 11));
     logger::verbose("CPU[NE]", "Enabled");
 }
+
+[[gnu::noinline]]
+uintptr_t cpu::rip() {
+    return reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+}

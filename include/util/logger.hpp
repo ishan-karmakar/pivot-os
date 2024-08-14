@@ -1,12 +1,9 @@
 #pragma once
 #include <cstdarg>
 
-#define MAKE_LOG_LEVEL(lower_level, upper_level) \
-inline void lower_level(const char *target, const char *format, ...) { \
-    va_list args; \
-    va_start(args, format); \
-    vlog(upper_level, target, format, args); \
-    va_end(args); \
+#define MAKE_LOG_LEVEL(fn_name, enum_name) \
+[[gnu::always_inline]] inline void fn_name(const char *target, const char *format, ...) { \
+    log(enum_name, target, format, __builtin_va_arg_pack()); \
 }
 
 enum LogLevel {
@@ -23,7 +20,7 @@ namespace logger {
     void vassert(bool, const char*, const char*, va_list);
 
     void log(LogLevel log_level, const char*, const char*, ...);
-    void panic(const char*, const char*, ...);
+    [[noreturn]] void panic(const char*, const char*, ...);
     void assert(bool, const char*, const char*, ...);
 
     MAKE_LOG_LEVEL(debug, DEBUG);

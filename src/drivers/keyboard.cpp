@@ -6,8 +6,6 @@
 #include <drivers/ioapic.hpp>
 using namespace drivers;
 
-extern "C" void keyboard_irq();
-
 char keymap[] = {
     0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
     '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -42,7 +40,7 @@ void Keyboard::init(idt::IDT& idt) {
     io::outb(PORT, 0xF4);
     check_ack();
 
-    idt.set_entry(IDT_ENT, 0, (void*) &keyboard_irq);
+    // idt.set_entry(IDT_ENT, 0, (void*) &keyboard_irq);
     IOAPIC::set_irq(IDT_ENT, 1, 0, IOAPIC::LOWEST_PRIORITY);
     logger::info("KEYBOARD[INIT]", "Initialized PS/2 keyboard");
 }
@@ -51,7 +49,7 @@ void Keyboard::check_ack() {
     logger::assert(io::inb(PORT) == 0xFA, "KEYBOARD[ACK]", "Keyboard failed to acknowledge");
 }
 
-cpu::cpu_status *cpu::keyboard_handler(cpu::cpu_status *status) {
+cpu::status *cpu::keyboard_handler(cpu::status *status) {
     logger::verbose("KEYBOARD", "Keyboard handler called");
     LAPIC::eoi();
     return status;

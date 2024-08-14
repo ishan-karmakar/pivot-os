@@ -1,6 +1,6 @@
 #pragma once
 namespace cpu {
-    extern "C" cpu::cpu_status *rtc_handler(cpu::cpu_status*);
+    extern "C" cpu::status *rtc_handler(cpu::status*);
 }
 
 namespace drivers {
@@ -31,7 +31,7 @@ namespace drivers {
         static uint8_t bcd2bin(uint8_t);
         static void set_dow();
 
-        friend cpu::cpu_status *cpu::rtc_handler(cpu::cpu_status*);
+        friend cpu::status *cpu::rtc_handler(cpu::status*);
 
         static bool bcd;
         static constexpr int IDT_ENT = 34;

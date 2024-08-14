@@ -20,6 +20,12 @@ void cxxabi::call_constructors() {
     logger::info("CXXABI[CTORS]", "Called global constructors");
 }
 
+namespace std {
+    void __throw_bad_function_call() {
+        logger::panic("STD", "__throw_bad_function_call()");
+    }
+}
+
 extern "C" {
     namespace __cxxabiv1 {
         int __cxa_guard_acquire(__guard *guard) {
@@ -35,6 +41,12 @@ extern "C" {
         void __cxa_guard_release(__guard *guard) {
             *guard |= 1;
         }
+    }
+
+    void *__dso_handle = nullptr;
+    // TODO: Make this actually do something
+    int __cxa_atexit(void (*)(void*), void*, void*) {
+        return 0;
     }
 
     int __popcountdi2(int64_t a) {

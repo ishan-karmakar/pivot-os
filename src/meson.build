@@ -3,26 +3,6 @@ add_languages('c', 'cpp')
 nasm = find_program('nasm', required: true)
 linker_script = meson.current_source_dir() / 'linker.ld'
 
-c_args = [
-    '-ffreestanding',
-    '-nostdlib',
-    '-mno-red-zone',
-    '-static',
-    '-fno-stack-protector',
-    '-DLOG_LEVEL=' + get_option('log_level').to_upper()
-]
-
-cpp_args = [
-    c_args,
-    '-fno-exceptions',
-]
-
-link_args = cpp_args
-link_args += [
-    '-Wl,--build-id=none',
-    '-T', linker_script
-]
-
 nasm_gen = generator(
     nasm,
     output: '@PLAINNAME@.o',
@@ -33,11 +13,12 @@ nasm_gen = generator(
     ]
 )
 
-kernel = executable(
+sources = [
     'kernel.elf',
     'kernel.cpp',
     'misc/cxxabi.cpp',
     'misc/mem.cpp',
+    'misc/ubsan.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
@@ -61,15 +42,47 @@ kernel = executable(
     'util/logger.cpp',
     nasm_gen.process('cpu/interrupts.asm'),
     nasm_gen.process('cpu/ap_trampoline.asm'),
-    font_target,
-    
+    font_target
+]
+
+options = []
+
+if get_option('buildtype').startswith('debug')
+    options += 'b_sanitize=undefined'
+endif
+
+c_args = [
+    '-ffreestanding',
+    '-nostdlib',
+    '-mno-red-zone',
+    '-static',
+    '-fno-stack-protector',
+    '-Wno-maybe-uninitialized',
+    '-DLOG_LEVEL=' + get_option('log_level').to_upper()
+]
+
+cpp_args = [
+    c_args,
+    '-fno-exceptions',
+]
+
+link_args = cpp_args
+link_args += [
+    '-Wl,--build-id=none',
+    '-Wl,-z,max-page-size=0x1000',
+    '-T', linker_script
+]
+
+kernel = executable(
+    sources,    
     c_args: c_args,
     cpp_args: cpp_args,
     link_args: link_args,
     link_depends: linker_script,
     dependencies: deps,
     implicit_include_directories: false,
-    include_directories: '../include',
+    include_directories: ['../include', '../include/std'],
     build_by_default: false,
-    pie: false
+    override_options: options,
+    pie: false,
 )
