@@ -28,3 +28,5 @@ namespace io {
         OWriter *writer;
     };
 }
+
+int printf(const char*, ...);

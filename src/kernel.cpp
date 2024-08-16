@@ -14,6 +14,7 @@
 #include <util/logger.hpp>
 #include <frg/manual_box.hpp>
 #include <limine.h>
+#include <magic_enum.hpp>
 #include <cstdlib>
 
 uint8_t CPU = 0;

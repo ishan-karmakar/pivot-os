@@ -123,4 +123,9 @@ extern "C" {
         log_location(data->loc);
         logger::panic("UBSAN[BLTIN]", "Builtin unreachable was reached");
     }
+
+    void __ubsan_handle_missing_return(unreachable *data) {
+        log_location(data->loc);
+        logger::panic("UBSAN[MISS_RET]", "Missing return");
+    }
 }

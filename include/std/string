@@ -1,9 +1,0 @@
-#pragma once
-
-#include <frg/string.hpp>
-#include <frg/std_compat.hpp>
-
-namespace std {
-    template <typename C>
-    using basic_string = frg::basic_string<C, frg::stl_allocator>;
-}

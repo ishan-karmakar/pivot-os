@@ -6,6 +6,7 @@
 namespace logger {
     void vlog(LogLevel log_level, const char *target, const char *format, va_list args) {
         if (log_level > LOG_LEVEL) return;
+        // printf("[%s]", magic_enum::enum_name(log_level).begin());
         printf("[%s] %s: ", magic_enum::enum_name(log_level).begin(), target);
         vprintf(format, args);
         printf("\n");

@@ -15,7 +15,6 @@ deps = [
     dependency('frigg', default_options: ['frigg_no_install=true'], required: true),
     dependency('magic_enum', default_options: ['hash=true', 'test=false'], required: true),
     dependency('buddy', required: true),
-    dependency('fmt', required: true),
     limine.get_variable('limine_dep'),
 ]
 

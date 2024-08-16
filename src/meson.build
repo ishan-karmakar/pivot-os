@@ -81,7 +81,7 @@ kernel = executable(
     link_depends: linker_script,
     dependencies: deps,
     implicit_include_directories: false,
-    include_directories: ['../include', '../include/std'],
+    include_directories: '../include',
     build_by_default: false,
     override_options: options,
     pie: false,

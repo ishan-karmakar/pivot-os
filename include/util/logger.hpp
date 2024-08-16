@@ -1,9 +1,14 @@
 #pragma once
 #include <cstdarg>
 
+// Safeguard against LOG_LEVEL not being set and to remove the stupid error about undefined variable
+#ifndef LOG_LEVEL
+#define LOG_LEVEL INFO
+#endif
+
 #define MAKE_LOG_LEVEL(fn_name, enum_name) \
 [[gnu::always_inline]] inline void fn_name(const char *target, const char *format, ...) { \
-    log(enum_name, target, format, __builtin_va_arg_pack()); \
+    log(enum_name, target, format, __va_arg_pack()); \
 }
 
 enum LogLevel {

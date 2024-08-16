@@ -1,9 +1,12 @@
 #include <frg/printf.hpp>
 #include <io/stdio.hpp>
 #include <cpu/cpu.hpp>
+#include <io/serial.hpp>
+#include <frg/manual_box.hpp>
 using namespace io;
 
 OWriter *io::writer = nullptr;
+FILE *stdout = nullptr;
 
 class StringWriter : public OWriter {
 public:
@@ -80,14 +83,25 @@ int sprintf(char *buf, const char *fmt, ...) {
     return ret;
 }
 
-int vprintf(const char *fmt, va_list a) {
+int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {
     frg::va_struct args;
-    va_copy(args.args, a);
-
+    va_copy(args.args, a); // PROBLEM
     CharPrinter cp{writer, &args};
     frg::printf_format(cp, fmt, &args).unwrap();
 
     va_end(args.args);
+    return 0;
+}
+
+int vprintf(const char *fmt, va_list a) {
+    return __vfprintf_chk(stdout, 0, fmt, a);
+}
+
+int __printf_chk(int, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
     return 0;
 }
 
@@ -96,7 +110,5 @@ int printf(const char *fmt, ...) {
     va_start(args, fmt);
     vprintf(fmt, args);
     va_end(args);
-
-    // TODO: Return number of characters written
     return 0;
 }
