@@ -6,7 +6,7 @@
 #include <libc/string.h>
 #include <scheduler/thread.h>
 #include <scheduler/scheduler.h>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <io/stdio.h>
 #include <cpu/smp.h>
 #include <kernel.h>

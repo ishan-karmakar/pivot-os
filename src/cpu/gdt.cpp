@@ -1,6 +1,6 @@
 #include <cpu/gdt.hpp>
 #include <algorithm>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <drivers/acpi.hpp>
 using namespace gdt;
 

@@ -1,6 +1,6 @@
 #include <cpu/idt.hpp>
 #include <cpu/gdt.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <uacpi/kernel_api.h>
 using namespace idt;
 

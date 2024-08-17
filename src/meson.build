@@ -19,6 +19,7 @@ sources = [
     'misc/cxxabi.cpp',
     'misc/mem.cpp',
     'misc/ubsan.cpp',
+    'lib/logger.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
@@ -39,7 +40,6 @@ sources = [
     'mem/mapper.cpp',
     'mem/pmm.cpp',
     'mem/vmm.cpp',
-    'util/logger.cpp',
     nasm_gen.process('cpu/interrupts.asm'),
     nasm_gen.process('cpu/ap_trampoline.asm'),
     font_target
@@ -58,8 +58,12 @@ c_args = [
     '-static',
     '-fno-stack-protector',
     '-Wno-maybe-uninitialized',
-    '-DLOG_LEVEL=' + get_option('log_level').to_upper()
+    
 ]
+
+if (get_option('log_level') != '')
+    c_args += '-DLOG_LEVEL=' + get_option('log_level').to_upper()
+endif
 
 cpp_args = [
     c_args,

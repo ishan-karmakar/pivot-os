@@ -1,6 +1,6 @@
 #include <drivers/keyboard.hpp>
 #include <io/serial.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <cpu/idt.hpp>
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>

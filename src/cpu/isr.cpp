@@ -1,6 +1,6 @@
 #include <cpu/cpu.hpp>
 #include <cpu/idt.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 // TODO: Seperate stack (IST)
 // TODO: Return from recoverable exceptions
 

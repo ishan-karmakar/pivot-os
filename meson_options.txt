@@ -22,6 +22,6 @@ option(
 option(
     'log_level',
     type: 'string',
-    value: 'info',
+    value: '',
     description: 'Log level to use in kernel'
 )

@@ -1,5 +1,5 @@
 #include <mem/pmm.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <cstring>
 #include <kernel.hpp>
 #include <uacpi/kernel_api.h>

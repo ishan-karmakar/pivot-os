@@ -11,7 +11,7 @@
 #include <drivers/acpi.hpp>
 #include <drivers/framebuffer.hpp>
 #include <io/serial.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <frg/manual_box.hpp>
 #include <limine.h>
 #include <magic_enum.hpp>

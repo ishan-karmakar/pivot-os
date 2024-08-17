@@ -1,5 +1,5 @@
 #include <mem/heap.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <mem/vmm.hpp>
 #include <uacpi/kernel_api.h>
 #include <atomic>

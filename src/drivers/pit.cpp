@@ -7,7 +7,7 @@
 #include <uacpi/kernel_api.h>
 #include <uacpi/tables.h>
 #include <mem/mapper.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 
 using namespace drivers;
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <uacpi/tables.h>
 #include <cstdlib>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 
 namespace acpi {
     void init();

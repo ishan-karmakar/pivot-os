@@ -1,6 +1,6 @@
 #include <kernel.hpp>
 #include <drivers/framebuffer.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
 #include <mem/heap.hpp>

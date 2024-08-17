@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <frg/manual_box.hpp>
 #include <cpu/cpu.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 
 namespace idt {
     struct [[gnu::packed]] desc {

@@ -1,7 +1,7 @@
 #define BUDDY_ALLOC_IMPLEMENTATION
 #include <mem/vmm.hpp>
 #include <kernel.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
 #include <limine.h>

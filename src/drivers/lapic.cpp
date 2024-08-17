@@ -2,7 +2,7 @@
 #include <cpu/cpu.hpp>
 #include <drivers/madt.hpp>
 #include <drivers/acpi.hpp>
-#include <util/logger.hpp>
+#include <lib/logger.hpp>
 #include <cpuid.h>
 #include <kernel.hpp>
 #include <mem/mapper.hpp>
