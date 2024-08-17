@@ -1,4 +1,3 @@
-// #include <kernel.hpp>
 #include <misc/cxxabi.hpp>
 #include <mem/heap.hpp>
 #include <mem/pmm.hpp>
@@ -7,26 +6,17 @@
 #include <cpu/cpu.hpp>
 #include <cpu/gdt.hpp>
 #include <cpu/idt.hpp>
-// #include <cpu/smp.hpp>
 #include <drivers/acpi.hpp>
 #include <drivers/framebuffer.hpp>
+#include <drivers/rtc.hpp>
+#include <drivers/pic.hpp>
+#include <drivers/pit.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <frg/manual_box.hpp>
 #include <limine.h>
 #include <magic_enum.hpp>
 #include <cstdlib>
-
-uint8_t CPU = 0;
-
-extern "C" void frg_log(const char *s) {
-    printf("%s\n", s);
-}
-
-extern "C" void frg_panic(const char *s) {
-    frg_log(s);
-    abort();
-}
 
 extern void io_char_printer(char);
 
@@ -41,7 +31,7 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::SerialPort> qemu;
 
-extern "C" void init_kernel() {
+extern "C" void kinit() {
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
     cpu::init();
@@ -53,6 +43,10 @@ extern "C" void init_kernel() {
     heap::init();
     cxxabi::call_constructors();
     fb::init();
+    pic::init();
+    pit::init();
+    pit::start(pit::MS_TICKS);
+    // rtc::early_init();
     acpi::init();
     // gdt::init();
     // cpu::smp::init_bsp();

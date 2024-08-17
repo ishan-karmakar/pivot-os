@@ -21,27 +21,13 @@ namespace idt {
         uintptr_t addr;
     };
 
-    class Handler {
-    private:
-        std::function<cpu::status* (cpu::status*)> handler;
-
-    public:
-        bool operator=(decltype(handler) f) {
-            if (handler) return false;
-            handler = f;
-            return true;
-        }
-
-        operator bool() { return static_cast<bool>(handler); }
-        cpu::status *operator()(cpu::status *status) { return handler(status); }
-        void reset() { handler = nullptr; }
-    };
+    typedef std::function<cpu::status* (cpu::status*)> handler_t;
 
     void init();
     void set(uint8_t, idt::desc);
     void set(uint8_t, uint8_t, void*);
-    std::pair<Handler&, uint8_t> allocate_handler();
-    std::pair<Handler&, uint8_t> allocate_handler(uint8_t);
+    std::pair<handler_t&, uint8_t> allocate_handler();
+    std::pair<handler_t&, uint8_t> allocate_handler(uint8_t);
     void free_handler(uint8_t);
 }
 

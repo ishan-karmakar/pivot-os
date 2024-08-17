@@ -93,9 +93,9 @@ thread_t *scheduler_next_thread(thread_t *thread) {
 }
 
 void scheduler_add_thread(thread_t *thread) {
-    size_t cpu = 0;
-    size_t threads = KCPUS[0].num_threads;
-    for (size_t i = 1; i < KSMP.num_cpus; i++) {
+    std::size_t cpu = 0;
+    std::size_t threads = KCPUS[0].num_threads;
+    for (std::size_t i = 1; i < KSMP.num_cpus; i++) {
         if (KCPUS[i].num_threads < threads) {
             cpu = i;
             threads = KCPUS[i].num_threads;

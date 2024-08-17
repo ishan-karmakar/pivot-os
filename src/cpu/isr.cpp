@@ -35,7 +35,7 @@ void exception_handler(cpu::status *status) {
     cpu::hcf();
 }
 
-extern idt::Handler handlers[256];
+extern idt::handler_t handlers[256];
 extern "C" {
     cpu::status *int_handler(cpu::status *status) {
         if (status->int_no < 32)

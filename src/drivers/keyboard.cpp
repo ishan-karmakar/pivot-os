@@ -41,7 +41,7 @@ void Keyboard::init(idt::IDT& idt) {
     check_ack();
 
     // idt.set_entry(IDT_ENT, 0, (void*) &keyboard_irq);
-    IOAPIC::set_irq(IDT_ENT, 1, 0, IOAPIC::LOWEST_PRIORITY);
+    // ioapic::set_irq(IDT_ENT, 1, 0, IOAPIC::LOWEST_PRIORITY);
     logger::info("KEYBOARD[INIT]", "Initialized PS/2 keyboard");
 }
 
@@ -51,6 +51,6 @@ void Keyboard::check_ack() {
 
 cpu::status *cpu::keyboard_handler(cpu::status *status) {
     logger::verbose("KEYBOARD", "Keyboard handler called");
-    LAPIC::eoi();
+    lapic::eoi();
     return status;
 }

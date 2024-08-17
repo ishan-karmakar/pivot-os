@@ -11,7 +11,7 @@
 #include <frg/slab.hpp>
 using namespace cpu;
 
-size_t smp::num_cpus = 0;
+std::size_t smp::num_cpus = 0;
 
 void smp::init_bsp() {
     // auto madt = drivers::acpi::get_table<drivers::MADT>();

@@ -11,6 +11,8 @@
     log(enum_name, target, format, __va_arg_pack()); \
 }
 
+#define ASSERT(condition) logger::assert(condition, __FUNCTION__, "'" # condition "' failed");
+
 enum LogLevel {
     ERROR,
     WARNING,

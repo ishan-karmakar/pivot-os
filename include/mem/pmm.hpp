@@ -4,16 +4,16 @@
 #include <limine.h>
 
 namespace pmm {
-    extern size_t num_pages;
+    extern std::size_t num_pages;
     
     void init();
     
     uintptr_t frame();
 
-    void clear(uintptr_t, size_t);
+    void clear(uintptr_t, std::size_t);
     void clear(uintptr_t);
     
-    void set(uintptr_t, size_t);
+    void set(uintptr_t, std::size_t);
     void set(uintptr_t);
 }
 

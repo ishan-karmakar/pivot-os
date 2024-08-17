@@ -13,12 +13,12 @@ namespace vmm {
 
     class VMM {
     public:
-        VMM(uintptr_t start, size_t size, size_t flags, mapper::PTMapper&);
-        void *malloc(size_t);
+        VMM(uintptr_t start, std::size_t size, std::size_t flags, mapper::PTMapper&);
+        void *malloc(std::size_t);
         void free(void*);
 
     private:
-        size_t flags;
+        std::size_t flags;
         mapper::PTMapper &mpr;
         struct buddy *buddy;
     };

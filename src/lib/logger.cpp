@@ -49,14 +49,25 @@ namespace logger {
     }
 }
 
-extern "C" void uacpi_kernel_log(LogLevel log_level, const char *str) {
-    // I should find a faster way but I don't care
-    // I want to remove the end newline but str is constant
-    size_t len = frg::generic_strlen(str);
-    char *buffer = new char[len];
-    memcpy(buffer, str, --len);
-    buffer[len] = 0;
-    va_list args;
-    logger::vlog(log_level, "UACPI", buffer, args);
-    delete[] buffer;
+extern "C" {
+    void uacpi_kernel_log(LogLevel log_level, const char *str) {
+        // I should find a faster way but I don't care
+        // I want to remove the end newline but str is constant
+        std::size_t len = frg::generic_strlen(str);
+        char *buffer = new char[len];
+        memcpy(buffer, str, --len);
+        buffer[len] = 0;
+        va_list args;
+        logger::vlog(log_level, "UACPI", buffer, args);
+        delete[] buffer;
+    }
+
+    void frg_log(const char *s) {
+        printf("%s\n", s);
+    }
+
+    void frg_panic(const char *s) {
+        frg_log(s);
+        abort();
+    }
 }

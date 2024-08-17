@@ -5,7 +5,7 @@
 using namespace idt;
 
 extern void *isr_table[256];
-Handler handlers[256 - 32];
+handler_t handlers[256 - 32];
 
 desc idt_table[256];
 idtr idt_idtr{
@@ -37,21 +37,21 @@ void idt::set(uint8_t idx, uint8_t ring, void *handler) {
     });
 }
 
-std::pair<Handler&, uint8_t> idt::allocate_handler(uint8_t irq) {
+std::pair<handler_t&, uint8_t> idt::allocate_handler(uint8_t irq) {
     uint8_t vec = irq + 32;
     if (!handlers[irq]) return { handlers[irq], vec };
     logger::panic("IDT", "IDT entry %hhu is already reserved", vec);
 }
 
-std::pair<Handler&, uint8_t> idt::allocate_handler() {
-    for (uint8_t i = 0; i < 256 - 32; i++)
+std::pair<handler_t&, uint8_t> idt::allocate_handler() {
+    for (uint8_t i = 0; i < 256 - 32; i++) // Skip the area reserved for hardware IRQs
         if (!handlers[i])
             return { handlers[i], i + 32 };
     logger::panic("IDT", "No more IDT entries available for use");
 }
 
 void idt::free_handler(uint8_t irq) {
-    handlers[irq].reset();
+    handlers[irq] = nullptr;
 }
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
@@ -60,11 +60,11 @@ uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interru
         func(ctx);
         return status;
     };
-    *reinterpret_cast<size_t*>(out_handle) = irq;
+    *reinterpret_cast<std::size_t*>(out_handle) = irq;
     return UACPI_STATUS_OK;
 }
 
 uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle handle) {
-    idt::free_handler(*reinterpret_cast<size_t*>(handle));
+    idt::free_handler(*reinterpret_cast<std::size_t*>(handle));
     return UACPI_STATUS_OK;
 }

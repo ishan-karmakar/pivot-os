@@ -61,16 +61,16 @@ void Framebuffer::append(char c) {
 }
 
 void Framebuffer::clear() {
-    for (size_t line = 0; line < info->height; line++)
-        for (size_t i = 0; i < info->width; i++)
+    for (std::size_t line = 0; line < info->height; line++)
+        for (std::size_t i = 0; i < info->width; i++)
             reinterpret_cast<uint32_t*>(buffer + line * info->pitch)[i] = bg;
     x = y = 0;
 }
 
 void Framebuffer::putchar(char c) {
     const uint8_t * glyph = reinterpret_cast<const uint8_t*>(font) + font->header_size + c * font->bpg;
-    size_t bpl = div_ceil(font->width, 8);
-    size_t off = get_off();
+    std::size_t bpl = div_ceil(font->width, 8);
+    std::size_t off = get_off();
     for (uint32_t cy = 0, line = off; cy < font->height;
         cy++, glyph += bpl, off += info->pitch, line = off)
         for (uint32_t cx = 0; cx < font->width; cx++, line += BPP)
@@ -87,7 +87,7 @@ void Framebuffer::find_last() {
         x--;
     
     while (true) {
-        size_t off = get_off();
+        std::size_t off = get_off();
         for (uint32_t cy = 0, line = off; cy < font->height; cy++, off += BPP * info->pitch, line = off)
             for (uint32_t cx = 0; cx < font->width; cx++, line += BPP)
                 if (*((uint32_t*) (buffer + line)) != bg)
@@ -112,6 +112,6 @@ Framebuffer::coord_t Framebuffer::get_constraints() {
     return { num_cols, num_rows };
 }
 
-size_t Framebuffer::get_off() {
+std::size_t Framebuffer::get_off() {
     return (y * font->height * info->pitch) + (x * font->width * BPP);
 }

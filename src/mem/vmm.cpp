@@ -17,18 +17,18 @@ void vmm::init() {
     kvmm.initialize(start, pmm::num_pages * PAGE_SIZE, mapper::KERNEL_ENTRY, *mapper::kmapper);
 }
 
-VMM::VMM(uintptr_t start, size_t size, size_t flags, mapper::PTMapper& mpr) : flags{flags}, mpr{mpr} {
-    size_t metadata_pages = div_ceil(buddy_sizeof_alignment(pmm::num_pages * PAGE_SIZE, PAGE_SIZE), PAGE_SIZE);
-    for (size_t i = 0; i < metadata_pages; i++)
+VMM::VMM(uintptr_t start, std::size_t size, std::size_t flags, mapper::PTMapper& mpr) : flags{flags}, mpr{mpr} {
+    std::size_t metadata_pages = div_ceil(buddy_sizeof_alignment(pmm::num_pages * PAGE_SIZE, PAGE_SIZE), PAGE_SIZE);
+    for (std::size_t i = 0; i < metadata_pages; i++)
         mpr.map(pmm::frame(), start + i * PAGE_SIZE, flags);
     uint8_t *at = reinterpret_cast<uint8_t*>(start);
     buddy = buddy_init_alignment(at, at + metadata_pages * PAGE_SIZE, size - metadata_pages * PAGE_SIZE, PAGE_SIZE);
     logger::info("VMM[INIT]", "Initialized VMM");
 }
 
-void *VMM::malloc(size_t size) {
+void *VMM::malloc(std::size_t size) {
     void *addr = buddy_malloc(buddy, size);
-    for (size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++) {
+    for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++) {
         auto t = pmm::frame();
         mpr.map(t, reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
     }
@@ -36,14 +36,14 @@ void *VMM::malloc(size_t size) {
 }
 
 void VMM::free(void *addr) {
-    auto buddy_callback = [](void *taddr, void *addr, size_t size, size_t a) -> void* {
+    auto buddy_callback = [](void *taddr, void *addr, std::size_t size, std::size_t a) -> void* {
         if (taddr == addr && a)
             return reinterpret_cast<void*>(size);
         return NULL;
     };
 
-    size_t pages = div_ceil(reinterpret_cast<size_t>(buddy_walk(buddy, buddy_callback, addr)), PAGE_SIZE);
+    std::size_t pages = div_ceil(reinterpret_cast<std::size_t>(buddy_walk(buddy, buddy_callback, addr)), PAGE_SIZE);
     buddy_free(buddy, addr);
-    for (size_t i = 0; i < pages; i++)
-        mpr.unmap(reinterpret_cast<size_t>(addr), pages);
+    for (std::size_t i = 0; i < pages; i++)
+        mpr.unmap(reinterpret_cast<std::size_t>(addr), pages);
 }

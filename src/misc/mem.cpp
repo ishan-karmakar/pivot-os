@@ -2,7 +2,7 @@
 #include <cstddef>
 
 extern "C" {
-    int memcmp (const void *str1, const void *str2, size_t count) {
+    int memcmp (const void *str1, const void *str2, std::size_t count) {
         const char *s1 = (const char*)str1;
         const char *s2 = (const char*)str2;
 
@@ -14,7 +14,7 @@ extern "C" {
         return 0;
     }
 
-    void *memcpy (void *__restrict dest, const void *__restrict src, size_t len) {
+    void *memcpy (void *__restrict dest, const void *__restrict src, std::size_t len) {
         char *d = static_cast<char*>(dest);
         const char *s = static_cast<const char*>(src);
         while (len--)
@@ -22,14 +22,14 @@ extern "C" {
         return dest;
         }
 
-        void *memset (void *dest, int val, size_t len) {
+        void *memset (void *dest, int val, std::size_t len) {
         char *ptr = static_cast<char*>(dest);
         while (len-- > 0)
             *ptr++ = val;
         return dest;
     }
 
-    void *memmove (void *dest, const void *src, size_t len) {
+    void *memmove (void *dest, const void *src, std::size_t len) {
         char *d = static_cast<char*>(dest);
         const char *s = static_cast<const char*>(src);
         if (d < s)

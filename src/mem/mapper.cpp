@@ -22,12 +22,12 @@ void mapper::init() {
 
 PTMapper::PTMapper(pg_tbl_t pml4) : pml4{pml4} {}
 
-void PTMapper::map(const uintptr_t& phys, const uintptr_t& virt, const size_t& flags, const size_t& pages) {
-    for (size_t i = 0; i < pages; i++)
+void PTMapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size_t& flags, const std::size_t& pages) {
+    for (std::size_t i = 0; i < pages; i++)
         map(phys + i * PAGE_SIZE, virt + i * PAGE_SIZE, flags);
 }
 
-void PTMapper::map(const uintptr_t& phys, const uintptr_t& virt, const size_t& flags) {
+void PTMapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size_t& flags) {
     logger::debug("MAPPER[MAP]", "%p -> %p", virt, phys);
     if (phys == 0 || virt == 0)
         return;
@@ -107,8 +107,8 @@ uintptr_t PTMapper::translate(const uintptr_t& virt) const {
     return addr;
 }
 
-void PTMapper::unmap(const uintptr_t& addr, const size_t& num_pages) {
-    for (size_t i = 0; i < num_pages; i++)
+void PTMapper::unmap(const uintptr_t& addr, const std::size_t& num_pages) {
+    for (std::size_t i = 0; i < num_pages; i++)
         unmap(addr + i * PAGE_SIZE);
 }
 
@@ -149,12 +149,12 @@ std::array<uint16_t, 4> PTMapper::get_entries(const uintptr_t& addr) {
     return entries;
 }
 
-void *uacpi_kernel_map(uintptr_t phys, size_t) {
+void *uacpi_kernel_map(uintptr_t phys, std::size_t) {
     uintptr_t virt = virt_addr(phys);
     kmapper->map(phys_addr(phys), virt, KERNEL_ENTRY);
     return reinterpret_cast<void*>(virt);
 }
 
-void uacpi_kernel_unmap(void *addr, size_t size) {
+void uacpi_kernel_unmap(void *addr, std::size_t size) {
     kmapper->unmap(reinterpret_cast<uintptr_t>(virt_addr(addr)), div_ceil(size, PAGE_SIZE));
 }

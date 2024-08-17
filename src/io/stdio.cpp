@@ -13,7 +13,7 @@ public:
     StringWriter(char* buf) : buf{buf} {}
     void append(char c) override { buf[idx++] = c; }
     char *buf;
-    size_t idx;
+    std::size_t idx;
 
 private:
 };
@@ -23,8 +23,8 @@ frg::expected<frg::format_error> CharPrinter::operator()(char c) {
     return frg::success;
 }
 
-frg::expected<frg::format_error> CharPrinter::operator()(const char *s, size_t n) {
-    for (size_t i = 0; i < n; i++) {
+frg::expected<frg::format_error> CharPrinter::operator()(const char *s, std::size_t n) {
+    for (std::size_t i = 0; i < n; i++) {
         auto e = operator()(s[i]);
         if (!e) return e;
     }

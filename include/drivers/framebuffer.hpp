@@ -27,7 +27,7 @@ namespace fb {
     private:
         void append(char) override;
         void find_last();
-        size_t get_off();
+        std::size_t get_off();
         void putchar(char);
 
         char *buffer;

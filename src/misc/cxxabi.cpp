@@ -13,9 +13,9 @@ extern char __start_dtors;
 extern char __stop_dtors;
 
 void cxxabi::call_constructors() {
-    size_t num_entries = &__stop_ctors - &__start_ctors;
+    std::size_t num_entries = &__stop_ctors - &__start_ctors;
     uintptr_t *init_array = &__start_ctors;
-    for (size_t i = 0; i < num_entries; i++)
+    for (std::size_t i = 0; i < num_entries; i++)
         ((func_t) init_array[i])();
     logger::info("CXXABI[CTORS]", "Called global constructors");
 }

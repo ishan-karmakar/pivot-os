@@ -79,7 +79,7 @@ void thread_wrapper(thread_fn_t entry_point) {
     while (1) asm ("pause");
 }
 
-void *malloc(size_t size) {
+void *malloc(std::size_t size) {
     return halloc(size, KCPUS[CPU].cur->heap);
 }
 
@@ -87,13 +87,13 @@ void free(void *ptr) {
     return hfree(ptr, KCPUS[CPU].cur->heap);
 }
 
-void *realloc(void *ptr, size_t size) {
+void *realloc(void *ptr, std::size_t size) {
     return hrealloc(ptr, size, KCPUS[CPU].cur->heap);
 }
 
 void idle(void) { while(1) asm ("pause"); }
 
-void thread_sleep(size_t ms) {
+void thread_sleep(std::size_t ms) {
     syscall(1, 1, ms);
     thread_yield();
 }

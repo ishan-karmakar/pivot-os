@@ -1,30 +1,13 @@
 #pragma once
 #include <drivers/ioapic.hpp>
+#include <cstddef>
+#include <atomic>
 
-namespace idt {
-    class IDT;
-}
+namespace pit {
+    constexpr int MS_TICKS = 1193;
+    extern volatile std::atomic_size_t ticks;
 
-namespace drivers {
-    class PIT {
-    public:
-        PIT() = delete;
-        ~PIT() = delete;
-
-        static void init();
-        static void cmd(bool, uint8_t, uint8_t, uint8_t);
-        static void data(uint16_t);
-        static inline void enable() { IOAPIC::set_mask(IRQ_ENT, false); }
-        static inline void disable() { IOAPIC::set_mask(IRQ_ENT, true); }
-
-        static volatile size_t ticks;
-        static constexpr int MS_TICKS = 1193;
-        static constexpr int IRQ_ENT = 0;
-        static constexpr int IDT_ENT = 34;
-
-    private:
-        static constexpr int CMD_REG = 0x43;
-        static constexpr int DATA_REG = 0x40;
-        static bool initialized;
-    };
+    void init();
+    void start(uint16_t);
+    void stop();
 }

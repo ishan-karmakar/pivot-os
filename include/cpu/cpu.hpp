@@ -77,4 +77,4 @@ namespace cpu {
 //     asm volatile ("mov %0, %%cr3" :: "r" (addr) : "memory");
 // }
 
-// void syscall(size_t, size_t, ...);
+// void syscall(std::size_t, std::size_t, ...);

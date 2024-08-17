@@ -4,7 +4,7 @@
 
 namespace io {
     struct OWriter {
-        typedef std::pair<size_t, size_t> coord_t;
+        typedef std::pair<std::size_t, std::size_t> coord_t;
         virtual ~OWriter() = default;
         virtual coord_t get_pos() { return { 0, 0 }; }
         virtual void set_pos(coord_t) {}
@@ -20,7 +20,7 @@ namespace io {
     public:
         CharPrinter(OWriter *writer, frg::va_struct *args) : args{args}, writer{writer} {};
         frg::expected<frg::format_error> operator()(char);
-        frg::expected<frg::format_error> operator()(const char*, size_t);
+        frg::expected<frg::format_error> operator()(const char*, std::size_t);
         frg::expected<frg::format_error> operator()(char, frg::format_options, frg::printf_size_mod);
 
     private:

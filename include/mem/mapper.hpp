@@ -15,17 +15,17 @@ namespace mapper {
         NoExecute = (1UL << 63),
     };
 
-    constexpr size_t KERNEL_ENTRY = Writable;
-    constexpr size_t USER_ENTRY = Writable | User;
+    constexpr std::size_t KERNEL_ENTRY = NoExecute | Writable;
+    constexpr std::size_t USER_ENTRY = Writable | User;
 
     class PTMapper {
     public:
         PTMapper(pg_tbl_t);
-        void map(const uintptr_t&, const uintptr_t&, const size_t&);
-        void map(const uintptr_t&, const uintptr_t&, const size_t&, const size_t&);
+        void map(const uintptr_t&, const uintptr_t&, const std::size_t&);
+        void map(const uintptr_t&, const uintptr_t&, const std::size_t&, const std::size_t&);
         uintptr_t translate(const uintptr_t&) const;
         void unmap(const uintptr_t&);
-        void unmap(const uintptr_t&, const size_t&);
+        void unmap(const uintptr_t&, const std::size_t&);
         void load() const;
 
     private:
