@@ -33,6 +33,8 @@ Framebuffer::Framebuffer(limine_framebuffer *info, uint32_t fg, uint32_t bg) :
 {}
 
 void Framebuffer::append(char c) {
+    if (y >= num_rows)
+        clear();
     switch (c) {
     case '\n':
         x = 0;
@@ -56,9 +58,6 @@ void Framebuffer::append(char c) {
             y++;
         }
     }
-
-    if (y >= num_rows)
-        clear();
 }
 
 void Framebuffer::clear() {

@@ -50,7 +50,7 @@ inline void enable_sse() {
         "mov %%rax, %%cr4;"
         : : : "rax"
     );
-    logger::verbose("CPU[SSE]", "Enabled");
+    logger::verbose("CPU[SSE]", "Enabled SSE");
 }
 
 [[gnu::always_inline]]
@@ -62,7 +62,7 @@ inline void enable_avx() {
         "xsetbv;"
         : : : "rdx", "rcx", "rax"
     );
-    logger::verbose("CPU[AVX]", "Enabled");
+    logger::verbose("CPU[AVX]", "Enabled AVX");
 }
 
 [[gnu::always_inline]]
@@ -74,7 +74,7 @@ inline void enable_smap(uint32_t ebx) {
             "mov %%rax, %%cr4;"
             : : : "rax"
         );
-        logger::verbose("CPU[SMAP]", "Enabled");
+        logger::verbose("CPU[SMAP]", "Enabled SMAP");
     }
 }
 
@@ -87,14 +87,14 @@ inline void enable_smep(uint32_t ebx) {
             "mov %%rax, %%cr4;"
             : : : "rax"
         );
-        logger::verbose("CPU[SMEP]", "Enabled");
+        logger::verbose("CPU[SMEP]", "Enabled SMEP");
     }
 }
 
 [[gnu::always_inline]]
 inline void enable_ne() {
     wrmsr(IA32_EFER, rdmsr(IA32_EFER) | (1 << 11));
-    logger::verbose("CPU[NE]", "Enabled");
+    logger::verbose("CPU[NE]", "Enabled no-execute bit");
 }
 
 [[gnu::noinline]]

@@ -54,6 +54,8 @@ extern "C" void init_kernel() {
     cxxabi::call_constructors();
     fb::init();
     acpi::init();
+    int t = 0;
+    logger::verbose("KERNEL", "%d", 4 / t);
     // gdt::init();
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();

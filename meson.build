@@ -47,6 +47,7 @@ os = custom_target(
     output: 'os.img',
     command: ['util/diskmaker.py', '@OUTPUT@'],
     depends: [limine_exec, kernel],
+    depend_files: 'limine.conf',
     env: env,
     build_by_default: true
 )
