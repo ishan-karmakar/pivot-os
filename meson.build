@@ -45,7 +45,7 @@ env.set('limine', limine_exec.full_path())
 os = custom_target(
     'os',
     output: 'os.img',
-    command: ['util/diskmaker.py', '@OUTPUT@'],
+    command: ['util/diskmaker.py', '@OUTPUT@', '@PRIVATE_DIR@'],
     depends: [limine_exec, kernel],
     depend_files: 'limine.conf',
     env: env,
