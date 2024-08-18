@@ -21,6 +21,7 @@ sources = [
     'misc/ubsan.cpp',
     'lib/logger.cpp',
     'lib/timer.cpp',
+    'lib/uacpi.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
@@ -61,7 +62,7 @@ c_args = [
     '-static',
     '-fno-stack-protector',
     '-Wno-maybe-uninitialized',
-    
+    '-DUACPI_FORMATTED_LOGGING'
 ]
 
 if (get_option('log_level') != '')

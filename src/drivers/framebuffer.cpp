@@ -17,7 +17,7 @@ static volatile limine_framebuffer_request fb_request = { LIMINE_FRAMEBUFFER_REQ
 extern volatile limine_memmap_request mmap_request;
 
 // TODO: Support multiple framebuffers
-// TODO: Support BPP != 4
+// TODO: Support BPP != 32
 
 void fb::init() {
     kfb = new Framebuffer{fb_request.response->framebuffers[0]};
@@ -41,11 +41,14 @@ void Framebuffer::append(char c) {
         y++;
         break;
 
-    case '\b':
+    case '\b': {
         find_last();
+        uint32_t tmp_x = x, tmp_y = y;
         append(' ');
+        x = tmp_x;
+        y = tmp_y;
         break;
-    
+    }
     case '\t':
         for (int i = 0; i < TAB_SIZE; i++)
             append(' ');

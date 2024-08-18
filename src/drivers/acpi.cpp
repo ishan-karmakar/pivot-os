@@ -28,8 +28,8 @@ void acpi::init() {
 
     lapic::bsp_init();
     ioapic::init();
-
-    // ASSERT(uacpi_likely_success(uacpi_namespace_load()));
+    lapic::start(lapic::ms_ticks, lapic::Periodic);
+    ASSERT(uacpi_likely_success(uacpi_namespace_load()));
 }
 
 SDT::SDT(const acpi_sdt_hdr *header) : header{header} {}

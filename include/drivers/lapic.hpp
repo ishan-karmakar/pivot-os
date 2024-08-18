@@ -1,18 +1,22 @@
 #pragma once
 #include <cstdint>
+#include <atomic>
 
 namespace lapic {
     extern std::size_t ms_ticks;
+    extern std::atomic_size_t ticks;
+
+    enum timer_mode {
+        Oneshot,
+        Periodic,
+        TSCDeadline
+    };
 
     void bsp_init();
     void ap_init();
+    void start(std::size_t, timer_mode);
 
     void write_reg(uint32_t, uint64_t);
     uint64_t read_reg(uint32_t);
     inline void eoi() { write_reg(0xB0, 0); }
-
-    constexpr int SPURIOUS_OFF = 0xF0;
-    constexpr int INITIAL_COUNT_OFF = 0x380;
-    constexpr int CUR_COUNT_OFF = 0x390;
-    constexpr int CONFIG_OFF = 0x3E0;
 }

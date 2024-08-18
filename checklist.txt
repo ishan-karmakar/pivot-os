@@ -9,13 +9,13 @@
 + IDT
 + TSS
 + PMM (Hugepages)
-/ VMM (Experimenting with AVL tree)
-/ Heap (switching to slab allocator)
++ VMM
++ Heap
 + Framebuffer
 / ACPI (switching to uACPI)
 + I/O APIC
 + LAPIC
-- Legacy PIC
++ Legacy PIC
 + PIT
 - HPET
 + RTC

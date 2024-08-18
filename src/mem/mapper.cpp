@@ -148,13 +148,3 @@ std::array<uint16_t, 4> PTMapper::get_entries(const uintptr_t& addr) {
         entries[i] = (addr >> e) & 0x1FF;
     return entries;
 }
-
-void *uacpi_kernel_map(uintptr_t phys, std::size_t) {
-    uintptr_t virt = virt_addr(phys);
-    kmapper->map(phys_addr(phys), virt, KERNEL_ENTRY);
-    return reinterpret_cast<void*>(virt);
-}
-
-void uacpi_kernel_unmap(void *addr, std::size_t size) {
-    kmapper->unmap(reinterpret_cast<uintptr_t>(virt_addr(addr)), div_ceil(size, PAGE_SIZE));
-}

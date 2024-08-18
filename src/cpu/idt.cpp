@@ -1,5 +1,6 @@
 #include <cpu/idt.hpp>
 #include <cpu/gdt.hpp>
+#include <drivers/ioapic.hpp>
 #include <lib/logger.hpp>
 #include <uacpi/kernel_api.h>
 using namespace idt;
@@ -44,7 +45,7 @@ std::pair<handler_t&, uint8_t> idt::allocate_handler(uint8_t irq) {
 }
 
 std::pair<handler_t&, uint8_t> idt::allocate_handler() {
-    for (uint8_t i = 0; i < 256 - 32; i++) // Skip the area reserved for hardware IRQs
+    for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < 256 - 32; i++) // Skip the area reserved for hardware IRQs
         if (!handlers[i])
             return { handlers[i], i + 32 };
     logger::panic("IDT", "No more IDT entries available for use");
@@ -52,19 +53,4 @@ std::pair<handler_t&, uint8_t> idt::allocate_handler() {
 
 void idt::free_handler(uint8_t irq) {
     handlers[irq] = nullptr;
-}
-
-uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
-    auto [handler, vec] = idt::allocate_handler(irq);
-    handler = [func, ctx](cpu::status *status) {
-        func(ctx);
-        return status;
-    };
-    *reinterpret_cast<std::size_t*>(out_handle) = irq;
-    return UACPI_STATUS_OK;
-}
-
-uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle handle) {
-    idt::free_handler(*reinterpret_cast<std::size_t*>(handle));
-    return UACPI_STATUS_OK;
 }

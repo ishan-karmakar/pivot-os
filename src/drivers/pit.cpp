@@ -5,7 +5,7 @@
 #include <io/serial.hpp>
 using namespace pit;
 
-volatile std::atomic_size_t pit::ticks = 0;
+std::atomic_size_t pit::ticks = 0;
 
 constexpr int IRQ = 0;
 constexpr int CMD_REG = 0x43;
@@ -27,7 +27,6 @@ void pit::init() {
 }
 
 void pit::start(uint16_t d) {
-    logger::verbose("PIT[START]", "Starting timer with divisor %hu", d);
     io::outb(DATA_REG, d);
     io::outb(DATA_REG, d >> 8);
 
