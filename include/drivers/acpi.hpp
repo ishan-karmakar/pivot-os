@@ -8,9 +8,9 @@ namespace acpi {
 
     acpi_sdt_hdr *get_table(const char *sig);
 
-    class SDT {
+    class sdt {
     protected:
-        explicit SDT(const acpi_sdt_hdr*);
+        explicit sdt(const acpi_sdt_hdr*);
     
         static bool validate(const char*, std::size_t);
         const acpi_sdt_hdr *header;

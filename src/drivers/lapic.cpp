@@ -36,6 +36,7 @@ std::size_t lapic::ms_ticks = 0;
 std::atomic_size_t lapic::ticks = 0;
 bool lapic::initialized = false;
 uint8_t timer_vector;
+uint8_t spurious_vector;
 
 void calibrate();
 
@@ -53,14 +54,10 @@ void lapic::bsp_init() {
         addr = virt_addr(msr & 0xffffffffff000);
     } else return;
 
-    __cpuid(0x80000001, ignored, ignored, ignored, edx);
-    tsc = !!(edx & (1 << 4));
-    if (tsc)
-        logger::verbose("LAPIC[INIT]", "TSC is available");
-
-    auto [spurious_handler, spurious_vector] = idt::allocate_handler();
-    auto [timer_handler, vector_] = idt::allocate_handler();
-    timer_vector = vector_;
+    auto [spurious_handler, spurious_vector_] = idt::allocate_handler();
+    auto [timer_handler, timer_vector_] = idt::allocate_handler();
+    timer_vector = timer_vector_;
+    spurious_vector = spurious_vector_;
     spurious_handler = [](cpu::status *status) { return status; };
     timer_handler = [](cpu::status *status) {
         ticks++;
@@ -73,6 +70,10 @@ void lapic::bsp_init() {
     calibrate();
 
     initialized = true;
+}
+
+void lapic::ap_init() {
+    write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vector);
 }
 
 void calibrate() {
@@ -90,8 +91,8 @@ void calibrate() {
     logger::verbose("LAPIC[CLB]", "APIC ticks per ms: %u", ms_ticks);
 }
 
-void lapic::start(std::size_t rate, timer_mode mode) {
-    write_reg(LVT_OFFSET, timer_vector | (mode << 17));
+void lapic::start(std::size_t rate) {
+    write_reg(LVT_OFFSET, timer_vector | (Periodic << 17));
     write_reg(INITIAL_COUNT_OFF, rate);
     write_reg(CONFIG_OFF, TDIV);
 }

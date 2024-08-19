@@ -33,7 +33,7 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".requests.end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
-frg::manual_box<io::SerialPort> qemu;
+frg::manual_box<io::serial_port> qemu;
 
 extern "C" [[noreturn]] void kinit() {
     cpu::set_kgs(0);
@@ -55,9 +55,8 @@ extern "C" [[noreturn]] void kinit() {
     acpi::init();
     rtc::init();
     gdt::init();
-    tss::init();
+    // tss::init();
     smp::init();
-    // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);
     // drivers::PIT::init(idt);

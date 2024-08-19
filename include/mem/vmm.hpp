@@ -5,23 +5,23 @@
 #include <buddy_alloc.h>
 
 namespace mapper {
-    class PTMapper;
+    class ptmapper;
 }
 
 namespace vmm {
     void init();
 
-    class VMM {
+    class vmm {
     public:
-        VMM(uintptr_t start, std::size_t size, std::size_t flags, mapper::PTMapper&);
+        vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper&);
         void *malloc(std::size_t);
         void free(void*);
 
     private:
         std::size_t flags;
-        mapper::PTMapper &mpr;
+        mapper::ptmapper &mpr;
         struct buddy *buddy;
     };
 
-    extern frg::manual_box<VMM> kvmm;
+    extern frg::manual_box<vmm> kvmm;
 }

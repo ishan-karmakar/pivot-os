@@ -15,7 +15,7 @@ namespace lapic {
 
     void bsp_init();
     void ap_init();
-    void start(std::size_t, timer_mode);
+    void start(std::size_t);
 
     void write_reg(uint32_t, uint64_t);
     uint64_t read_reg(uint32_t);

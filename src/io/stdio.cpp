@@ -5,12 +5,12 @@
 #include <frg/manual_box.hpp>
 using namespace io;
 
-OWriter *io::writer = nullptr;
+owriter *io::writer = nullptr;
 FILE *stdout = nullptr;
 
-class StringWriter : public OWriter {
+class string_writer : public owriter {
 public:
-    StringWriter(char* buf) : buf{buf} {}
+    string_writer(char* buf) : buf{buf} {}
     void append(char c) override { buf[idx++] = c; }
     char *buf;
     std::size_t idx;
@@ -18,12 +18,12 @@ public:
 private:
 };
 
-frg::expected<frg::format_error> CharPrinter::operator()(char c) {
+frg::expected<frg::format_error> char_printer::operator()(char c) {
     writer->append(c);
     return frg::success;
 }
 
-frg::expected<frg::format_error> CharPrinter::operator()(const char *s, std::size_t n) {
+frg::expected<frg::format_error> char_printer::operator()(const char *s, std::size_t n) {
     for (std::size_t i = 0; i < n; i++) {
         auto e = operator()(s[i]);
         if (!e) return e;
@@ -32,7 +32,7 @@ frg::expected<frg::format_error> CharPrinter::operator()(const char *s, std::siz
     return frg::success;
 }
 
-frg::expected<frg::format_error> CharPrinter::operator()(char c, frg::format_options opts, frg::printf_size_mod size_mod) {
+frg::expected<frg::format_error> char_printer::operator()(char c, frg::format_options opts, frg::printf_size_mod size_mod) {
     switch (c) {
     case 'p':
     case 'c':
@@ -57,8 +57,8 @@ int vsprintf(char *buf, const char *fmt, va_list a) {
     frg::va_struct args;
     va_copy(args.args, a);
 
-    StringWriter w{buf};
-    CharPrinter cp{&w, &args};
+    string_writer w{buf};
+    char_printer cp{&w, &args};
     frg::printf_format(cp, fmt, &args).unwrap();
 
     va_end(args.args);
@@ -77,7 +77,7 @@ int sprintf(char *buf, const char *fmt, ...) {
 int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {
     frg::va_struct args;
     va_copy(args.args, a); // PROBLEM
-    CharPrinter cp{writer, &args};
+    char_printer cp{writer, &args};
     frg::printf_format(cp, fmt, &args).unwrap();
 
     va_end(args.args);

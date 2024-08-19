@@ -16,9 +16,9 @@ namespace fb {
         uint32_t width;
     };
 
-    class Framebuffer : public io::OWriter {
+    class framebuffer : public io::owriter {
     public:
-        Framebuffer(limine_framebuffer*, uint32_t = 0xFFFFFFFF, uint32_t = 0);
+        framebuffer(limine_framebuffer*, uint32_t = 0xFFFFFFFF, uint32_t = 0);
         void clear() override;
         void set_pos(coord_t) override;
         coord_t get_pos() override;
@@ -43,5 +43,5 @@ namespace fb {
     void init();
 
     extern const struct font *font;
-    extern Framebuffer *kfb;
+    extern framebuffer *kfb;
 }

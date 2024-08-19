@@ -9,7 +9,7 @@
 using namespace vmm;
 
 extern volatile limine_memmap_request mmap_request;
-frg::manual_box<VMM> vmm::kvmm;
+frg::manual_box<vmm::vmm> vmm::kvmm;
 
 void vmm::init() {
     auto last_ent = mmap_request.response->entries[mmap_request.response->entry_count - 1];
@@ -17,7 +17,7 @@ void vmm::init() {
     kvmm.initialize(start, pmm::num_pages * PAGE_SIZE, mapper::KERNEL_ENTRY, *mapper::kmapper);
 }
 
-VMM::VMM(uintptr_t start, std::size_t size, std::size_t flags, mapper::PTMapper& mpr) : flags{flags}, mpr{mpr} {
+vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper& mpr) : flags{flags}, mpr{mpr} {
     std::size_t metadata_pages = div_ceil(buddy_sizeof_alignment(pmm::num_pages * PAGE_SIZE, PAGE_SIZE), PAGE_SIZE);
     for (std::size_t i = 0; i < metadata_pages; i++)
         mpr.map(pmm::frame(), start + i * PAGE_SIZE, flags);
@@ -26,7 +26,7 @@ VMM::VMM(uintptr_t start, std::size_t size, std::size_t flags, mapper::PTMapper&
     logger::info("VMM[INIT]", "Initialized VMM");
 }
 
-void *VMM::malloc(std::size_t size) {
+void *vmm::vmm::malloc(std::size_t size) {
     void *addr = buddy_malloc(buddy, size);
     for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++) {
         auto t = pmm::frame();
@@ -35,11 +35,11 @@ void *VMM::malloc(std::size_t size) {
     return addr;
 }
 
-void VMM::free(void *addr) {
+void vmm::vmm::free(void *addr) {
     auto buddy_callback = [](void *taddr, void *addr, std::size_t size, std::size_t a) -> void* {
         if (taddr == addr && a)
             return reinterpret_cast<void*>(size);
-        return NULL;
+        return nullptr;
     };
 
     std::size_t pages = div_ceil(reinterpret_cast<std::size_t>(buddy_walk(buddy, buddy_callback, addr)), PAGE_SIZE);

@@ -14,7 +14,7 @@ uint8_t io::inb(int port) {
 }
 
 // This can only be called ONCE
-SerialPort::SerialPort(uint16_t port) : port{port} {
+serial_port::serial_port(uint16_t port) : port{port} {
     outb(port + 1, 0x00);    // Disable all interrupts
 	outb(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
 	outb(port + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
@@ -25,7 +25,7 @@ SerialPort::SerialPort(uint16_t port) : port{port} {
     outb(port + 4, 0x0F);
 }
 
-void SerialPort::append(char c) {
+void serial_port::append(char c) {
     while (!(inb(port + 5) & 0x20));
     outb(port, c);
 }

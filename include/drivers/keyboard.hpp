@@ -6,15 +6,11 @@ namespace cpu {
     extern "C" cpu::status *keyboard_handler(cpu::status*);
 }
 
-namespace idt {
-    class IDT;
-}
-
 namespace drivers {
     class Keyboard {
     public:
         Keyboard() = delete;
-        static void init(idt::IDT&);
+        // static void init(idt::IDT&);
     
     private:
         enum code {

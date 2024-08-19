@@ -20,14 +20,13 @@ void smp::init() {
         auto cpu_info = cpus + i;
         info->extra_argument = reinterpret_cast<uintptr_t>(cpu_info);
         cpu_info->id = info->lapic_id;
-        if (info->lapic_id != bsp)
+        if (info->lapic_id != bsp) {
             info->goto_address = ainit;
-        else
+            if (smp_request.response->cpus[i]->lapic_id != bsp)
+                while (!cpus[i].ready) asm ("pause");
+        } else
             cpu::set_kgs(info->extra_argument);
     }
-    for (std::size_t i = 0; i < cpu_count; i++)
-        if (smp_request.response->cpus[i]->lapic_id != bsp)
-            while (!cpus[i].ready) asm ("pause");
 }
 
 void smp::ap_init(limine_smp_info *cpu) {

@@ -55,20 +55,16 @@ void cpu::init() {
 inline void enable_smap() {
     uint32_t ignored, ebx;
     __cpuid_count(7, 0, ignored, ebx, ignored, ignored);
-    if (ebx & (1 << 20)) {
+    if (ebx & (1 << 20))
         wrreg(cr4, rdreg(cr4) | (1 << 21));
-        logger::verbose("CPU[SMAP]", "Enabled SMAP");
-    }
 }
 
 [[gnu::always_inline]]
 inline void enable_smep() {
     uint32_t ignored, ebx;
     __cpuid_count(7, 0, ignored, ebx, ignored, ignored);
-    if (ebx & (1 << 7)) {
+    if (ebx & (1 << 7))
         wrreg(cr4, rdreg(cr4) | (1 << 20));
-        logger::verbose("CPU[SMEP]", "Enabled SMEP");
-    }
 }
 
 [[gnu::always_inline]]

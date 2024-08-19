@@ -6,7 +6,7 @@
 #include <mem/heap.hpp>
 
 namespace acpi {
-    class MADT : SDT {
+    class madt : sdt {
     private:
         template <class E>
         class Iterator {
@@ -45,12 +45,12 @@ namespace acpi {
         const acpi_madt *table;
 
     public:
-        MADT(const acpi_sdt_hdr*);
+        madt(const acpi_sdt_hdr*);
 
         uintptr_t lapic_addr;
         frg::vector<const acpi_madt_interrupt_source_override*, heap::allocator_t> source_ovrds;
         frg::vector<const acpi_madt_ioapic*, heap::allocator_t> ioapics;
     };
 
-    extern MADT *madt;
+    extern class madt *madt;
 }

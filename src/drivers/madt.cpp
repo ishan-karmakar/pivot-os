@@ -2,10 +2,10 @@
 using namespace acpi;
 #define ITER_TYPE(type, enum_) for (auto iter = Iterator<type>{table, enum_}; iter; ++iter)
 
-MADT *acpi::madt;
+class madt *acpi::madt;
 
-MADT::MADT(const acpi_sdt_hdr *tbl) :
-    SDT{tbl},
+madt::madt(const acpi_sdt_hdr *tbl) :
+    sdt{tbl},
     table{reinterpret_cast<const acpi_madt*>(tbl)},
     source_ovrds{heap::allocator()},
     ioapics(heap::allocator())

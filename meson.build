@@ -56,7 +56,7 @@ qemu = find_program('qemu-system-x86_64', required: false)
 if qemu.found()
     qemu_flags = [
         '-m', '128M',
-        '-smp', '2',
+        '-smp', '4',
         '-serial', 'stdio',
         '-enable-kvm',
         '-cpu', 'host',

@@ -40,6 +40,7 @@ sources = [
     'drivers/acpi.cpp',
     'drivers/madt.cpp',
     'drivers/interrupts.cpp',
+    'drivers/scheduler.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
     'mem/heap.cpp',

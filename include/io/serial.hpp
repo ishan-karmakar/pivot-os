@@ -6,11 +6,11 @@ namespace io {
     void outb(int port, uint8_t data);
     uint8_t inb(int port);
 
-    class SerialPort : public OWriter {
+    class serial_port : public owriter {
     public:
-        using OWriter::append;
+        using owriter::append;
 
-        SerialPort(uint16_t);
+        serial_port(uint16_t);
         void append(char) override;
 
     private:

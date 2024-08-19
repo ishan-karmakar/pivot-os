@@ -27,10 +27,10 @@ void acpi::init() {
     ASSERT(uacpi_likely_success(uacpi_initialize(&init_params)));
     logger::info("ACPI[INIT]", "Initialized uACPI");
 
-    madt = new MADT{acpi::get_table(ACPI_MADT_SIGNATURE)};
+    madt = new (class madt){acpi::get_table(ACPI_MADT_SIGNATURE)};
 
     ioapic::init();
-    lapic::start(lapic::ms_ticks, lapic::Periodic);
+    lapic::start(lapic::ms_ticks);
     ASSERT(uacpi_likely_success(uacpi_namespace_load()));
 }
 
@@ -41,4 +41,4 @@ acpi_sdt_hdr *acpi::get_table(const char *sig) {
     return t.hdr;
 }
 
-SDT::SDT(const acpi_sdt_hdr *header) : header{header} {}
+sdt::sdt(const acpi_sdt_hdr *header) : header{header} {}

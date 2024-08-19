@@ -27,7 +27,7 @@ void gdt::early_init() {
 }
 
 void gdt::init() {
-    desc *heap_gdt = new desc[5 + smp_request.response->cpu_count * 2];
+    desc *heap_gdt = new desc[5 + smp_request.response->cpu_count * 2]();
     memcpy(heap_gdt, sgdt, sizeof(desc) * 3);
     desc_buffer = heap_gdt;
     set(3, 0b11111011, 0b10);

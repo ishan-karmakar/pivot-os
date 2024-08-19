@@ -8,7 +8,7 @@
 using namespace fb;
 
 extern char _binary_default_psf_start;
-Framebuffer *fb::kfb = nullptr;
+framebuffer *fb::kfb = nullptr;
 const struct fb::font *fb::font = reinterpret_cast<struct font*>(&_binary_default_psf_start);
 
 __attribute__((section(".requests")))
@@ -20,19 +20,19 @@ extern volatile limine_memmap_request mmap_request;
 // TODO: Support BPP != 32
 
 void fb::init() {
-    kfb = new Framebuffer{fb_request.response->framebuffers[0]};
+    kfb = new framebuffer{fb_request.response->framebuffers[0]};
     io::writer = kfb;
     kfb->clear();
     logger::info("FB[INIT]", "Initialized kernel framebuffer");
 }
 
-// Create new instance of Framebuffer - Doesn't clear screen automatically
-Framebuffer::Framebuffer(limine_framebuffer *info, uint32_t fg, uint32_t bg) :
+// Create new instance of framebuffer - Doesn't clear screen automatically
+framebuffer::framebuffer(limine_framebuffer *info, uint32_t fg, uint32_t bg) :
     buffer{reinterpret_cast<char*>(info->address)},
     info{info}, num_cols{info->width / font->width}, num_rows{info->height / font->height}, fg{fg}, bg{bg}
 {}
 
-void Framebuffer::append(char c) {
+void framebuffer::append(char c) {
     if (y >= num_rows)
         clear();
     switch (c) {
@@ -63,14 +63,14 @@ void Framebuffer::append(char c) {
     }
 }
 
-void Framebuffer::clear() {
+void framebuffer::clear() {
     for (std::size_t line = 0; line < info->height; line++)
         for (std::size_t i = 0; i < info->width; i++)
             reinterpret_cast<uint32_t*>(buffer + line * info->pitch)[i] = bg;
     x = y = 0;
 }
 
-void Framebuffer::putchar(char c) {
+void framebuffer::putchar(char c) {
     const uint8_t * glyph = reinterpret_cast<const uint8_t*>(font) + font->header_size + c * font->bpg;
     std::size_t bpl = div_ceil(font->width, 8);
     std::size_t off = get_off();
@@ -80,7 +80,7 @@ void Framebuffer::putchar(char c) {
             *((uint32_t*) (buffer + line)) = glyph[cx / 8] & (0x80 >> (cx & 7)) ? fg : bg;
 }
 
-void Framebuffer::find_last() {
+void framebuffer::find_last() {
     if (!x) {
         if (!y)
             return;
@@ -102,19 +102,19 @@ void Framebuffer::find_last() {
     }
 }
 
-void Framebuffer::set_pos(coord_t pos) {
+void framebuffer::set_pos(coord_t pos) {
     x = pos.first;
     y = pos.second;
 }
 
-Framebuffer::coord_t Framebuffer::get_pos() {
+framebuffer::coord_t framebuffer::get_pos() {
     return { x, y };
 }
 
-Framebuffer::coord_t Framebuffer::get_constraints() {
+framebuffer::coord_t framebuffer::get_constraints() {
     return { num_cols, num_rows };
 }
 
-std::size_t Framebuffer::get_off() {
+std::size_t framebuffer::get_off() {
     return (y * font->height * info->pitch) + (x * font->width * BPP);
 }
