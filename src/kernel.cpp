@@ -17,6 +17,7 @@
 #include <drivers/ioapic.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
+#include <lib/scheduler.hpp>
 #include <frg/manual_box.hpp>
 #include <limine.h>
 #include <magic_enum.hpp>
@@ -57,6 +58,7 @@ extern "C" [[noreturn]] void kinit() {
     gdt::init();
     // tss::init();
     smp::init();
+    auto kernel_proc = new scheduler::process{"Kernel", scheduler::Superuser};
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);
     // drivers::PIT::init(idt);

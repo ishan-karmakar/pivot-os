@@ -21,6 +21,11 @@ PRIVATE_DIR = sys.argv[2]
 LIMINE_EXEC = environ['limine']
 limine_dir = SRC_ROOT + '/subprojects/limine'
 
+try:
+    os.mkdir(PRIVATE_DIR)
+except OSError:
+    pass
+
 conf_out = open(f"{PRIVATE_DIR}/limine.conf", 'w+')
 conf_in = open(f"{SRC_ROOT}/limine.conf", 'r')
 with open(ELF, 'rb') as f:
@@ -31,7 +36,7 @@ conf_out.close()
 conf_in.close()
 
 with open(OUT, 'w+b') as f:
-    f.truncate(1 * (1024 * 1024 * 16)) # 1MB
+    f.truncate(16 * (1024 * 1024)) # 16MB
 
 os.system(f'{SGDISK} {OUT} -n 1:2048 -t 1:ef00')
 os.system(f'{LIMINE_EXEC} bios-install {OUT}')

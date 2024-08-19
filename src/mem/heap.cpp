@@ -12,19 +12,20 @@
 using namespace frg;
 using namespace heap;
 
-constinit HeapSlabPolicy heap_slab_policy;
-frg::manual_box<frg::slab_pool<HeapSlabPolicy, frg::simple_spinlock>> heap_pool;
+frg::manual_box<policy> heap_slab_policy;
+frg::manual_box<frg::slab_pool<policy, frg::simple_spinlock>> heap_pool;
 
-uintptr_t HeapSlabPolicy::map(std::size_t size) {
-    return reinterpret_cast<uintptr_t>(vmm::kvmm->malloc(round_up(size, PAGE_SIZE)));;
+uintptr_t policy::map(std::size_t size) {
+    return reinterpret_cast<uintptr_t>(vmm.malloc(round_up(size, PAGE_SIZE)));;
 }
 
-void HeapSlabPolicy::unmap(uintptr_t addr, std::size_t) {
-    vmm::kvmm->free(reinterpret_cast<void*>(addr));
+void policy::unmap(uintptr_t addr, std::size_t) {
+    vmm.free(reinterpret_cast<void*>(addr));
 };
 
 void heap::init() {
-    heap_pool.initialize(heap_slab_policy);
+    heap_slab_policy.initialize(*vmm::kvmm);
+    heap_pool.initialize(*heap_slab_policy);
     logger::info("HEAP[INIT]", "Initialized slab allocator");
 }
 

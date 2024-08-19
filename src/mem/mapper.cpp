@@ -4,6 +4,7 @@
 #include <uacpi/kernel_api.h>
 #include <mem/mapper.hpp>
 #include <frg/tuple.hpp>
+#include <cpu/cpu.hpp>
 
 using namespace mapper;
 
@@ -11,10 +12,10 @@ constexpr uintptr_t SIGN_MASK = 0x000ffffffffff00;
 
 frg::manual_box<ptmapper> mapper::kmapper;
 
+std::array<uint16_t, 4> get_entries(const uintptr_t&);
+
 void mapper::init() {
-    uintptr_t cr3;
-    asm volatile ("mov %%cr3, %0" : "=r" (cr3));
-    cr3 = virt_addr(cr3);
+    uintptr_t cr3 = virt_addr(rdreg(cr3));
     kmapper.initialize(reinterpret_cast<page_table>(cr3));
     logger::debug("MAPPER[INIT]", "PML4: %p", cr3);
     logger::info("MAPPER[INIT]", "Finished initialization");
@@ -142,7 +143,7 @@ void ptmapper::clean_table(page_table tbl) {
         tbl[i] = 0;
 }
 
-std::array<uint16_t, 4> ptmapper::get_entries(const uintptr_t& addr) {
+std::array<uint16_t, 4> get_entries(const uintptr_t& addr) {
     std::array<uint16_t, 4> entries;
     for (int i = 0, e = 39; i < 4; i++, e -= 9)
         entries[i] = (addr >> e) & 0x1FF;

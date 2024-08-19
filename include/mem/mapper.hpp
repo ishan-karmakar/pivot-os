@@ -16,7 +16,7 @@ namespace mapper {
     };
 
     constexpr std::size_t KERNEL_ENTRY = NoExecute | Writable;
-    constexpr std::size_t USER_ENTRY = Writable | User;
+    constexpr std::size_t USER_ENTRY = NoExecute | Writable | User;
 
     class ptmapper {
     public:
@@ -27,11 +27,11 @@ namespace mapper {
         void unmap(const uintptr_t&);
         void unmap(const uintptr_t&, const std::size_t&);
         void load() const;
+        page_table data() const { return pml4; }
+        static void clean_table(page_table);
 
     private:
-        static void clean_table(page_table);
         uintptr_t alloc_table();
-        static std::array<uint16_t, 4> get_entries(const uintptr_t&);
 
         page_table pml4;
     };
