@@ -22,13 +22,25 @@ enum LogLevel {
 };
 
 namespace logger {
-    void vlog(LogLevel, const char*, const char*, va_list);
+    void vlog_(LogLevel, const char*, const char*, va_list);
     [[noreturn]] void vpanic(const char*, const char*, va_list);
     void vassert(bool, const char*, const char*, va_list);
 
-    void log(LogLevel log_level, const char*, const char*, ...);
+    void log_(LogLevel log_level, const char*, const char*, ...);
     [[noreturn]] void panic(const char*, const char*, ...);
     void assert(bool, const char*, const char*, ...);
+
+    [[gnu::always_inline]]
+    inline constexpr void log(LogLevel log_level, const char *tgt, const char *fmt, ...) {
+        if (log_level <= LOG_LEVEL)
+            log_(log_level, tgt, fmt, __va_arg_pack());
+    }
+
+    [[gnu::always_inline]]
+    inline constexpr void vlog(LogLevel log_level, const char *tgt, const char *fmt, va_list args) {
+        if (log_level <= LOG_LEVEL)
+            vlog_(log_level, tgt, fmt, args);
+    }
 
     MAKE_LOG_LEVEL(debug, DEBUG);
     MAKE_LOG_LEVEL(verbose, VERBOSE);

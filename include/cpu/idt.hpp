@@ -24,6 +24,7 @@ namespace idt {
     typedef std::function<cpu::status* (cpu::status*)> handler_t;
 
     void init();
+    void load();
     void set(uint8_t, idt::desc);
     void set(uint8_t, uint8_t, void*);
     std::pair<handler_t&, uint8_t> allocate_handler();

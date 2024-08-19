@@ -9,8 +9,8 @@ namespace heap {
         void unmap(uintptr_t, std::size_t);
     };
 
-    typedef frg::slab_allocator<HeapSlabPolicy, frg::simple_spinlock> HeapAllocator;
+    typedef frg::slab_allocator<HeapSlabPolicy, frg::simple_spinlock> allocator_t;
 
     void init();
-    HeapAllocator& allocator();
+    allocator_t& allocator();
 }

@@ -14,6 +14,5 @@ namespace rtc {
 
     time_t now();
 
-    void early_init();
     void init();
 }

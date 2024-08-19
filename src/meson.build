@@ -16,6 +16,7 @@ nasm_gen = generator(
 sources = [
     'kernel.elf',
     'kernel.cpp',
+    'ap.cpp',
     'misc/cxxabi.cpp',
     'misc/mem.cpp',
     'misc/ubsan.cpp',
@@ -37,6 +38,7 @@ sources = [
     'drivers/ps2.cpp',
     'drivers/rtc.cpp',
     'drivers/acpi.cpp',
+    'drivers/madt.cpp',
     'drivers/interrupts.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
@@ -60,8 +62,8 @@ c_args = [
     '-nostdlib',
     '-mno-red-zone',
     '-static',
-    '-fno-stack-protector',
-    '-Wno-maybe-uninitialized',
+    '-mno-mmx',
+    '-mno-sse', '-mno-sse2',
     '-DUACPI_FORMATTED_LOGGING'
 ]
 

@@ -6,11 +6,15 @@
 #include <cpu/cpu.hpp>
 #include <cpu/gdt.hpp>
 #include <cpu/idt.hpp>
+#include <cpu/smp.hpp>
+#include <cpu/tss.hpp>
 #include <drivers/acpi.hpp>
 #include <drivers/framebuffer.hpp>
 #include <drivers/rtc.hpp>
 #include <drivers/pic.hpp>
 #include <drivers/pit.hpp>
+#include <drivers/lapic.hpp>
+#include <drivers/ioapic.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <frg/manual_box.hpp>
@@ -31,7 +35,8 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::SerialPort> qemu;
 
-extern "C" void kinit() {
+extern "C" [[noreturn]] void kinit() {
+    cpu::set_kgs(0);
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
     cpu::init();
@@ -46,9 +51,12 @@ extern "C" void kinit() {
     pic::init();
     pit::init();
     pit::start(pit::MS_TICKS);
-    // rtc::early_init();
+    lapic::bsp_init();
     acpi::init();
-    // gdt::init();
+    rtc::init();
+    gdt::init();
+    tss::init();
+    smp::init();
     // cpu::smp::init_bsp();
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);

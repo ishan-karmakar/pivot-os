@@ -1,5 +1,4 @@
 #pragma once
-#include <drivers/ioapic.hpp>
 #include <cstddef>
 #include <atomic>
 

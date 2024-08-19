@@ -2,10 +2,12 @@
 #include <drivers/acpi.hpp>
 #include <uacpi/acpi.h>
 #include <iterator>
+#include <frg/vector.hpp>
+#include <mem/heap.hpp>
 
 namespace acpi {
     class MADT : SDT {
-    public:
+    private:
         template <class E>
         class Iterator {
         public:
@@ -15,12 +17,12 @@ namespace acpi {
             using pointer = const value_type*;
             using reference = const value_type&;
 
-            Iterator(const acpi_madt *header, acpi_madt_entry_type type) : ptr{reinterpret_cast<pointer>(header + 1)}, end{reinterpret_cast<uintptr_t>(header) + header->hdr.length}, target_type{type} {
+            Iterator(const acpi_madt *table, acpi_madt_entry_type type) : ptr{reinterpret_cast<pointer>(table + 1)}, end{reinterpret_cast<uintptr_t>(table) + table->hdr.length}, target_type{type} {
                 if (ptr->hdr.type != target_type)
                     ++*this;
             }
 
-            value_type operator*() const { return *ptr; }
+            reference operator*() const { return *ptr; }
             pointer operator->() const { return ptr; }
 
             void operator++() {
@@ -40,11 +42,15 @@ namespace acpi {
             acpi_madt_entry_type target_type;
         };
 
-        MADT(const acpi_sdt_hdr *tbl) : SDT{tbl}, table{reinterpret_cast<const acpi_madt*>(tbl)} {}
-
-        template <class E>
-        Iterator<E> iter(acpi_madt_entry_type t) const { return Iterator<E>{table, t}; };
-
         const acpi_madt *table;
+
+    public:
+        MADT(const acpi_sdt_hdr*);
+
+        uintptr_t lapic_addr;
+        frg::vector<const acpi_madt_interrupt_source_override*, heap::allocator_t> source_ovrds;
+        frg::vector<const acpi_madt_ioapic*, heap::allocator_t> ioapics;
     };
+
+    extern MADT *madt;
 }

@@ -28,8 +28,8 @@ void heap::init() {
     logger::info("HEAP[INIT]", "Initialized slab allocator");
 }
 
-HeapAllocator& heap::allocator() {
-    static HeapAllocator alloc{heap_pool.get()};
+allocator_t& heap::allocator() {
+    static allocator_t alloc{heap_pool.get()};
     return alloc;
 }
 

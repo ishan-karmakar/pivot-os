@@ -17,8 +17,12 @@ idtr idt_idtr{
 void idt::init() {
     for (int i = 0; i < 256; i++)
         set(i, 0, isr_table[i]);
-    asm volatile ("lidt %0; sti" : : "rm" (idt_idtr) : "memory");
+    load();
     logger::info("IDT[INIT]", "Initialized IDT");
+}
+
+void idt::load() {
+    asm volatile ("lidt %0; sti" : : "rm" (idt_idtr) : "memory");
 }
 
 void idt::set(uint8_t idx, idt::desc desc) {

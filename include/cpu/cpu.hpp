@@ -1,6 +1,13 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#define rdreg(reg) ({ \
+    uintptr_t val; \
+    asm volatile ("mov %%" # reg ", %0" : "=r" (val) :: "memory"); \
+    val; \
+})
+
+#define wrreg(reg, val) asm volatile ("mov %0, %%" # reg : : "r" (val) : "memory")
 
 namespace cpu {
     struct status {
@@ -66,10 +73,10 @@ namespace cpu {
         return rdmsr(0xC0000101);
     }
 
-    [[gnu::noinline]]
-    uintptr_t rip();
-
     void init();
+
+    void xsave();
+    void xrestore();
 }
 
 // __attribute__((always_inline))

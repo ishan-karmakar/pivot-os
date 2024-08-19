@@ -1,31 +1,26 @@
 #include <cpu/cpu.hpp>
-// #include <drivers/ioapic.hpp>
-// #include <drivers/lapic.hpp>
 #include <io/serial.hpp>
 #include <drivers/rtc.hpp>
 #include <cpu/idt.hpp>
 #include <lib/logger.hpp>
 #include <drivers/interrupts.hpp>
+#include <drivers/ioapic.hpp>
 
 using namespace rtc;
-extern "C" void rtc_irq();
-
-bool bcd;
 
 constexpr int IRQ = 8;
 
+bool bcd;
 void write_reg(uint8_t, uint8_t);
 uint8_t read_reg(uint8_t);
 uint8_t set_dow(uint8_t, uint8_t, uint8_t);
 uint8_t bcd2bin(uint8_t);
 cpu::status *rtc_handler(cpu::status*);
 
-void rtc::early_init() {
-    auto [handler, vec] = idt::allocate_handler(IRQ);
+void rtc::init() {
+    auto [handler, vec] = idt::allocate_handler();
     handler = rtc_handler;
-    interrupts::set(vec, IRQ);
-    // cpu::kidt->set_entry(IDT_ENT, 0, rtc_irq);
-    // IOAPIC::set_irq(IDT_ENT, IRQ_ENT, 0, IOAPIC::LOWEST_PRIORITY | IOAPIC::MASKED);
+    interrupts::set(vec, IRQ, { 0, ioapic::LOWEST_PRIORITY });
 
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;
@@ -33,10 +28,9 @@ void rtc::early_init() {
 
     bcd = !(status & 0x4);
     write_reg(0xB, status);
-    logger::info("RTC", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
+    logger::info("RTC[INIT]", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
     read_reg(0xC);
     interrupts::unmask(IRQ);
-    // IOAPIC::set_mask(8, false);
 }
 
 rtc::time_t rtc::now() {
@@ -83,16 +77,14 @@ uint8_t set_dow(uint8_t y, uint8_t m, uint8_t dom) {
 }
 
 cpu::status *rtc_handler(cpu::status *status) {
-    logger::info("RTC", "Received interrupt");
-//     RTC::fetch_time();
-//     auto lims = io::cout.get_lims();
-//     auto old_pos = io::cout.get_pos();
-//     io::cout.set_pos({ lims.first - 8, 0 });
-//     auto time = RTC::time;
-//     printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
-//     io::cout.set_pos({ lims.first - 8, 1 });
-//     printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
-//     io::cout.set_pos(old_pos);
-//     LAPIC::eoi();
+    auto time = now();
+    auto lims = io::writer->get_constraints();
+    auto old_pos = io::writer->get_pos();
+    io::writer->set_pos({ lims.first - 8, 0 });
+    printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
+    io::writer->set_pos({ lims.first - 8, 1 });
+    printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
+    io::writer->set_pos(old_pos);
+    interrupts::eoi(IRQ);
     return status;
 }

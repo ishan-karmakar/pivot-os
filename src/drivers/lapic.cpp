@@ -6,6 +6,7 @@
 #include <drivers/madt.hpp>
 #include <cpu/idt.hpp>
 #include <mem/mapper.hpp>
+#include <mem/pmm.hpp>
 #include <drivers/interrupts.hpp>
 #include <drivers/pit.hpp>
 #include <lib/timer.hpp>
@@ -29,10 +30,11 @@ constexpr int CUR_COUNT_OFF = 0x390;
 constexpr int CONFIG_OFF = 0x3E0;
 constexpr int LVT_OFFSET = 0x320;
 
-bool x2mode;
+bool x2mode, tsc;
 static uintptr_t addr;
 std::size_t lapic::ms_ticks = 0;
 std::atomic_size_t lapic::ticks = 0;
+bool lapic::initialized = false;
 uint8_t timer_vector;
 
 void calibrate();
@@ -41,21 +43,20 @@ void lapic::bsp_init() {
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
     logger::assert(msr & (1 << 11), "LAPIC[INIT]", "APIC is disabled globally");
     
-    uint32_t ignored, xapic = 0, x2apic = 0;
-    __get_cpuid(1, &ignored, &ignored, &x2apic, &xapic);
+    uint32_t ignored, ecx = 0, edx = 0;
+    __cpuid(1, ignored, ignored, ecx, edx);
 
-    if (x2apic & (1 << 21)) {
+    if (ecx & (1 << 21)) {
         x2mode = true;
-        msr |= (1 << 10);
-    } else if (xapic & (1 << 9)) {
+    } else if (edx & (1 << 9)) {
         x2mode = false;
-        auto madt = acpi::get_table<acpi::MADT>(ACPI_MADT_SIGNATURE);
-        addr = madt.table->local_interrupt_controller_address;
-        mapper::kmapper->map(addr, addr, mapper::KERNEL_ENTRY);
-    } else
-        logger::panic("LAPIC[INIT]", "No LAPIC is supported by the processor");
+        addr = virt_addr(msr & 0xffffffffff000);
+    } else return;
 
-    cpu::wrmsr(IA32_APIC_BASE, msr);
+    __cpuid(0x80000001, ignored, ignored, ignored, edx);
+    tsc = !!(edx & (1 << 4));
+    if (tsc)
+        logger::verbose("LAPIC[INIT]", "TSC is available");
 
     auto [spurious_handler, spurious_vector] = idt::allocate_handler();
     auto [timer_handler, vector_] = idt::allocate_handler();
@@ -69,12 +70,12 @@ void lapic::bsp_init() {
 
     write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vector);
     logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");
-
     calibrate();
+
+    initialized = true;
 }
 
 void calibrate() {
-    asm volatile ("sti");
     write_reg(INITIAL_COUNT_OFF, 0);
     write_reg(CONFIG_OFF, TDIV);
 

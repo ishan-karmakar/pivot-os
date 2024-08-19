@@ -30,7 +30,7 @@
 - IPv4
 - IPv6
 - ELF
-- SMP
+/ SMP
 - Scheduler
 - Syscalls
 - Terminal
@@ -38,5 +38,6 @@
 - EXT4
 - Modules
 - TmpFS
-- UBSanitizer
++ UBSanitizer
 - mlibc
+- PCID

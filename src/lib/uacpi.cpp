@@ -9,6 +9,7 @@
 #include <mem/pmm.hpp>
 #include <atomic>
 #include <kernel.hpp>
+#include <mem/heap.hpp>
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
     auto [handler, vec] = idt::allocate_handler(irq);
@@ -40,13 +41,23 @@ uacpi_bool uacpi_kernel_wait_for_event(uacpi_handle e, uacpi_u16) {
     return UACPI_TRUE;
 }
 
-uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request*) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request *request) {
+    switch (request->type) {
+    case UACPI_FIRMWARE_REQUEST_TYPE_BREAKPOINT:
+        logger::warning("UACPI[FM_REQ]", "Ignoring AML breakpoint - CTX: %p", request->breakpoint.ctx);
+        break;
+    
+    case UACPI_FIRMWARE_REQUEST_TYPE_FATAL:
+        logger::error("UACPI", "Fatal firmware error - type: %hhu, code: %u, arg: %lu", request->fatal.type, request->fatal.code, request->fatal.arg);
+        break;
+    }
+    return UACPI_STATUS_OK;
 }
 
 void uacpi_kernel_vlog(uacpi_log_level log_level, const char *str, va_list args) {
-    logger::vlog(static_cast<LogLevel>(log_level), "UACPI", str, args);
-    printf("\b");
+    frg::string string{str, heap::allocator()};
+    string.resize(string.size() - 1);
+    logger::vlog(static_cast<LogLevel>(log_level), "UACPI", string.data(), args);
 }
 
 void uacpi_kernel_log(uacpi_log_level log_level, const char *str, ...) {
@@ -67,7 +78,7 @@ void uacpi_kernel_sleep(uacpi_u64 ms) {
 }
 
 uacpi_u64 uacpi_kernel_get_ticks() {
-    return timer::ticks();
+    return timer::time();
 }
 
 void *uacpi_kernel_alloc(std::size_t size) {
@@ -83,13 +94,20 @@ void uacpi_kernel_free(void *ptr) {
 }
 
 uacpi_handle uacpi_kernel_create_mutex() {
-    return new frg::simple_spinlock;
+    return new std::atomic_flag;
 }
 
-// FIXME: Take into account timeout
-bool uacpi_kernel_acquire_mutex(void* m, uint16_t) {
-    static_cast<frg::simple_spinlock*>(m)->lock();
-    return true;
+bool uacpi_kernel_acquire_mutex(void *m, uint16_t tm) {
+    auto flag = static_cast<std::atomic_flag*>(m);
+    if (tm == 0xFFFF) {
+        while (flag->test_and_set()) asm ("pause");
+        return true;
+    } else {
+        std::size_t end = timer::time() + tm;
+        while (flag->test_and_set())
+            if (timer::time() >= end) return false;
+        return true;
+    }
 }
 
 void uacpi_kernel_release_mutex(void *m) {
@@ -218,26 +236,22 @@ uacpi_status uacpi_kernel_raw_io_write(uacpi_io_addr addr, uacpi_u8 byte_width, 
 }
 
 uacpi_status uacpi_kernel_io_map(uacpi_io_addr, uacpi_size, uacpi_handle*) {
-    logger::verbose("uACPI", "io_map");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 void uacpi_kernel_io_unmap(uacpi_handle) {
-    logger::info("uACPI", "uACPI requested to unmap io address");
+    logger::panic("uACPI", "uACPI requested to unmap io address");
 }
 
 uacpi_status uacpi_kernel_io_read(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64*) {
-    logger::verbose("uACPI", "io_read");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 uacpi_status uacpi_kernel_io_write(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64) {
-    logger::verbose("uACPI", "io_write");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
 uacpi_status uacpi_kernel_pci_read(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64*) {
-    logger::verbose("uACPI", "pci_read");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 

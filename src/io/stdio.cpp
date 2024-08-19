@@ -48,15 +48,6 @@ frg::expected<frg::format_error> CharPrinter::operator()(char c, frg::format_opt
     case 'u':
         frg::do_printf_ints(*writer, c, opts, size_mod, args);
         break;
-
-    case 'f':
-    case 'F':
-    case 'g':
-    case 'G':
-    case 'e':
-    case 'E':
-        frg::do_printf_floats(*writer, c, opts, size_mod, args);
-        break;
     };
 
     return frg::success;

@@ -1,13 +1,11 @@
 #include <lib/logger.hpp>
-#include <frg/string.hpp>
 #include <magic_enum.hpp>
+#include <cpu/smp.hpp>
 #include <io/stdio.hpp>
 
 namespace logger {
-    void vlog(LogLevel log_level, const char *target, const char *format, va_list args) {
-        if (log_level > LOG_LEVEL) return;
-        // printf("[%s]", magic_enum::enum_name(log_level).begin());
-        printf("[%s] %s: ", magic_enum::enum_name(log_level).begin(), target);
+    void vlog_(LogLevel log_level, const char *target, const char *format, va_list args) {
+        printf("[%lu][%s] %s: ", smp::cpu_id(), magic_enum::enum_name(log_level).begin(), target);
         vprintf(format, args);
         printf("\n");
     }
@@ -23,11 +21,10 @@ namespace logger {
             vpanic(target, format, args);
     }
 
-    void log(LogLevel log_level, const char *target, const char *format, ...) {
-        if (log_level > LOG_LEVEL) return;
+    void log_(LogLevel log_level, const char *target, const char *format, ...) {
         va_list args;
         va_start(args, format);
-        vlog(log_level, target, format, args);
+        vlog_(log_level, target, format, args);
         va_end(args);
     }
 

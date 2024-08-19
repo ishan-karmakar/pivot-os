@@ -2,45 +2,56 @@
 #include <algorithm>
 #include <lib/logger.hpp>
 #include <drivers/acpi.hpp>
+#include <string.h>
+#include <limine.h>
 using namespace gdt;
 
-frg::manual_box<GDT> gdt::kgdt;
+struct [[gnu::packed]] gdtr_t {
+    uint16_t size;
+    uintptr_t addr;
+};
+
 gdt::desc sgdt[3];
 
+gdt::desc *desc_buffer = sgdt;
+uint16_t gdt::num_entries;
+constinit gdtr_t gdtr;
+
+extern limine_smp_request smp_request;
+
 void gdt::early_init() {
-    kgdt.initialize(sgdt);
-    kgdt->set_entry(1, 0b10011011, 0b10); // Kernel CS
-    kgdt->set_entry(2, 0b10010011, 0); // Kernel DS
-    kgdt->load();
+    set(1, 0b10011011, 0b10); // Kernel CS
+    set(2, 0b10010011, 0); // Kernel DS
+    load();
     logger::info("GDT[EARLY INIT]", "Loaded compile time GDT");
 }
 
 void gdt::init() {
+    desc *heap_gdt = new desc[5 + smp_request.response->cpu_count * 2];
+    memcpy(heap_gdt, sgdt, sizeof(desc) * 3);
+    desc_buffer = heap_gdt;
+    set(3, 0b11111011, 0b10);
+    set(4, 0b11110011, 0);
+    load();
+
+    logger::info("GDT[INIT]", "Switched to heap allocated GDT");
 }
 
-GDT::GDT(gdt::desc *gdt) : entries{1}, gdt{gdt} { gdt[0] = {}; }
-
-GDT& GDT::operator=(GDT& old) {
-    for (uint16_t i = 0; i < old.entries; i++)
-        set_entry(i, old.get_entry(i));
-    entries = std::max(entries, old.entries);
-    return *this;
-}
-
-void GDT::set_entry(uint16_t idx, uint8_t access, uint8_t flags) {
+void gdt::set(uint16_t idx, uint8_t access, uint8_t flags) {
     gdt::desc desc { { 0xFFFF, 0, 0, access, 0xF, flags, 0 } };
-    set_entry(idx, desc);
+    set(idx, desc);
 }
 
-void GDT::set_entry(uint16_t idx, gdt::desc desc) {
-    gdt[idx] = desc;
-    entries = std::max(static_cast<uint16_t>(idx + 1), entries);
+void gdt::set(uint16_t idx, gdt::desc desc) {
+    desc_buffer[idx] = desc;
+    num_entries = std::max(static_cast<uint16_t>(idx + 1), num_entries);
 }
 
-gdt::desc GDT::get_entry(uint16_t idx) const { return gdt[idx]; }
+gdt::desc gdt::get(uint16_t idx) { return desc_buffer[idx]; }
 
-void GDT::load() {
-    gdtr.size = entries * sizeof(gdt::desc) - 1;
+void gdt::load() {
+    gdtr.size = num_entries * sizeof(desc) - 1;
+    gdtr.addr = reinterpret_cast<uintptr_t>(desc_buffer);
     asm volatile (
         "cli;"
         "lgdt %0;"

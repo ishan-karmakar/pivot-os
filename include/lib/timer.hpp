@@ -4,5 +4,5 @@
 
 namespace timer {
     void sleep(std::size_t);
-    std::size_t ticks();
+    std::size_t time();
 }

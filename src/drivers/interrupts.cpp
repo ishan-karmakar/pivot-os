@@ -9,6 +9,7 @@ void interrupts::set(uint8_t vector, uint8_t irq, std::pair<uint8_t, uint32_t> c
         ioapic::set(vector, irq, config);
 
     // PIT requires no additional setup, only unmasking IRQ
+    mask(irq);
 }
 
 void interrupts::mask(uint8_t irq) {

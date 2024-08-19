@@ -9,13 +9,8 @@ namespace gdt {
     constexpr uint16_t UCODE =  0x18;
     constexpr uint16_t UDATA = 0x20;
 
-    struct [[gnu::packed]] gdtr {
-        uint16_t size;
-        uintptr_t addr;
-    };
-
     union desc {
-        struct [[gnu::packed]] alignas(8) {
+        struct [[gnu::packed]] {
             uint16_t limit0;
             uint16_t base0;
             uint8_t base1;
@@ -27,27 +22,13 @@ namespace gdt {
         uint64_t raw;
     };
 
+    extern uint16_t num_entries;
+
     void early_init();
     void init();
-
-    class GDT {
-    public:
-        GDT(gdt::desc*);
-        ~GDT() = default;
-
-        GDT& operator=(GDT&);
-        void set_entry(uint16_t, uint8_t, uint8_t);
-        void set_entry(uint16_t, gdt::desc);
-        gdt::desc get_entry(uint16_t) const;
-        void load();
-
-        uint16_t entries;
-
-    private:
-        gdt::desc *gdt;
-        gdt::gdtr gdtr{ 0, reinterpret_cast<uintptr_t>(gdt) };
-    };
-
-    extern frg::manual_box<GDT> kgdt;
+    void set(uint16_t, uint8_t, uint8_t);
+    void set(uint16_t, desc);
+    desc get(uint16_t);
+    void load();
 }
 

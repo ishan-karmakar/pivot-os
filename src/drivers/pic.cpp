@@ -12,6 +12,7 @@ constexpr int PIC2_DATA = PIC2 + 1;
 constexpr int PIC_EOI = 0x20;
 
 void pic::init() {
+    asm volatile ("cli");
     io::outb(PIC1, 0x10 | 0x1);
     io::outb(PIC2, 0x10 | 0x1);
     io::outb(PIC1_DATA, 0x20);
@@ -21,6 +22,7 @@ void pic::init() {
     io::outb(PIC1_DATA, 1);
     io::outb(PIC2_DATA, 1);
     disable();
+    asm volatile ("sti");
 
     logger::info("PIC[INIT]", "Initialized 8259 PIC");
 }

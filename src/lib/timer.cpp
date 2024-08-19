@@ -5,11 +5,11 @@
 using namespace timer;
 
 void timer::sleep(std::size_t ms) {
-    auto& t = ioapic::initialized ? lapic::ticks : pit::ticks;
+    auto& t = lapic::initialized ? lapic::ticks : pit::ticks;
     std::size_t target = t + ms;
     while (t < target) asm ("pause");
 }
 
-std::size_t timer::ticks() {
+std::size_t timer::time() {
     return pit::ticks + lapic::ticks;
 }

@@ -5,6 +5,7 @@
 #include <cpu/idt.hpp>
 #include <drivers/acpi.hpp>
 #include <drivers/lapic.hpp>
+#include <drivers/madt.hpp>
 #include <drivers/ioapic.hpp>
 #include <limine.h>
 using namespace acpi;
@@ -26,10 +27,18 @@ void acpi::init() {
     ASSERT(uacpi_likely_success(uacpi_initialize(&init_params)));
     logger::info("ACPI[INIT]", "Initialized uACPI");
 
-    lapic::bsp_init();
+    madt = new MADT{acpi::get_table(ACPI_MADT_SIGNATURE)};
+
     ioapic::init();
     lapic::start(lapic::ms_ticks, lapic::Periodic);
     ASSERT(uacpi_likely_success(uacpi_namespace_load()));
+}
+
+acpi_sdt_hdr *acpi::get_table(const char *sig) {
+    uacpi_table t;
+    ASSERT(uacpi_likely_success(uacpi_table_find_by_signature(sig, &t)));
+
+    return t.hdr;
 }
 
 SDT::SDT(const acpi_sdt_hdr *header) : header{header} {}

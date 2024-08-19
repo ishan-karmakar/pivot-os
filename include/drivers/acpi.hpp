@@ -6,13 +6,7 @@
 namespace acpi {
     void init();
 
-    template <class T>
-    T get_table(const char *sig) {
-        uacpi_table t;
-        ASSERT(uacpi_likely_success(uacpi_table_find_by_signature(sig, &t)));
-
-        return T{t.hdr};
-    }
+    acpi_sdt_hdr *get_table(const char *sig);
 
     class SDT {
     protected:
