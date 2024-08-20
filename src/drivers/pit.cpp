@@ -12,14 +12,13 @@ constexpr int CMD_REG = 0x43;
 constexpr int DATA_REG = 0x40;
 
 void pit::init() {
-    auto [handler, vector] = idt::allocate_handler(IRQ);
-    handler = [](cpu::status *status) {
+    idt::set_handler(IRQ, [](cpu::status*) {
         ticks++;
         interrupts::eoi(IRQ);
-        return status;
-    };
+        return nullptr;
+    });
 
-    interrupts::set(vector, IRQ);
+    interrupts::set(IRQ + 32, IRQ);
     interrupts::mask(IRQ);
 
     io::outb(CMD_REG, 0x34);

@@ -11,12 +11,19 @@ namespace scheduler {
         User
     };
 
+    enum status {
+        New,
+        Ready,
+        Sleeping
+    };
+
     class process {
     public:
         process(const char*, thread_lvl);
     
     private:
         const char *name;
+        scheduler::status status{New};
         mapper::ptmapper mapper;
         vmm::vmm vmm;
         heap::policy policy;

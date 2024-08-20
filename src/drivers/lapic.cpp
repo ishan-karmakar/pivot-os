@@ -54,16 +54,12 @@ void lapic::bsp_init() {
         addr = virt_addr(msr & 0xffffffffff000);
     } else return;
 
-    auto [spurious_handler, spurious_vector_] = idt::allocate_handler();
-    auto [timer_handler, timer_vector_] = idt::allocate_handler();
-    timer_vector = timer_vector_;
-    spurious_vector = spurious_vector_;
-    spurious_handler = [](cpu::status *status) { return status; };
-    timer_handler = [](cpu::status *status) {
+    spurious_vector = idt::set_handler([](cpu::status *status) { return status; });
+    timer_vector = idt::set_handler([](cpu::status *status) {
         ticks++;
         interrupts::eoi(0);
         return status;
-    };
+    });
 
     write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vector);
     logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");

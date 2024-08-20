@@ -23,6 +23,8 @@ void policy::unmap(uintptr_t addr, std::size_t) {
     vmm.free(reinterpret_cast<void*>(addr));
 };
 
+allocator_t::allocator_t() : frg::slab_allocator<policy, frg::simple_spinlock>{heap_pool.get()} {}
+
 void heap::init() {
     heap_slab_policy.initialize(*vmm::kvmm);
     heap_pool.initialize(*heap_slab_policy);
@@ -30,7 +32,7 @@ void heap::init() {
 }
 
 allocator_t& heap::allocator() {
-    static allocator_t alloc{heap_pool.get()};
+    static allocator_t alloc;
     return alloc;
 }
 

@@ -18,9 +18,8 @@ uint8_t bcd2bin(uint8_t);
 cpu::status *rtc_handler(cpu::status*);
 
 void rtc::init() {
-    auto [handler, vec] = idt::allocate_handler();
-    handler = rtc_handler;
-    interrupts::set(vec, IRQ, { 0, ioapic::LOWEST_PRIORITY });
+    idt::set_handler(IRQ, rtc_handler);
+    interrupts::set(IRQ + 32, IRQ, { 0, ioapic::LOWEST_PRIORITY });
 
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;

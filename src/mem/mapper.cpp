@@ -28,22 +28,23 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size
         map(phys + i * PAGE_SIZE, virt + i * PAGE_SIZE, flags);
 }
 
-void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size_t& flags) {
+void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t flags) {
     logger::debug("MAPPER[MAP]", "%p -> %p", virt, phys);
     if (phys == 0 || virt == 0)
         return;
 
+    flags |= NoExecute | 1;
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
 
     if (!(pml4[p4_idx] & 1)) {
         logger::debug("MAPPER[MAP]", "Allocating new PML4 table");
-        pml4[p4_idx] = alloc_table() | KERNEL_ENTRY | 1;
+        pml4[p4_idx] = alloc_table() | flags;
     }
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
     if (!(p3_tbl[p3_idx] & 1)) {
         logger::debug("MAPPER[MAP]", "Allocating new P3 table");
-        p3_tbl[p3_idx] = alloc_table() | KERNEL_ENTRY | 1;
+        p3_tbl[p3_idx] = alloc_table() | flags;
     }
 
     page_table p2_tbl = reinterpret_cast<page_table>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
@@ -56,8 +57,8 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size
     }
 
     if (!(p2_tbl[p2_idx] & 1)) {
-        logger::debug("MAPPER[MAP]", "Allocating new P2 table");
-        p2_tbl[p2_idx] = alloc_table() | KERNEL_ENTRY | 1;
+        p2_tbl[p2_idx] = hp_phys | flags | 0x80;
+        return;
     } else if (p2_tbl[p2_idx] & 0x80) {
         logger::debug("MAPPER[MAP]", "Converting hugepage mapping to P1 table");
         uintptr_t original = p2_tbl[p2_idx];
@@ -66,11 +67,11 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size
         page_table table = reinterpret_cast<page_table>(virt_addr(addr));
         for (int i = 0; i < 512; i++)
             table[i] = ((original & SIGN_MASK) + PAGE_SIZE * i) | (original & ~SIGN_MASK);
-        p2_tbl[p2_idx] = addr | KERNEL_ENTRY | 1;
+        p2_tbl[p2_idx] = addr | flags;
     }
 
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
-    p1_tbl[p1_idx] = round_down(phys, PAGE_SIZE) | flags | 1;
+    p1_tbl[p1_idx] = round_down(phys, PAGE_SIZE) | flags;
 }
 
 uintptr_t ptmapper::alloc_table() {

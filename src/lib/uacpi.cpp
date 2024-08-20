@@ -12,11 +12,10 @@
 #include <mem/heap.hpp>
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
-    auto [handler, vec] = idt::allocate_handler(irq);
-    handler = [func, ctx](cpu::status *status) {
+    idt::set_handler(irq, [func, ctx](cpu::status*) {
         func(ctx);
-        return status;
-    };
+        return nullptr;
+    });
     *reinterpret_cast<std::size_t*>(out_handle) = irq;
     return UACPI_STATUS_OK;
 }

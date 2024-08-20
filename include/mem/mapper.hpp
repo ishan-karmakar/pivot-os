@@ -21,7 +21,7 @@ namespace mapper {
     class ptmapper {
     public:
         ptmapper(page_table);
-        void map(const uintptr_t&, const uintptr_t&, const std::size_t&);
+        void map(const uintptr_t&, const uintptr_t&, std::size_t);
         void map(const uintptr_t&, const uintptr_t&, const std::size_t&, const std::size_t&);
         uintptr_t translate(const uintptr_t&) const;
         void unmap(const uintptr_t&);

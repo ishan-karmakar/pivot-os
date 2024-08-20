@@ -40,6 +40,14 @@ extern "C" {
     cpu::status *int_handler(cpu::status *status) {
         if (status->int_no < 32)
             exception_handler(status);
-        return handlers[status->int_no - 32](status);
+
+        uint8_t irq = status->int_no - 32;
+        cpu::status *ret_status = nullptr;
+        for (auto handler : handlers[irq]) {
+            auto new_status = handler(status);
+            if (new_status)
+                ret_status = new_status;
+        }
+        return ret_status;
     }
 }
