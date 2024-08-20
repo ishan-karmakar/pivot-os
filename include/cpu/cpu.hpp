@@ -39,8 +39,8 @@ namespace cpu {
 
     [[noreturn]]
     inline void hcf() {
-        asm volatile ("cli; hlt");
-        __builtin_unreachable();
+        asm volatile ("cli");
+        while (1) asm ("hlt");
     }
 
     inline uint64_t rdmsr(uint32_t address) {

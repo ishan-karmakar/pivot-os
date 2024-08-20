@@ -58,8 +58,8 @@ if qemu.found()
         '-m', '128M',
         '-smp', '4',
         '-serial', 'stdio',
-        '-enable-kvm',
-        '-cpu', 'host',
+        # '-enable-kvm',
+        # '-cpu', 'host',
         '-no-reboot',
         '-no-shutdown',
     ]

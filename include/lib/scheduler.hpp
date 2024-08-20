@@ -3,6 +3,7 @@
 #include <mem/vmm.hpp>
 #include <cpu/cpu.hpp>
 #include <mem/heap.hpp>
+#include <frg/manual_box.hpp>
 
 namespace scheduler {
     enum thread_lvl {
@@ -18,8 +19,8 @@ namespace scheduler {
         const char *name;
         mapper::ptmapper mapper;
         vmm::vmm vmm;
-        // heap::policy policy;
-        // heap::pool_t pool;
-        // cpu::status ef;
+        heap::policy policy;
+        heap::pool_t pool;
+        cpu::status ef;
     };
 }

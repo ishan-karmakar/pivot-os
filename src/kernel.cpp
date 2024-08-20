@@ -57,7 +57,7 @@ extern "C" [[noreturn]] void kinit() {
     rtc::init();
     gdt::init();
     // tss::init();
-    smp::init();
+    // smp::init();
     auto kernel_proc = new scheduler::process{"Kernel", scheduler::Superuser};
     // drivers::IOAPIC::init();
     // cpu::LAPIC::init(idt);

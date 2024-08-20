@@ -78,7 +78,6 @@ uintptr_t ptmapper::alloc_table() {
     uintptr_t vaddr = virt_addr(paddr);
     page_table table = reinterpret_cast<page_table>(vaddr);
     clean_table(table);
-    map(paddr, vaddr, KERNEL_ENTRY);
     return paddr;
 }
 
@@ -135,7 +134,7 @@ void ptmapper::unmap(const uintptr_t& virt) {
 }
 
 void ptmapper::load() const {
-    //
+    wrreg(cr3, phys_addr(pml4));
 }
 
 void ptmapper::clean_table(page_table tbl) {

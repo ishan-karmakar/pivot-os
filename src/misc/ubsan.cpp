@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <lib/logger.hpp>
+#include <io/stdio.hpp>
 #include <utility>
 
 struct type_descriptor {
@@ -50,6 +51,7 @@ typedef base unreachable;
 typedef base nonnull_arg;
 
 void log_location(source_location& loc) {
+    io::writer->clear();
     logger::error("UBSAN", "Failure at %s:%u", loc.filename, loc.line);
 }
 
