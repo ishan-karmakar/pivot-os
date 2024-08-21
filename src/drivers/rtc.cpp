@@ -3,7 +3,7 @@
 #include <drivers/rtc.hpp>
 #include <cpu/idt.hpp>
 #include <lib/logger.hpp>
-#include <drivers/interrupts.hpp>
+#include <lib/interrupts.hpp>
 #include <drivers/ioapic.hpp>
 
 using namespace rtc;
@@ -19,7 +19,7 @@ cpu::status *rtc_handler(cpu::status*);
 
 void rtc::init() {
     idt::set_handler(IRQ, rtc_handler);
-    interrupts::set(IRQ + 32, IRQ, { 0, ioapic::LOWEST_PRIORITY });
+    intr::set(intr::VEC(IRQ), IRQ, { 0, ioapic::LOWEST_PRIORITY });
 
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;
@@ -29,7 +29,7 @@ void rtc::init() {
     write_reg(0xB, status);
     logger::info("RTC[INIT]", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
     read_reg(0xC);
-    interrupts::unmask(IRQ);
+    intr::unmask(IRQ);
 }
 
 rtc::time_t rtc::now() {
@@ -84,6 +84,6 @@ cpu::status *rtc_handler(cpu::status *status) {
     io::writer->set_pos({ lims.first - 8, 1 });
     printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
     io::writer->set_pos(old_pos);
-    interrupts::eoi(IRQ);
+    intr::eoi(IRQ);
     return status;
 }

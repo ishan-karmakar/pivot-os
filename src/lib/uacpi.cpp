@@ -10,6 +10,7 @@
 #include <atomic>
 #include <kernel.hpp>
 #include <mem/heap.hpp>
+#include <lib/interrupts.hpp>
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
     idt::set_handler(irq, [func, ctx](cpu::status*) {
@@ -20,8 +21,7 @@ uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interru
     return UACPI_STATUS_OK;
 }
 
-uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle handle) {
-    idt::free_handler(*reinterpret_cast<std::size_t*>(handle));
+uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle) {
     return UACPI_STATUS_OK;
 }
 

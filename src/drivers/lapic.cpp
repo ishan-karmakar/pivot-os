@@ -7,7 +7,7 @@
 #include <cpu/idt.hpp>
 #include <mem/mapper.hpp>
 #include <mem/pmm.hpp>
-#include <drivers/interrupts.hpp>
+#include <lib/interrupts.hpp>
 #include <drivers/pit.hpp>
 #include <lib/timer.hpp>
 #include <uacpi/kernel_api.h>
@@ -57,7 +57,7 @@ void lapic::bsp_init() {
     spurious_vector = idt::set_handler([](cpu::status *status) { return status; });
     timer_vector = idt::set_handler([](cpu::status *status) {
         ticks++;
-        interrupts::eoi(0);
+        intr::eoi(0);
         return status;
     });
 

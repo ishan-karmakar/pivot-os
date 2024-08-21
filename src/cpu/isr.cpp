@@ -1,6 +1,7 @@
 #include <cpu/cpu.hpp>
 #include <cpu/idt.hpp>
 #include <lib/logger.hpp>
+#include <lib/interrupts.hpp>
 // TODO: Seperate stack (IST)
 // TODO: Return from recoverable exceptions
 
@@ -35,19 +36,16 @@ void exception_handler(cpu::status *status) {
     cpu::hcf();
 }
 
-extern idt::handler_t handlers[256];
 extern "C" {
     cpu::status *int_handler(cpu::status *status) {
         if (status->int_no < 32)
             exception_handler(status);
 
-        uint8_t irq = status->int_no - 32;
         cpu::status *ret_status = nullptr;
-        for (auto handler : handlers[irq]) {
-            auto new_status = handler(status);
-            if (new_status)
-                ret_status = new_status;
+        for (auto handler : idt::handlers()[intr::IRQ(status->int_no)]) {
+            auto s = handler(status);
+            if (s) ret_status = s;
         }
-        return ret_status;
+        return ret_status ? ret_status : status;
     }
 }

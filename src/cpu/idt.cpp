@@ -2,6 +2,7 @@
 #include <cpu/gdt.hpp>
 #include <drivers/ioapic.hpp>
 #include <lib/logger.hpp>
+#include <lib/interrupts.hpp>
 #include <uacpi/kernel_api.h>
 #include <frg/hash_map.hpp>
 using namespace idt;
@@ -13,6 +14,7 @@ idtr idt_idtr{
     256 * sizeof(idt::desc) - 1,
     reinterpret_cast<uintptr_t>(&idt_table)
 };
+std::vector<char> test;
 
 void idt::init() {
     for (int i = 0; i < 256; i++)
@@ -42,27 +44,11 @@ void idt::set(uint8_t idx, uint8_t ring, void *handler) {
     });
 }
 
-void handlers() {
-    static frg::hash_map<uint8_t, handler_t, frg::hash<unsigned int>, heap::allocator_t> handlers{
-        frg::hash<unsigned int>{},
-        heap::allocator()
-    };
-    return handlers;
-}
-
-void idt::set_handler(uint8_t irq, func_t&& f) {
-    handlers[irq].push_back(f);
-}
-
 uint8_t idt::set_handler(func_t&& f) {
-    for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < 256 - 32; i++) // Skip the area reserved for hardware IRQs
-        if (!handlers[i].size()) {
-            handlers[i].push_back(f);
-            return i;
+    for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < intr::IRQ(256); i++) // Skip the area reserved for hardware IRQs
+        if (!handlers()[i].size()) {// if (!handlers[i].size()) {
+            handlers()[i].push_back(f);
+            return 0;
         }
     logger::panic("IDT", "No more IDT entries available for use");
-}
-
-void idt::free_handler(uint8_t irq) {
-    handlers[irq].clear();
 }

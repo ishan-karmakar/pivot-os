@@ -1,5 +1,5 @@
 #include <drivers/pit.hpp>
-#include <drivers/interrupts.hpp>
+#include <lib/interrupts.hpp>
 #include <cpu/idt.hpp>
 #include <cpu/cpu.hpp>
 #include <io/serial.hpp>
@@ -14,12 +14,12 @@ constexpr int DATA_REG = 0x40;
 void pit::init() {
     idt::set_handler(IRQ, [](cpu::status*) {
         ticks++;
-        interrupts::eoi(IRQ);
+        intr::eoi(IRQ);
         return nullptr;
     });
 
-    interrupts::set(IRQ + 32, IRQ);
-    interrupts::mask(IRQ);
+    intr::set(intr::VEC(IRQ), IRQ);
+    intr::mask(IRQ);
 
     io::outb(CMD_REG, 0x34);
     asm volatile ("sti");
@@ -30,7 +30,7 @@ void pit::start(uint16_t d) {
     io::outb(DATA_REG, d);
     io::outb(DATA_REG, d >> 8);
 
-    interrupts::unmask(IRQ);
+    intr::unmask(IRQ);
 }
 
 void pit::stop() {

@@ -1,10 +1,14 @@
-#include <drivers/interrupts.hpp>
+#include <lib/interrupts.hpp>
 #include <drivers/pic.hpp>
 #include <drivers/ioapic.hpp>
 #include <drivers/lapic.hpp>
-using namespace interrupts;
+using namespace intr;
 
-void interrupts::set(uint8_t vector, uint8_t irq, std::pair<uint8_t, uint32_t> config) {
+// TODO: Save mappings between vectors and irqs
+// When switching from PIC to IOAPIC, need to transfer mappings somehow
+// Right now plan is to just use a vector
+
+void intr::set(uint8_t vector, uint8_t irq, std::pair<uint8_t, uint32_t> config) {
     if (ioapic::initialized)
         ioapic::set(vector, irq, config);
 
@@ -12,21 +16,21 @@ void interrupts::set(uint8_t vector, uint8_t irq, std::pair<uint8_t, uint32_t> c
     mask(irq);
 }
 
-void interrupts::mask(uint8_t irq) {
+void intr::mask(uint8_t irq) {
     if (ioapic::initialized)
         ioapic::mask(irq);
     else
         pic::mask(irq);
 }
 
-void interrupts::unmask(uint8_t irq) {
+void intr::unmask(uint8_t irq) {
     if (ioapic::initialized)
         ioapic::unmask(irq);
     else
         pic::unmask(irq);
 }
 
-void interrupts::eoi(uint8_t irq) {
+void intr::eoi(uint8_t irq) {
     if (ioapic::initialized)
         lapic::eoi();
     else
