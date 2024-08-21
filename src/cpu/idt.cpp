@@ -42,27 +42,33 @@ void idt::set(uint8_t idx, uint8_t ring, void *handler) {
     });
 }
 
-void handlers() {
-    static frg::hash_map<uint8_t, handler_t, frg::hash<unsigned int>, heap::allocator_t> handlers{
-        frg::hash<unsigned int>{},
-        heap::allocator()
-    };
-    return handlers;
+handlers_t& idt::handlers() {
+    static handlers_t h{{}, heap::allocator()};
+    return h;
 }
 
-void idt::set_handler(uint8_t irq, func_t&& f) {
-    handlers[irq].push_back(f);
+std::size_t idt::set_handler(uint8_t irq, func_t&& f) {
+    auto& h = handlers()[irq];
+    for (std::size_t i = 0; i < h.size(); i++)
+        if (!h[i]) {
+            h[i] = f;
+            return i;
+        }
+    h.push_back(f);
+    return h.size() - 1;
 }
 
 uint8_t idt::set_handler(func_t&& f) {
+    auto& h = handlers();
     for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < 256 - 32; i++) // Skip the area reserved for hardware IRQs
-        if (!handlers[i].size()) {
-            handlers[i].push_back(f);
+        if (!h[i].size()) {
+            h[i].push_back(f);
             return i;
         }
     logger::panic("IDT", "No more IDT entries available for use");
 }
 
-void idt::free_handler(uint8_t irq) {
-    handlers[irq].clear();
+// frg::vector doesn't provide an erase method, so the best we can do is set function to nullptr
+void idt::free_handler(uint8_t irq, std::size_t idx) {
+    handlers()[irq][idx] = nullptr;
 }

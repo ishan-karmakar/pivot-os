@@ -20,8 +20,9 @@ uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interru
     return UACPI_STATUS_OK;
 }
 
+// TODO: Don't hardcode 0, maybe split irq and idx into uint32_t segments in uacpi_handle
 uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle handle) {
-    idt::free_handler(*reinterpret_cast<std::size_t*>(handle));
+    idt::free_handler(*reinterpret_cast<std::size_t*>(handle), 0);
     return UACPI_STATUS_OK;
 }
 

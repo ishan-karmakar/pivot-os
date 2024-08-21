@@ -1,10 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
-#include <frg/manual_box.hpp>
 #include <cpu/cpu.hpp>
 #include <lib/logger.hpp>
 #include <frg/vector.hpp>
+#include <frg/hash_map.hpp>
 #include <mem/heap.hpp>
 
 namespace idt {
@@ -25,13 +25,15 @@ namespace idt {
 
     typedef std::function<cpu::status* (cpu::status*)> func_t;
     typedef frg::vector<func_t, heap::allocator_t> handler_t;
+    typedef frg::hash_map<uint8_t, handler_t, frg::hash<unsigned int>, heap::allocator_t> handlers_t;
 
     void init();
     void load();
     void set(uint8_t, idt::desc);
     void set(uint8_t, uint8_t, void*);
     uint8_t set_handler(func_t&&);
-    void set_handler(uint8_t, func_t&&);
-    void free_handler(uint8_t);
+    std::size_t set_handler(uint8_t, func_t&&);
+    void free_handler(uint8_t, std::size_t);
+    handlers_t& handlers();
 }
 

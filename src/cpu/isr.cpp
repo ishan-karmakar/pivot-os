@@ -35,19 +35,19 @@ void exception_handler(cpu::status *status) {
     cpu::hcf();
 }
 
-extern idt::handler_t handlers[256];
 extern "C" {
     cpu::status *int_handler(cpu::status *status) {
         if (status->int_no < 32)
             exception_handler(status);
 
+        auto& h = idt::handlers();
         uint8_t irq = status->int_no - 32;
         cpu::status *ret_status = nullptr;
-        for (auto handler : handlers[irq]) {
+        for (auto handler : h[irq]) {
             auto new_status = handler(status);
             if (new_status)
                 ret_status = new_status;
         }
-        return ret_status;
+        return ret_status ? ret_status : status;
     }
 }

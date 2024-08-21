@@ -11,6 +11,7 @@ constexpr int PIC1_DATA = PIC1 + 1;
 constexpr int PIC2_DATA = PIC2 + 1;
 constexpr int PIC_EOI = 0x20;
 
+#include <cpu/idt.hpp>
 void pic::init() {
     asm volatile ("cli");
     io::outb(PIC1, 0x10 | 0x1);

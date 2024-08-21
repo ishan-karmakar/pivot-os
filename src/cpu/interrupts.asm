@@ -11,13 +11,14 @@
     iretq ; Now we can return from the interrupt
 %endmacro
 
+; OSDev wiki says exception 17 should have error code but alignment is messed up without extra push
 %macro isr 1
 [global isr%1]
 isr%1:
 %if !(%1 ==  8 || %1 == 10 || \
     %1 == 11 || %1 == 12 || \
     %1 == 13 || %1 == 14 || \
-    %1 == 17 || %1 == 21 || \
+    %1 == 21 || \
     %1 == 29 || %1 == 30)
     push 0
 %endif

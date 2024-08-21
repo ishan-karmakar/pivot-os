@@ -21,7 +21,7 @@ extern volatile limine_memmap_request mmap_request;
 
 void fb::init() {
     kfb = new framebuffer{fb_request.response->framebuffers[0]};
-    io::writer = kfb;
+    // io::writer = kfb;
     kfb->clear();
     logger::info("FB[INIT]", "Initialized kernel framebuffer");
 }
