@@ -51,11 +51,11 @@ void ioapic::init() {
     // }
 }
 
-void ioapic::set(uint8_t idt_ent, uint8_t irq, std::pair<uint8_t, uint32_t> config) {
+void ioapic::set(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags) {
     red_ent ent;
-    ent.raw = config.second;
+    ent.raw = flags;
     ent.vector = idt_ent;
-    ent.dest = config.first;
+    ent.dest = dest;
 
     auto so = find_so(irq);
     if (so.has_value()) {

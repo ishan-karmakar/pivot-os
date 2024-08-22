@@ -2,17 +2,24 @@
 #include <drivers/pic.hpp>
 #include <drivers/ioapic.hpp>
 #include <drivers/lapic.hpp>
+#include <mem/heap.hpp>
+#include <lib/hash_map.hpp>
 using namespace intr;
 
-// TODO: Save mappings between vectors and irqs
-// When switching from PIC to IOAPIC, need to transfer mappings somehow
-// Right now plan is to just use a vector
+struct int_config {
+    uint8_t vec;
+    uint8_t dest;
+    uint32_t flags;
+    bool masked;
+};
 
-void intr::set(uint8_t vector, uint8_t irq, std::pair<uint8_t, uint32_t> config) {
+lib::hash_map<uint8_t, int_config, frg::hash<unsigned int>> ints;
+
+void intr::set(uint8_t vector, uint8_t irq, uint8_t dest, uint32_t flags) {
     if (ioapic::initialized)
-        ioapic::set(vector, irq, config);
+        ioapic::set(vector, irq, dest, flags);
 
-    // PIT requires no additional setup, only unmasking IRQ
+    // PIC requires no additional setup, only unmasking IRQ
     mask(irq);
 }
 

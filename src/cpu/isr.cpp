@@ -42,7 +42,7 @@ extern "C" {
             exception_handler(status);
 
         cpu::status *ret_status = nullptr;
-        for (auto handler : idt::handlers()[intr::IRQ(status->int_no)]) {
+        for (auto handler : idt::handlers[intr::IRQ(status->int_no)]) {
             auto s = handler(status);
             if (s) ret_status = s;
         }

@@ -15,6 +15,7 @@ idtr idt_idtr{
     256 * sizeof(idt::desc) - 1,
     reinterpret_cast<uintptr_t>(&idt_table)
 };
+handlers_t idt::handlers{{}, heap::allocator()};
 
 void idt::init() {
     for (int i = 0; i < 256; i++)
@@ -46,8 +47,8 @@ void idt::set(const uint8_t& idx, const uint8_t& ring, void *handler) {
 
 uint8_t idt::set_handler(func_t&& f) {
     for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < intr::IRQ(256); i++) // Skip the area reserved for hardware IRQs
-        if (!handlers()[i].size()) {
-            handlers()[i].push_back(f);
+        if (!handlers[i].size()) {
+            handlers[i].push_back(f);
             return 0;
         }
     logger::panic("IDT", "No more IDT entries available for use");

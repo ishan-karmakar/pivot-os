@@ -26,7 +26,7 @@ namespace idt {
 
     typedef std::function<cpu::status* (cpu::status*)> func_t;
     typedef lib::vector<func_t> handler_t;
-    typedef frg::hash_map<unsigned int, handler_t, frg::hash<unsigned int>, heap::allocator_t> handlers_t;
+    typedef frg::hash_map<uint8_t, handler_t, frg::hash<unsigned int>, heap::allocator_t> handlers_t;
 
     void init();
     void load();
@@ -34,18 +34,15 @@ namespace idt {
     void set(const uint8_t&, const uint8_t&, void*);
     uint8_t set_handler(func_t&&);
 
-    inline handlers_t& handlers() {
-        static handlers_t hdlrs{{}, heap::allocator()};
-        return hdlrs;
-    }
+    extern handlers_t handlers;
 
     inline std::size_t set_handler(const uint8_t& irq, func_t&& f) {
-        handlers()[irq].push_back(f);
-        return handlers().size() - 1;
+        handlers[irq].push_back(f);
+        return handlers.size() - 1;
     }
 
     inline void free_handler(const uint8_t& irq, const std::size_t& idx = 0) {
-        handlers()[irq].erase(idx);
+        handlers[irq].erase(idx);
     }
 }
 

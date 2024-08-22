@@ -19,7 +19,7 @@ cpu::status *rtc_handler(cpu::status*);
 
 void rtc::init() {
     idt::set_handler(IRQ, rtc_handler);
-    intr::set(intr::VEC(IRQ), IRQ, { 0, ioapic::LOWEST_PRIORITY });
+    intr::set(intr::VEC(IRQ), IRQ, 0xFF, ioapic::LOWEST_PRIORITY);
 
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;
