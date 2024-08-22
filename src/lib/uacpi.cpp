@@ -14,14 +14,18 @@
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
     idt::set_handler(irq, [func, ctx](cpu::status*) {
+        logger::panic("UACPI", "interrupt received");
         func(ctx);
         return nullptr;
     });
     *reinterpret_cast<std::size_t*>(out_handle) = irq;
+    intr::set(intr::VEC(irq), irq);
+    intr::unmask(irq);
     return UACPI_STATUS_OK;
 }
 
-uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle) {
+uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle handle) {
+    idt::free_handler(*reinterpret_cast<std::size_t*>(handle));
     return UACPI_STATUS_OK;
 }
 

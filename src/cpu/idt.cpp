@@ -5,6 +5,7 @@
 #include <lib/interrupts.hpp>
 #include <uacpi/kernel_api.h>
 #include <frg/hash_map.hpp>
+#include <lib/vector.hpp>
 using namespace idt;
 
 extern void *isr_table[256];
@@ -14,7 +15,6 @@ idtr idt_idtr{
     256 * sizeof(idt::desc) - 1,
     reinterpret_cast<uintptr_t>(&idt_table)
 };
-std::vector<char> test;
 
 void idt::init() {
     for (int i = 0; i < 256; i++)
@@ -27,11 +27,11 @@ void idt::load() {
     asm volatile ("lidt %0; sti" : : "rm" (idt_idtr) : "memory");
 }
 
-void idt::set(uint8_t idx, idt::desc desc) {
+void idt::set(const uint8_t& idx, idt::desc desc) {
     idt_table[idx] = desc;
 }
 
-void idt::set(uint8_t idx, uint8_t ring, void *handler) {
+void idt::set(const uint8_t& idx, const uint8_t& ring, void *handler) {
     uintptr_t addr = reinterpret_cast<uintptr_t>(handler);
     set(idx, {
         static_cast<uint16_t>(addr),
@@ -46,7 +46,7 @@ void idt::set(uint8_t idx, uint8_t ring, void *handler) {
 
 uint8_t idt::set_handler(func_t&& f) {
     for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < intr::IRQ(256); i++) // Skip the area reserved for hardware IRQs
-        if (!handlers()[i].size()) {// if (!handlers[i].size()) {
+        if (!handlers()[i].size()) {
             handlers()[i].push_back(f);
             return 0;
         }

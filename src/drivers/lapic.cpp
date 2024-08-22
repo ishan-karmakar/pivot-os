@@ -35,8 +35,8 @@ static uintptr_t addr;
 std::size_t lapic::ms_ticks = 0;
 std::atomic_size_t lapic::ticks = 0;
 bool lapic::initialized = false;
-uint8_t timer_vector;
-uint8_t spurious_vector;
+uint8_t lapic::timer_vec;
+uint8_t spurious_vec;
 
 void calibrate();
 
@@ -54,14 +54,14 @@ void lapic::bsp_init() {
         addr = virt_addr(msr & 0xffffffffff000);
     } else return;
 
-    spurious_vector = idt::set_handler([](cpu::status *status) { return status; });
-    timer_vector = idt::set_handler([](cpu::status *status) {
+    spurious_vec = idt::set_handler([](cpu::status *status) { return status; });
+    timer_vec = idt::set_handler([](cpu::status *status) {
         ticks++;
         intr::eoi(0);
         return status;
     });
 
-    write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vector);
+    write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vec);
     logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");
     calibrate();
 
@@ -69,7 +69,7 @@ void lapic::bsp_init() {
 }
 
 void lapic::ap_init() {
-    write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vector);
+    write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vec);
 }
 
 void calibrate() {
@@ -88,7 +88,7 @@ void calibrate() {
 }
 
 void lapic::start(std::size_t rate) {
-    write_reg(LVT_OFFSET, timer_vector | (Periodic << 17));
+    write_reg(LVT_OFFSET, timer_vec | (Periodic << 17));
     write_reg(INITIAL_COUNT_OFF, rate);
     write_reg(CONFIG_OFF, TDIV);
 }

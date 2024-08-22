@@ -25,7 +25,6 @@ sources = [
     'lib/uacpi.cpp',
     'lib/scheduler.cpp',
     'lib/interrupts.cpp',
-    'lib/vector.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',

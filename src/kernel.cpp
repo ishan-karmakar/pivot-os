@@ -54,27 +54,12 @@ extern "C" [[noreturn]] void kinit() {
     pit::start(pit::MS_TICKS);
     lapic::bsp_init();
     acpi::init();
-    rtc::init();
     // gdt::init();
     // tss::init();
+    // rtc::init();
     // smp::init();
     // auto kernel_proc = new scheduler::process{"Kernel", scheduler::Superuser};
-    // drivers::IOAPIC::init();
-    // cpu::LAPIC::init(idt);
-    // drivers::PIT::init(idt);
 
-    // acpi::ACPI::init(bi->rsdp);
-
-    // cpu::GDT hgdt{init_hgdt(sgdt)};
-    
-    // cpu::TSS tss{hgdt};
-    // tss.set_rsp0();
-
-    // drivers::IOAPIC::init(mapper);
-    // cpu::LAPIC::init(mapper, idt);
-    // cpu::LAPIC::calibrate();
-
-    // drivers::RTC::init(idt);
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);
     while(1);

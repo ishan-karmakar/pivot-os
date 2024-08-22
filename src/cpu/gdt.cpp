@@ -32,7 +32,7 @@ void gdt::init() {
     desc_buffer = heap_gdt;
     set(3, 0b11111011, 0b10);
     set(4, 0b11110011, 0);
-    load();
+    // TSS will load GDT immediately after this
 
     logger::info("GDT[INIT]", "Switched to heap allocated GDT");
 }
@@ -53,7 +53,6 @@ void gdt::load() {
     gdtr.size = num_entries * sizeof(desc) - 1;
     gdtr.addr = reinterpret_cast<uintptr_t>(desc_buffer);
     asm volatile (
-        "cli;"
         "lgdt %0;"
         "push %1;"
         "push $.L%=;"
