@@ -4,15 +4,15 @@
 
 + Limine
 + Serial
-+ Standard Library (powered by Frigg)
++ Freestanding STL
 + GDT
 + IDT
 + TSS
-+ PMM (Hugepages)
++ PMM
 + VMM
 + Heap
 + Framebuffer
-/ ACPI (switching to uACPI)
+/ ACPI (haven't completed full uACPI initialization)
 + I/O APIC
 + LAPIC
 + Legacy PIC
@@ -20,17 +20,17 @@
 - HPET
 + RTC
 - PS/2 Controller
-/ PS/2 Keyboard
+- PS/2 Keyboard
 - USB 2 / 3
 - PCI(e)
 - MSI(-X)
-- FPU
-- SSE
++ FPU
++ SSE
 - Ethernet
 - IPv4
 - IPv6
 - ELF
-/ SMP
++ SMP
 - Scheduler
 - Syscalls
 - Terminal
