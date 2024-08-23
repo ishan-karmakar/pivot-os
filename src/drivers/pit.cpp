@@ -7,7 +7,6 @@ using namespace pit;
 
 std::atomic_size_t pit::ticks = 0;
 
-constexpr int IRQ = 0;
 constexpr int CMD_REG = 0x43;
 constexpr int DATA_REG = 0x40;
 

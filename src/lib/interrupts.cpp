@@ -13,9 +13,10 @@ struct int_config {
     bool masked;
 };
 
-lib::hash_map<uint8_t, int_config, frg::hash<unsigned int>> ints;
+lib::hash_map<unsigned int, int_config> ints;
 
 void intr::set(uint8_t vector, uint8_t irq, uint8_t dest, uint32_t flags) {
+    ints[irq] = { vector, dest, flags, true };
     if (ioapic::initialized)
         ioapic::set(vector, irq, dest, flags);
 
@@ -24,6 +25,7 @@ void intr::set(uint8_t vector, uint8_t irq, uint8_t dest, uint32_t flags) {
 }
 
 void intr::mask(uint8_t irq) {
+    ints[irq].masked = true;
     if (ioapic::initialized)
         ioapic::mask(irq);
     else
@@ -31,6 +33,7 @@ void intr::mask(uint8_t irq) {
 }
 
 void intr::unmask(uint8_t irq) {
+    ints[irq].masked = false;
     if (ioapic::initialized)
         ioapic::unmask(irq);
     else
@@ -42,4 +45,11 @@ void intr::eoi(uint8_t irq) {
         lapic::eoi();
     else
         pic::eoi(irq);
+}
+
+void intr::transfer_ints() {
+    for (const auto& [k, v] : ints) {
+        set(v.vec, k, v.dest, v.flags);
+        if (!v.masked) unmask(k);
+    }
 }

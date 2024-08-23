@@ -54,14 +54,19 @@ extern "C" [[noreturn]] void kinit() {
     pit::start(pit::MS_TICKS);
     lapic::bsp_init();
     acpi::init();
-    // gdt::init();
-    // tss::init();
-    // rtc::init();
+    gdt::init();
+    tss::init();
+    rtc::init();
     // smp::init();
-    // auto kernel_proc = new scheduler::process{"Kernel", scheduler::Superuser};
+    auto kernel_proc = new scheduler::process{"kernel", reinterpret_cast<uintptr_t>(kmain), true};
+    kernel_proc->enqueue();
 
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);
+    while(1);
+}
+
+void [[noreturn]] kmain() {
     while(1);
 }
 

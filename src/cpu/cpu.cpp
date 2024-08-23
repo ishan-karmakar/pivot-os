@@ -46,8 +46,9 @@ void cpu::init() {
         }
     }
 
-    enable_smap();
-    enable_smep();
+    // TODO: Enable these back once I get basic scheduling working
+    // enable_smap();
+    // enable_smep();
     // TODO: UMIP
 }
 

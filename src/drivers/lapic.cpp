@@ -64,7 +64,7 @@ void lapic::bsp_init() {
     write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vec);
     logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");
     calibrate();
-
+    pit::stop();
     initialized = true;
 }
 
@@ -76,11 +76,9 @@ void calibrate() {
     write_reg(INITIAL_COUNT_OFF, 0);
     write_reg(CONFIG_OFF, TDIV);
 
-    pit::start(pit::MS_TICKS);
     write_reg(INITIAL_COUNT_OFF, (uint32_t) - 1);
     timer::sleep(100);
     uint32_t cur_ticks = read_reg(CUR_COUNT_OFF);
-    pit::stop();
 
     uint32_t time_elapsed = ((uint32_t) - 1) - cur_ticks;
     ms_ticks = time_elapsed / 100;

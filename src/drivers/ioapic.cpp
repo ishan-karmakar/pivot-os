@@ -7,6 +7,7 @@
 #include <drivers/pic.hpp>
 #include <mem/pmm.hpp>
 #include <mem/mapper.hpp>
+#include <lib/interrupts.hpp>
 using namespace ioapic;
 
 constexpr int VERSION_OFF = 1;
@@ -43,6 +44,7 @@ void ioapic::init() {
     pmm::set(mioapic->address);
     addr = virt_addr(static_cast<uintptr_t>(mioapic->address));
     initialized = true;
+    intr::transfer_ints();
     logger::info("IOAPIC[INIT]", "Initialized IOAPIC");
 
     // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {

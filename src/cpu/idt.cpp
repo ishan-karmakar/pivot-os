@@ -15,7 +15,7 @@ idtr idt_idtr{
     256 * sizeof(idt::desc) - 1,
     reinterpret_cast<uintptr_t>(&idt_table)
 };
-handlers_t idt::handlers{{}, heap::allocator()};
+handlers_t idt::handlers;
 
 void idt::init() {
     for (int i = 0; i < 256; i++)
@@ -25,7 +25,7 @@ void idt::init() {
 }
 
 void idt::load() {
-    asm volatile ("lidt %0; sti" : : "rm" (idt_idtr) : "memory");
+    asm volatile ("lidt %0" : : "rm" (idt_idtr) : "memory");
 }
 
 void idt::set(const uint8_t& idx, idt::desc desc) {

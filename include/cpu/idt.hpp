@@ -5,7 +5,7 @@
 #include <cpu/cpu.hpp>
 #include <lib/logger.hpp>
 #include <lib/vector.hpp>
-#include <frg/hash_map.hpp>
+#include <lib/hash_map.hpp>
 #include <mem/heap.hpp>
 
 namespace idt {
@@ -26,7 +26,7 @@ namespace idt {
 
     typedef std::function<cpu::status* (cpu::status*)> func_t;
     typedef lib::vector<func_t> handler_t;
-    typedef frg::hash_map<uint8_t, handler_t, frg::hash<unsigned int>, heap::allocator_t> handlers_t;
+    typedef lib::hash_map<unsigned int, handler_t> handlers_t;
 
     void init();
     void load();
