@@ -36,6 +36,12 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::serial_port> qemu;
 
+[[noreturn]]
+void kmain() {
+    logger::info("KMAIN", "Entered kmain");
+    while(1);
+}
+
 extern "C" [[noreturn]] void kinit() {
     cpu::set_kgs(0);
     qemu.initialize(0x3F8);
@@ -60,13 +66,10 @@ extern "C" [[noreturn]] void kinit() {
     // smp::init();
     auto kernel_proc = new scheduler::process{"kernel", reinterpret_cast<uintptr_t>(kmain), true};
     kernel_proc->enqueue();
+    scheduler::start();
 
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);
-    while(1);
-}
-
-void [[noreturn]] kmain() {
     while(1);
 }
 

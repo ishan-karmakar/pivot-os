@@ -61,7 +61,7 @@ namespace lib {
         template<typename... Args>
         void resize(std::size_t new_size, Args &&... args);
 
-        void erase(std::size_t);
+        T erase(std::size_t);
         void erase(std::size_t, std::size_t);
 
         void clear() {
@@ -204,8 +204,10 @@ namespace lib {
     }
 
     template <typename T, typename Allocator>
-    void vector<T, Allocator>::erase(std::size_t idx) {
+    T vector<T, Allocator>::erase(std::size_t idx) {
+        T e = (*this)[idx];
         memmove(_elements + idx, _elements + idx + 1, sizeof(T) * (_size-- - idx - 1));
+        return e;
     }
 
     template <typename T, typename Allocator>

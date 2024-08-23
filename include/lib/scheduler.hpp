@@ -9,18 +9,25 @@ namespace scheduler {
     enum status {
         New,
         Ready,
-        Sleeping
+        Sleep,
+        Delete
     };
 
     void start();
+    cpu::status *schedule(cpu::status*);
 
     class process {
     public:
+        friend cpu::status *schedule(cpu::status*);
+
         process(const char*, uintptr_t, bool);
         void enqueue();
+        process *prev;
+        process *next;
     
     private:
         const char *name;
+        std::size_t wakeup;
         scheduler::status status{New};
         mapper::ptmapper mapper;
         vmm::vmm vmm;
@@ -28,4 +35,5 @@ namespace scheduler {
         heap::pool_t pool;
         cpu::status ef;
     };
+
 }
