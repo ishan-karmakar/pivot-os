@@ -1,0 +1,9 @@
+[wrap-git]
+directory = buddy
+url = https://github.com/spaskalev/buddy_alloc
+revision = main
+depth = 1
+patch_directory = buddy
+
+[provide]
+buddy = buddy_dep

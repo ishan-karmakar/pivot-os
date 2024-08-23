@@ -1,0 +1,27 @@
+option(
+    'qemu_uefi',
+    type: 'boolean',
+    value: true,
+    description: 'Use UEFI instead of BIOS in QEMU'
+)
+
+option(
+    'qemu_int',
+    type: 'boolean',
+    value: false,
+    description: 'Log interrupts in QEMU'
+)
+
+option(
+    'qemu_debug',
+    type: 'boolean',
+    value: false,
+    description: 'Enable QEMU GDB debugging'
+)
+
+option(
+    'log_level',
+    type: 'string',
+    value: '',
+    description: 'Log level to use in kernel'
+)

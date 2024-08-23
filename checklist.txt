@@ -1,0 +1,43 @@
++ = Implemented
+- = Not implemented
+/ = Somewhat implemented
+
++ Limine
++ Serial
++ Standard Library (powered by Frigg)
++ GDT
++ IDT
++ TSS
++ PMM (Hugepages)
++ VMM
++ Heap
++ Framebuffer
+/ ACPI (switching to uACPI)
++ I/O APIC
++ LAPIC
++ Legacy PIC
++ PIT
+- HPET
++ RTC
+- PS/2 Controller
+/ PS/2 Keyboard
+- USB 2 / 3
+- PCI(e)
+- MSI(-X)
+- FPU
+- SSE
+- Ethernet
+- IPv4
+- IPv6
+- ELF
+/ SMP
+- Scheduler
+- Syscalls
+- Terminal
+- FAT(12, 16, 32)
+- EXT4
+- Modules
+- TmpFS
++ UBSanitizer
+- mlibc
+- PCID

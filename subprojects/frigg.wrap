@@ -1,0 +1,8 @@
+[wrap-git]
+directory = frigg
+url = https://github.com/managarm/frigg
+revision = master
+depth = 1
+
+[provide]
+frigg = frigg_dep
