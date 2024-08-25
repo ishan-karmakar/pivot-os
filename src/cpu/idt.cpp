@@ -5,7 +5,6 @@
 #include <lib/interrupts.hpp>
 #include <uacpi/kernel_api.h>
 #include <frg/hash_map.hpp>
-#include <lib/vector.hpp>
 using namespace idt;
 
 extern void *isr_table[256];

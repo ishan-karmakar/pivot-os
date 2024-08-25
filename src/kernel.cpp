@@ -39,6 +39,7 @@ frg::manual_box<io::serial_port> qemu;
 [[noreturn]]
 void kmain() {
     logger::info("KMAIN", "Entered kmain");
+    logger::info("KMAIN", "test");
     while(1);
 }
 
@@ -54,17 +55,20 @@ extern "C" [[noreturn]] void kinit() {
     vmm::init();
     heap::init();
     cxxabi::call_constructors();
+    gdt::init();
+    smp::early_init();
     fb::init();
     pic::init();
     pit::init();
     pit::start(pit::MS_TICKS);
     lapic::bsp_init();
     acpi::init();
-    gdt::init();
     tss::init();
+    tss::set_rsp0();
     rtc::init();
     // smp::init();
-    auto kernel_proc = new scheduler::process{"kernel", reinterpret_cast<uintptr_t>(kmain), true};
+    scheduler::init();
+    auto kernel_proc = new scheduler::process{"kernel", kmain, true};
     kernel_proc->enqueue();
     scheduler::start();
 

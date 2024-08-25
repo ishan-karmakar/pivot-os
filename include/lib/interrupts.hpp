@@ -3,6 +3,7 @@
 #include <utility>
 
 namespace intr {
+
     void set(uint8_t, uint8_t, uint8_t = 0xFF, uint32_t = 0);
     void mask(uint8_t);
     void unmask(uint8_t);

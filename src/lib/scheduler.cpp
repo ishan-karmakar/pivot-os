@@ -1,49 +1,55 @@
 #include <lib/scheduler.hpp>
 #include <mem/pmm.hpp>
 #include <lib/logger.hpp>
-#include <lib/vector.hpp>
 #include <cpu/gdt.hpp>
 #include <cpu/idt.hpp>
 #include <drivers/lapic.hpp>
 #include <lib/interrupts.hpp>
 #include <drivers/pit.hpp>
+#include <set>
+#include <deque>
 using namespace scheduler;
 
-constexpr std::size_t THREAD_STACK = 2 * PAGE_SIZE;
-constexpr std::size_t THREAD_HEAP = heap::policy::sb_size;
+struct proc_comparator {
+    constexpr bool operator()(process *l, process *r) const { return l->wakeup < r->wakeup; }
+};
 
-process *processes;
-process *wakeup_proc;
-process *cur_proc;
+std::deque<process*> ready_proc;
+std::set<process*, proc_comparator> wakeup_proc;
+process *cur_proc; // Move to CPU info
+process *idle_proc;
 
 cpu::status *schedule(cpu::status*);
 
-void scheduler::start() {
-    if (lapic::initialized)
-        idt::set_handler(intr::IRQ(lapic::timer_vec), schedule);
-    else
-        idt::set_handler(pit::IRQ, schedule);
+[[gnu::naked]]
+void idle() { while(1) asm ("pause"); }
+
+void scheduler::init() {
+    idle_proc = new process{"idle", idle, true, PAGE_SIZE, 0};
 }
 
-process::process(const char *name, uintptr_t addr, bool superuser) :
+void scheduler::start() {
+    if (lapic::initialized)
+        idt::handlers[intr::IRQ(lapic::timer_vec)].push_back(schedule);
+    else
+        idt::handlers[pit::IRQ].push_back(schedule);
+}
+
+process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :
     name{name},
     mapper{({
         auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(pmm::frame()));
-        const auto kpml4 = mapper::kmapper->data();
-        for (int i = 256; i < 512; i++)
-            tbl[i] = kpml4[i];
-        tbl;
+        for (int i = 256; i < 512; i++) tbl[i] = mapper::kmapper->data()[i];
+        mapper::ptmapper m{tbl};
+        m.load();
+        std::move(m);
     })},
-    vmm{({
-        mapper.load();
-        PAGE_SIZE;
-    }), THREAD_STACK + THREAD_HEAP, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, mapper},
+    vmm{PAGE_SIZE, stack_size + heap_size, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, mapper},
     policy{vmm},
     pool{policy}
 {
-    ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(THREAD_STACK)) + THREAD_STACK;
-    ef.rip = addr;
-    ef.int_no = 101; // Some random int code that represents thread
+    ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
+    ef.rip = reinterpret_cast<uintptr_t>(addr);
     ef.rflags = 0x202;
     if (superuser) {
         ef.cs = gdt::KCODE;
@@ -54,61 +60,49 @@ process::process(const char *name, uintptr_t addr, bool superuser) :
     }
 
     mapper::kmapper->load(); // Reset back to kernel's address space
-    logger::info("SCHED[PROC]", "Created new process '%s'", name);
-}
-
-void add_process(process **list, process *proc) {
-    if (*list)
-        (*list)->prev = proc;
-    proc->next = *list;
-    *list = proc;
-}
-
-void delete_process(process **list, process *proc) {
-    if (*list == proc)
-        *list = proc->next;
-    else {
-        proc->prev->next = proc->next;
-        proc->next->prev = proc->prev;
-    }
 }
 
 void process::enqueue() {
-    add_process(&processes, this);
-    cur_proc = processes;
+    ready_proc.push_back(this);
 }
 
-// WARNING: This WILL FAIL if processes is empty
-cpu::status *scheduler::schedule(cpu::status *status) {
-    // Check for any processes waking up
-    // if (wakeup_proc && lapic::ticks >= wakeup_proc->wakeup) {
-    //     // Load thread and move from wakeup processes list to regular processes list
-    //     // Technically this isn't fair because this thread could be the next one run again
-    //     // But I don't really care atp
-    //     wakeup_proc->mapper.load();
-    //     add_process(&processes, wakeup_proc);
-    //     delete_process(&wakeup_proc, wakeup_proc);
-    //     return &processes->ef;
-    // }
+static void save_proc(cpu::status *status) {
+    if (cur_proc && cur_proc != idle_proc) {
+        if (cur_proc->status == Delete)
+            delete cur_proc;
+        else if (cur_proc->status == Ready || cur_proc->status == Sleep)
+            memcpy(&cur_proc->ef, status, sizeof(cpu::status));
 
-    if (lapic::ticks % 100) return status;
-    auto next_proc = cur_proc->next;
-    if (cur_proc->status == Delete) {
-        delete_process(&processes, cur_proc);
-        delete cur_proc;
-        cur_proc = next_proc;
-    } else if (cur_proc->status == Ready || cur_proc->status == Sleep) {
-        // Save status
-        memcpy(&cur_proc->ef, status, sizeof(cpu::status));
-        if (cur_proc->status == Sleep) {
-            delete_process(&processes, cur_proc);
-            add_process(&wakeup_proc, cur_proc);
-        }
-        cur_proc = next_proc;
+        if (cur_proc->status == Ready)
+            ready_proc.push_back(cur_proc);
+        else if (cur_proc->status == Sleep)
+            wakeup_proc.insert(cur_proc);
     }
-    if (!cur_proc) cur_proc = processes;
+}
 
-    cur_proc->status = Ready;
-    cur_proc->mapper.load();
-    return &cur_proc->ef;
+cpu::status *schedule(cpu::status *status) {
+    // Check for any processes waking up
+    if (wakeup_proc.size() > 0) {
+        auto proc = *wakeup_proc.begin();
+        if (lapic::ticks >= proc->wakeup) {
+            save_proc(status);
+            proc->status = Ready;
+            ready_proc.push_back(proc);
+            wakeup_proc.erase(proc);
+            return &proc->ef;
+        }
+    }
+    if (lapic::ticks % 100) return status;
+    save_proc(status);
+    if (ready_proc.size() > 0) {
+        cur_proc = ready_proc[0];
+        ready_proc.pop_front();
+        cur_proc->status = Ready;
+        cur_proc->mapper.load();
+        return &cur_proc->ef;
+    } else {
+        cur_proc = idle_proc;
+        idle_proc->mapper.load();
+        return &idle_proc->ef;
+    }
 }

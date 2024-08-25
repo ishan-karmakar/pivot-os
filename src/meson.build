@@ -41,6 +41,7 @@ sources = [
     'drivers/rtc.cpp',
     'drivers/acpi.cpp',
     'drivers/madt.cpp',
+    'drivers/syscall.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
     'mem/heap.cpp',
@@ -63,8 +64,6 @@ c_args = [
     '-nostdlib',
     '-mno-red-zone',
     '-static',
-    '-mno-mmx',
-    '-mno-sse', '-mno-sse2',
     '-DUACPI_FORMATTED_LOGGING'
 ]
 

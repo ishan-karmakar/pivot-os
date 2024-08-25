@@ -11,7 +11,7 @@ constexpr int CMD_REG = 0x43;
 constexpr int DATA_REG = 0x40;
 
 void pit::init() {
-    idt::set_handler(IRQ, [](cpu::status*) {
+    idt::handlers[IRQ].push_back([](cpu::status*) {
         ticks++;
         intr::eoi(IRQ);
         return nullptr;

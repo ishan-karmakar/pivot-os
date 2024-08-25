@@ -42,7 +42,8 @@ extern "C" {
             exception_handler(status);
 
         cpu::status *ret_status = nullptr;
-        for (auto handler : idt::handlers[intr::IRQ(status->int_no)]) {
+        for (const auto& handler : idt::handlers[intr::IRQ(status->int_no)]) {
+            // logger::info("ISR", "%lu%hhu%lu", status->int_no, handler.operator bool(), idt::handlers[intr::IRQ(status->int_no)].size());
             auto s = handler(status);
             if (s) ret_status = s;
         }

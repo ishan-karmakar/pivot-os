@@ -6,6 +6,9 @@
 #include <frg/manual_box.hpp>
 
 namespace scheduler {
+    constexpr std::size_t THREAD_STACK = 2 * PAGE_SIZE;
+    constexpr std::size_t THREAD_HEAP = heap::policy::sb_size;
+
     enum status {
         New,
         Ready,
@@ -13,19 +16,13 @@ namespace scheduler {
         Delete
     };
 
+    void init();
     void start();
-    cpu::status *schedule(cpu::status*);
 
-    class process {
-    public:
-        friend cpu::status *schedule(cpu::status*);
-
-        process(const char*, uintptr_t, bool);
+    struct process {
+        process(const char*, void (*)(), bool, std::size_t = THREAD_STACK, std::size_t = THREAD_HEAP);
         void enqueue();
-        process *prev;
-        process *next;
     
-    private:
         const char *name;
         std::size_t wakeup;
         scheduler::status status{New};
@@ -35,5 +32,8 @@ namespace scheduler {
         heap::pool_t pool;
         cpu::status ef;
     };
-
 }
+
+namespace proc {
+    void sleep(std::size_t);
+};
