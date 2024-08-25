@@ -20,6 +20,4 @@ namespace lapic {
     void write_reg(uint32_t, uint64_t);
     uint64_t read_reg(uint32_t);
     inline void eoi() { write_reg(0xB0, 0); }
-
-    extern uint8_t timer_vec;
 }

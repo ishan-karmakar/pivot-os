@@ -32,8 +32,12 @@ namespace scheduler {
         heap::pool_t pool;
         cpu::status ef;
     };
+
+    cpu::status *sys_exit(cpu::status*);
+    cpu::status *sys_nanosleep(cpu::status*);
 }
 
 namespace proc {
+    // Sleep for N ms
     void sleep(std::size_t);
 };

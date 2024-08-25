@@ -1,11 +1,18 @@
 [bits 64]
 [extern int_handler]
+[extern fpu_sav]
+[extern fpu_rest]
+[extern fpu_storage_size]
 
 %macro isr_base_code 1
+    cli
     push %1
     save_context
     mov rdi, rsp
+    call fpu_sav
     call int_handler ; Now we call the interrupt handler
+    mov rdi, rax
+    call fpu_rest
     mov rsp, rax
     restore_context
     iretq ; Now we can return from the interrupt
@@ -41,9 +48,11 @@ isr%1:
     push r13
     push r14
     push r15
+    push 0 ; void* for xsave
 %endmacro
 
 %macro restore_context 0
+    pop r15 ; void* for xsave
     pop r15
     pop r14
     pop r13

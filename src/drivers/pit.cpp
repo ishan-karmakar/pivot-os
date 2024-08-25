@@ -3,6 +3,7 @@
 #include <cpu/idt.hpp>
 #include <cpu/cpu.hpp>
 #include <io/serial.hpp>
+#include <lib/timer.hpp>
 using namespace pit;
 
 std::atomic_size_t pit::ticks = 0;
@@ -11,6 +12,7 @@ constexpr int CMD_REG = 0x43;
 constexpr int DATA_REG = 0x40;
 
 void pit::init() {
+    timer::irq = IRQ;
     idt::handlers[IRQ].push_back([](cpu::status*) {
         ticks++;
         intr::eoi(IRQ);

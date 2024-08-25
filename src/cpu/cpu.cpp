@@ -72,7 +72,7 @@ inline void enable_smep() {
 inline void detect_fpu() {
     uint32_t a, b, c, d;
     __cpuid(1, a, b, c, d);
-    if (c & (1 << 26)) {
+    if (c & bit_XSAVE) {
         // XSAVE supported
         wrreg(cr4, rdreg(cr4) | (1 << 18));
         __cpuid_count(0xD, 0, a, b, c, d);
@@ -81,8 +81,8 @@ inline void detect_fpu() {
         fpu_restore = XRSTOR;
 
         __cpuid_count(0xD, 1, a, b, c, d);
-        fpu_save = a & 1 ? XSAVEOPT : XSAVE;
-    } else if (d & 0x1000000) {
+        fpu_save = a & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
+    } else if (d & bit_FXSAVE) {
         wrreg(cr4, rdreg(cr4) | (1 << 9));
 
         fpu_storage_size = 512;
@@ -94,6 +94,31 @@ inline void detect_fpu() {
     }
 }
 
-void cpu::xsave() {
-    //
+extern "C" {
+    void fpu_sav(cpu::status *status) {
+        if (fpu_save == NoneSave) return;
+        status->fpu_data = operator new(fpu_storage_size);
+        switch (fpu_save) {
+        case FXSAVE:
+            asm volatile ("fxsave (%0)" :: "r" (status->fpu_data));
+            break;
+        case XSAVE:
+            asm volatile ("xsave (%0)" :: "r" (status->fpu_data));
+            break;
+        case XSAVEOPT:
+            asm volatile ("xsaveopt (%0)" :: "r" (status->fpu_data));
+            break;
+        case NoneSave:
+            break;
+        }
+    }
+
+    cpu::status *fpu_rest(cpu::status *status) {
+        switch (fpu_restore) {
+        case FXRSTOR:
+            asm volatile ("fxrstor (%0)" :: "r" (status->fpu_data));
+            break;
+        case XRSTOR:
+        }
+    }
 }

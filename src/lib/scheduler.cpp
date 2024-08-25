@@ -6,6 +6,9 @@
 #include <drivers/lapic.hpp>
 #include <lib/interrupts.hpp>
 #include <drivers/pit.hpp>
+#include <lib/timer.hpp>
+#include <drivers/syscall.hpp>
+#include <cpu/smp.hpp>
 #include <set>
 #include <deque>
 using namespace scheduler;
@@ -16,10 +19,10 @@ struct proc_comparator {
 
 std::deque<process*> ready_proc;
 std::set<process*, proc_comparator> wakeup_proc;
-process *cur_proc; // Move to CPU info
 process *idle_proc;
 
 cpu::status *schedule(cpu::status*);
+void proc_wrapper(void (*)());
 
 [[gnu::naked]]
 void idle() { while(1) asm ("pause"); }
@@ -30,9 +33,9 @@ void scheduler::init() {
 
 void scheduler::start() {
     if (lapic::initialized)
-        idt::handlers[intr::IRQ(lapic::timer_vec)].push_back(schedule);
+        idt::handlers[timer::irq].push_back(schedule);
     else
-        idt::handlers[pit::IRQ].push_back(schedule);
+        idt::handlers[timer::irq].push_back(schedule);
 }
 
 process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :
@@ -49,7 +52,8 @@ process::process(const char *name, void (*addr)(), bool superuser, std::size_t s
     pool{policy}
 {
     ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
-    ef.rip = reinterpret_cast<uintptr_t>(addr);
+    ef.rip = reinterpret_cast<uintptr_t>(proc_wrapper);
+    ef.rdi = reinterpret_cast<uintptr_t>(addr);
     ef.rflags = 0x202;
     if (superuser) {
         ef.cs = gdt::KCODE;
@@ -63,46 +67,91 @@ process::process(const char *name, void (*addr)(), bool superuser, std::size_t s
 }
 
 void process::enqueue() {
+    asm volatile ("cli");
     ready_proc.push_back(this);
+    asm volatile ("sti");
 }
 
-static void save_proc(cpu::status *status) {
-    if (cur_proc && cur_proc != idle_proc) {
-        if (cur_proc->status == Delete)
-            delete cur_proc;
-        else if (cur_proc->status == Ready || cur_proc->status == Sleep)
-            memcpy(&cur_proc->ef, status, sizeof(cpu::status));
+inline process*& cur_proc() {
+    return smp::this_cpu()->cur_proc;
+}
 
-        if (cur_proc->status == Ready)
-            ready_proc.push_back(cur_proc);
-        else if (cur_proc->status == Sleep)
-            wakeup_proc.insert(cur_proc);
+static void save_proc(process*& _cur_proc, cpu::status *status) {
+    if (_cur_proc && _cur_proc != idle_proc) {
+        if (_cur_proc->status == Delete)
+            delete _cur_proc;
+        else if (_cur_proc->status == Ready || _cur_proc->status == Sleep)
+            memcpy(&_cur_proc->ef, status, sizeof(cpu::status));
+
+        if (_cur_proc->status == Ready)
+            ready_proc.push_back(_cur_proc);
+        else if (_cur_proc->status == Sleep)
+            wakeup_proc.insert(_cur_proc);
     }
 }
 
 cpu::status *schedule(cpu::status *status) {
+    process*& _cur_proc = cur_proc();
     // Check for any processes waking up
-    if (wakeup_proc.size() > 0) {
+    if (!wakeup_proc.empty()) {
         auto proc = *wakeup_proc.begin();
-        if (lapic::ticks >= proc->wakeup) {
-            save_proc(status);
+        if (timer::time() >= proc->wakeup) {
+            save_proc(_cur_proc, status);
             proc->status = Ready;
-            ready_proc.push_back(proc);
             wakeup_proc.erase(proc);
-            return &proc->ef;
+            _cur_proc = proc;
+            goto load_proc;
         }
     }
-    if (lapic::ticks % 100) return status;
-    save_proc(status);
-    if (ready_proc.size() > 0) {
-        cur_proc = ready_proc[0];
-        ready_proc.pop_front();
-        cur_proc->status = Ready;
-        cur_proc->mapper.load();
-        return &cur_proc->ef;
-    } else {
-        cur_proc = idle_proc;
-        idle_proc->mapper.load();
-        return &idle_proc->ef;
+    /*
+    Change thread if any of the following occurs:
+    - A sleeping thread wakes up now
+    - The current thread is sleeping or is marked for deletion
+    - The current thread is the idle thread and there is a thread ready to run
+    - The thread's quantum is up
+    */
+    if (!(
+        (_cur_proc && (_cur_proc->status == Delete || _cur_proc->status == Sleep)) ||
+        (_cur_proc == idle_proc && !ready_proc.empty()) ||
+        !(timer::time() % 100)
+    )) return status;
+
+    {
+        process *old_proc = _cur_proc;
+        save_proc(_cur_proc, status);
+        if (!ready_proc.empty()) {
+            _cur_proc = ready_proc[0];
+            ready_proc.pop_front();
+            _cur_proc->status = Ready;
+        } else
+            _cur_proc = idle_proc;
+
+        if (_cur_proc == old_proc)
+            return status;
     }
+
+load_proc:
+    _cur_proc->mapper.load();
+    return &_cur_proc->ef;
+}
+
+void proc_wrapper(void (*fn)()) {
+    fn();
+    syscall(SYS_exit);
+}
+
+cpu::status *scheduler::sys_exit(cpu::status *status) {
+    cur_proc()->status = Delete;
+    return schedule(status);
+}
+
+cpu::status *scheduler::sys_nanosleep(cpu::status *status) {
+    process*& _cur_proc = cur_proc();
+    _cur_proc->status = Sleep;
+    _cur_proc->wakeup = timer::time() + (status->rsi / 1'000'000);
+    return schedule(status);
+}
+
+void proc::sleep(std::size_t ms) {
+    syscall(SYS_nanosleep, ms * 1'000'000);
 }

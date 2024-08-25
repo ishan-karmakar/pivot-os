@@ -11,6 +11,7 @@
 
 namespace cpu {
     struct status {
+        void *fpu_data;
         uint64_t r15;
         uint64_t r14;
         uint64_t r13;
@@ -74,9 +75,6 @@ namespace cpu {
     }
 
     void init();
-
-    void xsave();
-    void xrestore();
 }
 
 // __attribute__((always_inline))

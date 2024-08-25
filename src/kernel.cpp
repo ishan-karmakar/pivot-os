@@ -15,6 +15,7 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
+#include <drivers/syscall.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <lib/scheduler.hpp>
@@ -36,11 +37,10 @@ static volatile LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::serial_port> qemu;
 
-[[noreturn]]
 void kmain() {
     logger::info("KMAIN", "Entered kmain");
-    logger::info("KMAIN", "test");
-    while(1);
+    proc::sleep(1000);
+    logger::info("KMAIN", "After sleep");
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -67,6 +67,7 @@ extern "C" [[noreturn]] void kinit() {
     tss::set_rsp0();
     rtc::init();
     // smp::init();
+    syscalls::init();
     scheduler::init();
     auto kernel_proc = new scheduler::process{"kernel", kmain, true};
     kernel_proc->enqueue();
