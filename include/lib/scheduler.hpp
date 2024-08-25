@@ -6,21 +6,25 @@
 #include <frg/manual_box.hpp>
 
 namespace scheduler {
+    constexpr std::size_t THREAD_STACK = 2 * PAGE_SIZE;
+    constexpr std::size_t THREAD_HEAP = heap::policy::sb_size;
+
     enum status {
         New,
         Ready,
-        Sleeping
+        Sleep,
+        Delete
     };
 
+    void init();
     void start();
 
-    class process {
-    public:
-        process(const char*, uintptr_t, bool);
+    struct process {
+        process(const char*, void (*)(), bool, std::size_t = THREAD_STACK, std::size_t = THREAD_HEAP);
         void enqueue();
     
-    private:
         const char *name;
+        std::size_t wakeup;
         scheduler::status status{New};
         mapper::ptmapper mapper;
         vmm::vmm vmm;
@@ -29,3 +33,7 @@ namespace scheduler {
         cpu::status ef;
     };
 }
+
+namespace proc {
+    void sleep(std::size_t);
+};

@@ -4,9 +4,9 @@
 #include <frg/manual_box.hpp>
 #include <cpu/cpu.hpp>
 #include <lib/logger.hpp>
-#include <lib/vector.hpp>
-#include <lib/hash_map.hpp>
+#include <vector>
 #include <mem/heap.hpp>
+#include <unordered_map>
 
 namespace idt {
     struct [[gnu::packed]] desc {
@@ -25,8 +25,22 @@ namespace idt {
     };
 
     typedef std::function<cpu::status* (cpu::status*)> func_t;
-    typedef lib::vector<func_t> handler_t;
-    typedef lib::hash_map<unsigned int, handler_t> handlers_t;
+
+    struct handler_t : std::vector<func_t> {
+        void push_back(const func_t& v) {
+            asm volatile ("cli");
+            std::vector<func_t>::push_back(v);
+            asm volatile ("sti");
+        }
+
+        void push_back(func_t&& v) {
+            asm volatile ("cli");
+            std::vector<func_t>::push_back(std::move(v));
+            asm volatile ("sti");
+        }
+    };
+
+    typedef std::unordered_map<unsigned int, handler_t> handlers_t;
 
     void init();
     void load();
@@ -35,14 +49,5 @@ namespace idt {
     uint8_t set_handler(func_t&&);
 
     extern handlers_t handlers;
-
-    inline std::size_t set_handler(const uint8_t& irq, func_t&& f) {
-        handlers[irq].push_back(f);
-        return handlers.size() - 1;
-    }
-
-    inline void free_handler(const uint8_t& irq, const std::size_t& idx = 0) {
-        handlers[irq].erase(idx);
-    }
 }
 

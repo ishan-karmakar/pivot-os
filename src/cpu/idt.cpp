@@ -5,7 +5,6 @@
 #include <lib/interrupts.hpp>
 #include <uacpi/kernel_api.h>
 #include <frg/hash_map.hpp>
-#include <lib/vector.hpp>
 using namespace idt;
 
 extern void *isr_table[256];
@@ -49,7 +48,7 @@ uint8_t idt::set_handler(func_t&& f) {
     for (uint8_t i = ioapic::initialized ? 0 : 0x10; i < intr::IRQ(256); i++) // Skip the area reserved for hardware IRQs
         if (!handlers[i].size()) {
             handlers[i].push_back(f);
-            return 0;
+            return intr::VEC(i);
         }
     logger::panic("IDT", "No more IDT entries available for use");
 }

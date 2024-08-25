@@ -15,15 +15,15 @@ void vmm::init() {
     auto last_ent = mmap_request.response->entries[mmap_request.response->entry_count - 1];
     uintptr_t start = virt_addr(last_ent->base + last_ent->length);
     kvmm.initialize(start, pmm::num_pages * PAGE_SIZE, mapper::KERNEL_ENTRY, *mapper::kmapper);
+    logger::info("VMM[INIT]", "Initialized VMM");
 }
 
 vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper& mpr) : flags{flags}, mpr{mpr} {
-    std::size_t metadata_pages = div_ceil(buddy_sizeof_alignment(pmm::num_pages * PAGE_SIZE, PAGE_SIZE), PAGE_SIZE);
+    std::size_t metadata_pages = div_ceil(buddy_sizeof_alignment(size, PAGE_SIZE), PAGE_SIZE);
     for (std::size_t i = 0; i < metadata_pages; i++)
         mpr.map(pmm::frame(), start + i * PAGE_SIZE, flags);
     uint8_t *at = reinterpret_cast<uint8_t*>(start);
-    buddy = buddy_init_alignment(at, at + metadata_pages * PAGE_SIZE, size - metadata_pages * PAGE_SIZE, PAGE_SIZE);
-    logger::info("VMM[INIT]", "Initialized VMM");
+    buddy = buddy_init_alignment(at, at + metadata_pages * PAGE_SIZE, size, PAGE_SIZE);
 }
 
 void *vmm::vmm::malloc(std::size_t size) {

@@ -13,7 +13,7 @@
 #include <lib/interrupts.hpp>
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
-    idt::set_handler(irq, [func, ctx](cpu::status*) {
+    idt::handlers[irq].push_back([func, ctx](cpu::status*) {
         logger::panic("UACPI", "interrupt received");
         func(ctx);
         return nullptr;
@@ -25,7 +25,7 @@ uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interru
 }
 
 uacpi_status uacpi_kernel_uninstall_interrupt_handler(uacpi_interrupt_handler, uacpi_handle handle) {
-    idt::free_handler(*reinterpret_cast<std::size_t*>(handle));
+    idt::handlers[*reinterpret_cast<std::size_t*>(handle)].clear();
     return UACPI_STATUS_OK;
 }
 
@@ -60,7 +60,7 @@ uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request *reques
 void uacpi_kernel_vlog(uacpi_log_level log_level, const char *str, va_list args) {
     frg::string string{str, heap::allocator()};
     string.resize(string.size() - 1);
-    logger::vlog(static_cast<LogLevel>(log_level), "UACPI", string.data(), args);
+    logger::vlog(static_cast<logger::log_level>(log_level), "UACPI", string.data(), args);
 }
 
 void uacpi_kernel_log(uacpi_log_level log_level, const char *str, ...) {

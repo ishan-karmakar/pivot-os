@@ -18,7 +18,7 @@ uint8_t bcd2bin(uint8_t);
 cpu::status *rtc_handler(cpu::status*);
 
 void rtc::init() {
-    idt::set_handler(IRQ, rtc_handler);
+    idt::handlers[IRQ].push_back(rtc_handler);
     intr::set(intr::VEC(IRQ), IRQ, 0xFF, ioapic::LOWEST_PRIORITY);
 
     uint8_t status = read_reg(0xB);

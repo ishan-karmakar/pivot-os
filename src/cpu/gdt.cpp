@@ -32,7 +32,7 @@ void gdt::init() {
     desc_buffer = heap_gdt;
     set(3, 0b11111011, 0b10);
     set(4, 0b11110011, 0);
-    // TSS will load GDT immediately after this
+    load();
 
     logger::info("GDT[INIT]", "Switched to heap allocated GDT");
 }

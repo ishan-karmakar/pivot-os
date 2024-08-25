@@ -33,7 +33,7 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t fla
     if (phys == 0 || virt == 0)
         return;
 
-    flags |= NoExecute | 1;
+    flags |= 1;
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
 
     if (!(pml4[p4_idx] & 1)) {
@@ -104,7 +104,7 @@ uintptr_t ptmapper::translate(const uintptr_t& virt) const {
     
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
     uintptr_t addr = p1_tbl[p1_idx] & SIGN_MASK;
-    logger::debug("MAPPER[TRANSLATE]", "%p -> %p", virt, addr);
+    logger::verbose("MAPPER[TRANSLATE]", "%p -> %p", virt, p1_tbl[p1_idx]);
     return addr;
 }
 
