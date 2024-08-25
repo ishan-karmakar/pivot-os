@@ -10,13 +10,13 @@ void detect_fpu();
 constexpr uint32_t IA32_EFER = 0xC0000080;
 
 enum {
-    XSAVEOPT,
-    XSAVE,
+    NoneSave,
     FXSAVE,
-    NoneSave
+    XSAVE,
+    XSAVEOPT,
 } _fpu_save;
 
-uint32_t cpu::fpu_size;
+uint32_t cpu::fpu_size = 512;
 
 void cpu::init() {
     uint32_t eax, ebx, ecx, edx;
@@ -24,30 +24,30 @@ void cpu::init() {
 
     if (ecx & bit_XSAVE) {
         wrreg(cr4, rdreg(cr4) | (1 << 18));
-        __cpuid_count(0xD, 0, eax, ebx, ecx, edx);
-        _fpu_save = eax & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
+        uint32_t a, c;
+        __cpuid_count(0xD, 0, a, eax, c, eax); // eax is no longer being used
+        fpu_size = c;
+        _fpu_save = a & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
     } else if (edx & bit_FXSAVE) {
         wrreg(cr4, rdreg(cr4) | (1 << 9));
         _fpu_save = FXSAVE;
     } else
         _fpu_save = NoneSave;
-
-    // detect_fpu();
-
-    // if (edx & (1 << 25)) {
-    //     wrreg(cr0, (rdreg(cr0) & ~0b100UL) | 2);
-    //     wrreg(cr4, rdreg(cr4) | 0x600);
-
-    //     if (ecx & (1 << 28) && _fpu_rest == XRSTOR) {
-    //         asm volatile (
-    //             "mov $0, %%rcx;"
-    //             "xgetbv;"
-    //             "or $7, %%rax;"
-    //             "xsetbv;"
-    //             : : : "rdx", "rcx", "rax"
-    //         );
-    //     }
-    // }
+    logger::info("CPU", "%u", _fpu_save);
+    
+    // I don't know if this is needed
+    if (edx & bit_SSE) {
+        wrreg(cr0, (rdreg(cr0) & ~0b100UL) | 2);
+        wrreg(cr4, rdreg(cr4) | (0b11 << 9));
+    }
+    if (ecx & bit_AVX && _fpu_save >= XSAVE)
+        asm volatile (
+            "mov $0, %%rcx;"
+            "xgetbv;"
+            "or $7, %%rax;"
+            "xsetbv;"
+            ::: "rdx", "rcx", "rax"
+        );
 
     __cpuid_count(7, 0, eax, ebx, ecx, edx);
     if (ebx & (1 << 20))
@@ -58,34 +58,7 @@ void cpu::init() {
         wrreg(cr4, rdreg(cr4) | (1 << 11));
 }
 
-[[gnu::always_inline]]
-inline void detect_fpu() {
-    uint32_t a, b, c, d;
-    __cpuid(1, a, b, c, d);
-    if (c & bit_XSAVE) {
-        // XSAVE supported
-        wrreg(cr4, rdreg(cr4) | (1 << 18));
-        __cpuid_count(0xD, 0, a, b, c, d);
-
-        fpu_size = c;
-        _fpu_rest = XRSTOR;
-
-        __cpuid_count(0xD, 1, a, b, c, d);
-        _fpu_save = a & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
-    } else if (d & bit_FXSAVE) {
-        wrreg(cr4, rdreg(cr4) | (1 << 9));
-
-        fpu_size = 512;
-        _fpu_save = FXSAVE;
-        _fpu_rest = FXRSTOR;
-    } else {
-        _fpu_save = NoneSave;
-        _fpu_rest = NoneRestore;
-    }
-}
-
 void cpu::fpu_save(void *dest) {
-    if (_fpu_save == NoneSave) return;
     switch (_fpu_save) {
     case FXSAVE:
         asm volatile ("fxsave (%0)" :: "r" (dest));
@@ -102,14 +75,8 @@ void cpu::fpu_save(void *dest) {
 }
 
 void cpu::fpu_restore(void *dest) {
-    switch (_fpu_rest) {
-    case FXRSTOR:
+    if (_fpu_save == FXSAVE)
         asm volatile ("fxrstor (%0)" :: "r" (dest));
-        break;
-    case XRSTOR:
+    else if (_fpu_save >= XSAVE)
         asm volatile ("xrstor (%0)" :: "r" (dest));
-        break;
-    case NoneRestore:
-        return;
-    }
 }
