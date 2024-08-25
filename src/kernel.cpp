@@ -55,8 +55,9 @@ extern "C" [[noreturn]] void kinit() {
     vmm::init();
     heap::init();
     cxxabi::call_constructors();
-    gdt::init();
     smp::early_init();
+    smp::this_cpu()->fpu_data = operator new(cpu::fpu_size);
+    gdt::init();
     fb::init();
     pic::init();
     pit::init();

@@ -49,7 +49,8 @@ process::process(const char *name, void (*addr)(), bool superuser, std::size_t s
     })},
     vmm{PAGE_SIZE, stack_size + heap_size, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, mapper},
     policy{vmm},
-    pool{policy}
+    pool{policy},
+    fpu_data{operator new(cpu::fpu_size)}
 {
     ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
     ef.rip = reinterpret_cast<uintptr_t>(proc_wrapper);
@@ -80,8 +81,10 @@ static void save_proc(process*& _cur_proc, cpu::status *status) {
     if (_cur_proc && _cur_proc != idle_proc) {
         if (_cur_proc->status == Delete)
             delete _cur_proc;
-        else if (_cur_proc->status == Ready || _cur_proc->status == Sleep)
+        else if (_cur_proc->status == Ready || _cur_proc->status == Sleep) {
             memcpy(&_cur_proc->ef, status, sizeof(cpu::status));
+            memcpy(_cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
+        }
 
         if (_cur_proc->status == Ready)
             ready_proc.push_back(_cur_proc);
@@ -132,6 +135,7 @@ cpu::status *schedule(cpu::status *status) {
 
 load_proc:
     _cur_proc->mapper.load();
+    memcpy(smp::this_cpu()->fpu_data, _cur_proc->fpu_data, cpu::fpu_size);
     return &_cur_proc->ef;
 }
 

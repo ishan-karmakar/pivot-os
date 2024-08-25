@@ -11,7 +11,6 @@
 
 namespace cpu {
     struct status {
-        void *fpu_data;
         uint64_t r15;
         uint64_t r14;
         uint64_t r13;
@@ -75,11 +74,7 @@ namespace cpu {
     }
 
     void init();
+    void fpu_save(void*);
+    void fpu_restore(void*);
+    extern uint32_t fpu_size;
 }
-
-// __attribute__((always_inline))
-// static inline void load_cr3(uintptr_t addr) {
-//     asm volatile ("mov %0, %%cr3" :: "r" (addr) : "memory");
-// }
-
-// void syscall(std::size_t, std::size_t, ...);

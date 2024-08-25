@@ -1,5 +1,6 @@
 #include <cpu/cpu.hpp>
 #include <cpu/idt.hpp>
+#include <cpu/smp.hpp>
 #include <lib/logger.hpp>
 #include <lib/interrupts.hpp>
 // TODO: Seperate stack (IST)
@@ -38,6 +39,7 @@ void exception_handler(cpu::status *status) {
 
 extern "C" {
     cpu::status *int_handler(cpu::status *status) {
+        cpu::fpu_save(smp::this_cpu()->fpu_data);
         if (status->int_no < 32)
             exception_handler(status);
 
@@ -47,6 +49,7 @@ extern "C" {
             auto s = handler(status);
             if (s) ret_status = s;
         }
+        cpu::fpu_restore(smp::this_cpu()->fpu_data);
         return ret_status ? ret_status : status;
     }
 }

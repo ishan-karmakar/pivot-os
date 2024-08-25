@@ -10,6 +10,7 @@ namespace smp {
         volatile bool ready;
         tss::tss tss;
         scheduler::process *cur_proc;
+        void *fpu_data;
     };
 
     void early_init();

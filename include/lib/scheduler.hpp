@@ -31,6 +31,7 @@ namespace scheduler {
         heap::policy policy;
         heap::pool_t pool;
         cpu::status ef;
+        void *fpu_data;
     };
 
     cpu::status *sys_exit(cpu::status*);

@@ -14,58 +14,48 @@ enum {
     XSAVE,
     FXSAVE,
     NoneSave
-} fpu_save;
+} _fpu_save;
 
-enum {
-    XRSTOR,
-    FXRSTOR,
-    NoneRestore
-} fpu_restore;
-
-uint32_t fpu_storage_size;
+uint32_t cpu::fpu_size;
 
 void cpu::init() {
-    // Enable SSE
     uint32_t eax, ebx, ecx, edx;
     __cpuid(1, eax, ebx, ecx, edx);
 
-    detect_fpu();
+    if (ecx & bit_XSAVE) {
+        wrreg(cr4, rdreg(cr4) | (1 << 18));
+        __cpuid_count(0xD, 0, eax, ebx, ecx, edx);
+        _fpu_save = eax & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
+    } else if (edx & bit_FXSAVE) {
+        wrreg(cr4, rdreg(cr4) | (1 << 9));
+        _fpu_save = FXSAVE;
+    } else
+        _fpu_save = NoneSave;
 
-    if (edx & (1 << 25)) {
-        wrreg(cr0, (rdreg(cr0) & ~0b100UL) | 2);
-        wrreg(cr4, rdreg(cr4) | 0x600);
+    // detect_fpu();
 
-        if (ecx & (1 << 28) && fpu_restore == XRSTOR) {
-            asm volatile (
-                "mov $0, %%rcx;"
-                "xgetbv;"
-                "or $7, %%rax;"
-                "xsetbv;"
-                : : : "rdx", "rcx", "rax"
-            );
-        }
-    }
+    // if (edx & (1 << 25)) {
+    //     wrreg(cr0, (rdreg(cr0) & ~0b100UL) | 2);
+    //     wrreg(cr4, rdreg(cr4) | 0x600);
 
-    // TODO: Enable these back once I get basic scheduling working
-    // enable_smap();
-    // enable_smep();
-    // TODO: UMIP
-}
+    //     if (ecx & (1 << 28) && _fpu_rest == XRSTOR) {
+    //         asm volatile (
+    //             "mov $0, %%rcx;"
+    //             "xgetbv;"
+    //             "or $7, %%rax;"
+    //             "xsetbv;"
+    //             : : : "rdx", "rcx", "rax"
+    //         );
+    //     }
+    // }
 
-[[gnu::always_inline]]
-inline void enable_smap() {
-    uint32_t ignored, ebx;
-    __cpuid_count(7, 0, ignored, ebx, ignored, ignored);
+    __cpuid_count(7, 0, eax, ebx, ecx, edx);
     if (ebx & (1 << 20))
         wrreg(cr4, rdreg(cr4) | (1 << 21));
-}
-
-[[gnu::always_inline]]
-inline void enable_smep() {
-    uint32_t ignored, ebx;
-    __cpuid_count(7, 0, ignored, ebx, ignored, ignored);
     if (ebx & (1 << 7))
         wrreg(cr4, rdreg(cr4) | (1 << 20));
+    if (ecx & (1 << 2))
+        wrreg(cr4, rdreg(cr4) | (1 << 11));
 }
 
 [[gnu::always_inline]]
@@ -77,48 +67,49 @@ inline void detect_fpu() {
         wrreg(cr4, rdreg(cr4) | (1 << 18));
         __cpuid_count(0xD, 0, a, b, c, d);
 
-        fpu_storage_size = c;
-        fpu_restore = XRSTOR;
+        fpu_size = c;
+        _fpu_rest = XRSTOR;
 
         __cpuid_count(0xD, 1, a, b, c, d);
-        fpu_save = a & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
+        _fpu_save = a & bit_XSAVEOPT ? XSAVEOPT : XSAVE;
     } else if (d & bit_FXSAVE) {
         wrreg(cr4, rdreg(cr4) | (1 << 9));
 
-        fpu_storage_size = 512;
-        fpu_save = FXSAVE;
-        fpu_restore = FXRSTOR;
+        fpu_size = 512;
+        _fpu_save = FXSAVE;
+        _fpu_rest = FXRSTOR;
     } else {
-        fpu_save = NoneSave;
-        fpu_restore = NoneRestore;
+        _fpu_save = NoneSave;
+        _fpu_rest = NoneRestore;
     }
 }
 
-extern "C" {
-    void fpu_sav(cpu::status *status) {
-        if (fpu_save == NoneSave) return;
-        status->fpu_data = operator new(fpu_storage_size);
-        switch (fpu_save) {
-        case FXSAVE:
-            asm volatile ("fxsave (%0)" :: "r" (status->fpu_data));
-            break;
-        case XSAVE:
-            asm volatile ("xsave (%0)" :: "r" (status->fpu_data));
-            break;
-        case XSAVEOPT:
-            asm volatile ("xsaveopt (%0)" :: "r" (status->fpu_data));
-            break;
-        case NoneSave:
-            break;
-        }
+void cpu::fpu_save(void *dest) {
+    if (_fpu_save == NoneSave) return;
+    switch (_fpu_save) {
+    case FXSAVE:
+        asm volatile ("fxsave (%0)" :: "r" (dest));
+        break;
+    case XSAVE:
+        asm volatile ("xsave (%0)" :: "r" (dest));
+        break;
+    case XSAVEOPT:
+        asm volatile ("xsaveopt (%0)" :: "r" (dest));
+        break;
+    case NoneSave:
+        break;
     }
+}
 
-    cpu::status *fpu_rest(cpu::status *status) {
-        switch (fpu_restore) {
-        case FXRSTOR:
-            asm volatile ("fxrstor (%0)" :: "r" (status->fpu_data));
-            break;
-        case XRSTOR:
-        }
+void cpu::fpu_restore(void *dest) {
+    switch (_fpu_rest) {
+    case FXRSTOR:
+        asm volatile ("fxrstor (%0)" :: "r" (dest));
+        break;
+    case XRSTOR:
+        asm volatile ("xrstor (%0)" :: "r" (dest));
+        break;
+    case NoneRestore:
+        return;
     }
 }

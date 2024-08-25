@@ -4,7 +4,7 @@
 #include <lib/logger.hpp>
 #include <lib/interrupts.hpp>
 #include <uacpi/kernel_api.h>
-#include <frg/hash_map.hpp>
+#include <cpu/smp.hpp>
 using namespace idt;
 
 extern void *isr_table[256];
