@@ -2,16 +2,19 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <uacpi/kernel_api.h>
+#include <kernel.hpp>
 using namespace timer;
 
 uint8_t timer::irq;
 
-void timer::sleep(std::size_t ms) {
+ALIAS_FN(uacpi_kernel_sleep)
+[[gnu::noinline]] void timer::sleep(std::size_t ms) {
     auto& t = lapic::initialized ? lapic::ticks : pit::ticks;
     std::size_t target = t + ms;
     while (t < target) asm ("pause");
 }
 
-std::size_t timer::time() {
+ALIAS_FN(uacpi_kernel_get_ticks)
+[[gnu::noinline]] std::size_t timer::time() {
     return pit::ticks + lapic::ticks;
 }

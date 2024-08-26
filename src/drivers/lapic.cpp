@@ -11,6 +11,7 @@
 #include <drivers/pit.hpp>
 #include <lib/timer.hpp>
 #include <uacpi/kernel_api.h>
+#include <assert.h>
 using namespace lapic;
 
 constexpr int TDIV1 = 0xB;
@@ -41,7 +42,7 @@ void calibrate();
 
 void lapic::bsp_init() {
     uint64_t msr = cpu::rdmsr(IA32_APIC_BASE);
-    logger::assert(msr & (1 << 11), "LAPIC[INIT]", "APIC is disabled globally");
+    assert(msr & (1 << 11));
     
     uint32_t ignored, ecx = 0, edx = 0;
     __cpuid(1, ignored, ignored, ecx, edx);

@@ -76,27 +76,8 @@ void uacpi_kernel_stall(uacpi_u8) {
     uacpi_kernel_sleep(1);
 }
 
-void uacpi_kernel_sleep(uacpi_u64 ms) {
-    timer::sleep(ms);
-}
-
-uacpi_u64 uacpi_kernel_get_ticks() {
-    return timer::time();
-}
-
-void *uacpi_kernel_alloc(std::size_t size) {
-    return malloc(size);
-}
-
-void *uacpi_kernel_calloc(std::size_t count, std::size_t size) {
-    return calloc(count, size);
-}
-
-void uacpi_kernel_free(void *ptr) {
-    return free(ptr);
-}
-
-uacpi_handle uacpi_kernel_create_mutex() {
+ALIAS_FN(uacpi_kernel_create_spinlock)
+[[gnu::noinline]] uacpi_handle uacpi_kernel_create_mutex() {
     return new std::atomic_flag;
 }
 
@@ -117,13 +98,9 @@ void uacpi_kernel_release_mutex(void *m) {
     static_cast<frg::simple_spinlock*>(m)->unlock();
 }
 
-void uacpi_kernel_free_mutex(void *m) {
+ALIAS_FN(uacpi_kernel_free_spinlock)
+[[gnu::noinline]] void uacpi_kernel_free_mutex(void *m) {
     delete static_cast<frg::simple_spinlock*>(m);
-}
-
-uacpi_handle uacpi_kernel_create_spinlock() {
-    // Right now, we treat mutexes and spinlocks the same
-    return uacpi_kernel_create_mutex();
 }
 
 uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle h) {
@@ -135,10 +112,6 @@ uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle h) {
 void uacpi_kernel_spinlock_unlock(uacpi_handle h, uacpi_cpu_flags) {
     uacpi_kernel_release_mutex(h);
     asm volatile ("sti");
-}
-
-void uacpi_kernel_free_spinlock(uacpi_handle h) {
-    uacpi_kernel_free_mutex(h);
 }
 
 uacpi_handle uacpi_kernel_create_event() {

@@ -1,5 +1,7 @@
 #pragma once
 #include <cstddef>
+// Function must be marked as gnu::noinline or bad things could happen
+#define ALIAS_FN(name) asm (".global " #name ";" #name ":");
 
 constexpr std::size_t HUGEPAGE_SIZE = 0x200000;
 constexpr std::size_t PAGE_SIZE = 0x1000;

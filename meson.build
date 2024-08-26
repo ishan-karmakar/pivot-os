@@ -8,47 +8,38 @@ project(
     ]
 )
 
-env = environment()
 limine = subproject('limine', required: true)
 deps = [
     dependency('uacpi', required: true),
     dependency('frigg', default_options: ['frigg_no_install=true'], required: true),
     dependency('magic_enum', default_options: ['hash=true', 'test=false'], required: true),
     dependency('buddy', required: true),
+    dependency('limine-terminal', required: true),
     limine.get_variable('limine_dep'),
 ]
 
-env.set('objcopy', find_program('objcopy', required: true).full_path())
-font_target = custom_target(
-    'font',
-    input: 'fonts/default.psf',
-    output: '@PLAINNAME@.o',
-    command: [
-        'util/compile_font.py',
-        '@INPUT@',
-        '@OUTPUT@'
-    ],
-    env: env
-)
-
 subdir('src')
 
-env.set('mmd', find_program('mmd', required: true).full_path())
-env.set('mcopy', find_program('mcopy', required: true).full_path())
-env.set('mformat', find_program('mformat', required: true).full_path())
-env.set('sgdisk', find_program('sgdisk', required: true).full_path())
-env.set('elf', kernel.full_path())
-env.set('src_root', meson.global_source_root())
+iso_files = files(
+    'limine.conf',
+    'subprojects/limine-terminal/fonts/unifont.bin'
+)
 
-limine_exec = limine.get_variable('limine_exec')
-env.set('limine', limine_exec.full_path())
+iso_files += limine.get_variable('limine_binaries')
+
 os = custom_target(
     'os',
-    output: 'os.img',
-    command: ['util/diskmaker.py', '@OUTPUT@', '@PRIVATE_DIR@'],
-    depends: [limine_exec, kernel],
-    depend_files: 'limine.conf',
-    env: env,
+    output: 'os.iso',
+    command: [
+        'rm', '-rf', '@PRIVATE_DIR@', '&&',
+        'mkdir', '@PRIVATE_DIR@', '&&',
+        'cp', iso_files, kernel, '@PRIVATE_DIR@', '&&',
+        'xorriso', '-as', 'mkisofs', '-b', 'limine-bios-cd.bin', '-no-emul-boot',
+            '-boot-load-size', '4', '-boot-info-table', '--efi-boot', 'limine-uefi-cd.bin',
+            '-efi-boot-part', '--efi-boot-image', '--protective-msdos-label', '@PRIVATE_DIR@',
+            '-o', '@OUTPUT@', '&&',
+        limine.get_variable('limine_exec'), 'bios-install', '@OUTPUT@'
+    ],
     build_by_default: true
 )
 

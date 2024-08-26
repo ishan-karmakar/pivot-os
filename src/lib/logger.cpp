@@ -21,6 +21,12 @@ void logger::log(log_level log_level, const char *target, const char *format, ..
     va_end(args);
 }
 
+[[noreturn]]
+void __assert_fail(const char *assertion, const char *file, uint32_t line, const char *func) {
+    printf("%s:%u: Assertion failed in %s: %s", file, line, func, assertion);
+    abort();
+}
+
 extern "C" {
     void FRG_INTF(log)(const char *s) {
         printf("%s\n", s);

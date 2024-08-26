@@ -8,16 +8,6 @@ using namespace io;
 owriter *io::writer = nullptr;
 FILE *stdout = nullptr;
 
-class string_writer : public owriter {
-public:
-    string_writer(char* buf) : buf{buf} {}
-    void append(char c) override { buf[idx++] = c; }
-    char *buf;
-    std::size_t idx;
-
-private:
-};
-
 frg::expected<frg::format_error> char_printer::operator()(char c) {
     writer->append(c);
     return frg::success;
@@ -51,27 +41,6 @@ frg::expected<frg::format_error> char_printer::operator()(char c, frg::format_op
     };
 
     return frg::success;
-}
-
-int vsprintf(char *buf, const char *fmt, va_list a) {
-    frg::va_struct args;
-    va_copy(args.args, a);
-
-    string_writer w{buf};
-    char_printer cp{&w, &args};
-    frg::printf_format(cp, fmt, &args).unwrap();
-
-    va_end(args.args);
-    return w.idx;
-}
-
-int sprintf(char *buf, const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    int ret = vsprintf(buf, fmt, args);
-    va_end(args);
-
-    return ret;
 }
 
 int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {

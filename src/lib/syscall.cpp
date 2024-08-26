@@ -1,4 +1,4 @@
-#include <drivers/syscall.hpp>
+#include <lib/syscall.hpp>
 #include <cpu/idt.hpp>
 #include <lib/interrupts.hpp>
 #include <lib/scheduler.hpp>

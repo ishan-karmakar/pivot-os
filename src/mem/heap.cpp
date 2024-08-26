@@ -36,22 +36,29 @@ allocator_t& heap::allocator() {
     return alloc;
 }
 
-void *malloc(std::size_t size) {
+ALIAS_FN(term_alloc)
+ALIAS_FN(uacpi_kernel_alloc)
+[[gnu::noinline]] void *malloc(std::size_t size) {
     return heap::allocator().allocate(size);
 }
 
-void *calloc(std::size_t count, std::size_t size) {
+ALIAS_FN(uacpi_kernel_calloc);
+[[gnu::noinline]] void *calloc(std::size_t count, std::size_t size) {
     size *= count;
     void *ptr = malloc(size);
     memset(ptr, 0, size);
     return ptr;
 }
 
-void *realloc(void *old, std::size_t size) {
+ALIAS_FN(term_realloc);
+[[gnu::noinline]] void *realloc(void *old, std::size_t size) {
     return heap::allocator().reallocate(old, size);
 }
 
-void free(void *ptr) {
+ALIAS_FN(term_free);
+ALIAS_FN(term_freensz);
+ALIAS_FN(uacpi_kernel_free);
+[[gnu::noinline]] void free(void *ptr) {
     return heap::allocator().free(ptr);
 }
 

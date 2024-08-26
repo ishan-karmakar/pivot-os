@@ -1,5 +1,6 @@
 // Memory functions
 #include <cstddef>
+#include <kernel.hpp>
 
 extern "C" {
     int memcmp (const void *str1, const void *str2, std::size_t count) {
@@ -14,15 +15,17 @@ extern "C" {
         return 0;
     }
 
-    void *memcpy (void *__restrict dest, const void *__restrict src, std::size_t len) {
+    ALIAS_FN(term_memcpy);
+    [[gnu::noinline]] void *memcpy (void *__restrict dest, const void *__restrict src, std::size_t len) {
         char *d = static_cast<char*>(dest);
         const char *s = static_cast<const char*>(src);
         while (len--)
             *d++ = *s++;
         return dest;
-        }
+    }
 
-        void *memset (void *dest, int val, std::size_t len) {
+    ALIAS_FN(term_memset);
+    [[gnu::noinline]] void *memset (void *dest, int val, std::size_t len) {
         char *ptr = static_cast<char*>(dest);
         while (len-- > 0)
             *ptr++ = val;

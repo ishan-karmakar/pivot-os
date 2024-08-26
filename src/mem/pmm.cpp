@@ -10,13 +10,13 @@
 using namespace pmm;
 
 __attribute__((section(".requests")))
-volatile limine_memmap_request mmap_request = { LIMINE_MEMMAP_REQUEST, 2, nullptr };
+limine_memmap_request mmap_request = { LIMINE_MEMMAP_REQUEST, 2, nullptr };
 
 __attribute__((section(".requests")))
-volatile limine_hhdm_request hhdm_request = { LIMINE_HHDM_REQUEST, 2, nullptr };
+limine_hhdm_request hhdm_request = { LIMINE_HHDM_REQUEST, 2, nullptr };
 
 __attribute__((used, section(".requests")))
-static volatile limine_paging_mode_request paging_request = {
+static limine_paging_mode_request paging_request = {
     .id = LIMINE_PAGING_MODE_REQUEST,
     .revision = 2,
     .response = nullptr,

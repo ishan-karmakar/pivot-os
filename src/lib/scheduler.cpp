@@ -7,7 +7,7 @@
 #include <lib/interrupts.hpp>
 #include <drivers/pit.hpp>
 #include <lib/timer.hpp>
-#include <drivers/syscall.hpp>
+#include <lib/syscall.hpp>
 #include <cpu/smp.hpp>
 #include <set>
 #include <deque>

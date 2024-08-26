@@ -25,6 +25,8 @@ sources = [
     'lib/uacpi.cpp',
     'lib/scheduler.cpp',
     'lib/interrupts.cpp',
+    'lib/modules.cpp',
+    'lib/syscall.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',
@@ -41,7 +43,6 @@ sources = [
     'drivers/rtc.cpp',
     'drivers/acpi.cpp',
     'drivers/madt.cpp',
-    'drivers/syscall.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
     'mem/heap.cpp',
@@ -50,7 +51,6 @@ sources = [
     'mem/vmm.cpp',
     nasm_gen.process('cpu/interrupts.asm'),
     nasm_gen.process('cpu/ap_trampoline.asm'),
-    font_target
 ]
 
 options = []

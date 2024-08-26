@@ -36,9 +36,4 @@ namespace logger {
         error(target, format, __va_arg_pack());
         abort();
     }
-
-    [[gnu::always_inline]]
-    inline void assert(bool condition, const char *target, const char *format, ...) {
-        if (!condition) panic(target, format, __va_arg_pack());
-    }
 }

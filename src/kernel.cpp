@@ -15,25 +15,24 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
-#include <drivers/syscall.hpp>
+#include <lib/syscall.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <lib/scheduler.hpp>
 #include <frg/manual_box.hpp>
 #include <limine.h>
-#include <magic_enum.hpp>
 #include <cstdlib>
 
 extern void io_char_printer(char);
 
 __attribute__((used, section(".requests")))
-static volatile LIMINE_BASE_REVISION(2);
+static LIMINE_BASE_REVISION(2);
 
 __attribute__((used, section(".requests.start")))
-static volatile LIMINE_REQUESTS_START_MARKER;
+static LIMINE_REQUESTS_START_MARKER;
 
 __attribute__((used, section(".requests.end")))
-static volatile LIMINE_REQUESTS_END_MARKER;
+static LIMINE_REQUESTS_END_MARKER;
 
 frg::manual_box<io::serial_port> qemu;
 
@@ -59,20 +58,20 @@ extern "C" [[noreturn]] void kinit() {
     smp::this_cpu()->fpu_data = operator new(cpu::fpu_size);
     gdt::init();
     fb::init();
-    pic::init();
-    pit::init();
-    pit::start(pit::MS_TICKS);
-    lapic::bsp_init();
-    acpi::init();
-    tss::init();
-    tss::set_rsp0();
-    rtc::init();
+    // pic::init();
+    // pit::init();
+    // pit::start(pit::MS_TICKS);
+    // lapic::bsp_init();
+    // acpi::init();
+    // tss::init();
+    // tss::set_rsp0();
+    // rtc::init();
     // smp::init();
-    syscalls::init();
-    scheduler::init();
-    auto kernel_proc = new scheduler::process{"kernel", kmain, true};
-    kernel_proc->enqueue();
-    scheduler::start();
+    // syscalls::init();
+    // scheduler::init();
+    // auto kernel_proc = new scheduler::process{"kernel", kmain, true};
+    // kernel_proc->enqueue();
+    // scheduler::start();
 
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);
