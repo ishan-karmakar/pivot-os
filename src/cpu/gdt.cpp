@@ -23,7 +23,7 @@ void gdt::early_init() {
     set(1, 0b10011011, 0b10); // Kernel CS
     set(2, 0b10010011, 0); // Kernel DS
     load();
-    logger::info("GDT[EARLY INIT]", "Loaded compile time GDT");
+    logger::info("GDT", "Loaded compile time GDT");
 }
 
 void gdt::init() {
@@ -34,7 +34,7 @@ void gdt::init() {
     set(4, 0b11110011, 0);
     load();
 
-    logger::info("GDT[INIT]", "Switched to heap allocated GDT");
+    logger::info("GDT", "Switched to heap allocated GDT");
 }
 
 void gdt::set(uint16_t idx, uint8_t access, uint8_t flags) {

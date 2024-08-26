@@ -8,8 +8,6 @@ namespace io {
 
     class serial_port : public owriter {
     public:
-        using owriter::append;
-
         serial_port(uint16_t);
         void append(char) override;
 

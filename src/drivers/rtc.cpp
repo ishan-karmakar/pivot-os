@@ -5,6 +5,7 @@
 #include <lib/logger.hpp>
 #include <lib/interrupts.hpp>
 #include <drivers/ioapic.hpp>
+#include <drivers/term.hpp>
 
 using namespace rtc;
 
@@ -27,7 +28,7 @@ void rtc::init() {
 
     bcd = !(status & 0x4);
     write_reg(0xB, status);
-    logger::info("RTC[INIT]", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
+    logger::info("RTC", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
     read_reg(0xC);
     intr::unmask(IRQ);
 }
@@ -77,13 +78,21 @@ uint8_t set_dow(uint8_t y, uint8_t m, uint8_t dom) {
 
 cpu::status *rtc_handler(cpu::status *status) {
     auto time = now();
-    auto lims = io::writer->get_constraints();
-    auto old_pos = io::writer->get_pos();
-    io::writer->set_pos({ lims.first - 8, 0 });
-    printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
-    io::writer->set_pos({ lims.first - 8, 1 });
-    printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
-    io::writer->set_pos(old_pos);
+    for (const auto& t : term::terms) {
+        std::size_t x, y;
+        t->get_cursor_pos(t, &x, &y);
+        t->set_cursor_pos(t, t->cols - 8, 0);
+        printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
+        t->set_cursor_pos(t, t->cols - 8, 1);
+        printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
+        t->set_cursor_pos(t, x, y);
+        // auto old_pos = io::writer->get_pos();
+        // io::writer->set_pos({ lims.first - 8, 0 });
+        // printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
+        // io::writer->set_pos({ lims.first - 8, 1 });
+        // printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
+        // io::writer->set_pos(old_pos);
+    }
     intr::eoi(IRQ);
     return status;
 }

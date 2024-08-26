@@ -45,7 +45,7 @@ void pmm::init() {
         for (; entry->type == LIMINE_MEMMAP_FRAMEBUFFER; entry = LIMINE_MMAP_ENTRY(--i));
         num_pages = div_ceil(entry->base + entry->length, PAGE_SIZE);
     }
-    logger::verbose("PMM[INIT]", "Found %lu pages of physical memory", num_pages);
+    logger::verbose("PMM", "Found %lu pages of physical memory", num_pages);
 
     bitmap_size = div_ceil(num_pages, 8);
     for (std::size_t i = 0; i < num_entries; i++) {
@@ -55,19 +55,19 @@ void pmm::init() {
             break;
         }
     }
-    logger::debug("PMM[INIT]", "Bitmap: %p, Size: %lu", bitmap, bitmap_size);
+    logger::debug("PMM", "Bitmap: %p, Size: %lu", bitmap, bitmap_size);
 
     memset(bitmap, 0xFF, bitmap_size);
     for (std::size_t i = 0; i < num_entries; i++) {
         auto entry = LIMINE_MMAP_ENTRY(i);
-        logger::debug("PMM[INIT]", "MMAP[%lu] - Base: %p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
+        logger::debug("PMM", "MMAP[%lu] - Base: %p, Length: %lx, Type: %lu", i, entry->base, entry->length, entry->type);
         if (entry->type == 0)
             clear(entry->base, div_ceil(entry->length, PAGE_SIZE));
     }
 
     set(phys_addr(reinterpret_cast<uintptr_t>(bitmap)), div_ceil(bitmap_size, PAGE_SIZE));
     set(0x8000);
-    logger::info("PMM[INIT]", "Finished initialization");
+    logger::info("PMM", "Finished initialization");
 }
 
 uintptr_t pmm::frame() {

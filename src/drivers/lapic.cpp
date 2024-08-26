@@ -62,7 +62,7 @@ void lapic::bsp_init() {
     }));
 
     write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vec);
-    logger::info("LAPIC[INIT]", "Initialized %sAPIC", x2mode ? "x2" : "x");
+    logger::info("LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
     calibrate();
     pit::stop();
     initialized = true;
@@ -82,7 +82,7 @@ void calibrate() {
 
     uint32_t time_elapsed = ((uint32_t) - 1) - cur_ticks;
     ms_ticks = time_elapsed / 100;
-    logger::verbose("LAPIC[CLB]", "APIC ticks per ms: %u", ms_ticks);
+    logger::verbose("LAPIC", "APIC ticks per ms: %u", ms_ticks);
 }
 
 void lapic::start(std::size_t rate) {

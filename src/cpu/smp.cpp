@@ -14,7 +14,7 @@ void smp::early_init() {
     std::size_t cpu_count = smp_request.response->cpu_count;
     cpus = new cpu_t[cpu_count]();
     std::size_t bsp = smp_request.response->bsp_lapic_id;
-    logger::info("SMP[INIT]", "Number of CPUs: %lu", cpu_count);
+    logger::info("SMP", "Number of CPUs: %lu", cpu_count);
     for (std::size_t i = 0; i < cpu_count; i++) {
         limine_smp_info *info = smp_request.response->cpus[i];
         auto cpu_info = cpus + i;

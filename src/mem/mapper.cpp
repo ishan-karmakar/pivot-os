@@ -17,8 +17,8 @@ std::array<uint16_t, 4> get_entries(const uintptr_t&);
 void mapper::init() {
     uintptr_t cr3 = virt_addr(rdreg(cr3));
     kmapper.initialize(reinterpret_cast<page_table>(cr3));
-    logger::debug("MAPPER[INIT]", "PML4: %p", cr3);
-    logger::info("MAPPER[INIT]", "Finished initialization");
+    logger::debug("MAPPER", "PML4: %p", cr3);
+    logger::info("MAPPER", "Finished initialization");
 }
 
 ptmapper::ptmapper(page_table pml4) : pml4{pml4} {}
@@ -29,7 +29,7 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size
 }
 
 void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t flags) {
-    logger::debug("MAPPER[MAP]", "%p -> %p", virt, phys);
+    logger::debug("MAPPER", "%p -> %p", virt, phys);
     if (phys == 0 || virt == 0)
         return;
 
@@ -37,13 +37,13 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t fla
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
 
     if (!(pml4[p4_idx] & 1)) {
-        logger::debug("MAPPER[MAP]", "Allocating new PML4 table");
+        logger::debug("MAPPER", "Allocating new PML4 table");
         pml4[p4_idx] = alloc_table() | flags;
     }
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
     if (!(p3_tbl[p3_idx] & 1)) {
-        logger::debug("MAPPER[MAP]", "Allocating new P3 table");
+        logger::debug("MAPPER", "Allocating new P3 table");
         p3_tbl[p3_idx] = alloc_table() | flags;
     }
 
@@ -52,7 +52,7 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t fla
     // Will keep hugepage mapping if the target virtual address still points to right phys address
     uintptr_t hp_phys = round_down(phys, HUGEPAGE_SIZE);
     if ((p2_tbl[p2_idx] & SIGN_MASK) == hp_phys) {
-        logger::debug("MAPPER[MAP]", "Hugepage mapping is still valid");
+        logger::debug("MAPPER", "Hugepage mapping is still valid");
         return;
     }
 
@@ -60,7 +60,7 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t fla
         p2_tbl[p2_idx] = hp_phys | flags | 0x80;
         return;
     } else if (p2_tbl[p2_idx] & 0x80) {
-        logger::debug("MAPPER[MAP]", "Converting hugepage mapping to P1 table");
+        logger::debug("MAPPER", "Converting hugepage mapping to P1 table");
         uintptr_t original = p2_tbl[p2_idx];
         original &= ~0x80UL;
         uintptr_t addr = alloc_table();
@@ -85,26 +85,26 @@ uintptr_t ptmapper::alloc_table() {
 uintptr_t ptmapper::translate(const uintptr_t& virt) const {
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
     if (!(pml4[p4_idx] & 1)) {
-        logger::debug("MAPPER[TRANSLATE]", "No PML4 entry");
+        logger::debug("MAPPER", "No PML4 entry");
         return 0;
     }
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
     if (!(p3_tbl[p3_idx] & 1)) {
-        logger::debug("MAPPER[TRANSLATE]", "No P3 table entry");
+        logger::debug("MAPPER", "No P3 table entry");
         return 0;
     }
 
     page_table p2_tbl = reinterpret_cast<page_table>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
     if (!(p2_tbl[p2_idx] & 1)) {
-        logger::debug("MAPPER[TRANSLATE]", "No P2 table entry");
+        logger::debug("MAPPER", "No P2 table entry");
         return 0;
     } else if (p2_tbl[p2_idx] & 0x80)
         return (p2_tbl[p2_idx] & SIGN_MASK) + virt % HUGEPAGE_SIZE;
     
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
     uintptr_t addr = p1_tbl[p1_idx] & SIGN_MASK;
-    logger::verbose("MAPPER[TRANSLATE]", "%p -> %p", virt, p1_tbl[p1_idx]);
+    logger::verbose("MAPPER", "%p -> %p", virt, p1_tbl[p1_idx]);
     return addr;
 }
 
@@ -114,21 +114,21 @@ void ptmapper::unmap(const uintptr_t& addr, const std::size_t& num_pages) {
 }
 
 void ptmapper::unmap(const uintptr_t& virt) {
-    logger::debug("MAPPER[UNMAP]", "%p", virt);
+    logger::debug("MAPPER", "%p", virt);
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
 
     if (!(pml4[p4_idx] & 1))
-        return logger::debug("MAPPER[UNMAP]", "No PML4 entry");
+        return logger::debug("MAPPER", "No PML4 entry");
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
     if (!(p3_tbl[p3_idx] & 1))
-        logger::debug("MAPPER[UNMAP]", "No P3 table entry");
+        logger::debug("MAPPER", "No P3 table entry");
 
     page_table p2_tbl = reinterpret_cast<page_table>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
     if (!(p2_tbl[p2_idx] & 1))
-        return logger::debug("MAPPER[UNMAP]", "No P2 table entry");
+        return logger::debug("MAPPER", "No P2 table entry");
     else if (p2_tbl[p2_idx] & 0x80)
-        return logger::debug("MAPPER[UNMAP]", "Found hugepage entry");
+        return logger::debug("MAPPER", "Found hugepage entry");
     
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
     p1_tbl[p1_idx] &= ~1UL;

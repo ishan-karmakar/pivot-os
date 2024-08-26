@@ -20,7 +20,7 @@ void idt::init() {
     for (int i = 0; i < 256; i++)
         set(i, 0, isr_table[i]);
     load();
-    logger::info("IDT[INIT]", "Initialized IDT");
+    logger::info("IDT", "Initialized IDT");
 }
 
 void idt::load() {

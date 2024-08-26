@@ -15,7 +15,7 @@ void vmm::init() {
     auto last_ent = mmap_request.response->entries[mmap_request.response->entry_count - 1];
     uintptr_t start = virt_addr(last_ent->base + last_ent->length);
     kvmm.initialize(start, pmm::num_pages * PAGE_SIZE, mapper::KERNEL_ENTRY, *mapper::kmapper);
-    logger::info("VMM[INIT]", "Initialized VMM");
+    logger::info("VMM", "Initialized VMM");
 }
 
 vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper& mpr) : flags{flags}, mpr{mpr} {

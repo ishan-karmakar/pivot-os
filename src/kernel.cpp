@@ -9,7 +9,7 @@
 #include <cpu/smp.hpp>
 #include <cpu/tss.hpp>
 #include <drivers/acpi.hpp>
-#include <drivers/framebuffer.hpp>
+#include <drivers/term.hpp>
 #include <drivers/rtc.hpp>
 #include <drivers/pic.hpp>
 #include <drivers/pit.hpp>
@@ -57,21 +57,21 @@ extern "C" [[noreturn]] void kinit() {
     smp::early_init();
     smp::this_cpu()->fpu_data = operator new(cpu::fpu_size);
     gdt::init();
-    fb::init();
-    // pic::init();
-    // pit::init();
-    // pit::start(pit::MS_TICKS);
-    // lapic::bsp_init();
-    // acpi::init();
-    // tss::init();
-    // tss::set_rsp0();
-    // rtc::init();
+    term::init();
+    pic::init();
+    pit::init();
+    pit::start(pit::MS_TICKS);
+    lapic::bsp_init();
+    acpi::init();
+    tss::init();
+    tss::set_rsp0();
+    rtc::init();
     // smp::init();
-    // syscalls::init();
-    // scheduler::init();
-    // auto kernel_proc = new scheduler::process{"kernel", kmain, true};
-    // kernel_proc->enqueue();
-    // scheduler::start();
+    syscalls::init();
+    scheduler::init();
+    auto kernel_proc = new scheduler::process{"kernel", kmain, true};
+    kernel_proc->enqueue();
+    scheduler::start();
 
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);

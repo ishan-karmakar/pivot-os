@@ -1,7 +1,7 @@
 #pragma once
-#include <frg/string.hpp>
+#include <string>
 
 struct limine_file;
 namespace mod {
-    limine_file *find(frg::string_view);
+    limine_file *find(std::string_view);
 }

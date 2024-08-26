@@ -28,7 +28,7 @@ allocator_t::allocator_t() : frg::slab_allocator<policy, frg::simple_spinlock>{h
 void heap::init() {
     heap_slab_policy.initialize(*vmm::kvmm);
     heap_pool.initialize(*heap_slab_policy);
-    logger::info("HEAP[INIT]", "Initialized slab allocator");
+    logger::info("HEAP", "Initialized slab allocator");
 }
 
 allocator_t& heap::allocator() {

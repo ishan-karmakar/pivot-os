@@ -1,14 +1,12 @@
 #include <lib/logger.hpp>
 #include <magic_enum.hpp>
-#include <cpu/smp.hpp>
 #include <io/stdio.hpp>
 #include <frg/macros.hpp>
 using namespace logger;
 
 void logger::vlog(log_level log_level, const char *target, const char *format, va_list args) {
     if (log_level > LOG_LEVEL) return;
-    auto cpu = smp::this_cpu();
-    printf("[%lu][%s] %s: ", cpu ? cpu->id : 0, magic_enum::enum_name(log_level).begin(), target);
+    printf("[%s] %s: ", magic_enum::enum_name(log_level).begin(), target);
     vprintf(format, args);
     printf("\n");
 }
@@ -23,7 +21,7 @@ void logger::log(log_level log_level, const char *target, const char *format, ..
 
 [[noreturn]]
 void __assert_fail(const char *assertion, const char *file, uint32_t line, const char *func) {
-    printf("%s:%u: Assertion failed in %s: %s", file, line, func, assertion);
+    printf("%s:%u: Assertion failed in %s: '%s'", file, line, func, assertion);
     abort();
 }
 

@@ -22,7 +22,7 @@ subdir('src')
 
 iso_files = files(
     'limine.conf',
-    'subprojects/limine-terminal/fonts/unifont.bin'
+    'font.bin'
 )
 
 iso_files += limine.get_variable('limine_binaries')

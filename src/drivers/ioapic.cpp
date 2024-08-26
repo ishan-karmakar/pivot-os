@@ -40,12 +40,12 @@ bool ioapic::initialized = false;
 void ioapic::init() {
     pic::disable();
     auto mioapic = acpi::madt->ioapics[0];
-    logger::verbose("IOAPIC[INIT]", "IOAPIC Address: %p, GSI Base: %u", mioapic->address, mioapic->gsi_base);
+    logger::verbose("IOAPIC", "IOAPIC Address: %p, GSI Base: %u", mioapic->address, mioapic->gsi_base);
     pmm::set(mioapic->address);
     addr = virt_addr(static_cast<uintptr_t>(mioapic->address));
     initialized = true;
     intr::transfer_ints();
-    logger::info("IOAPIC[INIT]", "Initialized IOAPIC");
+    logger::info("IOAPIC", "Initialized IOAPIC");
 
     // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {
     //     logger::error("IOAPIC", "uACPI failed to set interrupt model");
