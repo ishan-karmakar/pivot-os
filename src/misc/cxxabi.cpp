@@ -40,6 +40,11 @@ namespace std {
         logger::panic("STD", "__throw_bad_alloc()");
     }
 
+    [[noreturn]]
+    void __throw_system_error(int e) {
+        logger::panic("CXXABI", "System error (%d)", e);
+    }
+
     // Taken from libstdc++, needed for std::deque
     static void local_Rb_tree_rotate_left(_Rb_tree_node_base* const __x,
                         _Rb_tree_node_base*& __root)

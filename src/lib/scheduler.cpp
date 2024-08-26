@@ -10,29 +10,21 @@
 #include <lib/syscall.hpp>
 #include <cpu/smp.hpp>
 #include <set>
-#include <deque>
+#include <queue>
+#include <mutex>
+#include <shared_mutex>
 using namespace scheduler;
+
+constexpr int THREAD_QUANTUM = 100;
 
 struct proc_comparator {
     constexpr bool operator()(process *l, process *r) const { return l->wakeup < r->wakeup; }
 };
 
-// Thread safe deque - basic spinlock on top of normal deque
-template <typename T>
-struct ts_deque : public std::deque<T> {
-    bool empty() const override {
-        lock.lock();
-        bool e = std::deque<T>::empty();
-        lock.unlock();
-        return e;
-    }
-
-private:
-    frg::simple_spinlock lock;
-};
-
-ts_deque<process*> ready_proc;
+std::queue<process*> ready_proc;
+frg::simple_spinlock ready_lock;
 std::set<process*, proc_comparator> wakeup_proc;
+frg::simple_spinlock wakeup_lock;
 process *idle_proc;
 
 cpu::status *schedule(cpu::status*);
@@ -46,11 +38,13 @@ void scheduler::init() {
 }
 
 void scheduler::start() {
+    logger::info("SCHED", "Starting scheduler");
     if (lapic::initialized)
         idt::handlers[timer::irq].push_back(schedule);
     else
         idt::handlers[timer::irq].push_back(schedule);
-    lapic::ipi(0x81 | (3 << 18), 0);
+
+    // std::size_t interval = THREAD_QUANTUM / smp::cpu_count;
 }
 
 process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :
@@ -83,9 +77,9 @@ process::process(const char *name, void (*addr)(), bool superuser, std::size_t s
 }
 
 void process::enqueue() {
-    asm volatile ("cli");
-    ready_proc.push_back(this);
-    asm volatile ("sti");
+    ready_lock.lock();
+    ready_proc.push(this);
+    ready_lock.unlock();
 }
 
 inline process*& cur_proc() {
@@ -102,7 +96,7 @@ static void save_proc(process*& _cur_proc, cpu::status *status) {
         }
 
         if (_cur_proc->status == Ready)
-            ready_proc.push_back(_cur_proc);
+            ready_proc.push(_cur_proc);
         else if (_cur_proc->status == Sleep)
             wakeup_proc.insert(_cur_proc);
     }
@@ -111,16 +105,21 @@ static void save_proc(process*& _cur_proc, cpu::status *status) {
 cpu::status *schedule(cpu::status *status) {
     process*& _cur_proc = cur_proc();
     // Check for any processes waking up
+    wakeup_lock.lock();
     if (!wakeup_proc.empty()) {
         auto proc = *wakeup_proc.begin();
         if (timer::time() >= proc->wakeup) {
+            ready_lock.lock();
             save_proc(_cur_proc, status);
+            ready_lock.unlock();
             proc->status = Ready;
             wakeup_proc.erase(proc);
+            wakeup_lock.unlock();
             _cur_proc = proc;
             goto load_proc;
         }
     }
+    wakeup_lock.unlock();
     /*
     Change thread if any of the following occurs:
     - A sleeping thread wakes up now
@@ -128,21 +127,26 @@ cpu::status *schedule(cpu::status *status) {
     - The current thread is the idle thread and there is a thread ready to run
     - The thread's quantum is up
     */
+   ready_lock.lock();
     if (!(
         (_cur_proc && (_cur_proc->status == Delete || _cur_proc->status == Sleep)) ||
         (_cur_proc == idle_proc && !ready_proc.empty()) ||
-        !(timer::time() % 100)
-    )) return status;
+        !(timer::time() % THREAD_QUANTUM)
+    )) {
+        ready_lock.unlock();
+        return status;
+    }
 
     {
         process *old_proc = _cur_proc;
         save_proc(_cur_proc, status);
         if (!ready_proc.empty()) {
-            _cur_proc = ready_proc[0];
-            ready_proc.pop_front();
+            _cur_proc = ready_proc.front();
+            ready_proc.pop();
             _cur_proc->status = Ready;
         } else
             _cur_proc = idle_proc;
+        ready_lock.unlock();
 
         if (_cur_proc == old_proc)
             return status;

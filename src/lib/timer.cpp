@@ -2,6 +2,7 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <uacpi/kernel_api.h>
+#include <cpu/smp.hpp>
 #include <kernel.hpp>
 using namespace timer;
 

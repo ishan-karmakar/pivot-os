@@ -51,7 +51,6 @@ typedef base unreachable;
 typedef base nonnull_arg;
 
 void log_location(source_location& loc) {
-    term::clear();
     logger::error("UBSAN", "Failure at %s:%u", loc.filename, loc.line);
 }
 

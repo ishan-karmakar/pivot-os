@@ -36,8 +36,8 @@ constexpr int LVT_OFFSET = 0x320;
 
 bool x2mode, tsc;
 static uintptr_t addr;
-std::size_t lapic::ms_ticks = 0;
-std::atomic_size_t lapic::ticks = 0;
+std::size_t lapic::ms_ticks;
+std::size_t lapic::ticks;
 bool lapic::initialized = false;
 uint8_t spurious_vec;
 
@@ -58,8 +58,10 @@ void lapic::bsp_init() {
     } else return;
 
     spurious_vec = idt::set_handler([](cpu::status *status) { return status; });
-    timer::irq = intr::IRQ(idt::set_handler([](cpu::status *status) {
-        ticks++;
+    std::size_t bsp_id = smp::this_cpu()->id;
+    timer::irq = intr::IRQ(idt::set_handler([bsp_id](cpu::status *status) {
+        if (smp::this_cpu()->id == bsp_id)
+            lapic::ticks++;
         intr::eoi(0);
         return status;
     }));

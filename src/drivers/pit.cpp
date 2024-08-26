@@ -6,7 +6,7 @@
 #include <lib/timer.hpp>
 using namespace pit;
 
-std::atomic_size_t pit::ticks = 0;
+std::size_t pit::ticks = 0;
 
 constexpr int CMD_REG = 0x43;
 constexpr int DATA_REG = 0x40;

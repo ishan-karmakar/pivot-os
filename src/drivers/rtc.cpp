@@ -9,19 +9,13 @@
 
 using namespace rtc;
 
-constexpr int IRQ = 8;
-
 bool bcd;
 void write_reg(uint8_t, uint8_t);
 uint8_t read_reg(uint8_t);
 uint8_t set_dow(uint8_t, uint8_t, uint8_t);
 uint8_t bcd2bin(uint8_t);
-cpu::status *rtc_handler(cpu::status*);
 
 void rtc::init() {
-    idt::handlers[IRQ].push_back(rtc_handler);
-    intr::set(intr::VEC(IRQ), IRQ, 0xFF, ioapic::LOWEST_PRIORITY);
-
     uint8_t status = read_reg(0xB);
     status |= 0x2 | 0x10;
     status &= ~(0x20 | 0x40);
@@ -30,7 +24,6 @@ void rtc::init() {
     write_reg(0xB, status);
     logger::info("RTC", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
     read_reg(0xC);
-    intr::unmask(IRQ);
 }
 
 rtc::time_t rtc::now() {
@@ -74,25 +67,4 @@ uint8_t bcd2bin(uint8_t num) {
 
 uint8_t set_dow(uint8_t y, uint8_t m, uint8_t dom) {
     return (dom +=m < 3 ? y-- : y - 2, 23 * m / 9 + dom + 4 + y / 4 - y / 100 + y / 400) % 7 + 1;
-}
-
-cpu::status *rtc_handler(cpu::status *status) {
-    auto time = now();
-    for (const auto& t : term::terms) {
-        std::size_t x, y;
-        t->get_cursor_pos(t, &x, &y);
-        t->set_cursor_pos(t, t->cols - 8, 0);
-        printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
-        t->set_cursor_pos(t, t->cols - 8, 1);
-        printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
-        t->set_cursor_pos(t, x, y);
-        // auto old_pos = io::writer->get_pos();
-        // io::writer->set_pos({ lims.first - 8, 0 });
-        // printf("%02hhu:%02hhu:%02hhu", time.hour, time.minute, time.second);
-        // io::writer->set_pos({ lims.first - 8, 1 });
-        // printf("%02hhu/%02hhu/%02hhu", time.month, time.dom, time.year);
-        // io::writer->set_pos(old_pos);
-    }
-    intr::eoi(IRQ);
-    return status;
 }

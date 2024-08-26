@@ -1,6 +1,7 @@
 #include <cpu/gdt.hpp>
 #include <algorithm>
 #include <lib/logger.hpp>
+#include <cpu/smp.hpp>
 #include <drivers/acpi.hpp>
 #include <string.h>
 #include <limine.h>
@@ -17,8 +18,6 @@ gdt::desc *desc_buffer = sgdt;
 uint16_t gdt::num_entries;
 constinit gdtr_t gdtr;
 
-extern limine_smp_request smp_request;
-
 void gdt::early_init() {
     set(1, 0b10011011, 0b10); // Kernel CS
     set(2, 0b10010011, 0); // Kernel DS
@@ -27,7 +26,7 @@ void gdt::early_init() {
 }
 
 void gdt::init() {
-    desc *heap_gdt = new desc[5 + smp_request.response->cpu_count * 2]();
+    desc *heap_gdt = new desc[5 + smp::cpu_count * 2]();
     memcpy(heap_gdt, sgdt, sizeof(desc) * 3);
     desc_buffer = heap_gdt;
     set(3, 0b11111011, 0b10);

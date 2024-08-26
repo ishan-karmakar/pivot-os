@@ -4,7 +4,7 @@
 
 namespace lapic {
     extern std::size_t ms_ticks;
-    extern std::atomic_size_t ticks;
+    extern std::size_t ticks;
     extern bool initialized;
 
     enum timer_mode {

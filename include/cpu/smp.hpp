@@ -11,7 +11,11 @@ namespace smp {
         tss::tss tss;
         scheduler::process *cur_proc;
         void *fpu_data;
+        std::size_t lapic_ticks;
     };
+
+    extern std::size_t cpu_count;
+    extern cpu_t *cpus;
 
     void early_init();
     void init();

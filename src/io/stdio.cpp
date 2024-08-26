@@ -9,8 +9,7 @@ owriter *io::writer = nullptr;
 FILE *stdout = nullptr;
 
 struct char_printer {
-    char_printer(frg::va_struct *args) : args{args} { spinlock.lock(); };
-    ~char_printer() { spinlock.unlock(); }
+    char_printer(frg::va_struct *args) : args{args} {};
 
     frg::expected<frg::format_error> operator()(char c) {
         writer->append(c);
@@ -45,15 +44,12 @@ struct char_printer {
     }
 
 private:
-    static frg::simple_spinlock spinlock;
     frg::va_struct *args;
 };
 
-frg::simple_spinlock char_printer::spinlock;
-
 int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {
     frg::va_struct args;
-    va_copy(args.args, a); // PROBLEM
+    va_copy(args.args, a);
     char_printer cp{&args};
     frg::printf_format(cp, fmt, &args).unwrap();
 

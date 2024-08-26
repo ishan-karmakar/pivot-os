@@ -11,11 +11,12 @@ using namespace smp;
 __attribute__((section(".requests")))
 volatile limine_smp_request smp_request = { LIMINE_SMP_REQUEST, 2, nullptr, 1 };
 
-cpu_t *cpus;
+std::size_t smp::cpu_count;
+cpu_t *smp::cpus;
 extern "C" void ainit(limine_smp_info*);
 
 void smp::early_init() {
-    std::size_t cpu_count = smp_request.response->cpu_count;
+    cpu_count = smp_request.response->cpu_count;
     cpus = new cpu_t[cpu_count]();
     std::size_t bsp = smp_request.response->bsp_lapic_id;
     logger::info("SMP", "Number of CPUs: %lu", cpu_count);
@@ -30,14 +31,6 @@ void smp::early_init() {
 }
 
 void smp::init() {
-    idt::handlers[intr::IRQ(0x81)].push_back([](cpu::status*) {
-        if (lapic::initialized)
-            lapic::start(lapic::ms_ticks);
-        else
-            pit::start(pit::MS_TICKS);
-        return nullptr;
-    });
-
     asm volatile ("cli");
     for (std::size_t i = 0; i < smp_request.response->cpu_count; i++) {
         limine_smp_info *info = smp_request.response->cpus[i];
@@ -50,7 +43,6 @@ void smp::init() {
 }
 
 void smp::ap_init(limine_smp_info *cpu) {
-    auto cpu_info = reinterpret_cast<cpu_t*>(cpu->extra_argument);
     cpu::set_kgs(cpu->extra_argument);
 }
 

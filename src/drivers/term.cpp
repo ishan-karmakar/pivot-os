@@ -73,6 +73,7 @@ void term::init() {
             style,
             back
         );
+        terms[i]->cursor_enabled = false;
     }
     clear();
     io::writer = new term_writer;

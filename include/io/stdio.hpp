@@ -1,5 +1,6 @@
 #pragma once
 #include <frg/printf.hpp>
+#include <frg/spinlock.hpp>
 #include <string>
 
 namespace io {
