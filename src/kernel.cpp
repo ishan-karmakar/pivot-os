@@ -43,6 +43,7 @@ void kmain() {
 }
 
 extern "C" [[noreturn]] void kinit() {
+    asm volatile ("cli");
     cpu::set_kgs(0);
     qemu.initialize(0x3F8);
     io::writer = qemu.get();
@@ -60,14 +61,15 @@ extern "C" [[noreturn]] void kinit() {
     term::init();
     pic::init();
     pit::init();
+    asm volatile ("sti");
     pit::start(pit::MS_TICKS);
     lapic::bsp_init();
     acpi::init();
     tss::init();
     tss::set_rsp0();
     rtc::init();
-    // smp::init();
     syscalls::init();
+    smp::init();
     scheduler::init();
     auto kernel_proc = new scheduler::process{"kernel", kmain, true};
     kernel_proc->enqueue();

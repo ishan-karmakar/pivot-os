@@ -22,7 +22,6 @@ void pic::init() {
     io::outb(PIC1_DATA, 1);
     io::outb(PIC2_DATA, 1);
     disable();
-    asm volatile ("sti");
 
     logger::info("PIC[INIT]", "Initialized 8259 PIC");
 }

@@ -33,7 +33,6 @@ void cpu::init() {
         _fpu_save = FXSAVE;
     } else
         _fpu_save = NoneSave;
-    logger::info("CPU", "%u", _fpu_save);
     
     // I don't know if this is needed
     if (edx & bit_SSE) {

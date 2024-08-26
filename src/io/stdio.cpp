@@ -2,14 +2,15 @@
 #include <io/stdio.hpp>
 #include <cpu/cpu.hpp>
 #include <io/serial.hpp>
-#include <frg/manual_box.hpp>
+#include <frg/spinlock.hpp>
 using namespace io;
 
 owriter *io::writer = nullptr;
 FILE *stdout = nullptr;
 
 struct char_printer {
-    char_printer(frg::va_struct *args) : args{args} {};
+    char_printer(frg::va_struct *args) : args{args} { spinlock.lock(); };
+    ~char_printer() { spinlock.unlock(); }
 
     frg::expected<frg::format_error> operator()(char c) {
         writer->append(c);
@@ -44,8 +45,11 @@ struct char_printer {
     }
 
 private:
+    static frg::simple_spinlock spinlock;
     frg::va_struct *args;
 };
+
+frg::simple_spinlock char_printer::spinlock;
 
 int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {
     frg::va_struct args;

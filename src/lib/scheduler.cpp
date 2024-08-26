@@ -17,7 +17,21 @@ struct proc_comparator {
     constexpr bool operator()(process *l, process *r) const { return l->wakeup < r->wakeup; }
 };
 
-std::deque<process*> ready_proc;
+// Thread safe deque - basic spinlock on top of normal deque
+template <typename T>
+struct ts_deque : public std::deque<T> {
+    bool empty() const override {
+        lock.lock();
+        bool e = std::deque<T>::empty();
+        lock.unlock();
+        return e;
+    }
+
+private:
+    frg::simple_spinlock lock;
+};
+
+ts_deque<process*> ready_proc;
 std::set<process*, proc_comparator> wakeup_proc;
 process *idle_proc;
 
@@ -36,6 +50,7 @@ void scheduler::start() {
         idt::handlers[timer::irq].push_back(schedule);
     else
         idt::handlers[timer::irq].push_back(schedule);
+    lapic::ipi(0x81 | (3 << 18), 0);
 }
 
 process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :

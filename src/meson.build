@@ -50,8 +50,7 @@ sources = [
     'mem/mapper.cpp',
     'mem/pmm.cpp',
     'mem/vmm.cpp',
-    nasm_gen.process('cpu/interrupts.asm'),
-    nasm_gen.process('cpu/ap_trampoline.asm'),
+    nasm_gen.process('cpu/intr.asm'),
 ]
 
 options = []

@@ -2,6 +2,10 @@
 #include <lib/logger.hpp>
 #include <cpu/cpu.hpp>
 #include <limine.h>
+#include <cpu/idt.hpp>
+#include <lib/interrupts.hpp>
+#include <drivers/lapic.hpp>
+#include <drivers/pit.hpp>
 using namespace smp;
 
 __attribute__((section(".requests")))
@@ -26,6 +30,15 @@ void smp::early_init() {
 }
 
 void smp::init() {
+    idt::handlers[intr::IRQ(0x81)].push_back([](cpu::status*) {
+        if (lapic::initialized)
+            lapic::start(lapic::ms_ticks);
+        else
+            pit::start(pit::MS_TICKS);
+        return nullptr;
+    });
+
+    asm volatile ("cli");
     for (std::size_t i = 0; i < smp_request.response->cpu_count; i++) {
         limine_smp_info *info = smp_request.response->cpus[i];
         if (info->lapic_id != smp_request.response->bsp_lapic_id) {
@@ -33,11 +46,11 @@ void smp::init() {
             while (!cpus[i].ready) asm ("pause");
         }
     }
+    asm volatile ("sti");
 }
 
 void smp::ap_init(limine_smp_info *cpu) {
     auto cpu_info = reinterpret_cast<cpu_t*>(cpu->extra_argument);
-    cpu_info->ready = true;
     cpu::set_kgs(cpu->extra_argument);
 }
 

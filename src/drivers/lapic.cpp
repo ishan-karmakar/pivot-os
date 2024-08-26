@@ -10,6 +10,7 @@
 #include <lib/interrupts.hpp>
 #include <drivers/pit.hpp>
 #include <lib/timer.hpp>
+#include <cpu/smp.hpp>
 #include <uacpi/kernel_api.h>
 #include <assert.h>
 using namespace lapic;
@@ -26,6 +27,8 @@ constexpr int TDIV = TDIV4;
 constexpr int IA32_APIC_BASE = 0x1B;
 
 constexpr int SPURIOUS_OFF = 0xF0;
+constexpr int ICRLO_OFF = 0x300;
+constexpr int ICRHI_OFF = 0x310;
 constexpr int INITIAL_COUNT_OFF = 0x380;
 constexpr int CUR_COUNT_OFF = 0x390;
 constexpr int CONFIG_OFF = 0x3E0;
@@ -47,9 +50,9 @@ void lapic::bsp_init() {
     uint32_t ignored, ecx = 0, edx = 0;
     __cpuid(1, ignored, ignored, ecx, edx);
 
-    if (ecx & (1 << 21)) {
+    if (ecx & (1 << 21))
         x2mode = true;
-    } else if (edx & (1 << 9)) {
+    else if (edx & (1 << 9)) {
         x2mode = false;
         addr = virt_addr(msr & 0xffffffffff000);
     } else return;
@@ -89,6 +92,19 @@ void lapic::start(std::size_t rate) {
     write_reg(LVT_OFFSET, intr::VEC(timer::irq) | (Periodic << 17));
     write_reg(INITIAL_COUNT_OFF, rate);
     write_reg(CONFIG_OFF, TDIV);
+}
+
+void lapic::stop() {
+    write_reg(INITIAL_COUNT_OFF, 0);
+}
+
+void lapic::ipi(uint32_t flags, uint32_t id) {
+    if (x2mode)
+        write_reg(ICRLO_OFF, (static_cast<uint64_t>(id) << 32) | flags | (1 << 14));
+    else {
+        write_reg(ICRHI_OFF, id << 24);
+        write_reg(ICRLO_OFF, flags | (1 << 14));
+    }
 }
 
 uint64_t lapic::read_reg(uint32_t off) {

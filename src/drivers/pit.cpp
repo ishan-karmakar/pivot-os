@@ -23,7 +23,6 @@ void pit::init() {
     intr::mask(IRQ);
 
     io::outb(CMD_REG, 0x34);
-    asm volatile ("sti");
     logger::info("PIT[INIT]", "Initialized PIT");
 }
 
