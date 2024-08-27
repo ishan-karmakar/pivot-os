@@ -8,19 +8,13 @@
 #include <bits/hashtable_policy.h>
 typedef void (*func_t)(void);
 
-extern uintptr_t __start_ctors;
-extern uintptr_t __stop_ctors;
-
-extern char __start_dtors;
-extern char __stop_dtors;
+extern "C" void (*__init_array_start[])();
+extern "C" void (*__init_array_end[])();
 
 void cxxabi::call_constructors() {
-    std::size_t num_entries = &__stop_ctors - &__start_ctors;
-    uintptr_t *init_array = &__start_ctors;
-    for (std::size_t i = 0; i < num_entries; i++) {
-        ((func_t) init_array[i])();
-    }
-    logger::info("CTORS", "Called global constructors");
+    for (auto ctor = __init_array_start; ctor < __init_array_end; ctor++)
+        (*ctor)();
+    logger::info("CTORS", "Finished running global constructors");
 }
 
 namespace std {

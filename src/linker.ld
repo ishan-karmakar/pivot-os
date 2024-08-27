@@ -5,62 +5,38 @@ ENTRY (kinit)
 
 PHDRS
 {
-    headers PT_PHDR PHDRS;
-    text PT_LOAD FILEHDR PHDRS;
+    text PT_LOAD;
     rodata PT_LOAD;
     data PT_LOAD;
 }
 
-SECTIONS
-{
-    _kern_virt_offset = 0xFFFFFFFF80000000;
-    . = _kern_virt_offset + SIZEOF_HEADERS;
+SECTIONS {
+    . = 0xFFFFFFFF80000000;
 
-	.text ALIGN(CONSTANT(MAXPAGESIZE)) : {
-		*(.text*)
-        *(.gnu.linkonce.t*)
-	} :text
+    .text (ALIGN(CONSTANT(MAXPAGESIZE))) : {
+        *(.text .text.*)
+    } :text
 
-	.rodata ALIGN(CONSTANT(MAXPAGESIZE)) :	{
-		*(.rodata*)
-        *(.gnu.linkonce.r*)
-	} :rodata
+    .rodata (ALIGN(CONSTANT(MAXPAGESIZE))) : {
+        *(.rodata .rodata.*)
+    } :rodata
 
-	.data ALIGN(CONSTANT(MAXPAGESIZE)) : {
-		*(.data*)
-        *(.gnu.linkonce.d*)
-	} :data
-
-    .limine : {
-        KEEP(*(.requests.start))
-        KEEP(*(.requests))
-        KEEP(*(.requests.end))
-    } :data
-
-    .ctors ALIGN(4) : {
-        __start_ctors = .;
-        *(.init_array)
-        *(SORT(.ctors*))
-        __stop_ctors = .;
-    } :data
-
-    .dtors ALIGN(4) : {
-        __start_dtors = .;
-        *(.fini_array)
-        *(SORT(.dtors*))
-        __stop_ctors = .;
-    } :data
-
-	.bss : {
-		*(.bss*)
-        *(COMMON)
-	} :data
-
-    /DISCARD/ :
-    {
-        *(.note*)
-        *(.comment*)
-        *(.eh_frame*)
-        *(.interp)
+    .init_array : {
+        PROVIDE_HIDDEN(__init_array_start = .);
+        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+        KEEP(*(.init_array .ctors))
+        PROVIDE_HIDDEN(__init_array_end = .);
     }
+
+    .data : {
+        *(.data .data.*)
+        *(.requests.start)
+        *(.requests)
+        *(.requests.end)
+    } :data
+
+    .bss : {
+        *(COMMON)
+        *(.bss .bss.*)
+    } :data
 }
