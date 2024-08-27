@@ -16,11 +16,17 @@ enum {
     XSAVEOPT,
 } _fpu_save;
 
+// TODO: Use std::function for fpu_save and fpu_restore instead of enum; will be faster
+
 uint32_t cpu::fpu_size = 512;
 
 void cpu::init() {
     uint32_t eax, ebx, ecx, edx;
     __cpuid(1, eax, ebx, ecx, edx);
+    if (edx & bit_SSE) {
+        wrreg(cr0, (rdreg(cr0) & ~0b100UL) | 2);
+        wrreg(cr4, rdreg(cr4) | (0b11 << 9));
+    }
 
     if (ecx & bit_XSAVE) {
         wrreg(cr4, rdreg(cr4) | (1 << 18));
@@ -34,27 +40,22 @@ void cpu::init() {
     } else
         _fpu_save = NoneSave;
     
-    // I don't know if this is needed
-    if (edx & bit_SSE) {
-        wrreg(cr0, (rdreg(cr0) & ~0b100UL) | 2);
-        wrreg(cr4, rdreg(cr4) | (0b11 << 9));
-    }
-    if (ecx & bit_AVX && _fpu_save >= XSAVE)
-        asm volatile (
-            "mov $0, %%rcx;"
-            "xgetbv;"
-            "or $7, %%rax;"
-            "xsetbv;"
-            ::: "rdx", "rcx", "rax"
-        );
+    // if (ecx & bit_AVX && _fpu_save >= XSAVE)
+    //     asm volatile (
+    //         "mov $0, %%rcx;"
+    //         "xgetbv;"
+    //         "or $7, %%rax;"
+    //         "xsetbv;"
+    //         ::: "rdx", "rcx", "rax"
+    //     );
 
-    __cpuid_count(7, 0, eax, ebx, ecx, edx);
-    if (ebx & (1 << 20))
-        wrreg(cr4, rdreg(cr4) | (1 << 21));
-    if (ebx & (1 << 7))
-        wrreg(cr4, rdreg(cr4) | (1 << 20));
-    if (ecx & (1 << 2))
-        wrreg(cr4, rdreg(cr4) | (1 << 11));
+    // __cpuid_count(7, 0, eax, ebx, ecx, edx);
+    // if (ebx & (1 << 20))
+    //     wrreg(cr4, rdreg(cr4) | (1 << 21));
+    // if (ebx & (1 << 7))
+    //     wrreg(cr4, rdreg(cr4) | (1 << 20));
+    // if (ecx & (1 << 2))
+    //     wrreg(cr4, rdreg(cr4) | (1 << 11));
 }
 
 void cpu::fpu_save(void *dest) {

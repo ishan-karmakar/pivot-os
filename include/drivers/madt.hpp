@@ -48,8 +48,8 @@ namespace acpi {
         madt(const acpi_sdt_hdr*);
 
         uintptr_t lapic_addr;
-        frg::vector<const acpi_madt_interrupt_source_override*, heap::allocator_t> source_ovrds;
-        frg::vector<const acpi_madt_ioapic*, heap::allocator_t> ioapics;
+        frg::vector<const acpi_madt_interrupt_source_override*, heap::allocator> source_ovrds;
+        frg::vector<const acpi_madt_ioapic*, heap::allocator> ioapics;
     };
 
     extern class madt *madt;

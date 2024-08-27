@@ -23,7 +23,7 @@ void pit::init() {
     intr::mask(IRQ);
 
     io::outb(CMD_REG, 0x34);
-    logger::info("PIT[INIT]", "Initialized PIT");
+    logger::info("PIT", "Initialized PIT");
 }
 
 void pit::start(uint16_t d) {

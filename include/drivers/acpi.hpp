@@ -10,7 +10,7 @@ namespace acpi {
 
     class sdt {
     protected:
-        explicit sdt(const acpi_sdt_hdr*);
+        explicit sdt(const acpi_sdt_hdr *hdr) : header{hdr} {};
     
         static bool validate(const char*, std::size_t);
         const acpi_sdt_hdr *header;

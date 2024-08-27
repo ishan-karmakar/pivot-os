@@ -22,7 +22,7 @@ void rtc::init() {
 
     bcd = !(status & 0x4);
     write_reg(0xB, status);
-    logger::info("RTC", "Initialized RTC timer in (in %s mode)", bcd ? "BCD" : "binary");
+    logger::info("RTC", "Initialized RTC timer");
     read_reg(0xC);
 }
 

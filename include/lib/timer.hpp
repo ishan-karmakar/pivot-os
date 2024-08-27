@@ -4,6 +4,6 @@
 
 namespace timer {
     extern uint8_t irq;
-    void sleep(std::size_t);
-    std::size_t time();
+    extern "C" void sleep(std::size_t);
+    extern "C" std::size_t time();
 }

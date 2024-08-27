@@ -3,7 +3,7 @@
 #include <mem/heap.hpp>
 
 namespace lib {
-    template <typename K, typename V, typename H = frg::hash<K>, typename A = heap::allocator_t>
+    template <typename K, typename V, typename H = frg::hash<K>, typename A = heap::allocator>
     // using hash_map = frg::hash_map<K, V, H, A>;
     class hash_map : public frg::hash_map<K, V, H, A> {
         using entry_type = frg::hash_map<K, V, H, A>::entry_type;

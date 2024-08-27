@@ -8,9 +8,8 @@
 #include <drivers/lapic.hpp>
 
 extern "C" [[noreturn]] void ainit(limine_smp_info *info) {
-    logger::info("AP", "AP %lu started", info->lapic_id);
     cpu::init();
-    mapper::kmapper->load();
+    logger::info("AP", "AP %lu started", info->lapic_id);
     idt::load();
     smp::ap_init(info);
     smp::this_cpu()->fpu_data = operator new(cpu::fpu_size);

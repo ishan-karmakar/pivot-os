@@ -76,8 +76,8 @@ void uacpi_kernel_stall(uacpi_u8) {
     uacpi_kernel_sleep(1);
 }
 
-ALIAS_FN(uacpi_kernel_create_spinlock)
-[[gnu::noinline]] uacpi_handle uacpi_kernel_create_mutex() {
+[[gnu::alias("uacpi_kernel_create_mutex")]] uacpi_handle uacpi_kernel_create_spinlock();
+uacpi_handle uacpi_kernel_create_mutex() {
     return new std::atomic_flag;
 }
 
@@ -98,8 +98,8 @@ void uacpi_kernel_release_mutex(void *m) {
     static_cast<frg::simple_spinlock*>(m)->unlock();
 }
 
-ALIAS_FN(uacpi_kernel_free_spinlock)
-[[gnu::noinline]] void uacpi_kernel_free_mutex(void *m) {
+[[gnu::alias("uacpi_kernel_free_mutex")]] void uacpi_kernel_free_spinlock(uacpi_handle);
+void uacpi_kernel_free_mutex(uacpi_handle m) {
     delete static_cast<frg::simple_spinlock*>(m);
 }
 

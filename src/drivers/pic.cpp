@@ -23,7 +23,7 @@ void pic::init() {
     io::outb(PIC2_DATA, 1);
     disable();
 
-    logger::info("PIC[INIT]", "Initialized 8259 PIC");
+    logger::info("PIC", "Initialized 8259 PIC");
 }
 
 void pic::eoi(uint8_t irq) {

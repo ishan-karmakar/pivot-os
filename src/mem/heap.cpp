@@ -23,7 +23,7 @@ void policy::unmap(uintptr_t addr, std::size_t) {
     vmm.free(reinterpret_cast<void*>(addr));
 };
 
-allocator_t::allocator_t() : frg::slab_allocator<policy, frg::simple_spinlock>{heap_pool.get()} {}
+allocator::allocator() : frg::slab_allocator<policy, frg::simple_spinlock>{heap_pool.get()} {}
 
 void heap::init() {
     heap_slab_policy.initialize(*vmm::kvmm);
@@ -31,34 +31,22 @@ void heap::init() {
     logger::info("HEAP", "Initialized slab allocator");
 }
 
-allocator_t& heap::allocator() {
-    static allocator_t alloc;
-    return alloc;
-}
-
-ALIAS_FN(term_alloc)
-ALIAS_FN(uacpi_kernel_alloc)
-[[gnu::noinline]] void *malloc(std::size_t size) {
+void *malloc(std::size_t size) {
     return heap::allocator().allocate(size);
 }
 
-ALIAS_FN(uacpi_kernel_calloc);
-[[gnu::noinline]] void *calloc(std::size_t count, std::size_t size) {
+void *calloc(std::size_t count, std::size_t size) {
     size *= count;
     void *ptr = malloc(size);
     memset(ptr, 0, size);
     return ptr;
 }
 
-ALIAS_FN(term_realloc);
-[[gnu::noinline]] void *realloc(void *old, std::size_t size) {
+void *realloc(void *old, std::size_t size) {
     return heap::allocator().reallocate(old, size);
 }
 
-ALIAS_FN(term_free);
-ALIAS_FN(term_freensz);
-ALIAS_FN(uacpi_kernel_free);
-[[gnu::noinline]] void free(void *ptr) {
+void free(void *ptr) {
     return heap::allocator().free(ptr);
 }
 
@@ -86,3 +74,14 @@ void operator delete[](void *ptr) {
 void operator delete[](void *ptr, std::size_t) {
     return operator delete[](ptr);
 }
+
+extern "C" {
+    [[gnu::alias("malloc"), gnu::malloc, gnu::alloc_size(1)]] void *term_alloc(std::size_t) noexcept;
+    [[gnu::alias("realloc"), gnu::alloc_size(2)]] void *term_realloc(void*, std::size_t) noexcept;
+    [[gnu::alias("free")]] void term_free(void*) noexcept;
+    [[gnu::alias("free")]] void term_freensz(void*) noexcept;
+}
+
+[[gnu::alias("calloc"), gnu::malloc, gnu::alloc_size(1, 2)]] void *uacpi_kernel_calloc(std::size_t, std::size_t) noexcept;
+[[gnu::alias("malloc"), gnu::malloc, gnu::alloc_size(1)]] void *uacpi_kernel_alloc(std::size_t) noexcept;
+[[gnu::alias("free")]] void uacpi_kernel_free(void*) noexcept;

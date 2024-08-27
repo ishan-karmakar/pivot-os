@@ -16,6 +16,7 @@ void syscalls::init() {
         auto s = _syscalls[status->rdi](status);
         return s ? s : status;
     });
+    logger::info("SYSCALLS", "Initialized system calls");
 }
 
 extern "C" void syscall(std::size_t, ...) {

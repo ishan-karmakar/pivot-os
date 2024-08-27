@@ -64,6 +64,8 @@ c_args = [
     '-nostdlib',
     '-mno-red-zone',
     '-static',
+    '-Wno-maybe-uninitialized',
+    '-Wno-stringop-overflow',
     '-DUACPI_FORMATTED_LOGGING'
 ]
 

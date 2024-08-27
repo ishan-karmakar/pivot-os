@@ -12,6 +12,7 @@ namespace smp {
         scheduler::process *cur_proc;
         void *fpu_data;
         std::size_t lapic_ticks;
+        std::size_t sched_off;
     };
 
     extern std::size_t cpu_count;

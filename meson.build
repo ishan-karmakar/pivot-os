@@ -49,8 +49,6 @@ if qemu.found()
         '-m', '128M',
         '-smp', '2',
         '-serial', 'stdio',
-        '-enable-kvm',
-        '-cpu', 'host',
         '-no-reboot',
         '-no-shutdown',
     ]
@@ -61,6 +59,8 @@ if qemu.found()
 
     if get_option('qemu_int')
         qemu_flags += ['-d', 'int']
+    else
+        qemu_flags += ['-enable-kvm', '-cpu', 'host']
     endif
 
     if get_option('qemu_debug')

@@ -26,7 +26,7 @@ void acpi::init() {
     };
 
     assert(uacpi_likely_success(uacpi_initialize(&init_params)));
-    logger::info("ACPI[INIT]", "Initialized uACPI");
+    logger::info("ACPI", "Initialized uACPI");
 
     madt = new (class madt){acpi::get_table(ACPI_MADT_SIGNATURE)};
 
@@ -41,5 +41,3 @@ acpi_sdt_hdr *acpi::get_table(const char *sig) {
 
     return t.hdr;
 }
-
-sdt::sdt(const acpi_sdt_hdr *header) : header{header} {}

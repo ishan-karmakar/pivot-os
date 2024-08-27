@@ -20,7 +20,6 @@ void tss::init() {
 
     gdt::load();
     asm volatile ("ltr %0" : : "r" (seg));
-    logger::info("TSS", "Initialized TSS");
 }
 
 void tss::set_rsp0(uintptr_t rsp) {

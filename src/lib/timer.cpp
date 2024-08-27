@@ -4,18 +4,20 @@
 #include <uacpi/kernel_api.h>
 #include <cpu/smp.hpp>
 #include <kernel.hpp>
-using namespace timer;
 
 uint8_t timer::irq;
 
-ALIAS_FN(uacpi_kernel_sleep)
-[[gnu::noinline]] void timer::sleep(std::size_t ms) {
-    auto& t = lapic::initialized ? lapic::ticks : pit::ticks;
-    std::size_t target = t + ms;
-    while (t < target) asm ("pause");
+namespace timer {
+    void sleep(std::size_t ms) {
+        auto& t = lapic::initialized ? lapic::ticks : pit::ticks;
+        std::size_t target = t + ms;
+        while (t < target) asm ("pause");
+    }
+
+    std::size_t time() {
+        return pit::ticks + lapic::ticks;
+    }
 }
 
-ALIAS_FN(uacpi_kernel_get_ticks)
-[[gnu::noinline]] std::size_t timer::time() {
-    return pit::ticks + lapic::ticks;
-}
+[[gnu::alias("sleep")]] void uacpi_kernel_sleep(std::size_t);
+[[gnu::alias("time")]] std::size_t uacpi_kernel_get_ticks();

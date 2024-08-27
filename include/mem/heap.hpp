@@ -17,11 +17,9 @@ namespace heap {
     };
 
     typedef frg::slab_pool<policy, frg::simple_spinlock> pool_t;
-    struct allocator_t : public frg::slab_allocator<policy, frg::simple_spinlock> {
-        allocator_t();
+    struct allocator : public frg::slab_allocator<policy, frg::simple_spinlock> {
+        allocator();
     };
-    
-    void init();
-    allocator_t& allocator();
 
+    void init();
 }

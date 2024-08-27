@@ -39,12 +39,13 @@ void scheduler::init() {
 
 void scheduler::start() {
     logger::info("SCHED", "Starting scheduler");
+    for (std::size_t i = 0; i < smp::cpu_count; i++)
+        smp::cpus[i].sched_off = i * THREAD_QUANTUM / smp::cpu_count;
+
     if (lapic::initialized)
         idt::handlers[timer::irq].push_back(schedule);
     else
         idt::handlers[timer::irq].push_back(schedule);
-
-    // std::size_t interval = THREAD_QUANTUM / smp::cpu_count;
 }
 
 process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :
@@ -131,11 +132,12 @@ cpu::status *schedule(cpu::status *status) {
     if (!(
         (_cur_proc && (_cur_proc->status == Delete || _cur_proc->status == Sleep)) ||
         (_cur_proc == idle_proc && !ready_proc.empty()) ||
-        !(timer::time() % THREAD_QUANTUM)
+        !((timer::time() + smp::this_cpu()->sched_off) % THREAD_QUANTUM)
     )) {
         ready_lock.unlock();
         return status;
     }
+    logger::info("SCHED", "test");
 
     {
         process *old_proc = _cur_proc;

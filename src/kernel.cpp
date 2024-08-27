@@ -69,7 +69,7 @@ extern "C" [[noreturn]] void kinit() {
     tss::set_rsp0();
     rtc::init();
     syscalls::init();
-    smp::init();
+    // smp::init();
     scheduler::init();
     auto kernel_proc = new scheduler::process{"kernel", kmain, true};
     kernel_proc->enqueue();

@@ -15,7 +15,7 @@ extern "C" {
         return 0;
     }
 
-    ALIAS_FN(term_memcpy);
+    [[gnu::alias("memcpy")]] void *term_memcpy(void*, const void*, std::size_t);
     [[gnu::noinline]] void *memcpy (void *__restrict dest, const void *__restrict src, std::size_t len) {
         char *d = static_cast<char*>(dest);
         const char *s = static_cast<const char*>(src);
@@ -24,7 +24,7 @@ extern "C" {
         return dest;
     }
 
-    ALIAS_FN(term_memset);
+    [[gnu::alias("memset")]] void *term_memset(void*, int, std::size_t);
     [[gnu::noinline]] void *memset (void *dest, int val, std::size_t len) {
         char *ptr = static_cast<char*>(dest);
         while (len-- > 0)
