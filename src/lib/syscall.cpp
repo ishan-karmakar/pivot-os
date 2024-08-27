@@ -2,12 +2,12 @@
 #include <cpu/idt.hpp>
 #include <lib/interrupts.hpp>
 #include <lib/scheduler.hpp>
-#include <unordered_map>
+#include <frg/hash_map.hpp>
 #include <syscall.h>
 using namespace syscalls;
 
 cpu::status *syscall_handler(cpu::status*);
-std::unordered_map<unsigned int, std::function<cpu::status*(cpu::status*)>> _syscalls;
+frg::hash_map<unsigned int, std::function<cpu::status*(cpu::status*)>, frg::hash<unsigned int>, heap::allocator> _syscalls{{}};
 
 void syscalls::init() {
     _syscalls[SYS_exit] = scheduler::sys_exit;

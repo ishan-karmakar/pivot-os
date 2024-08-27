@@ -9,21 +9,19 @@
 #include <lib/timer.hpp>
 #include <lib/syscall.hpp>
 #include <cpu/smp.hpp>
-#include <set>
 #include <queue>
-#include <mutex>
-#include <shared_mutex>
+#include <frg/rbtree.hpp>
 using namespace scheduler;
 
 constexpr int THREAD_QUANTUM = 100;
 
 struct proc_comparator {
-    constexpr bool operator()(process *l, process *r) const { return l->wakeup < r->wakeup; }
+    constexpr bool operator()(const process& l, const process& r) const { return l.wakeup < r.wakeup; }
 };
 
 std::queue<process*> ready_proc;
 frg::simple_spinlock ready_lock;
-std::set<process*, proc_comparator> wakeup_proc;
+frg::rbtree<process, &process::hook, proc_comparator> wakeup_proc;
 frg::simple_spinlock wakeup_lock;
 process *idle_proc;
 
@@ -83,40 +81,35 @@ void process::enqueue() {
     ready_lock.unlock();
 }
 
-inline process*& cur_proc() {
-    return smp::this_cpu()->cur_proc;
-}
-
-static void save_proc(process*& _cur_proc, cpu::status *status) {
-    if (_cur_proc && _cur_proc != idle_proc) {
-        if (_cur_proc->status == Delete)
-            delete _cur_proc;
-        else if (_cur_proc->status == Ready || _cur_proc->status == Sleep) {
-            memcpy(&_cur_proc->ef, status, sizeof(cpu::status));
-            memcpy(_cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
+static void save_proc(process*& cur_proc, cpu::status *status) {
+    if (cur_proc && cur_proc != idle_proc) {
+        if (cur_proc->status == Delete)
+            delete cur_proc;
+        else if (cur_proc->status == Ready || cur_proc->status == Sleep) {
+            memcpy(&cur_proc->ef, status, sizeof(cpu::status));
+            memcpy(cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
+            if (cur_proc->status == Ready)
+                ready_proc.push(cur_proc);
+            else if (cur_proc->status == Sleep)
+                wakeup_proc.insert(cur_proc);
         }
-
-        if (_cur_proc->status == Ready)
-            ready_proc.push(_cur_proc);
-        else if (_cur_proc->status == Sleep)
-            wakeup_proc.insert(_cur_proc);
     }
 }
 
 cpu::status *schedule(cpu::status *status) {
-    process*& _cur_proc = cur_proc();
-    // Check for any processes waking up
+    process*& cur_proc = smp::this_cpu()->cur_proc;
+    // Change process is any 
     wakeup_lock.lock();
-    if (!wakeup_proc.empty()) {
-        auto proc = *wakeup_proc.begin();
+    if (wakeup_proc.get_root()) {
+        auto proc = wakeup_proc.first();
         if (timer::time() >= proc->wakeup) {
             ready_lock.lock();
-            save_proc(_cur_proc, status);
+            save_proc(cur_proc, status);
             ready_lock.unlock();
             proc->status = Ready;
-            wakeup_proc.erase(proc);
+            wakeup_proc.remove(proc);
             wakeup_lock.unlock();
-            _cur_proc = proc;
+            cur_proc = proc;
             goto load_proc;
         }
     }
@@ -128,36 +121,28 @@ cpu::status *schedule(cpu::status *status) {
     - The current thread is the idle thread and there is a thread ready to run
     - The thread's quantum is up
     */
-   ready_lock.lock();
     if (!(
-        (_cur_proc && (_cur_proc->status == Delete || _cur_proc->status == Sleep)) ||
-        (_cur_proc == idle_proc && !ready_proc.empty()) ||
-        !((timer::time() + smp::this_cpu()->sched_off) % THREAD_QUANTUM)
-    )) {
-        ready_lock.unlock();
-        return status;
-    }
-    logger::info("SCHED", "test");
-
+        (cur_proc && (cur_proc->status == Delete || cur_proc->status == Sleep)) ||
+        (!ready_proc.empty() && (cur_proc == idle_proc || !((timer::time() + smp::this_cpu()->sched_off) % THREAD_QUANTUM)))
+    )) return status;
     {
-        process *old_proc = _cur_proc;
-        save_proc(_cur_proc, status);
+        ready_lock.lock();
+        wakeup_lock.lock();
+        save_proc(cur_proc, status);
+        wakeup_lock.unlock();
         if (!ready_proc.empty()) {
-            _cur_proc = ready_proc.front();
+            cur_proc = ready_proc.front();
             ready_proc.pop();
-            _cur_proc->status = Ready;
+            cur_proc->status = Ready;
         } else
-            _cur_proc = idle_proc;
+            cur_proc = idle_proc;
         ready_lock.unlock();
-
-        if (_cur_proc == old_proc)
-            return status;
     }
 
 load_proc:
-    _cur_proc->mapper.load();
-    memcpy(smp::this_cpu()->fpu_data, _cur_proc->fpu_data, cpu::fpu_size);
-    return &_cur_proc->ef;
+    cur_proc->mapper.load();
+    memcpy(smp::this_cpu()->fpu_data, cur_proc->fpu_data, cpu::fpu_size);
+    return &cur_proc->ef;
 }
 
 void proc_wrapper(void (*fn)()) {
@@ -166,14 +151,14 @@ void proc_wrapper(void (*fn)()) {
 }
 
 cpu::status *scheduler::sys_exit(cpu::status *status) {
-    cur_proc()->status = Delete;
+    smp::this_cpu()->cur_proc->status = Delete;
     return schedule(status);
 }
 
 cpu::status *scheduler::sys_nanosleep(cpu::status *status) {
-    process*& _cur_proc = cur_proc();
-    _cur_proc->status = Sleep;
-    _cur_proc->wakeup = timer::time() + (status->rsi / 1'000'000);
+    process*& cur_proc = smp::this_cpu()->cur_proc;
+    cur_proc->status = Sleep;
+    cur_proc->wakeup = timer::time() + (status->rsi / 1'000'000);
     return schedule(status);
 }
 

@@ -66,6 +66,9 @@ c_args = [
     '-static',
     '-Wno-maybe-uninitialized',
     '-Wno-stringop-overflow',
+    '-mno-mmx',
+    '-mno-sse',
+    '-mno-sse2',
     '-DUACPI_FORMATTED_LOGGING'
 ]
 

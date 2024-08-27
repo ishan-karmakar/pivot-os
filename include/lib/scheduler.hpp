@@ -3,7 +3,7 @@
 #include <mem/vmm.hpp>
 #include <cpu/cpu.hpp>
 #include <mem/heap.hpp>
-#include <frg/manual_box.hpp>
+#include <frg/rbtree.hpp>
 
 namespace scheduler {
     constexpr std::size_t THREAD_STACK = 2 * PAGE_SIZE;
@@ -24,6 +24,7 @@ namespace scheduler {
         void enqueue();
     
         const char *name;
+        frg::rbtree_hook hook;
         std::size_t wakeup;
         scheduler::status status{New};
         mapper::ptmapper mapper;

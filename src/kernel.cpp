@@ -40,6 +40,7 @@ void kmain() {
     logger::info("KMAIN", "Entered kmain");
     proc::sleep(1000);
     logger::info("KMAIN", "After sleep");
+    while(1);
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -69,7 +70,7 @@ extern "C" [[noreturn]] void kinit() {
     tss::set_rsp0();
     rtc::init();
     syscalls::init();
-    // smp::init();
+    smp::init();
     scheduler::init();
     auto kernel_proc = new scheduler::process{"kernel", kmain, true};
     kernel_proc->enqueue();

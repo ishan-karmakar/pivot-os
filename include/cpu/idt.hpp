@@ -6,7 +6,7 @@
 #include <lib/logger.hpp>
 #include <vector>
 #include <mem/heap.hpp>
-#include <unordered_map>
+#include <frg/hash_map.hpp>
 
 namespace idt {
     struct [[gnu::packed]] desc {
@@ -40,12 +40,13 @@ namespace idt {
         }
     };
 
-    typedef std::unordered_map<unsigned int, handler_t> handlers_t;
+    typedef frg::hash_map<unsigned int, handler_t, frg::hash<unsigned int>, heap::allocator> handlers_t;
 
     void init();
     void load();
-    void set(const uint8_t&, idt::desc);
+    void set(const uint8_t&, desc&&);
     void set(const uint8_t&, const uint8_t&, void*);
+    desc& get(const uint8_t&);
     uint8_t set_handler(func_t&&);
 
     extern handlers_t handlers;

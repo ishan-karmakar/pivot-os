@@ -3,6 +3,8 @@
 #include <cpu/tss.hpp>
 #include <cpu/smp.hpp>
 #include <lib/logger.hpp>
+#include <mem/pmm.hpp>
+#include <cpu/idt.hpp>
 using namespace tss;
 
 void tss::init() {
