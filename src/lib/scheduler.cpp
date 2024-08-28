@@ -91,15 +91,17 @@ static void save_proc(process*& cur_proc, cpu::status *status) {
             memcpy(cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
             if (cur_proc->status == Ready)
                 ready_proc.push(cur_proc);
-            else if (cur_proc->status == Sleep)
+            else if (cur_proc->status == Sleep) {
+                logger::info("SCHED", "Process %s is sleeping, %p, %p", cur_proc->name, cur_proc->ef.rsp, cur_proc->mapper.translate(cur_proc->ef.rsp));
                 wakeup_proc.insert(cur_proc);
+            }
         }
     }
 }
 
 cpu::status *schedule(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
-    // Change process is any 
+    // Change process if waking up - This can cause processes to starve if abused but too bad :(
     wakeup_lock.lock();
     auto proc = wakeup_proc.first();
     if (proc && timer::time() >= proc->wakeup) {
@@ -109,7 +111,7 @@ cpu::status *schedule(cpu::status *status) {
         proc->status = Ready;
         wakeup_proc.remove(proc);
         wakeup_lock.unlock();
-        logger::info("SCHED", "time to restore, %p, %p", proc->ef.rsp, *reinterpret_cast<uintptr_t*>(proc->ef.rsp));
+        logger::info("SCHED", "Process %s finished sleeping, %p", proc->name, proc->ef.rsp);
         cur_proc = proc;
         goto load_proc;
     }
@@ -134,6 +136,7 @@ cpu::status *schedule(cpu::status *status) {
             cur_proc = ready_proc.front();
             ready_proc.pop();
             cur_proc->status = Ready;
+            logger::info("SCHED", "Starting process %s", cur_proc->name);
         } else
             cur_proc = idle_proc;
         ready_lock.unlock();

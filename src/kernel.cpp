@@ -72,7 +72,7 @@ extern "C" [[noreturn]] void kinit() {
     acpi::init();
     tss::init();
     tss::set_rsp0();
-    rtc::init();
+    // rtc::init(); // TODO: Move to a module
     syscalls::init();
     // smp::init();
     scheduler::init();
@@ -80,8 +80,7 @@ extern "C" [[noreturn]] void kinit() {
     auto other_proc = new scheduler::process{"other", other, true};
     kernel_proc->enqueue();
     other_proc->enqueue();
-    logger::info("SCHED", "%p, %p", kernel_proc->ef.rsp, other_proc->ef.rsp);
-    // scheduler::start();
+    scheduler::start();
 
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);

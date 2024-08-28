@@ -29,38 +29,29 @@ void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size
 }
 
 void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, std::size_t flags) {
-    logger::debug("MAPPER", "%p -> %p", virt, phys);
     if (phys == 0 || virt == 0)
         return;
 
     flags |= 1;
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
 
-    if (!(pml4[p4_idx] & 1)) {
-        logger::debug("MAPPER", "Allocating new PML4 table");
+    if (!(pml4[p4_idx] & 1))
         pml4[p4_idx] = alloc_table() | flags;
-    }
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
-    if (!(p3_tbl[p3_idx] & 1)) {
-        logger::debug("MAPPER", "Allocating new P3 table");
+    if (!(p3_tbl[p3_idx] & 1))
         p3_tbl[p3_idx] = alloc_table() | flags;
-    }
 
     page_table p2_tbl = reinterpret_cast<page_table>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
 
-    // Will keep hugepage mapping if the target virtual address still points to right phys address
     uintptr_t hp_phys = round_down(phys, HUGEPAGE_SIZE);
-    if ((p2_tbl[p2_idx] & SIGN_MASK) == hp_phys) {
-        logger::debug("MAPPER", "Hugepage mapping is still valid");
+    if (p2_tbl[p2_idx] & 0x80 && (p2_tbl[p2_idx] & SIGN_MASK) == hp_phys && (phys % HUGEPAGE_SIZE) == (virt % HUGEPAGE_SIZE))
         return;
-    }
-
-    if (!(p2_tbl[p2_idx] & 1)) {
-        p2_tbl[p2_idx] = hp_phys | flags | 0x80;
-        return;
-    } else if (p2_tbl[p2_idx] & 0x80) {
-        logger::debug("MAPPER", "Converting hugepage mapping to P1 table");
+    else if (!(p2_tbl[p2_idx] & 1)) {
+        if ((phys % HUGEPAGE_SIZE) == (virt % HUGEPAGE_SIZE)) {
+            p2_tbl[p2_idx] = hp_phys | flags | 0x80;
+            return;
+        }
         uintptr_t original = p2_tbl[p2_idx];
         original &= ~0x80UL;
         uintptr_t addr = alloc_table();
@@ -84,27 +75,21 @@ uintptr_t ptmapper::alloc_table() {
 
 uintptr_t ptmapper::translate(const uintptr_t& virt) const {
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
-    if (!(pml4[p4_idx] & 1)) {
-        logger::debug("MAPPER", "No PML4 entry");
+    if (!(pml4[p4_idx] & 1))
         return 0;
-    }
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
-    if (!(p3_tbl[p3_idx] & 1)) {
-        logger::debug("MAPPER", "No P3 table entry");
+    if (!(p3_tbl[p3_idx] & 1))
         return 0;
-    }
 
     page_table p2_tbl = reinterpret_cast<page_table>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
-    if (!(p2_tbl[p2_idx] & 1)) {
-        logger::debug("MAPPER", "No P2 table entry");
+    if (!(p2_tbl[p2_idx] & 1))
         return 0;
-    } else if (p2_tbl[p2_idx] & 0x80)
+    else if (p2_tbl[p2_idx] & 0x80)
         return (p2_tbl[p2_idx] & SIGN_MASK) + virt % HUGEPAGE_SIZE;
     
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
     uintptr_t addr = p1_tbl[p1_idx] & SIGN_MASK;
-    logger::verbose("MAPPER", "%p -> %p", virt, p1_tbl[p1_idx]);
     return addr;
 }
 
@@ -114,21 +99,16 @@ void ptmapper::unmap(const uintptr_t& addr, const std::size_t& num_pages) {
 }
 
 void ptmapper::unmap(const uintptr_t& virt) {
-    logger::debug("MAPPER", "%p", virt);
     const auto& [p4_idx, p3_idx, p2_idx, p1_idx] = get_entries(round_down(virt, PAGE_SIZE));
 
-    if (!(pml4[p4_idx] & 1))
-        return logger::debug("MAPPER", "No PML4 entry");
+    if (!(pml4[p4_idx] & 1)) return;
 
     page_table p3_tbl = reinterpret_cast<page_table>(virt_addr(pml4[p4_idx] & SIGN_MASK));
-    if (!(p3_tbl[p3_idx] & 1))
-        logger::debug("MAPPER", "No P3 table entry");
+    if (!(p3_tbl[p3_idx] & 1)) return;
 
     page_table p2_tbl = reinterpret_cast<page_table>(virt_addr(p3_tbl[p3_idx] & SIGN_MASK));
-    if (!(p2_tbl[p2_idx] & 1))
-        return logger::debug("MAPPER", "No P2 table entry");
-    else if (p2_tbl[p2_idx] & 0x80)
-        return logger::debug("MAPPER", "Found hugepage entry");
+    if (!(p2_tbl[p2_idx] & 1)) return;
+    else if (p2_tbl[p2_idx] & 0x80) return;
     
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
     p1_tbl[p1_idx] &= ~1UL;

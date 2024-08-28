@@ -28,10 +28,8 @@ vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptma
 
 void *vmm::vmm::malloc(std::size_t size) {
     void *addr = buddy_malloc(buddy, size);
-    for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++) {
-        auto t = pmm::frame();
-        mpr.map(t, reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
-    }
+    for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++)
+        mpr.map(pmm::frame(), reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
     return addr;
 }
 

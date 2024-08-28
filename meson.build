@@ -64,7 +64,7 @@ if qemu.found()
     endif
 
     if get_option('qemu_debug')
-        qemu_flags += ['-s', '-S']
+        qemu_flags += '-s'
     endif
 
     run_target(
