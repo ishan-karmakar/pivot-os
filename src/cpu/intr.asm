@@ -1,17 +1,6 @@
 [bits 64]
 [extern int_handler]
 
-%macro isr_base_code 1
-    cli
-    push %1
-    save_context
-    mov rdi, rsp
-    call int_handler ; Now we call the interrupt handler
-    mov rsp, rax
-    restore_context
-    iretq ; Now we can return from the interrupt
-%endmacro
-
 %macro isr 1
 [global isr%1]
 isr%1:
@@ -23,7 +12,14 @@ isr%1:
     push 0
 %endif
 
-    isr_base_code %1
+    cli
+    push %1
+    save_context
+    mov rdi, rsp
+    call int_handler ; Now we call the interrupt handler
+    mov rsp, rax
+    restore_context
+    iretq ; Now we can return from the interrupt
 %endmacro
 
 %macro save_context 0
@@ -63,15 +59,6 @@ isr%1:
     add rsp, 16 ; Remove error code and interrupt number from stack
 %endmacro
 
-; irq periodic_irq, periodic_handler
-; irq apic_oneshot_irq, apic_oneshot_handler
-; irq pit_irq, pit_handler
-; irq rtc_irq, rtc_handler
-; irq syscall_irq, syscall_handler
-; irq keyboard_irq, keyboard_handler
-; irq ipi_irq, ipi_handler
-; irq spurious_irq, spurious_handler
-; irq acpi_irq, acpi_handler
 %assign i 0
 %rep 256
 isr i

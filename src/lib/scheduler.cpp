@@ -13,7 +13,8 @@
 #include <frg/rbtree.hpp>
 using namespace scheduler;
 
-constexpr int THREAD_QUANTUM = 100;
+constexpr int PROC_QUANTUM = 100;
+static std::size_t quantum;
 
 struct proc_comparator {
     constexpr bool operator()(const process& l, const process& r) const { return l.wakeup < r.wakeup; }
@@ -32,14 +33,14 @@ void proc_wrapper(void (*)());
 void idle() { while(1) asm ("pause"); }
 
 void scheduler::init() {
+    quantum = smp::cpu_count * PROC_QUANTUM;
+    for (std::size_t i = 0; i < smp::cpu_count; i++)
+        smp::cpus[i].sched_off = i * PROC_QUANTUM;
     idle_proc = new process{"idle", idle, true, PAGE_SIZE, 0};
 }
 
 void scheduler::start() {
     logger::info("SCHED", "Starting scheduler");
-    for (std::size_t i = 0; i < smp::cpu_count; i++)
-        smp::cpus[i].sched_off = i * THREAD_QUANTUM / smp::cpu_count;
-
     if (lapic::initialized)
         idt::handlers[timer::irq].push_back(schedule);
     else
@@ -68,8 +69,8 @@ process::process(const char *name, void (*addr)(), bool superuser, std::size_t s
         ef.cs = gdt::KCODE;
         ef.ss = gdt::KDATA;
     } else {
-        ef.cs = gdt::UCODE;
-        ef.ss = gdt::UDATA;
+        ef.cs = gdt::UCODE | 3;
+        ef.ss = gdt::UDATA | 3;
     }
 
     mapper::kmapper->load(); // Reset back to kernel's address space
@@ -100,18 +101,17 @@ cpu::status *schedule(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
     // Change process is any 
     wakeup_lock.lock();
-    if (wakeup_proc.get_root()) {
-        auto proc = wakeup_proc.first();
-        if (timer::time() >= proc->wakeup) {
-            ready_lock.lock();
-            save_proc(cur_proc, status);
-            ready_lock.unlock();
-            proc->status = Ready;
-            wakeup_proc.remove(proc);
-            wakeup_lock.unlock();
-            cur_proc = proc;
-            goto load_proc;
-        }
+    auto proc = wakeup_proc.first();
+    if (proc && timer::time() >= proc->wakeup) {
+        ready_lock.lock();
+        save_proc(cur_proc, status);
+        ready_lock.unlock();
+        proc->status = Ready;
+        wakeup_proc.remove(proc);
+        wakeup_lock.unlock();
+        logger::info("SCHED", "time to restore, %p, %p", proc->ef.rsp, *reinterpret_cast<uintptr_t*>(proc->ef.rsp));
+        cur_proc = proc;
+        goto load_proc;
     }
     wakeup_lock.unlock();
     /*
@@ -123,7 +123,7 @@ cpu::status *schedule(cpu::status *status) {
     */
     if (!(
         (cur_proc && (cur_proc->status == Delete || cur_proc->status == Sleep)) ||
-        (!ready_proc.empty() && (cur_proc == idle_proc || !((timer::time() + smp::this_cpu()->sched_off) % THREAD_QUANTUM)))
+        (!ready_proc.empty() && (cur_proc == idle_proc || !((timer::time() + smp::this_cpu()->sched_off) % quantum)))
     )) return status;
     {
         ready_lock.lock();

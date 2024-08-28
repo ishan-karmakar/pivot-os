@@ -40,7 +40,11 @@ void kmain() {
     logger::info("KMAIN", "Entered kmain");
     proc::sleep(1000);
     logger::info("KMAIN", "After sleep");
-    while(1);
+}
+
+void other() {
+    proc::sleep(3000);
+    logger::info("OTHER", "After sleep");
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -70,11 +74,14 @@ extern "C" [[noreturn]] void kinit() {
     tss::set_rsp0();
     rtc::init();
     syscalls::init();
-    smp::init();
+    // smp::init();
     scheduler::init();
     auto kernel_proc = new scheduler::process{"kernel", kmain, true};
+    auto other_proc = new scheduler::process{"other", other, true};
     kernel_proc->enqueue();
-    scheduler::start();
+    other_proc->enqueue();
+    logger::info("SCHED", "%p, %p", kernel_proc->ef.rsp, other_proc->ef.rsp);
+    // scheduler::start();
 
     // drivers::PS2::init();
     // drivers::Keyboard::init(idt);
