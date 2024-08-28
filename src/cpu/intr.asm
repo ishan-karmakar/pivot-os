@@ -15,9 +15,15 @@ isr%1:
     cli
     push %1
     save_context
+    push 0
     mov rdi, rsp
     call int_handler ; Now we call the interrupt handler
     mov rsp, rax
+    pop rax
+    cmp rax, 0
+    je .no_switch
+    mov cr3, rax
+.no_switch:
     restore_context
     iretq ; Now we can return from the interrupt
 %endmacro

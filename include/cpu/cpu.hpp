@@ -11,6 +11,7 @@
 
 namespace cpu {
     struct status {
+        uintptr_t cr3;
         uint64_t r15;
         uint64_t r14;
         uint64_t r13;

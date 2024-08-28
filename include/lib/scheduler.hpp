@@ -27,11 +27,11 @@ namespace scheduler {
         frg::rbtree_hook hook;
         std::size_t wakeup;
         scheduler::status status{New};
+        cpu::status ef;
         mapper::ptmapper mapper;
         vmm::vmm vmm;
         heap::policy policy;
         heap::pool_t pool;
-        cpu::status ef;
         void *fpu_data;
     };
 

@@ -50,7 +50,8 @@ void scheduler::start() {
 process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :
     name{name},
     mapper{({
-        auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(pmm::frame()));
+        ef.cr3 = pmm::frame();
+        auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(ef.cr3));
         for (int i = 256; i < 512; i++) tbl[i] = mapper::kmapper->data()[i];
         mapper::ptmapper m{tbl};
         m.load();
@@ -87,14 +88,17 @@ static void save_proc(process*& cur_proc, cpu::status *status) {
         if (cur_proc->status == Delete)
             delete cur_proc;
         else if (cur_proc->status == Ready || cur_proc->status == Sleep) {
-            memcpy(&cur_proc->ef, status, sizeof(cpu::status));
+            // This is really dirty but it's to skip the cr3 at the beginning of status
+            memcpy(
+                reinterpret_cast<uintptr_t*>(&cur_proc->ef) + 1,
+                reinterpret_cast<uintptr_t*>(status) + 1,
+                sizeof(cpu::status) - sizeof(uintptr_t)
+            );
             memcpy(cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
             if (cur_proc->status == Ready)
                 ready_proc.push(cur_proc);
-            else if (cur_proc->status == Sleep) {
-                logger::info("SCHED", "Process %s is sleeping, %p, %p", cur_proc->name, cur_proc->ef.rsp, cur_proc->mapper.translate(cur_proc->ef.rsp));
+            else if (cur_proc->status == Sleep)
                 wakeup_proc.insert(cur_proc);
-            }
         }
     }
 }
@@ -111,7 +115,6 @@ cpu::status *schedule(cpu::status *status) {
         proc->status = Ready;
         wakeup_proc.remove(proc);
         wakeup_lock.unlock();
-        logger::info("SCHED", "Process %s finished sleeping, %p", proc->name, proc->ef.rsp);
         cur_proc = proc;
         goto load_proc;
     }
@@ -143,7 +146,6 @@ cpu::status *schedule(cpu::status *status) {
     }
 
 load_proc:
-    cur_proc->mapper.load();
     memcpy(smp::this_cpu()->fpu_data, cur_proc->fpu_data, cpu::fpu_size);
     return &cur_proc->ef;
 }

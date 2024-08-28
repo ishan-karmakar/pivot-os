@@ -74,7 +74,7 @@ extern "C" [[noreturn]] void kinit() {
     tss::set_rsp0();
     // rtc::init(); // TODO: Move to a module
     syscalls::init();
-    // smp::init();
+    smp::init();
     scheduler::init();
     auto kernel_proc = new scheduler::process{"kernel", kmain, true};
     auto other_proc = new scheduler::process{"other", other, true};
