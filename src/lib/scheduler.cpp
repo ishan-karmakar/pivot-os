@@ -23,6 +23,8 @@ struct proc_comparator {
 std::queue<process*> ready_proc;
 frg::simple_spinlock ready_lock;
 frg::rbtree<process, &process::hook, proc_comparator> wakeup_proc;
+// Essentially a symlink to the first process in wakeup_proc to speed up processing in schedule
+process *first_wakeup;
 frg::simple_spinlock wakeup_lock;
 process *idle_proc;
 
@@ -107,14 +109,17 @@ static void save_proc(process*& cur_proc, cpu::status *status) {
             memcpy(cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
             if (cur_proc->status == Ready)
                 ready_proc.push(cur_proc);
-            else if (cur_proc->status == Sleep)
+            else if (cur_proc->status == Sleep) {
                 wakeup_proc.insert(cur_proc);
+                first_wakeup = wakeup_proc.first();
+            }
         }
     }
 }
 
 cpu::status *schedule(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
+    while (wakeup_lock.is_locked() && ready_lock.is_locked()) asm ("pause");
     /*
     Change thread if any of the following occurs:
     - A sleeping thread wakes up now
@@ -122,21 +127,21 @@ cpu::status *schedule(cpu::status *status) {
     - The current thread is the idle thread and there is a thread ready to run
     - The thread's quantum is up
     */
-    while (wakeup_lock.is_locked()) asm ("pause");
+    bool proc_avail = !ready_proc.empty() || (first_wakeup && timer::time() >= first_wakeup->wakeup);
     if (!(
         (cur_proc && (cur_proc->status == Delete || cur_proc->status == Sleep)) ||
-        (cur_proc == idle_proc && (wakeup_proc.get_root() && timer::time() >= wakeup_proc.first()->wakeup) && !ready_proc.empty()) ||
-        !((timer::time() + smp::this_cpu()->sched_off) % quantum)
+        (cur_proc == idle_proc && proc_avail) ||
+        (!((timer::time() + smp::this_cpu()->sched_off) % quantum) && proc_avail)
     )) return status;
     {
         ready_lock.lock();
         wakeup_lock.lock();
         save_proc(cur_proc, status);
-        auto wakeup = wakeup_proc.first();
-        if (wakeup && timer::time() >= wakeup->wakeup) {
-            wakeup->status = Ready;
-            wakeup_proc.remove(wakeup);
-            cur_proc = wakeup;
+        if (first_wakeup && timer::time() >= first_wakeup->wakeup) {
+            first_wakeup->status = Ready;
+            wakeup_proc.remove(first_wakeup);
+            cur_proc = first_wakeup;
+            first_wakeup = wakeup_proc.first();
         } else if (!ready_proc.empty()) {
             cur_proc = ready_proc.front();
             ready_proc.pop();
@@ -147,7 +152,6 @@ cpu::status *schedule(cpu::status *status) {
         ready_lock.unlock();
     }
 
-load_proc:
     auto cr3 = phys_addr(reinterpret_cast<uintptr_t>(cur_proc->vmm.mapper().data()));
     cur_proc->ef.cr3 = rdreg(cr3) == cr3 ? 0 : cr3;
     memcpy(smp::this_cpu()->fpu_data, cur_proc->fpu_data, cpu::fpu_size);
