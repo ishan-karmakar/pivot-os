@@ -17,7 +17,6 @@ namespace heap {
     };
 
     typedef frg::slab_pool<policy_t, frg::simple_spinlock> pool_t;
-    extern frg::manual_box<policy_t> policy;
     extern frg::manual_box<pool_t> pool;
 
     struct allocator : public frg::slab_allocator<policy_t, frg::simple_spinlock> {

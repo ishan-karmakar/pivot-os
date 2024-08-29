@@ -37,14 +37,6 @@ static LIMINE_REQUESTS_END_MARKER;
 frg::manual_box<io::serial_port> qemu;
 
 void kmain() {
-    logger::info("KMAIN", "Entered kmain");
-    proc::sleep(1000);
-    logger::info("KMAIN", "After sleep");
-}
-
-void other() {
-    proc::sleep(3000);
-    logger::info("OTHER", "After sleep");
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -76,10 +68,8 @@ extern "C" [[noreturn]] void kinit() {
     syscalls::init();
     smp::init();
     scheduler::init();
-    auto kernel_proc = new scheduler::process{"kernel", kmain, true};
-    auto other_proc = new scheduler::process{"other", other, true};
+    auto kernel_proc = new scheduler::process{"kernel", kmain, true, *vmm::kvmm, *heap::pool};
     kernel_proc->enqueue();
-    other_proc->enqueue();
     scheduler::start();
 
     // drivers::PS2::init();

@@ -20,7 +20,7 @@ namespace scheduler {
 
     struct process {
         process(const char*, void (*)(), bool, std::size_t = PROC_STACK);
-        process(const char*, void (*)(), bool, vmm::vmm&, heap::policy_t&, heap::pool_t&, std::size_t = PROC_STACK);
+        process(const char*, void (*)(), bool, vmm::vmm&, heap::pool_t&, std::size_t = PROC_STACK);
         void enqueue();
     
         const char *name;
@@ -29,7 +29,6 @@ namespace scheduler {
         scheduler::status status{New};
         cpu::status ef;
         vmm::vmm& vmm;
-        heap::policy_t& policy;
         heap::pool_t& pool;
         void *fpu_data;
     };

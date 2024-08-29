@@ -38,7 +38,7 @@ void scheduler::init() {
     quantum = smp::cpu_count * PROC_QUANTUM;
     for (std::size_t i = 0; i < smp::cpu_count; i++)
         smp::cpus[i].sched_off = i * PROC_QUANTUM;
-    idle_proc = new process{"idle", idle, true, *vmm::kvmm, *heap::policy, *heap::pool, PAGE_SIZE};
+    idle_proc = new process{"idle", idle, true, *vmm::kvmm, *heap::pool, PAGE_SIZE};
     logger::info("SCHED", "Initialized scheduler");
 }
 
@@ -62,15 +62,13 @@ process{
         m->load();
         new vmm::vmm{PAGE_SIZE, stack_size + heap::policy_t::slabsize, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, *m};
     }),
-    *new heap::policy_t{vmm},
-    *new heap::pool_t{policy},
+    *new heap::pool_t{*new heap::policy_t{vmm}},
     stack_size
 } {}
 
-process::process(const char *name, void (*addr)(), bool superuser, vmm::vmm& vmm, heap::policy_t& policy, heap::pool_t &pool, std::size_t stack_size) :
+process::process(const char *name, void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
     name{name},
     vmm{vmm},
-    policy{policy},
     pool{pool},
     fpu_data{operator new(cpu::fpu_size)}
 {

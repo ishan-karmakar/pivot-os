@@ -8,6 +8,8 @@
 #include <mem/pmm.hpp>
 #include <mem/mapper.hpp>
 #include <lib/interrupts.hpp>
+#include <uacpi/utilities.h>
+#include <assert.h>
 using namespace ioapic;
 
 constexpr int VERSION_OFF = 1;
@@ -45,12 +47,8 @@ void ioapic::init() {
     addr = virt_addr(static_cast<uintptr_t>(mioapic->address));
     initialized = true;
     intr::transfer_ints();
+    assert(uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC)));
     logger::info("IOAPIC", "Initialized IOAPIC");
-
-    // if (uacpi_unlikely(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC))) {
-    //     logger::error("IOAPIC", "uACPI failed to set interrupt model");
-    //     abort();
-    // }
 }
 
 void ioapic::set(uint8_t idt_ent, uint8_t irq, uint8_t dest, uint32_t flags) {

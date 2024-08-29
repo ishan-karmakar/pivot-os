@@ -33,6 +33,7 @@ void acpi::init() {
     ioapic::init();
     lapic::start(lapic::ms_ticks);
     assert(uacpi_likely_success(uacpi_namespace_load()));
+    assert(uacpi_namespace_initialize());
 }
 
 acpi_sdt_hdr *acpi::get_table(const char *sig) {

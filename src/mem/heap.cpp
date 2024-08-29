@@ -12,7 +12,7 @@
 using namespace frg;
 using namespace heap;
 
-frg::manual_box<policy_t> heap::policy;
+frg::manual_box<policy_t> policy;
 frg::manual_box<pool_t> heap::pool;
 
 uintptr_t policy_t::map(std::size_t size) {

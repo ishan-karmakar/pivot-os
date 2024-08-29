@@ -212,12 +212,10 @@ uacpi_status uacpi_kernel_raw_io_write(uacpi_io_addr addr, uacpi_u8 byte_width, 
 }
 
 uacpi_status uacpi_kernel_io_map(uacpi_io_addr, uacpi_size, uacpi_handle*) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+    return UACPI_STATUS_OK;
 }
 
-void uacpi_kernel_io_unmap(uacpi_handle) {
-    logger::panic("uACPI", "uACPI requested to unmap io address");
-}
+void uacpi_kernel_io_unmap(uacpi_handle) {}
 
 uacpi_status uacpi_kernel_io_read(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64*) {
     return UACPI_STATUS_UNIMPLEMENTED;
