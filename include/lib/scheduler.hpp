@@ -6,8 +6,7 @@
 #include <frg/rbtree.hpp>
 
 namespace scheduler {
-    constexpr std::size_t THREAD_STACK = 2 * PAGE_SIZE;
-    constexpr std::size_t THREAD_HEAP = heap::policy::sb_size;
+    constexpr std::size_t PROC_STACK = 2 * PAGE_SIZE;
 
     enum status {
         New,
@@ -20,7 +19,8 @@ namespace scheduler {
     void start();
 
     struct process {
-        process(const char*, void (*)(), bool, std::size_t = THREAD_STACK, std::size_t = THREAD_HEAP);
+        process(const char*, void (*)(), bool, std::size_t = PROC_STACK);
+        process(const char*, void (*)(), bool, vmm::vmm&, heap::policy_t&, heap::pool_t&, std::size_t = PROC_STACK);
         void enqueue();
     
         const char *name;
@@ -28,10 +28,9 @@ namespace scheduler {
         std::size_t wakeup;
         scheduler::status status{New};
         cpu::status ef;
-        mapper::ptmapper mapper;
-        vmm::vmm vmm;
-        heap::policy policy;
-        heap::pool_t pool;
+        vmm::vmm& vmm;
+        heap::policy_t& policy;
+        heap::pool_t& pool;
         void *fpu_data;
     };
 

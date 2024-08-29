@@ -13,11 +13,13 @@ volatile limine_smp_request smp_request = { LIMINE_SMP_REQUEST, 2, nullptr, 1 };
 
 std::size_t smp::cpu_count;
 cpu_t *smp::cpus;
+std::size_t smp::bsp_id;
 extern "C" void ainit(limine_smp_info*);
 
 void smp::early_init() {
     cpu_count = smp_request.response->cpu_count;
     cpus = new cpu_t[cpu_count]();
+    bsp_id = smp_request.response->bsp_lapic_id;
     std::size_t bsp = smp_request.response->bsp_lapic_id;
     logger::info("SMP", "Number of CPUs: %lu", cpu_count);
     for (std::size_t i = 0; i < cpu_count; i++) {

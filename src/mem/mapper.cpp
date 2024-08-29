@@ -89,8 +89,7 @@ uintptr_t ptmapper::translate(const uintptr_t& virt) const {
         return (p2_tbl[p2_idx] & SIGN_MASK) + virt % HUGEPAGE_SIZE;
     
     page_table p1_tbl = reinterpret_cast<page_table>(virt_addr(p2_tbl[p2_idx] & SIGN_MASK));
-    uintptr_t addr = p1_tbl[p1_idx] & SIGN_MASK;
-    return addr;
+    return p1_tbl[p1_idx] & SIGN_MASK;
 }
 
 void ptmapper::unmap(const uintptr_t& addr, const std::size_t& num_pages) {

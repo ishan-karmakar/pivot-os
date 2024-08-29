@@ -26,6 +26,23 @@ vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptma
     buddy = buddy_init_alignment(at, at + metadata_pages * PAGE_SIZE, size, PAGE_SIZE);
 }
 
+vmm::vmm::~vmm() {
+    auto buddy_callback = [](void *self_void, void *addr, std::size_t size, std::size_t a) -> void* {
+        if (a) {
+            vmm *self = reinterpret_cast<vmm*>(self_void);
+            for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++)
+                pmm::clear(self->mpr.translate(reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE));
+        }
+        return nullptr;
+    };
+    buddy_walk(buddy, buddy_callback, this);
+    uintptr_t start = reinterpret_cast<uintptr_t>(buddy);
+    uintptr_t metadata_pages = div_ceil(buddy_sizeof_alignment(buddy->memory_size, PAGE_SIZE), PAGE_SIZE);
+    for (std::size_t i = 0; i < metadata_pages; i++)
+        pmm::clear(mpr.translate(start + i * PAGE_SIZE));
+    mpr.unmap(start, div_ceil(buddy->memory_size, PAGE_SIZE));
+}
+
 void *vmm::vmm::malloc(std::size_t size) {
     void *addr = buddy_malloc(buddy, size);
     for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++)

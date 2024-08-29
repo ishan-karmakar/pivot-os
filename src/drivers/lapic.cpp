@@ -58,9 +58,8 @@ void lapic::bsp_init() {
     } else return;
 
     spurious_vec = idt::set_handler([](cpu::status *status) { return status; });
-    std::size_t bsp_id = smp::this_cpu()->id;
-    timer::irq = intr::IRQ(idt::set_handler([bsp_id](cpu::status *status) {
-        if (smp::this_cpu()->id == bsp_id)
+    timer::irq = intr::IRQ(idt::set_handler([](cpu::status *status) {
+        if (smp::this_cpu()->id == smp::bsp_id)
             lapic::ticks++;
         intr::eoi(0);
         return status;

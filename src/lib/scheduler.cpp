@@ -30,13 +30,14 @@ cpu::status *schedule(cpu::status*);
 void proc_wrapper(void (*)());
 
 [[gnu::naked]]
-void idle() { while(1) asm ("pause"); }
+void idle() { while(1) asm ("hlt"); }
 
 void scheduler::init() {
     quantum = smp::cpu_count * PROC_QUANTUM;
     for (std::size_t i = 0; i < smp::cpu_count; i++)
         smp::cpus[i].sched_off = i * PROC_QUANTUM;
-    idle_proc = new process{"idle", idle, true, PAGE_SIZE, 0};
+    idle_proc = new process{"idle", idle, true, *vmm::kvmm, *heap::policy, *heap::pool, PAGE_SIZE};
+    logger::info("SCHED", "Initialized scheduler");
 }
 
 void scheduler::start() {
@@ -47,19 +48,28 @@ void scheduler::start() {
         idt::handlers[timer::irq].push_back(schedule);
 }
 
-process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size, std::size_t heap_size) :
-    name{name},
-    mapper{({
-        ef.cr3 = pmm::frame();
-        auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(ef.cr3));
+process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size) :
+process{
+    name,
+    addr,
+    superuser,
+    *({
+        auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(pmm::frame()));
         for (int i = 256; i < 512; i++) tbl[i] = mapper::kmapper->data()[i];
-        mapper::ptmapper m{tbl};
-        m.load();
-        std::move(m);
-    })},
-    vmm{PAGE_SIZE, stack_size + heap_size, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, mapper},
-    policy{vmm},
-    pool{policy},
+        auto m = new mapper::ptmapper{tbl};
+        m->load();
+        new vmm::vmm{PAGE_SIZE, stack_size + heap::policy_t::slabsize, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, *m};
+    }),
+    *new heap::policy_t{vmm},
+    *new heap::pool_t{policy},
+    stack_size
+} {}
+
+process::process(const char *name, void (*addr)(), bool superuser, vmm::vmm& vmm, heap::policy_t& policy, heap::pool_t &pool, std::size_t stack_size) :
+    name{name},
+    vmm{vmm},
+    policy{policy},
+    pool{pool},
     fpu_data{operator new(cpu::fpu_size)}
 {
     ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
@@ -74,7 +84,7 @@ process::process(const char *name, void (*addr)(), bool superuser, std::size_t s
         ef.ss = gdt::UDATA | 3;
     }
 
-    mapper::kmapper->load(); // Reset back to kernel's address space
+    mapper::kmapper->load();
 }
 
 void process::enqueue() {
@@ -105,20 +115,6 @@ static void save_proc(process*& cur_proc, cpu::status *status) {
 
 cpu::status *schedule(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
-    // Change process if waking up - This can cause processes to starve if abused but too bad :(
-    wakeup_lock.lock();
-    auto proc = wakeup_proc.first();
-    if (proc && timer::time() >= proc->wakeup) {
-        ready_lock.lock();
-        save_proc(cur_proc, status);
-        ready_lock.unlock();
-        proc->status = Ready;
-        wakeup_proc.remove(proc);
-        wakeup_lock.unlock();
-        cur_proc = proc;
-        goto load_proc;
-    }
-    wakeup_lock.unlock();
     /*
     Change thread if any of the following occurs:
     - A sleeping thread wakes up now
@@ -126,26 +122,34 @@ cpu::status *schedule(cpu::status *status) {
     - The current thread is the idle thread and there is a thread ready to run
     - The thread's quantum is up
     */
+    while (wakeup_lock.is_locked()) asm ("pause");
     if (!(
         (cur_proc && (cur_proc->status == Delete || cur_proc->status == Sleep)) ||
-        (!ready_proc.empty() && (cur_proc == idle_proc || !((timer::time() + smp::this_cpu()->sched_off) % quantum)))
+        (cur_proc == idle_proc && (wakeup_proc.get_root() && timer::time() >= wakeup_proc.first()->wakeup) && !ready_proc.empty()) ||
+        !((timer::time() + smp::this_cpu()->sched_off) % quantum)
     )) return status;
     {
         ready_lock.lock();
         wakeup_lock.lock();
         save_proc(cur_proc, status);
-        wakeup_lock.unlock();
-        if (!ready_proc.empty()) {
+        auto wakeup = wakeup_proc.first();
+        if (wakeup && timer::time() >= wakeup->wakeup) {
+            wakeup->status = Ready;
+            wakeup_proc.remove(wakeup);
+            cur_proc = wakeup;
+        } else if (!ready_proc.empty()) {
             cur_proc = ready_proc.front();
             ready_proc.pop();
             cur_proc->status = Ready;
-            logger::info("SCHED", "Starting process %s", cur_proc->name);
         } else
             cur_proc = idle_proc;
+        wakeup_lock.unlock();
         ready_lock.unlock();
     }
 
 load_proc:
+    auto cr3 = phys_addr(reinterpret_cast<uintptr_t>(cur_proc->vmm.mapper().data()));
+    cur_proc->ef.cr3 = rdreg(cr3) == cr3 ? 0 : cr3;
     memcpy(smp::this_cpu()->fpu_data, cur_proc->fpu_data, cpu::fpu_size);
     return &cur_proc->ef;
 }

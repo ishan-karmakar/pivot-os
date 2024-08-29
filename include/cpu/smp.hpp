@@ -17,6 +17,7 @@ namespace smp {
 
     extern std::size_t cpu_count;
     extern cpu_t *cpus;
+    extern std::size_t bsp_id;
 
     void early_init();
     void init();

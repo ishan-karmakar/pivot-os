@@ -14,9 +14,10 @@ namespace vmm {
     class vmm {
     public:
         vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper&);
-        // TODO: Free all memory in destructor
+        ~vmm();
         void *malloc(std::size_t);
         void free(void*);
+        mapper::ptmapper& mapper() const { return mpr; }
 
     private:
         std::size_t flags;
