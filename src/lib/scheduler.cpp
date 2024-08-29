@@ -27,6 +27,7 @@ frg::rbtree<process, &process::hook, proc_comparator> wakeup_proc;
 process *first_wakeup;
 frg::simple_spinlock wakeup_lock;
 process *idle_proc;
+std::size_t pid;
 
 cpu::status *schedule(cpu::status*);
 void proc_wrapper(void (*)());
@@ -38,7 +39,7 @@ void scheduler::init() {
     quantum = smp::cpu_count * PROC_QUANTUM;
     for (std::size_t i = 0; i < smp::cpu_count; i++)
         smp::cpus[i].sched_off = i * PROC_QUANTUM;
-    idle_proc = new process{"idle", idle, true, *vmm::kvmm, *heap::pool, PAGE_SIZE};
+    idle_proc = new process{idle, true, *vmm::kvmm, *heap::pool, PAGE_SIZE};
     logger::info("SCHED", "Initialized scheduler");
 }
 
@@ -48,49 +49,6 @@ void scheduler::start() {
         idt::handlers[timer::irq].push_back(schedule);
     else
         idt::handlers[timer::irq].push_back(schedule);
-}
-
-process::process(const char *name, void (*addr)(), bool superuser, std::size_t stack_size) :
-process{
-    name,
-    addr,
-    superuser,
-    *({
-        auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(pmm::frame()));
-        for (int i = 256; i < 512; i++) tbl[i] = mapper::kmapper->data()[i];
-        auto m = new mapper::ptmapper{tbl};
-        m->load();
-        new vmm::vmm{PAGE_SIZE, stack_size + heap::policy_t::slabsize, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, *m};
-    }),
-    *new heap::pool_t{*new heap::policy_t{vmm}},
-    stack_size
-} {}
-
-process::process(const char *name, void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
-    name{name},
-    vmm{vmm},
-    pool{pool},
-    fpu_data{operator new(cpu::fpu_size)}
-{
-    ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
-    ef.rip = reinterpret_cast<uintptr_t>(proc_wrapper);
-    ef.rdi = reinterpret_cast<uintptr_t>(addr);
-    ef.rflags = 0x202;
-    if (superuser) {
-        ef.cs = gdt::KCODE;
-        ef.ss = gdt::KDATA;
-    } else {
-        ef.cs = gdt::UCODE | 3;
-        ef.ss = gdt::UDATA | 3;
-    }
-
-    mapper::kmapper->load();
-}
-
-void process::enqueue() {
-    ready_lock.lock();
-    ready_proc.push(this);
-    ready_lock.unlock();
 }
 
 static void save_proc(process*& cur_proc, cpu::status *status) {
@@ -104,7 +62,7 @@ static void save_proc(process*& cur_proc, cpu::status *status) {
                 reinterpret_cast<uintptr_t*>(status) + 1,
                 sizeof(cpu::status) - sizeof(uintptr_t)
             );
-            memcpy(cur_proc->fpu_data, smp::this_cpu()->fpu_data, cpu::fpu_size);
+            if (cpu::fpu_save) cpu::fpu_save(cur_proc->fpu_data);
             if (cur_proc->status == Ready)
                 ready_proc.push(cur_proc);
             else if (cur_proc->status == Sleep) {
@@ -152,27 +110,6 @@ cpu::status *schedule(cpu::status *status) {
 
     auto cr3 = phys_addr(reinterpret_cast<uintptr_t>(cur_proc->vmm.mapper().data()));
     cur_proc->ef.cr3 = rdreg(cr3) == cr3 ? 0 : cr3;
-    memcpy(smp::this_cpu()->fpu_data, cur_proc->fpu_data, cpu::fpu_size);
+    if (cpu::fpu_restore) cpu::fpu_restore(cur_proc->fpu_data);
     return &cur_proc->ef;
-}
-
-void proc_wrapper(void (*fn)()) {
-    fn();
-    syscall(SYS_exit);
-}
-
-cpu::status *scheduler::sys_exit(cpu::status *status) {
-    smp::this_cpu()->cur_proc->status = Delete;
-    return schedule(status);
-}
-
-cpu::status *scheduler::sys_nanosleep(cpu::status *status) {
-    process*& cur_proc = smp::this_cpu()->cur_proc;
-    cur_proc->status = Sleep;
-    cur_proc->wakeup = timer::time() + (status->rsi / 1'000'000);
-    return schedule(status);
-}
-
-void proc::sleep(std::size_t ms) {
-    syscall(SYS_nanosleep, ms * 1'000'000);
 }

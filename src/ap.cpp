@@ -12,7 +12,6 @@ extern "C" [[noreturn]] void ainit(limine_smp_info *info) {
     logger::info("AP", "AP %lu started", info->lapic_id);
     idt::load();
     smp::ap_init(info);
-    smp::this_cpu()->fpu_data = operator new(cpu::fpu_size);
     tss::init();
     lapic::ap_init();
     tss::set_rsp0();

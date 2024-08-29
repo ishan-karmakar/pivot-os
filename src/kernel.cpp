@@ -53,7 +53,6 @@ extern "C" [[noreturn]] void kinit() {
     heap::init();
     cxxabi::call_constructors();
     smp::early_init();
-    smp::this_cpu()->fpu_data = operator new(cpu::fpu_size);
     gdt::init();
     term::init();
     pic::init();
@@ -68,12 +67,9 @@ extern "C" [[noreturn]] void kinit() {
     syscalls::init();
     smp::init();
     scheduler::init();
-    auto kernel_proc = new scheduler::process{"kernel", kmain, true, *vmm::kvmm, *heap::pool};
+    auto kernel_proc = new scheduler::process{kmain, true, *vmm::kvmm, *heap::pool};
     kernel_proc->enqueue();
     scheduler::start();
-
-    // drivers::PS2::init();
-    // drivers::Keyboard::init(idt);
     while(1);
 }
 

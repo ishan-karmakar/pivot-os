@@ -28,6 +28,7 @@ sources = [
     'lib/interrupts.cpp',
     'lib/modules.cpp',
     'lib/syscall.cpp',
+    'lib/proc.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',
     'cpu/idt.cpp',

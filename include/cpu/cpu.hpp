@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #define rdreg(reg) ({ \
     uintptr_t val; \
     asm volatile ("mov %%" # reg ", %0" : "=r" (val) :: "memory"); \
@@ -75,7 +76,7 @@ namespace cpu {
     }
 
     void init();
-    void fpu_save(void*);
-    void fpu_restore(void*);
+    extern std::function<void(void*)> fpu_save;
+    extern std::function<void(void*)> fpu_restore;
     extern uint32_t fpu_size;
 }

@@ -19,11 +19,11 @@ namespace scheduler {
     void start();
 
     struct process {
-        process(const char*, void (*)(), bool, std::size_t = PROC_STACK);
-        process(const char*, void (*)(), bool, vmm::vmm&, heap::pool_t&, std::size_t = PROC_STACK);
+        process(void (*)(), bool, std::size_t = PROC_STACK);
+        process(void (*)(), bool, vmm::vmm&, heap::pool_t&, std::size_t = PROC_STACK);
         void enqueue();
     
-        const char *name;
+        std::size_t pid;
         frg::rbtree_hook hook;
         std::size_t wakeup;
         scheduler::status status{New};
@@ -40,4 +40,5 @@ namespace scheduler {
 namespace proc {
     // Sleep for N ms
     void sleep(std::size_t);
+    std::size_t pid();
 };

@@ -39,9 +39,6 @@ void exception_handler(cpu::status *status) {
 
 extern "C" {
     cpu::status *int_handler(cpu::status *status) {
-        auto _cpu = smp::this_cpu();
-        if (_cpu)
-            cpu::fpu_save(_cpu->fpu_data);
         if (status->int_no < 32)
             exception_handler(status);
 
@@ -50,8 +47,6 @@ extern "C" {
             auto s = handler(status);
             if (s) ret_status = s;
         }
-        if (_cpu)
-            cpu::fpu_restore(_cpu->fpu_data);
         return ret_status ? ret_status : status;
     }
 }
