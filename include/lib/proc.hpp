@@ -24,6 +24,7 @@ namespace proc {
         void enqueue();
     
         std::size_t pid;
+        int64_t cpu;
         bool auto_create; // True if VMM and pool where automatically created
         frg::rbtree_hook hook;
         std::size_t wakeup;

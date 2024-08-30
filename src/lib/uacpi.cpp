@@ -11,6 +11,8 @@
 #include <kernel.hpp>
 #include <mem/heap.hpp>
 #include <lib/interrupts.hpp>
+#include <drivers/pci.hpp>
+#include <assert.h>
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
     idt::handlers[irq].push_back([func, ctx](cpu::status*) {
@@ -57,7 +59,7 @@ uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request *reques
 }
 
 void uacpi_kernel_vlog(uacpi_log_level log_level, const char *str, va_list args) {
-    frg::string string{str, heap::allocator()};
+    frg::string string{str, heap::allocator{}};
     string.resize(string.size() - 1);
     logger::vlog(static_cast<logger::log_level>(log_level), "UACPI", string.data(), args);
 }
@@ -225,12 +227,36 @@ uacpi_status uacpi_kernel_io_write(uacpi_handle handle, uacpi_size off, uacpi_u8
     return uacpi_kernel_raw_io_write(reinterpret_cast<uacpi_io_addr>(handle) + off, byte_width, val);
 }
 
-uacpi_status uacpi_kernel_pci_read(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64*) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+uacpi_status uacpi_kernel_pci_read(uacpi_pci_address *addr, uacpi_size off, uacpi_u8 bw, uacpi_u64 *val) {
+    assert(addr->segment == 0);
+    switch (bw) {
+    case 1:
+        *val = pci::read<uint8_t>(addr->bus, addr->device, addr->function, off);
+        break;
+    case 2:
+        *val = pci::read<uint16_t>(addr->bus, addr->device, addr->function, off);
+        break;
+    case 4:
+        *val = pci::read<uint32_t>(addr->bus, addr->device, addr->function, off);
+        break;
+    }
+    return UACPI_STATUS_OK;
 }
 
-uacpi_status uacpi_kernel_pci_write(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+uacpi_status uacpi_kernel_pci_write(uacpi_pci_address *addr, uacpi_size off, uacpi_u8 bw, uacpi_u64 val) {
+    assert(addr->segment == 0);
+    switch (bw) {
+    case 1:
+        pci::write<uint8_t>(addr->bus, addr->device, addr->function, off, val);
+        break;
+    case 2:
+        pci::write<uint16_t>(addr->bus, addr->device, addr->function, off, val);
+        break;
+    case 4:
+        pci::write<uint32_t>(addr->bus, addr->device, addr->function, off, val);
+        break;
+    }
+    return UACPI_STATUS_OK;
 }
 
 uacpi_status uacpi_kernel_schedule_work(uacpi_work_type, uacpi_work_handler, uacpi_handle) {

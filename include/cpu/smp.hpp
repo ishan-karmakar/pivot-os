@@ -12,6 +12,7 @@ namespace smp {
         proc::process *cur_proc;
         std::size_t lapic_ticks;
         std::size_t sched_off;
+        bool cpu_proc;
     };
 
     extern std::size_t cpu_count;

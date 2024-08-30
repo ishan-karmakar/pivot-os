@@ -3,7 +3,7 @@
 #include <drivers/ioapic.hpp>
 #include <drivers/lapic.hpp>
 #include <mem/heap.hpp>
-#include <lib/hash_map.hpp>
+#include <frg/hash_map.hpp>
 using namespace intr;
 
 struct int_config {
@@ -13,7 +13,7 @@ struct int_config {
     bool masked;
 };
 
-lib::hash_map<unsigned int, int_config> ints;
+frg::hash_map<unsigned int, int_config, frg::hash<unsigned int>, heap::allocator> ints{{}};
 
 void intr::set(uint8_t vector, uint8_t irq, uint8_t dest, uint32_t flags) {
     ints[irq] = { vector, dest, flags, true };

@@ -32,6 +32,7 @@ process{
 
 process::process(void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
     pid{++::pid},
+    cpu{-1},
     vmm{vmm},
     pool{pool},
     fpu_data{operator new(cpu::fpu_size)}
@@ -61,7 +62,7 @@ process::~process() {
 
 void process::enqueue() {
     ready_lock.lock();
-    ready_proc.push(this);
+    ready_proc[smp::cpus[cpu].id].push(this);
     ready_lock.unlock();
 }
 

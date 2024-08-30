@@ -22,13 +22,13 @@ void pit::init() {
     intr::set(intr::VEC(IRQ), IRQ);
     intr::mask(IRQ);
 
-    io::outb(CMD_REG, 0x34);
+    io::out<uint8_t>(CMD_REG, 0x34);
     logger::info("PIT", "Initialized PIT");
 }
 
 void pit::start(uint16_t d) {
-    io::outb(DATA_REG, d);
-    io::outb(DATA_REG, d >> 8);
+    io::out<uint8_t>(DATA_REG, d);
+    io::out<uint8_t>(DATA_REG, d >> 8);
 
     intr::unmask(IRQ);
 }

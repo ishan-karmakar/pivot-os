@@ -22,6 +22,8 @@
 #include <lib/scheduler.hpp>
 #include <frg/manual_box.hpp>
 #include <uacpi/uacpi.h>
+#include <uacpi/utilities.h>
+#include <uacpi/notify.h>
 #include <limine.h>
 #include <assert.h>
 #include <cstdlib>
@@ -40,7 +42,16 @@ static LIMINE_REQUESTS_END_MARKER;
 frg::manual_box<io::serial_port> qemu;
 
 void kmain() {
+    logger::info("SMP", "%lu", smp::this_cpu()->id);
     // assert(uacpi_likely_success(uacpi_namespace_initialize()));
+    // assert(uacpi_likely_success(uacpi_find_devices("PNP0C0C", [](void*, uacpi_namespace_node *node) -> uacpi_ns_iteration_decision {
+    //     assert(uacpi_likely_success(uacpi_install_notify_handler(node, [](void*, uacpi_namespace_node*, uint64_t v) -> uacpi_status {
+    //         if (v == 0x80)
+    //             acpi::shutdown();
+    //         return UACPI_STATUS_OK;
+    //     }, nullptr)));
+    //     return UACPI_NS_ITERATION_DECISION_CONTINUE;
+    // }, nullptr)));
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -65,16 +76,16 @@ extern "C" [[noreturn]] void kinit() {
     pit::start(pit::MS_TICKS);
     lapic::bsp_init();
     acpi::init();
-    pci::init();
-    // tss::init();
-    // // rtc::init(); // TODO: Move to a module
-    // syscalls::init();
-    // smp::init();
-    // scheduler::init();
-    // tss::set_rsp0();
-    // auto kernel_proc = new proc::process{kmain, true};
-    // kernel_proc->enqueue();
-    // scheduler::start();
+    tss::init();
+    // rtc::init(); // TODO: Move to a module
+    syscalls::init();
+    smp::init();
+    scheduler::init();
+    tss::set_rsp0();
+    auto kernel_proc = new proc::process{kmain, true, *vmm::kvmm, *heap::pool};
+    kernel_proc->cpu = 1;
+    kernel_proc->enqueue();
+    scheduler::start();
     while(1);
 }
 

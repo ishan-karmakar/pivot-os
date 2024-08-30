@@ -38,15 +38,11 @@ void acpi::init() {
     assert(uacpi_likely_success(uacpi_namespace_load()));
     assert(uacpi_likely_success(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC)));
     assert(uacpi_likely_success(uacpi_finalize_gpe_initialization()));
-    assert(uacpi_likely_success(uacpi_install_fixed_event_handler(
-        UACPI_FIXED_EVENT_POWER_BUTTON,
-        [](uacpi_handle) -> uacpi_interrupt_ret { shutdown(); },
-        nullptr
-    )));
 }
 
 void acpi::shutdown() {
     logger::info("UACPI", "Shutting down system");
+    asm volatile ("sti");
     assert(uacpi_likely_success(uacpi_prepare_for_sleep_state(UACPI_SLEEP_STATE_MAX)));
     asm volatile ("cli");
     assert(uacpi_likely_success(uacpi_enter_sleep_state(UACPI_SLEEP_STATE_MAX)));

@@ -52,13 +52,13 @@ rtc::time_t rtc::now() {
 }
 
 uint8_t read_reg(uint8_t port) {
-    io::outb(0x70, port | 0x80);
-    return io::inb(0x71);
+    io::out<uint8_t>(0x70, port | 0x80);
+    return io::in<uint8_t>(0x71);
 }
 
 void write_reg(uint8_t port, uint8_t val) {
-    io::outb(0x70, port | 0x80);
-    io::outb(0x71, val);
+    io::out<uint8_t>(0x70, port | 0x80);
+    io::out<uint8_t>(0x71, val);
 }
 
 uint8_t bcd2bin(uint8_t num) {
