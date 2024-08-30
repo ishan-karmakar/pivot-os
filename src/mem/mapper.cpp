@@ -23,6 +23,11 @@ void mapper::init() {
 
 ptmapper::ptmapper(page_table pml4) : pml4{pml4} {}
 
+ptmapper::~ptmapper() {
+    // TODO: Free all page tables in here
+    pmm::clear(reinterpret_cast<uintptr_t>(pml4));
+}
+
 void ptmapper::map(const uintptr_t& phys, const uintptr_t& virt, const std::size_t& flags, const std::size_t& pages) {
     for (std::size_t i = 0; i < pages; i++)
         map(phys + i * PAGE_SIZE, virt + i * PAGE_SIZE, flags);

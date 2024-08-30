@@ -15,12 +15,15 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
+#include <drivers/pci.hpp>
 #include <lib/syscall.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <lib/scheduler.hpp>
 #include <frg/manual_box.hpp>
+#include <uacpi/uacpi.h>
 #include <limine.h>
+#include <assert.h>
 #include <cstdlib>
 
 extern void io_char_printer(char);
@@ -37,6 +40,7 @@ static LIMINE_REQUESTS_END_MARKER;
 frg::manual_box<io::serial_port> qemu;
 
 void kmain() {
+    // assert(uacpi_likely_success(uacpi_namespace_initialize()));
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -61,15 +65,16 @@ extern "C" [[noreturn]] void kinit() {
     pit::start(pit::MS_TICKS);
     lapic::bsp_init();
     acpi::init();
-    tss::init();
-    tss::set_rsp0();
-    // rtc::init(); // TODO: Move to a module
-    syscalls::init();
-    smp::init();
-    scheduler::init();
-    auto kernel_proc = new scheduler::process{kmain, true, *vmm::kvmm, *heap::pool};
-    kernel_proc->enqueue();
-    scheduler::start();
+    pci::init();
+    // tss::init();
+    // // rtc::init(); // TODO: Move to a module
+    // syscalls::init();
+    // smp::init();
+    // scheduler::init();
+    // tss::set_rsp0();
+    // auto kernel_proc = new proc::process{kmain, true};
+    // kernel_proc->enqueue();
+    // scheduler::start();
     while(1);
 }
 

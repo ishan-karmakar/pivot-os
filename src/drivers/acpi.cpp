@@ -2,6 +2,9 @@
 #include <lib/logger.hpp>
 #include <uacpi/kernel_api.h>
 #include <uacpi/uacpi.h>
+#include <uacpi/event.h>
+#include <uacpi/sleep.h>
+#include <uacpi/utilities.h>
 #include <cpu/idt.hpp>
 #include <drivers/acpi.hpp>
 #include <drivers/lapic.hpp>
@@ -33,7 +36,21 @@ void acpi::init() {
     ioapic::init();
     lapic::start(lapic::ms_ticks);
     assert(uacpi_likely_success(uacpi_namespace_load()));
-    assert(uacpi_namespace_initialize());
+    assert(uacpi_likely_success(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC)));
+    assert(uacpi_likely_success(uacpi_finalize_gpe_initialization()));
+    assert(uacpi_likely_success(uacpi_install_fixed_event_handler(
+        UACPI_FIXED_EVENT_POWER_BUTTON,
+        [](uacpi_handle) -> uacpi_interrupt_ret { shutdown(); },
+        nullptr
+    )));
+}
+
+void acpi::shutdown() {
+    logger::info("UACPI", "Shutting down system");
+    assert(uacpi_likely_success(uacpi_prepare_for_sleep_state(UACPI_SLEEP_STATE_MAX)));
+    asm volatile ("cli");
+    assert(uacpi_likely_success(uacpi_enter_sleep_state(UACPI_SLEEP_STATE_MAX)));
+    __builtin_unreachable();
 }
 
 acpi_sdt_hdr *acpi::get_table(const char *sig) {

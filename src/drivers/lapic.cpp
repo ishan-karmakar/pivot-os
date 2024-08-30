@@ -68,7 +68,6 @@ void lapic::bsp_init() {
     write_reg(SPURIOUS_OFF, (1 << 8) | spurious_vec);
     logger::info("LAPIC", "Initialized %sAPIC", x2mode ? "x2" : "x");
     calibrate();
-    pit::stop();
     initialized = true;
 }
 
@@ -90,6 +89,7 @@ void calibrate() {
 }
 
 void lapic::start(std::size_t rate) {
+    pit::stop();
     write_reg(LVT_OFFSET, intr::VEC(timer::irq) | (Periodic << 17));
     write_reg(INITIAL_COUNT_OFF, rate);
     write_reg(CONFIG_OFF, TDIV);

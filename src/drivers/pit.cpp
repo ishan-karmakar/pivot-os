@@ -35,4 +35,5 @@ void pit::start(uint16_t d) {
 
 void pit::stop() {
     start(0);
+    intr::mask(IRQ);
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cpu/tss.hpp>
-#include <lib/scheduler.hpp>
+#include <lib/proc.hpp>
 struct limine_smp_info;
 
 namespace smp {
@@ -9,7 +9,7 @@ namespace smp {
         std::size_t id;
         volatile bool ready;
         tss::tss tss;
-        scheduler::process *cur_proc;
+        proc::process *cur_proc;
         std::size_t lapic_ticks;
         std::size_t sched_off;
     };

@@ -1,3 +1,18 @@
+#include <lib/proc.hpp>
+#include <lib/scheduler.hpp>
+#include <lib/timer.hpp>
+#include <cpu/gdt.hpp>
+#include <cpu/smp.hpp>
+#include <mem/mapper.hpp>
+#include <mem/pmm.hpp>
+#include <syscall.h>
+#include <unistd.h>
+using namespace proc;
+using namespace scheduler;
+
+void proc_wrapper(void (*)());
+std::size_t pid;
+
 process::process(void (*addr)(), bool superuser, std::size_t stack_size) :
 process{
     addr,
@@ -11,10 +26,12 @@ process{
     }),
     *new heap::pool_t{*new heap::policy_t{vmm}},
     stack_size
-} {}
+} {
+    auto_create = true;
+}
 
 process::process(void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
-    pid{++pid},
+    pid{++::pid},
     vmm{vmm},
     pool{pool},
     fpu_data{operator new(cpu::fpu_size)}
@@ -34,6 +51,14 @@ process::process(void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &po
     mapper::kmapper->load();
 }
 
+process::~process() {
+    if (auto_create) {
+        delete &vmm;
+        delete &pool.policy;
+        delete &pool;
+    }
+}
+
 void process::enqueue() {
     ready_lock.lock();
     ready_proc.push(this);
@@ -45,18 +70,19 @@ void proc_wrapper(void (*fn)()) {
     syscall(SYS_exit);
 }
 
-cpu::status *scheduler::sys_exit(cpu::status *status) {
+cpu::status *proc::sys_exit(cpu::status *status) {
     smp::this_cpu()->cur_proc->status = Delete;
     return schedule(status);
 }
 
-cpu::status *scheduler::sys_nanosleep(cpu::status *status) {
+cpu::status *proc::sys_nanosleep(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
     cur_proc->status = Sleep;
     cur_proc->wakeup = timer::time() + (status->rsi / 1'000'000);
     return schedule(status);
 }
 
-void proc::sleep(std::size_t ms) {
-    syscall(SYS_nanosleep, ms * 1'000'000);
+cpu::status *proc::sys_getpid(cpu::status *status) {
+    status->rax = smp::this_cpu()->cur_proc->pid;
+    return status;
 }

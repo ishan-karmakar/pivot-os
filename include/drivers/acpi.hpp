@@ -5,6 +5,7 @@
 
 namespace acpi {
     void init();
+    [[noreturn]] void shutdown();
 
     acpi_sdt_hdr *get_table(const char *sig);
 

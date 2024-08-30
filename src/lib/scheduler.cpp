@@ -1,17 +1,15 @@
 #include <lib/scheduler.hpp>
-#include <mem/pmm.hpp>
+#include <lib/proc.hpp>
 #include <lib/logger.hpp>
-#include <cpu/gdt.hpp>
-#include <cpu/idt.hpp>
-#include <drivers/lapic.hpp>
-#include <lib/interrupts.hpp>
-#include <drivers/pit.hpp>
 #include <lib/timer.hpp>
-#include <lib/syscall.hpp>
 #include <cpu/smp.hpp>
+#include <cpu/idt.hpp>
+#include <mem/pmm.hpp>
+#include <mem/mapper.hpp>
+#include <drivers/lapic.hpp>
 #include <queue>
-#include <frg/rbtree.hpp>
 using namespace scheduler;
+using namespace proc;
 
 constexpr int PROC_QUANTUM = 100;
 static std::size_t quantum;
@@ -20,17 +18,14 @@ struct proc_comparator {
     constexpr bool operator()(const process& l, const process& r) const { return l.wakeup < r.wakeup; }
 };
 
-std::queue<process*> ready_proc;
-frg::simple_spinlock ready_lock;
+std::queue<process*> scheduler::ready_proc;
+frg::simple_spinlock scheduler::ready_lock, scheduler::wakeup_lock;
 frg::rbtree<process, &process::hook, proc_comparator> wakeup_proc;
 // Essentially a symlink to the first process in wakeup_proc to speed up processing in schedule
 process *first_wakeup;
-frg::simple_spinlock wakeup_lock;
 process *idle_proc;
-std::size_t pid;
 
 cpu::status *schedule(cpu::status*);
-void proc_wrapper(void (*)());
 
 [[gnu::naked]]
 void idle() { while(1) asm ("hlt"); }
@@ -73,7 +68,7 @@ static void save_proc(process*& cur_proc, cpu::status *status) {
     }
 }
 
-cpu::status *schedule(cpu::status *status) {
+cpu::status *scheduler::schedule(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
     while (wakeup_lock.is_locked() && ready_lock.is_locked()) asm ("pause");
     /*

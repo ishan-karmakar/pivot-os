@@ -16,7 +16,10 @@ namespace heap {
         vmm::vmm& vmm;
     };
 
-    typedef frg::slab_pool<policy_t, frg::simple_spinlock> pool_t;
+    struct pool_t : public frg::slab_pool<policy_t, frg::simple_spinlock> {
+        pool_t(policy_t& policy) : frg::slab_pool<policy_t, frg::simple_spinlock>{policy}, policy{policy} {}
+        policy_t& policy;
+    };
     extern frg::manual_box<pool_t> pool;
 
     struct allocator : public frg::slab_allocator<policy_t, frg::simple_spinlock> {

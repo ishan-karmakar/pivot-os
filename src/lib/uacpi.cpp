@@ -14,7 +14,6 @@
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
     idt::handlers[irq].push_back([func, ctx](cpu::status*) {
-        logger::panic("UACPI", "interrupt received");
         func(ctx);
         return nullptr;
     });
@@ -211,18 +210,19 @@ uacpi_status uacpi_kernel_raw_io_write(uacpi_io_addr addr, uacpi_u8 byte_width, 
     return UACPI_STATUS_OK;
 }
 
-uacpi_status uacpi_kernel_io_map(uacpi_io_addr, uacpi_size, uacpi_handle*) {
+uacpi_status uacpi_kernel_io_map(uacpi_io_addr base, uacpi_size, uacpi_handle *out) {
+    *out = reinterpret_cast<uacpi_handle>(base);
     return UACPI_STATUS_OK;
 }
 
 void uacpi_kernel_io_unmap(uacpi_handle) {}
 
-uacpi_status uacpi_kernel_io_read(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64*) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+uacpi_status uacpi_kernel_io_read(uacpi_handle handle, uacpi_size off, uacpi_u8 byte_width, uacpi_u64 *val) {
+    return uacpi_kernel_raw_io_read(reinterpret_cast<uacpi_io_addr>(handle) + off, byte_width, val);
 }
 
-uacpi_status uacpi_kernel_io_write(uacpi_handle, uacpi_size, uacpi_u8, uacpi_u64) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+uacpi_status uacpi_kernel_io_write(uacpi_handle handle, uacpi_size off, uacpi_u8 byte_width, uacpi_u64 val) {
+    return uacpi_kernel_raw_io_write(reinterpret_cast<uacpi_io_addr>(handle) + off, byte_width, val);
 }
 
 uacpi_status uacpi_kernel_pci_read(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64*) {
@@ -230,7 +230,6 @@ uacpi_status uacpi_kernel_pci_read(uacpi_pci_address*, uacpi_size, uacpi_u8, uac
 }
 
 uacpi_status uacpi_kernel_pci_write(uacpi_pci_address*, uacpi_size, uacpi_u8, uacpi_u64) {
-    logger::verbose("uACPI", "pci_write");
     return UACPI_STATUS_UNIMPLEMENTED;
 }
 
@@ -243,6 +242,5 @@ uacpi_status uacpi_kernel_wait_for_work_completion() {
 }
 
 uacpi_thread_id uacpi_kernel_get_thread_id() {
-    logger::info("uACPI", "uACPI requested thread id");
-    return UACPI_THREAD_ID_NONE;
+    return reinterpret_cast<void*>(syscall(SYS_getpid));
 }

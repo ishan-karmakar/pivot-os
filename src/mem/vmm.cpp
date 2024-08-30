@@ -41,6 +41,7 @@ vmm::vmm::~vmm() {
     for (std::size_t i = 0; i < metadata_pages; i++)
         pmm::clear(mpr.translate(start + i * PAGE_SIZE));
     mpr.unmap(start, div_ceil(buddy->memory_size, PAGE_SIZE));
+    delete &mpr;
 }
 
 void *vmm::vmm::malloc(std::size_t size) {
