@@ -1,12 +1,23 @@
 #pragma once
+#include <frg/string.hpp>
+#include <string>
 
 namespace vfs {
-    struct dentry {
+    struct dentry {};
+
+    struct inode {};
+
+    struct fs_instance {
     };
 
-    struct fs {
-        fs(const char*);
+    class fs {
+    protected:
+        fs(frg::string_view);
+        virtual ~fs() = default;
 
-        virtual void mount();
+    public:
+        virtual fs_instance *mount() = 0;
     };
+
+    void mount(frg::string_view, frg::string_view);
 }

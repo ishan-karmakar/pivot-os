@@ -15,6 +15,7 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
+#include <drivers/tmpfs.hpp>
 #include <drivers/pci.hpp>
 #include <lib/syscall.hpp>
 #include <io/serial.hpp>
@@ -39,6 +40,8 @@ frg::manual_box<io::serial_port> qemu;
 
 void kmain() {
     acpi::late_init();
+    tmpfs::init();
+    vfs::mount("/", "tmpfs");
 }
 
 extern "C" [[noreturn]] void kinit() {

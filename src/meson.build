@@ -47,6 +47,7 @@ sources = [
     'drivers/madt.cpp',
     'drivers/pci.cpp',
     'drivers/vfs.cpp',
+    'drivers/tmpfs.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
     'mem/heap.cpp',
