@@ -2,6 +2,7 @@
 #include <frg/rbtree.hpp>
 #include <cpu/cpu.hpp>
 #include <mem/heap.hpp>
+#include <functional>
 
 namespace vmm {
     class vmm;
@@ -18,8 +19,8 @@ namespace proc {
     };
 
     struct process {
-        process(void (*)(), bool, std::size_t = PROC_STACK);
-        process(void (*)(), bool, vmm::vmm&, heap::pool_t&, std::size_t = PROC_STACK);
+        process(uintptr_t addr, bool, std::size_t = PROC_STACK);
+        process(uintptr_t addr, bool, vmm::vmm&, heap::pool_t&, std::size_t = PROC_STACK);
         ~process();
         void enqueue();
     

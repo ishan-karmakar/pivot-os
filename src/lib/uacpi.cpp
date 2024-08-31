@@ -11,6 +11,7 @@
 #include <kernel.hpp>
 #include <mem/heap.hpp>
 #include <lib/interrupts.hpp>
+#include <lib/proc.hpp>
 #include <drivers/pci.hpp>
 #include <assert.h>
 
@@ -259,8 +260,13 @@ uacpi_status uacpi_kernel_pci_write(uacpi_pci_address *addr, uacpi_size off, uac
     return UACPI_STATUS_OK;
 }
 
-uacpi_status uacpi_kernel_schedule_work(uacpi_work_type, uacpi_work_handler, uacpi_handle) {
-    return UACPI_STATUS_UNIMPLEMENTED;
+uacpi_status uacpi_kernel_schedule_work(uacpi_work_type work_type, uacpi_work_handler handler, uacpi_handle handle) {
+    auto p = new proc::process{reinterpret_cast<uintptr_t>(handler), true};
+    p->ef.rdi = reinterpret_cast<uintptr_t>(handle);
+    if (work_type == UACPI_WORK_GPE_EXECUTION)
+        p->cpu = 0;
+    p->enqueue();
+    return UACPI_STATUS_OK;
 }
 
 uacpi_status uacpi_kernel_wait_for_work_completion() {

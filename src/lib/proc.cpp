@@ -7,15 +7,16 @@
 #include <mem/pmm.hpp>
 #include <syscall.h>
 #include <unistd.h>
+#include <assert.h>
 using namespace proc;
 using namespace scheduler;
 
-void proc_wrapper(void (*)());
+extern "C" void proc_wrapper();
 std::size_t pid;
 
-process::process(void (*addr)(), bool superuser, std::size_t stack_size) :
+process::process(uintptr_t fn, bool superuser, std::size_t stack_size) :
 process{
-    addr,
+    fn,
     superuser,
     *({
         auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(pmm::frame()));
@@ -28,9 +29,10 @@ process{
     stack_size
 } {
     auto_create = true;
+    mapper::kmapper->load();
 }
 
-process::process(void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
+process::process(uintptr_t fn, bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
     pid{++::pid},
     cpu{-1},
     vmm{vmm},
@@ -39,7 +41,7 @@ process::process(void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &po
 {
     ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
     ef.rip = reinterpret_cast<uintptr_t>(proc_wrapper);
-    ef.rdi = reinterpret_cast<uintptr_t>(addr);
+    ef.rax = fn;
     ef.rflags = 0x202;
     if (superuser) {
         ef.cs = gdt::KCODE;
@@ -48,8 +50,6 @@ process::process(void (*addr)(), bool superuser, vmm::vmm& vmm, heap::pool_t &po
         ef.cs = gdt::UCODE | 3;
         ef.ss = gdt::UDATA | 3;
     }
-
-    mapper::kmapper->load();
 }
 
 process::~process() {
@@ -62,13 +62,8 @@ process::~process() {
 
 void process::enqueue() {
     ready_lock.lock();
-    ready_proc[smp::cpus[cpu].id].push(this);
+    ready_proc[cpu == -1 ? cpu : smp::cpus[cpu].id].push(this);
     ready_lock.unlock();
-}
-
-void proc_wrapper(void (*fn)()) {
-    fn();
-    syscall(SYS_exit);
 }
 
 cpu::status *proc::sys_exit(cpu::status *status) {

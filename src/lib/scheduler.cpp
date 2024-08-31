@@ -34,7 +34,7 @@ void scheduler::init() {
     quantum = smp::cpu_count * PROC_QUANTUM;
     for (std::size_t i = 0; i < smp::cpu_count; i++)
         smp::cpus[i].sched_off = i * PROC_QUANTUM;
-    idle_proc = new process{idle, true, *vmm::kvmm, *heap::pool, PAGE_SIZE};
+    idle_proc = new process{reinterpret_cast<uintptr_t>(idle), true, *vmm::kvmm, *heap::pool, PAGE_SIZE};
     logger::info("SCHED", "Initialized scheduler");
 }
 
@@ -99,7 +99,7 @@ cpu::status *scheduler::schedule(cpu::status *status) {
     bool wakeup_generic = wakeup_proc[-1].first && t >= wakeup_proc[-1].first->wakeup;
     bool ready_cpu_specific = ready_proc[id].size();
     bool ready_generic = ready_proc[-1].size();
-    bool proc_avail = (wakeup_generic || wakeup_cpu_specific || ready_generic || ready_cpu_specific);
+    bool proc_avail = wakeup_generic || wakeup_cpu_specific || ready_generic || ready_cpu_specific;
     if (!(
         (cur_proc && (cur_proc->status == Delete || cur_proc->status == Sleep)) ||
         (cur_proc == idle_proc && proc_avail) ||
@@ -142,13 +142,13 @@ cpu::status *scheduler::schedule(cpu::status *status) {
             handle_ready(cur_proc, id);
             goto finish;
         }
-        cur_proc = idle_proc;
     }
+    cur_proc = idle_proc;
 
 finish:
     wakeup_lock.unlock();
     ready_lock.unlock();
-    smp::this_cpu()->cpu_proc = !smp::this_cpu()->cpu_proc;
+    smp::this_cpu()->cpu_proc ^= true;
 
     cur_proc->status = Ready;
     auto cr3 = phys_addr(reinterpret_cast<uintptr_t>(cur_proc->vmm.mapper().data()));

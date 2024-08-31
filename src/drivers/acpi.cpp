@@ -5,6 +5,7 @@
 #include <uacpi/event.h>
 #include <uacpi/sleep.h>
 #include <uacpi/utilities.h>
+#include <uacpi/notify.h>
 #include <cpu/idt.hpp>
 #include <drivers/acpi.hpp>
 #include <drivers/lapic.hpp>
@@ -38,6 +39,22 @@ void acpi::init() {
     assert(uacpi_likely_success(uacpi_namespace_load()));
     assert(uacpi_likely_success(uacpi_set_interrupt_model(UACPI_INTERRUPT_MODEL_IOAPIC)));
     assert(uacpi_likely_success(uacpi_finalize_gpe_initialization()));
+}
+
+void acpi::late_init() {
+    assert(uacpi_likely_success(uacpi_namespace_initialize()));
+    assert(uacpi_likely_success(uacpi_install_fixed_event_handler(UACPI_FIXED_EVENT_POWER_BUTTON, [](uacpi_handle) -> uacpi_interrupt_ret {
+        uacpi_kernel_schedule_work(UACPI_WORK_GPE_EXECUTION, [](uacpi_handle) { acpi::shutdown(); }, nullptr);
+        return UACPI_INTERRUPT_HANDLED;
+    }, nullptr)));
+    assert(uacpi_likely_success(uacpi_find_devices("PNP0C0C", [](void*, uacpi_namespace_node *node) -> uacpi_ns_iteration_decision {
+        assert(uacpi_likely_success(uacpi_install_notify_handler(node, [](void*, uacpi_namespace_node*, uint64_t v) -> uacpi_status {
+            if (v == 0x80)
+                acpi::shutdown();
+            return UACPI_STATUS_OK;
+        }, nullptr)));
+        return UACPI_NS_ITERATION_DECISION_CONTINUE;
+    }, nullptr)));
 }
 
 void acpi::shutdown() {

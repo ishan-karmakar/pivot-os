@@ -53,6 +53,7 @@ sources = [
     'mem/pmm.cpp',
     'mem/vmm.cpp',
     nasm_gen.process('cpu/intr.asm'),
+    nasm_gen.process('lib/proc.asm')
 ]
 
 options = []
