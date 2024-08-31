@@ -48,7 +48,7 @@ if qemu.found()
     qemu_flags = [
         '-m', '128M',
         '-smp', '2',
-        '-serial', 'stdio',
+        '-monitor', 'stdio',
         '-no-reboot',
         '-no-shutdown',
     ]

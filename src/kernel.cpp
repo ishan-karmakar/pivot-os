@@ -26,8 +26,6 @@
 #include <uacpi/sleep.h>
 #include <assert.h>
 
-extern void io_char_printer(char);
-
 __attribute__((used, section(".requests")))
 static LIMINE_BASE_REVISION(2);
 
@@ -66,7 +64,6 @@ extern "C" [[noreturn]] void kinit() {
     lapic::bsp_init();
     acpi::init();
     tss::init();
-    // rtc::init(); // TODO: Move to a module
     syscalls::init();
     smp::init();
     scheduler::init();
