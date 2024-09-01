@@ -4,6 +4,7 @@
 #include <lib/logger.hpp>
 #include <cwalk.h>
 #include <sys/stat.h>
+#include <assert.h>
 using namespace vfs;
 
 frg::hash_map<frg::string_view, fs_t*, frg::hash<frg::string_view>, heap::allocator> filesystems{{}};
@@ -46,14 +47,52 @@ void vfs::mount(frg::string_view path, frg::string_view name) {
     const char *bn;
     cwk_path_get_basename(path.data(), &bn, nullptr);
     auto n = filesystems[name]->mount(bn ? bn : "");
-    n->flags |= S_IFDIR;
+    n->flags |= S_IFDIR | 1; // 1 represents this inode is root of a FS
     if (path == "/")
         root = n;
     else {
         std::size_t size;
         cwk_path_get_dirname(path.data(), &size);
         inode_t *parent = path2node(frg::string_view{path.data(), size});
-        parent->children.push_back(n);
+        assert(parent);
+        parent->children.insert(n);
         n->parent = parent;
     }
+}
+
+void vfs::unmount(frg::string_view path) {
+    inode_t *n = path2node(path);
+    assert(n && (n->flags & 1));
+    logger::verbose("VFS", "Unmounting '%s'", path.data());
+    for (const auto& child : n->children)
+        remove(child, true);
+    n->unmount();
+    delete n;
+    if (n == root)
+        root = nullptr;
+    else
+        n->parent->children.erase(n);
+}
+
+void vfs::create(frg::string_view name, uint32_t flags) {
+}
+
+void vfs::remove(inode_t *node, bool recursive) {
+    if (recursive)
+        for (const auto& child : node->children)
+            remove(child, true);
+    delete node;
+    node->parent->children.erase(node);
+}
+
+void vfs::remove(frg::string_view path, bool recursive) {
+    inode_t *n = path2node(path);
+    assert(n);
+    remove(n, recursive);
+}
+
+const char *basename(const char *path) noexcept {
+    const char *bn;
+    cwk_path_get_basename(path, &bn, nullptr);
+    return bn;
 }

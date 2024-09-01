@@ -62,6 +62,8 @@ extern "C" [[noreturn]] void kinit() {
     tss::init();
     tmpfs::init();
     vfs::mount("/", "tmpfs");
+    vfs::create("/test.txt", 0);
+    // vfs::unmount("/");
     // syscalls::init();
     // smp::init();
     // scheduler::init();
