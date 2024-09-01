@@ -2,7 +2,7 @@
 #include <cstdint>
 
 namespace tss {
-    struct [[gnu::packed]] tss {
+    struct [[gnu::packed]] tss_t {
         uint32_t rsv0;
         uint64_t rsp0, rsp1, rsp2;
         uint64_t rsv1;

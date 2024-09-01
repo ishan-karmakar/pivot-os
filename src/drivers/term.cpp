@@ -10,18 +10,26 @@ using namespace term;
 __attribute__((section(".requests")))
 static limine_framebuffer_request fb_request = { LIMINE_FRAMEBUFFER_REQUEST, 2, nullptr };
 
-std::vector<term_t*> term::terms{fb_request.response->framebuffer_count};
+std::vector<term_t*> terms{fb_request.response->framebuffer_count};
 
-struct term_writer : public io::owriter {
-    void append(char c) override {
+class term_writer {
+public:
+    void append(char c) {
         for (const auto& t : terms)
             term_write(t, &c, 1);
     }
 
-    void append(std::string_view s) override {
+    void append(std::string_view s) {
         for (const auto& t : terms)
             term_write(t, s.data(), s.size());
     }
+
+    void append(const char *s) { append(std::string_view{s}); }
+};
+
+static term_writer *writer;
+static frg::expected<frg::format_error> print(const char *f, frg::va_struct *args) {
+    return frg::printf_format(io::char_printer{*writer, args}, f, args);
 };
 
 void term::init() {
@@ -76,6 +84,14 @@ void term::init() {
         terms[i]->cursor_enabled = false;
     }
     clear();
-    io::writer = new term_writer;
+
+    writer = new term_writer;
+    io::print = print;
+
     logger::info("TERM", "Initialized terminal");
+}
+
+void term::clear() {
+    for (auto& t : terms)
+        t->clear(t, true);
 }

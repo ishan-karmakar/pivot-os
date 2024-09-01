@@ -2,12 +2,6 @@
 #include <cstdarg>
 #include <cstdlib>
 
-#define MAKE_LOG_LEVEL(fn_name, enum_name) \
-[[gnu::always_inline]] inline void fn_name(const char *target, const char *format, ...) { \
-    log(enum_name, target, format, __va_arg_pack()); \
-}
-
-// Safeguard against LOG_LEVEL not being set and to remove the stupid error about undefined variable
 #ifndef LOG_LEVEL
 #define LOG_LEVEL INFO
 #endif
@@ -21,19 +15,29 @@ namespace logger {
         DEBUG
     };
 
-    void vlog(log_level, const char*, const char*, va_list);
-    void log(log_level log_level, const char*, const char*, ...);
+    void log(log_level, const char*, const char*, va_list);
+    void log(log_level, const char*, const char*, ...);
+
+#define MAKE_LOG_LEVEL(fn, e) \
+    inline void fn(const char *t, const char *f, ...) { \
+        va_list l; \
+        va_start(l, f); \
+        log(e, t, f, l); \
+        va_end(l); \
+    }
 
     MAKE_LOG_LEVEL(debug, DEBUG);
     MAKE_LOG_LEVEL(verbose, VERBOSE);
     MAKE_LOG_LEVEL(info, INFO);
     MAKE_LOG_LEVEL(warning, WARNING);
     MAKE_LOG_LEVEL(error, ERROR);
+#undef MAKE_LOG_LEVEL
 
-    [[gnu::always_inline]]
     [[noreturn]]
     inline void panic(const char *target, const char *format, ...) {
-        error(target, format, __va_arg_pack());
+        va_list l;
+        va_start(l, format);
+        error(target, format, l);
         abort();
     }
 }

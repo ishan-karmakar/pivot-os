@@ -48,6 +48,7 @@ sources = [
     'drivers/pci.cpp',
     'drivers/vfs.cpp',
     'drivers/tmpfs.cpp',
+    'drivers/qemu.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
     'mem/heap.cpp',
@@ -60,17 +61,17 @@ sources = [
 
 options = []
 
-if get_option('buildtype').startswith('debug')
-    options += 'b_sanitize=undefined'
-endif
+# if get_option('buildtype').startswith('debug')
+#     options += 'b_sanitize=undefined'
+# endif
 
 c_args = [
     '-ffreestanding',
     '-nostdlib',
     '-mno-red-zone',
+    # '-Wno-maybe-uninitialized',
+    # '-Wno-stringop-overflow',
     '-static',
-    '-Wno-maybe-uninitialized',
-    '-Wno-stringop-overflow',
     '-mno-mmx',
     '-mno-sse',
     '-mno-sse2',
@@ -104,5 +105,5 @@ kernel = executable(
     include_directories: '../include',
     build_by_default: false,
     override_options: options,
-    pie: false,
+    pie: false
 )

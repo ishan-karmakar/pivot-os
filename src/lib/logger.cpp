@@ -4,7 +4,7 @@
 #include <frg/macros.hpp>
 using namespace logger;
 
-void logger::vlog(log_level log_level, const char *target, const char *format, va_list args) {
+void logger::log(log_level log_level, const char *target, const char *format, va_list args) {
     if (log_level > LOG_LEVEL) return;
     printf("[%s] %s: ", magic_enum::enum_name(log_level).begin(), target);
     vprintf(format, args);
@@ -15,11 +15,10 @@ void logger::log(log_level log_level, const char *target, const char *format, ..
     if (log_level > LOG_LEVEL) return;
     va_list args;
     va_start(args, format);
-    vlog(log_level, target, format, args);
+    log(log_level, target, format, args);
     va_end(args);
 }
 
-[[noreturn]]
 void __assert_fail(const char *assertion, const char *file, uint32_t line, const char *func) {
     printf("%s:%u: Assertion failed in %s: '%s'", file, line, func, assertion);
     abort();

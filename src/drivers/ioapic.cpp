@@ -11,8 +11,6 @@
 #include <assert.h>
 using namespace ioapic;
 
-constexpr int VERSION_OFF = 1;
-
 union red_ent {
     struct {
         uint8_t vector;

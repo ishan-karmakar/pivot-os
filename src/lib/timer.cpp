@@ -19,5 +19,5 @@ namespace timer {
     }
 }
 
-[[gnu::alias("sleep")]] void uacpi_kernel_sleep(std::size_t);
-[[gnu::alias("time")]] std::size_t uacpi_kernel_get_ticks();
+void uacpi_kernel_sleep(std::size_t ms) { timer::sleep(ms); }
+std::size_t uacpi_kernel_get_ticks() { return timer::time(); }

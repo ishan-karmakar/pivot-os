@@ -35,52 +35,8 @@ namespace std {
         logger::panic("STD", "__throw_bad_alloc()");
     }
 
-    [[noreturn]]
     void __throw_system_error(int e) {
         logger::panic("CXXABI", "System error (%d)", e);
-    }
-
-    namespace __detail {
-        void
-        _List_node_base::
-        _M_hook(_List_node_base* const __position) noexcept
-        {
-            this->_M_next = __position;
-            this->_M_prev = __position->_M_prev;
-            __position->_M_prev->_M_next = this;
-            __position->_M_prev = this;
-        }
-
-        void
-        _List_node_base::_M_unhook() noexcept
-        {
-            _List_node_base* const __next_node = this->_M_next;
-            _List_node_base* const __prev_node = this->_M_prev;
-            __prev_node->_M_next = __next_node;
-            __next_node->_M_prev = __prev_node;
-        }
-
-        void
-        _List_node_base::
-        _M_transfer(_List_node_base * const __first,
-            _List_node_base * const __last) _GLIBCXX_USE_NOEXCEPT
-        {
-            __glibcxx_assert(__first != __last);
-
-            if (this != __last)
-            {
-            // Remove [first, last) from its old position.
-            __last->_M_prev->_M_next  = this;
-            __first->_M_prev->_M_next = __last;
-            this->_M_prev->_M_next    = __first;
-
-            // Splice [first, last) into its new position.
-            _List_node_base* const __tmp = this->_M_prev;
-            this->_M_prev                = __last->_M_prev;
-            __last->_M_prev              = __first->_M_prev;
-            __first->_M_prev             = __tmp;
-            }
-        }
     }
 }
 
@@ -105,6 +61,10 @@ extern "C" {
     // TODO: Make this actually do something
     int __cxa_atexit(void (*)(void*), void*, void*) {
         return 0;
+    }
+
+    void __cxa_pure_virtual() {
+        logger::panic("CXXABI", "__cxa_pure_virtual()");
     }
 
     int __popcountdi2(int64_t a) {

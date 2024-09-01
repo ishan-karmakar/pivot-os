@@ -9,7 +9,7 @@
 using namespace vmm;
 
 extern volatile limine_memmap_request mmap_request;
-frg::manual_box<vmm::vmm> vmm::kvmm;
+frg::manual_box<vmm::vmm_t> vmm::kvmm;
 
 void vmm::init() {
     auto last_ent = mmap_request.response->entries[mmap_request.response->entry_count - 1];
@@ -18,7 +18,7 @@ void vmm::init() {
     logger::info("VMM", "Initialized VMM");
 }
 
-vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper& mpr) : flags{flags}, mpr{mpr} {
+vmm::vmm_t::vmm_t(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptmapper& mpr) : flags{flags}, mpr{mpr} {
     std::size_t metadata_pages = div_ceil(buddy_sizeof_alignment(size, PAGE_SIZE), PAGE_SIZE);
     for (std::size_t i = 0; i < metadata_pages; i++)
         mpr.map(pmm::frame(), start + i * PAGE_SIZE, flags);
@@ -26,10 +26,10 @@ vmm::vmm::vmm(uintptr_t start, std::size_t size, std::size_t flags, mapper::ptma
     buddy = buddy_init_alignment(at, at + metadata_pages * PAGE_SIZE, size, PAGE_SIZE);
 }
 
-vmm::vmm::~vmm() {
+vmm::vmm_t::~vmm_t() {
     auto buddy_callback = [](void *self_void, void *addr, std::size_t size, std::size_t a) -> void* {
         if (a) {
-            vmm *self = reinterpret_cast<vmm*>(self_void);
+            auto self = reinterpret_cast<vmm_t*>(self_void);
             for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++)
                 pmm::clear(self->mpr.translate(reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE));
         }
@@ -44,14 +44,14 @@ vmm::vmm::~vmm() {
     delete &mpr;
 }
 
-void *vmm::vmm::malloc(std::size_t size) {
+void *vmm::vmm_t::malloc(std::size_t size) {
     void *addr = buddy_malloc(buddy, size);
     for (std::size_t i = 0; i < div_ceil(size, PAGE_SIZE); i++)
         mpr.map(pmm::frame(), reinterpret_cast<uintptr_t>(addr) + i * PAGE_SIZE, flags);
     return addr;
 }
 
-void vmm::vmm::free(void *addr) {
+void vmm::vmm_t::free(void *addr) {
     auto buddy_callback = [](void *taddr, void *addr, std::size_t size, std::size_t a) -> void* {
         if (taddr == addr && a)
             return reinterpret_cast<void*>(size);

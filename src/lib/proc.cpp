@@ -23,7 +23,7 @@ process{
         for (int i = 256; i < 512; i++) tbl[i] = mapper::kmapper->data()[i];
         auto m = new mapper::ptmapper{tbl};
         m->load();
-        new vmm::vmm{PAGE_SIZE, stack_size + heap::policy_t::slabsize, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, *m};
+        new vmm::vmm_t{PAGE_SIZE, stack_size + heap::policy_t::slabsize, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, *m};
     }),
     *new heap::pool_t{*new heap::policy_t{vmm}},
     stack_size
@@ -32,7 +32,7 @@ process{
     mapper::kmapper->load();
 }
 
-process::process(uintptr_t fn, bool superuser, vmm::vmm& vmm, heap::pool_t &pool, std::size_t stack_size) :
+process::process(uintptr_t fn, bool superuser, vmm::vmm_t& vmm, heap::pool_t &pool, std::size_t stack_size) :
     pid{++::pid},
     cpu{-1},
     vmm{vmm},

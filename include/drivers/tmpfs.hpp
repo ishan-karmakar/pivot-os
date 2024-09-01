@@ -2,12 +2,13 @@
 #include <drivers/vfs.hpp>
 
 namespace tmpfs {
-    class tmpfs : public vfs::fs {
+    class tmpfs_t : public vfs::fs_t {
     public:
-        tmpfs();
-    
+        tmpfs_t();
+
     private:
-        vfs::fs_instance *mount();
+        vfs::inode_t *mount(frg::string_view) override;
+        void unmount(vfs::inode_t*) override;
     };
 
     void init();

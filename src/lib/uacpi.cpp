@@ -60,9 +60,9 @@ uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request *reques
 }
 
 void uacpi_kernel_vlog(uacpi_log_level log_level, const char *str, va_list args) {
-    frg::string string{str, heap::allocator{}};
+    frg::string<heap::allocator> string{str};
     string.resize(string.size() - 1);
-    logger::vlog(static_cast<logger::log_level>(log_level), "UACPI", string.data(), args);
+    logger::log(static_cast<logger::log_level>(log_level), "UACPI", string.data(), args);
 }
 
 void uacpi_kernel_log(uacpi_log_level log_level, const char *str, ...) {

@@ -1,6 +1,7 @@
 #pragma once
-#include <io/stdio.hpp>
+#include <concepts>
 #include <cstdint>
+#include <string>
 
 namespace io {
     template <typename T>
@@ -25,12 +26,14 @@ namespace io {
         return data;
     }
 
-    class serial_port : public owriter {
+    class serial_port {
     public:
         serial_port(uint16_t);
-        void append(char) override;
+        void append(char);
+        void append(std::string_view s) { for (char c : s) append(c); }
+        void append(const char *s) { append(std::string_view{s}); }
 
     private:
-        const uint16_t port;
+        uint16_t port;
     };
 }

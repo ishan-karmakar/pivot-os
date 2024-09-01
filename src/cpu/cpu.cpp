@@ -7,10 +7,8 @@ void enable_smap();
 void enable_smep();
 void detect_fpu();
 
-constexpr uint32_t IA32_EFER = 0xC0000080;
-
-std::function<void(void*)> cpu::fpu_save;
-std::function<void(void*)> cpu::fpu_restore;
+void (*cpu::fpu_save)(void*);
+void (*cpu::fpu_restore)(void*);
 
 uint32_t cpu::fpu_size = 512;
 

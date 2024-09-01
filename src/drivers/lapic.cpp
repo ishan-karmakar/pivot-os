@@ -15,15 +15,7 @@
 #include <assert.h>
 using namespace lapic;
 
-constexpr int TDIV1 = 0xB;
-constexpr int TDIV2 = 0;
-constexpr int TDIV4 = 1;
-constexpr int TDIV8 = 2;
-constexpr int TDIV16 = 3;
-constexpr int TDIV32 = 8;
-constexpr int TDIV64 = 9;
-constexpr int TDIV128 = 0xA;
-constexpr int TDIV = TDIV4;
+constexpr int TDIV = 1;
 constexpr int IA32_APIC_BASE = 0x1B;
 
 constexpr int SPURIOUS_OFF = 0xF0;

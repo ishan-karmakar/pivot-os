@@ -8,7 +8,7 @@ namespace smp {
     struct cpu_t {
         std::size_t id;
         volatile bool ready;
-        tss::tss tss;
+        tss::tss_t tss;
         proc::process *cur_proc;
         std::size_t lapic_ticks;
         std::size_t sched_off;

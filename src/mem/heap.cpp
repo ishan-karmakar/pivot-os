@@ -75,6 +75,7 @@ void operator delete[](void *ptr, std::size_t) {
     return operator delete[](ptr);
 }
 
+
 extern "C" {
     [[gnu::alias("malloc"), gnu::malloc, gnu::alloc_size(1)]] void *term_alloc(std::size_t) noexcept;
     [[gnu::alias("realloc"), gnu::alloc_size(2)]] void *term_realloc(void*, std::size_t) noexcept;
@@ -82,6 +83,6 @@ extern "C" {
     [[gnu::alias("free")]] void term_freensz(void*) noexcept;
 }
 
-[[gnu::alias("calloc"), gnu::malloc, gnu::alloc_size(1, 2)]] void *uacpi_kernel_calloc(std::size_t, std::size_t) noexcept;
-[[gnu::alias("malloc"), gnu::malloc, gnu::alloc_size(1)]] void *uacpi_kernel_alloc(std::size_t) noexcept;
-[[gnu::alias("free")]] void uacpi_kernel_free(void*) noexcept;
+[[gnu::alias("calloc"), gnu::malloc, gnu::alloc_size(1, 2)]] void *uacpi_kernel_calloc(std::size_t, std::size_t);
+[[gnu::alias("malloc"), gnu::malloc, gnu::alloc_size(1)]] void *uacpi_kernel_alloc(std::size_t);
+[[gnu::alias("free")]] void uacpi_kernel_free(void*);

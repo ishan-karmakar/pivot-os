@@ -8,15 +8,15 @@
 using namespace gdt;
 
 struct [[gnu::packed]] gdtr_t {
-    uint16_t size;
-    uintptr_t addr;
+    uint16_t size{0};
+    uintptr_t addr{0};
 };
 
-gdt::desc sgdt[3];
 
-gdt::desc *desc_buffer = sgdt;
-uint16_t gdt::num_entries;
+constinit gdt::desc sgdt[3];
 constinit gdtr_t gdtr;
+uint16_t gdt::num_entries;
+gdt::desc *desc_buffer = sgdt;
 
 void gdt::early_init() {
     set(1, 0b10011011, 0b10); // Kernel CS

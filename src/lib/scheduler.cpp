@@ -27,7 +27,6 @@ process *idle_proc;
 
 cpu::status *schedule(cpu::status*);
 
-[[gnu::naked]]
 void idle() { while(1) asm ("hlt"); }
 
 void scheduler::init() {

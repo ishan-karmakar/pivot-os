@@ -17,15 +17,13 @@
 #include <drivers/ioapic.hpp>
 #include <drivers/tmpfs.hpp>
 #include <drivers/pci.hpp>
+#include <drivers/qemu.hpp>
 #include <lib/syscall.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <lib/scheduler.hpp>
-#include <frg/manual_box.hpp>
 #include <limine.h>
 #include <cstdlib>
-#include <uacpi/sleep.h>
-#include <assert.h>
 
 __attribute__((used, section(".requests")))
 static LIMINE_BASE_REVISION(2);
@@ -36,19 +34,14 @@ static LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".requests.end")))
 static LIMINE_REQUESTS_END_MARKER;
 
-frg::manual_box<io::serial_port> qemu;
-
 void kmain() {
     acpi::late_init();
-    tmpfs::init();
-    vfs::mount("/", "tmpfs");
 }
 
 extern "C" [[noreturn]] void kinit() {
     asm volatile ("cli");
     cpu::set_kgs(0);
-    qemu.initialize(0x3F8);
-    io::writer = qemu.get();
+    qemu::init();
     cpu::init();
     gdt::early_init();
     idt::init();
@@ -57,23 +50,25 @@ extern "C" [[noreturn]] void kinit() {
     vmm::init();
     heap::init();
     cxxabi::call_constructors();
-    smp::early_init();
-    gdt::init();
-    term::init();
-    pic::init();
-    pit::init();
-    asm volatile ("sti");
-    pit::start(pit::MS_TICKS);
-    lapic::bsp_init();
-    acpi::init();
-    tss::init();
-    syscalls::init();
-    smp::init();
-    scheduler::init();
-    tss::set_rsp0();
-    auto kernel_proc = new proc::process{reinterpret_cast<uintptr_t>(kmain), true, *vmm::kvmm, *heap::pool};
-    kernel_proc->enqueue();
-    scheduler::start();
+    // smp::early_init();
+    // gdt::init();
+    // term::init();
+    // pic::init();
+    // pit::init();
+    // asm volatile ("sti");
+    // pit::start(pit::MS_TICKS);
+    // lapic::bsp_init();
+    // acpi::init();
+    // tss::init();
+    // tmpfs::init();
+    // vfs::mount("/", "tmpfs");
+    // syscalls::init();
+    // smp::init();
+    // scheduler::init();
+    // tss::set_rsp0();
+    // auto kernel_proc = new proc::process{reinterpret_cast<uintptr_t>(kmain), true, *vmm::kvmm, *heap::pool};
+    // kernel_proc->enqueue();
+    // scheduler::start();
     while(1);
 }
 

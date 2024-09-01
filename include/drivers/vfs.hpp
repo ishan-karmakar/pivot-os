@@ -1,22 +1,25 @@
 #pragma once
 #include <frg/string.hpp>
-#include <string>
 
 namespace vfs {
-    struct dentry {};
-
-    struct inode {};
-
-    struct fs_instance {
+    class fs_t;
+    struct inode_t {
+        inode_t(frg::string_view n) : name{n} {}
+    
+        frg::string_view name;
+        inode_t *parent;
+        std::vector<inode_t*> children;
+        fs_t *fs;
     };
 
-    class fs {
+    class fs_t {
     protected:
-        fs(frg::string_view);
-        virtual ~fs() = default;
+        fs_t(frg::string_view);
+        virtual ~fs_t() = default;
 
     public:
-        virtual fs_instance *mount() = 0;
+        virtual inode_t *mount(frg::string_view) = 0;
+        virtual void unmount(inode_t*) = 0;
     };
 
     void mount(frg::string_view, frg::string_view);

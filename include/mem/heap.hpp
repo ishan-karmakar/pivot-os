@@ -8,12 +8,12 @@ namespace heap {
         static constexpr std::size_t sb_size = 64 * PAGE_SIZE;
         static constexpr std::size_t slabsize = 64 * PAGE_SIZE;
 
-        policy_t(vmm::vmm& vmm) : vmm{vmm} {};
+        policy_t(vmm::vmm_t& vmm) : vmm{vmm} {};
         uintptr_t map(std::size_t);
         void unmap(uintptr_t, std::size_t);
     
     private:
-        vmm::vmm& vmm;
+        vmm::vmm_t& vmm;
     };
 
     struct pool_t : public frg::slab_pool<policy_t, frg::simple_spinlock> {

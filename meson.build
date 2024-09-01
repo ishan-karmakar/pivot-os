@@ -5,6 +5,7 @@ project(
         'cpp_std=gnu++20',
         'warning_level=2',
         'cpp_rtti=false',
+        'default_library=static'
     ]
 )
 
@@ -15,6 +16,7 @@ deps = [
     dependency('magic_enum', default_options: ['hash=true', 'test=false'], required: true),
     dependency('buddy', required: true),
     dependency('limine-terminal', required: true),
+    dependency('cwalk', required: true),
     limine.get_variable('limine_dep'),
 ]
 
@@ -48,7 +50,7 @@ if qemu.found()
     qemu_flags = [
         '-m', '128M',
         '-smp', '2',
-        '-monitor', 'stdio',
+        '-serial', 'stdio',
         '-no-reboot',
         '-no-shutdown',
     ]

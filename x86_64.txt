@@ -1,0 +1,13 @@
+[binaries]
+c = 'clang'
+cpp = 'clang++'
+strip = 'llvm-strip'
+c_ld = 'lld'
+cpp_ld = 'lld'
+pkg-config = 'pkg-config'
+cmake = 'cmake'
+
+[host-machine]
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

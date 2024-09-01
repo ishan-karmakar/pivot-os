@@ -20,7 +20,7 @@ namespace proc {
 
     struct process {
         process(uintptr_t addr, bool, std::size_t = PROC_STACK);
-        process(uintptr_t addr, bool, vmm::vmm&, heap::pool_t&, std::size_t = PROC_STACK);
+        process(uintptr_t addr, bool, vmm::vmm_t&, heap::pool_t&, std::size_t = PROC_STACK);
         ~process();
         void enqueue();
     
@@ -31,7 +31,7 @@ namespace proc {
         std::size_t wakeup;
         proc::status status{New};
         cpu::status ef;
-        vmm::vmm& vmm;
+        vmm::vmm_t& vmm;
         heap::pool_t& pool;
         void *fpu_data;
     };

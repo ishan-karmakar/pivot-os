@@ -76,7 +76,7 @@ namespace cpu {
     }
 
     void init();
-    extern std::function<void(void*)> fpu_save;
-    extern std::function<void(void*)> fpu_restore;
+    extern void(*fpu_save)(void*);
+    extern void(*fpu_restore)(void*);
     extern uint32_t fpu_size;
 }

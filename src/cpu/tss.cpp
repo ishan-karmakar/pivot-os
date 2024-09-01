@@ -9,7 +9,7 @@ using namespace tss;
 
 void tss::init() {
     uintptr_t addr = reinterpret_cast<uintptr_t>(&smp::this_cpu()->tss);
-    uint64_t gdt_entry = sizeof(tss) |
+    uint64_t gdt_entry = sizeof(tss_t) |
                          (addr & 0xFFFF) << 16 |
                          ((addr >> 16) & 0xFF) << 32 |
                          0b10001001UL << 40 |
