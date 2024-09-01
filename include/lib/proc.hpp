@@ -34,6 +34,9 @@ namespace proc {
         vmm::vmm_t& vmm;
         heap::pool_t& pool;
         void *fpu_data;
+    
+    private:
+        void init(uintptr_t, bool, std::size_t);
     };
 
     cpu::status *sys_exit(cpu::status*);

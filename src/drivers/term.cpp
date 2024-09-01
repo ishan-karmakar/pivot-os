@@ -28,9 +28,6 @@ public:
 };
 
 static term_writer *writer;
-static frg::expected<frg::format_error> print(const char *f, frg::va_struct *args) {
-    return frg::printf_format(io::char_printer{*writer, args}, f, args);
-};
 
 void term::init() {
     auto font_file = mod::find("font");
@@ -86,7 +83,9 @@ void term::init() {
     clear();
 
     writer = new term_writer;
-    io::print = print;
+    io::print = [](const char *f, frg::va_struct *args) {
+        return frg::printf_format(io::char_printer{*writer, args}, f, args);
+    };
 
     logger::info("TERM", "Initialized terminal");
 }

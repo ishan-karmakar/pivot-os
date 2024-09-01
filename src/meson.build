@@ -69,8 +69,6 @@ c_args = [
     '-ffreestanding',
     '-nostdlib',
     '-mno-red-zone',
-    # '-Wno-maybe-uninitialized',
-    # '-Wno-stringop-overflow',
     '-static',
     '-mno-mmx',
     '-mno-sse',

@@ -15,20 +15,19 @@ extern "C" void proc_wrapper();
 std::size_t pid;
 
 process::process(uintptr_t fn, bool superuser, std::size_t stack_size) :
-process{
-    fn,
-    superuser,
-    *({
+    pid{++::pid},
+    cpu{-1},
+    auto_create{true},
+    vmm{*({
         auto tbl = reinterpret_cast<mapper::page_table>(virt_addr(pmm::frame()));
         for (int i = 256; i < 512; i++) tbl[i] = mapper::kmapper->data()[i];
         auto m = new mapper::ptmapper{tbl};
         m->load();
         new vmm::vmm_t{PAGE_SIZE, stack_size + heap::policy_t::slabsize, superuser ? mapper::KERNEL_ENTRY : mapper::USER_ENTRY, *m};
-    }),
-    *new heap::pool_t{*new heap::policy_t{vmm}},
-    stack_size
-} {
-    auto_create = true;
+    })},
+    pool{*new heap::pool_t{*new heap::policy_t{vmm}}}
+{
+    init(fn, superuser, stack_size);
     mapper::kmapper->load();
 }
 
@@ -39,6 +38,10 @@ process::process(uintptr_t fn, bool superuser, vmm::vmm_t& vmm, heap::pool_t &po
     pool{pool},
     fpu_data{operator new(cpu::fpu_size)}
 {
+    init(fn, superuser, stack_size);
+}
+
+void process::init(uintptr_t fn, bool superuser, std::size_t stack_size) {
     ef.rsp = reinterpret_cast<uintptr_t>(vmm.malloc(stack_size)) + stack_size;
     ef.rip = reinterpret_cast<uintptr_t>(proc_wrapper);
     ef.rax = fn;

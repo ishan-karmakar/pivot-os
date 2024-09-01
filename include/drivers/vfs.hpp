@@ -5,11 +5,14 @@ namespace vfs {
     class fs_t;
     struct inode_t {
         inode_t(frg::string_view n) : name{n} {}
+
+        // Creates a inode that is child of current inode
+        virtual inode_t *create(frg::string_view) = 0;
     
         frg::string_view name;
         inode_t *parent;
         std::vector<inode_t*> children;
-        fs_t *fs;
+        uint32_t flags;
     };
 
     class fs_t {
