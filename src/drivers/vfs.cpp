@@ -44,8 +44,7 @@ void vfs::mount(frg::string_view path, frg::string_view name) {
     if (path != "/" && !root)
         logger::panic("VFS", "Cannot mount filesystem at non root path without root initialized");
     logger::verbose("VFS", "Mounting filesystem '%s' at '%s'", name.data(), path.data());
-    const char *bn;
-    cwk_path_get_basename(path.data(), &bn, nullptr);
+    const char *bn = basename(path.data());
     auto n = filesystems[name]->mount(bn ? bn : "");
     n->flags |= S_IFDIR | 1; // 1 represents this inode is root of a FS
     if (path == "/")
@@ -75,6 +74,11 @@ void vfs::unmount(frg::string_view path) {
 }
 
 void vfs::create(frg::string_view name, uint32_t flags) {
+    std::size_t size;
+    cwk_path_get_dirname(name.data(), &size);
+    inode_t *parent = path2node(frg::string_view{name.data(), size});
+    assert(parent);
+    parent->create(basename(name));
 }
 
 void vfs::remove(inode_t *node, bool recursive) {

@@ -3,6 +3,7 @@
 #include <cpu/cpu.hpp>
 #include <mem/heap.hpp>
 #include <functional>
+#include <drivers/vfs.hpp>
 
 namespace vmm {
     class vmm;
@@ -33,6 +34,7 @@ namespace proc {
         cpu::status ef;
         vmm::vmm_t& vmm;
         heap::pool_t& pool;
+        std::vector<vfs::inode_t*> fd_table;
         void *fpu_data;
     
     private:

@@ -1,4 +1,5 @@
 build/
+sources/
 subprojects/*/
 !subprojects/packagefiles
 .vscode/
