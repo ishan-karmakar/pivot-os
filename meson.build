@@ -41,7 +41,7 @@ os = custom_target(
     command: [
         'rm', '-rf', '@PRIVATE_DIR@', '&&',
         'mkdir', '@PRIVATE_DIR@', '&&',
-        'cp', iso_files, kernel, initrd, '@PRIVATE_DIR@', '&&',
+        'cp', iso_files, kernel, '@PRIVATE_DIR@', '&&',
         'xorriso', '-as', 'mkisofs', '-b', 'limine-bios-cd.bin', '-no-emul-boot',
             '-boot-load-size', '4', '-boot-info-table', '--efi-boot', 'limine-uefi-cd.bin',
             '-efi-boot-part', '--efi-boot-image', '--protective-msdos-label', '@PRIVATE_DIR@',

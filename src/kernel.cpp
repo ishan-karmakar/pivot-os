@@ -60,18 +60,14 @@ extern "C" [[noreturn]] void kinit() {
     lapic::bsp_init();
     acpi::init();
     tss::init();
-    tmpfs::init();
-    vfs::mount("/", "tmpfs");
-    vfs::create("/test.txt", 0);
-    // vfs::unmount("/");
-    // syscalls::init();
-    // smp::init();
-    // scheduler::init();
-    // tss::set_rsp0();
-    // auto kernel_proc = new proc::process{reinterpret_cast<uintptr_t>(kmain), true, *vmm::kvmm, *heap::pool};
-    // kernel_proc->enqueue();
-    // scheduler::start();
-    while(1);
+    syscalls::init();
+    smp::init();
+    scheduler::init();
+    tss::set_rsp0();
+    auto kernel_proc = new proc::process{reinterpret_cast<uintptr_t>(kmain), true, *vmm::kvmm, *heap::pool};
+    kernel_proc->enqueue();
+    scheduler::start();
+    while(1) asm volatile ("hlt");
 }
 
 void abort() { cpu::hcf(); }
