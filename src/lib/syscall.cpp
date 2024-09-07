@@ -6,15 +6,13 @@
 #include <syscall.h>
 using namespace syscalls;
 
+constexpr std::size_t VEC = 0x80;
 cpu::status *syscall_handler(cpu::status*);
-frg::hash_map<unsigned int, std::function<cpu::status*(cpu::status*)>, frg::hash<unsigned int>, heap::allocator> _syscalls{{}};
+frg::hash_map<std::size_t, std::function<cpu::status*(cpu::status*)>, frg::hash<std::size_t>, heap::allocator> syscalls::handlers{{}};
 
 void syscalls::init() {
-    _syscalls[SYS_exit] = proc::sys_exit;
-    _syscalls[SYS_nanosleep] = proc::sys_nanosleep;
-    _syscalls[SYS_getpid] = proc::sys_getpid;
     idt::handlers[intr::IRQ(VEC)].push_back([](cpu::status *status) {
-        auto s = _syscalls[status->rdi](status);
+        auto s = handlers[status->rdi](status);
         return s ? s : status;
     });
     logger::info("SYSCALLS", "Initialized system calls");

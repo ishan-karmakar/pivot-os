@@ -23,6 +23,7 @@
 #include <lib/logger.hpp>
 #include <lib/scheduler.hpp>
 #include <limine.h>
+#include <fcntl.h>
 #include <cstdlib>
 
 __attribute__((used, section(".requests")))
@@ -36,6 +37,8 @@ static LIMINE_REQUESTS_END_MARKER;
 
 void kmain() {
     acpi::late_init();
+    tmpfs::init();
+    vfs::mount("/", "tmpfs");
 }
 
 extern "C" [[noreturn]] void kinit() {
@@ -63,6 +66,7 @@ extern "C" [[noreturn]] void kinit() {
     syscalls::init();
     smp::init();
     scheduler::init();
+    proc::init();
     tss::set_rsp0();
     auto kernel_proc = new proc::process{reinterpret_cast<uintptr_t>(kmain), true, *vmm::kvmm, *heap::pool};
     kernel_proc->enqueue();

@@ -39,7 +39,5 @@ namespace proc {
         void init(uintptr_t, bool, std::size_t);
     };
 
-    cpu::status *sys_exit(cpu::status*);
-    cpu::status *sys_nanosleep(cpu::status*);
-    cpu::status *sys_getpid(cpu::status*);
+    void init();
 }

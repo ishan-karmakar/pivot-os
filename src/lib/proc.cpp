@@ -8,6 +8,7 @@
 #include <syscall.h>
 #include <unistd.h>
 #include <assert.h>
+#include <lib/syscall.hpp>
 using namespace proc;
 using namespace scheduler;
 
@@ -69,19 +70,26 @@ void process::enqueue() {
     ready_lock.unlock();
 }
 
-cpu::status *proc::sys_exit(cpu::status *status) {
+cpu::status *sys_exit(cpu::status *status) {
     smp::this_cpu()->cur_proc->status = Delete;
     return schedule(status);
 }
 
-cpu::status *proc::sys_nanosleep(cpu::status *status) {
+cpu::status *sys_nanosleep(cpu::status *status) {
     process*& cur_proc = smp::this_cpu()->cur_proc;
     cur_proc->status = Sleep;
     cur_proc->wakeup = timer::time() + (status->rsi / 1'000'000);
     return schedule(status);
 }
 
-cpu::status *proc::sys_getpid(cpu::status *status) {
+cpu::status *sys_getpid(cpu::status *status) {
     status->rax = smp::this_cpu()->cur_proc->pid;
     return status;
+}
+
+void proc::init() {
+    // Register syscalls
+    syscalls::handlers[SYS_getpid] = sys_getpid;
+    syscalls::handlers[SYS_nanosleep] = sys_nanosleep;
+    syscalls::handlers[SYS_exit] = sys_exit;
 }

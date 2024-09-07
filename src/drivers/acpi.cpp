@@ -57,6 +57,7 @@ void acpi::late_init() {
     }, nullptr)));
 }
 
+// TODO: Move to kernel.cpp and provide full shutdown
 void acpi::shutdown() {
     logger::info("UACPI", "Shutting down system");
     asm volatile ("sti");

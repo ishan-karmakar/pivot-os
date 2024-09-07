@@ -22,6 +22,7 @@ struct exit_handler {
     bool operator==(void *f) { return func == f; }
 };
 frg::eternal<std::forward_list<exit_handler>> exit_queue;
+int errno_var;
 
 void cxxabi::call_ctors() {
     for (auto ctor = __init_array_start; ctor < __init_array_end; ctor++)
@@ -33,6 +34,8 @@ void cxxabi::call_dtors() {
     for (auto dtor = __fini_array_start; dtor < __fini_array_end; dtor++)
         (*dtor)();
 }
+
+int *__errno_location() noexcept { return &errno_var; }
 
 namespace std {
     void __throw_bad_function_call() {

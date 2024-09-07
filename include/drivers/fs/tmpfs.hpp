@@ -12,7 +12,7 @@ namespace tmpfs {
         fs_t();
 
     private:
-        vfs::inode_t *mount(frg::string_view) override;
+        vfs::dentry_t *mount(vfs::dentry_t*, frg::string_view) override;
     };
 
     void init();
