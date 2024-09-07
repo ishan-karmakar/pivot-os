@@ -15,7 +15,7 @@
 #include <drivers/pit.hpp>
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
-#include <drivers/tmpfs.hpp>
+#include <drivers/fs/tmpfs.hpp>
 #include <drivers/pci.hpp>
 #include <drivers/qemu.hpp>
 #include <lib/syscall.hpp>

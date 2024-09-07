@@ -1,9 +1,8 @@
 #pragma once
 #include <vector>
-#include <limine_terminal/term.h>
+#include <drivers/fs/vfs.hpp>
 
 namespace term {
-
     void init();
     inline void clear();
 }

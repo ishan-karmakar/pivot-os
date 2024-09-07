@@ -10,8 +10,10 @@
 #include <forward_list>
 typedef void (*func_t)(void);
 
-extern "C" void (*__init_array_start[])();
-extern "C" void (*__init_array_end[])();
+extern void (*__init_array_start[])();
+extern void (*__init_array_end[])();
+extern void (*__fini_array_start[])();
+extern void (*__fini_array_end[])();
 
 struct exit_handler {
     void (*func)(void*);
@@ -27,8 +29,9 @@ void cxxabi::call_ctors() {
     logger::info("CTORS", "Finished running global constructors");
 }
 
-// TODO: Replicate CTORS for DTORS - need to add to linker.ld
 void cxxabi::call_dtors() {
+    for (auto dtor = __fini_array_start; dtor < __fini_array_end; dtor++)
+        (*dtor)();
 }
 
 namespace std {
