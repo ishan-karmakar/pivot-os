@@ -6,16 +6,29 @@
 #include <cxxabi.h>
 #include <bits/stl_tree.h>
 #include <bits/hashtable_policy.h>
-#include <list>
+#include <frg/eternal.hpp>
+#include <forward_list>
 typedef void (*func_t)(void);
 
 extern "C" void (*__init_array_start[])();
 extern "C" void (*__init_array_end[])();
 
-void cxxabi::call_constructors() {
+struct exit_handler {
+    void (*func)(void*);
+    void *arg;
+
+    bool operator==(void *f) { return func == f; }
+};
+frg::eternal<std::forward_list<exit_handler>> exit_queue;
+
+void cxxabi::call_ctors() {
     for (auto ctor = __init_array_start; ctor < __init_array_end; ctor++)
         (*ctor)();
     logger::info("CTORS", "Finished running global constructors");
+}
+
+// TODO: Replicate CTORS for DTORS - need to add to linker.ld
+void cxxabi::call_dtors() {
 }
 
 namespace std {
@@ -205,29 +218,41 @@ extern "C" {
     }
 
     void *__dso_handle = nullptr;
-    // TODO: Make this actually do something
-    int __cxa_atexit(void (*)(void*), void*, void*) {
+    int __cxa_atexit(void (*func)(void*), void *arg, void*) {
+        exit_queue->push_front({ func, arg });
         return 0;
+    }
+
+    void __cxa_finalize(void *func) {
+        if (func) {
+            auto handler = std::find(exit_queue->begin(), exit_queue->end(), func);
+            if (handler != exit_queue->end())
+                handler->func(handler->arg);
+            else
+                logger::warning("CXXABI", "Could not find function %p", func);
+        } else
+            for (const auto& handler : *exit_queue)
+                handler.func(handler.arg);
     }
 
     void __cxa_pure_virtual() {
         logger::panic("CXXABI", "__cxa_pure_virtual()");
     }
 
-    int __popcountdi2(int64_t a) {
-        uint64_t x2 = (uint64_t)a;
-        x2 = x2 - ((x2 >> 1) & 0x5555555555555555uLL);
-        // Every 2 bits holds the sum of every pair of bits (32)
-        x2 = ((x2 >> 2) & 0x3333333333333333uLL) + (x2 & 0x3333333333333333uLL);
-        // Every 4 bits holds the sum of every 4-set of bits (3 significant bits) (16)
-        x2 = (x2 + (x2 >> 4)) & 0x0F0F0F0F0F0F0F0FuLL;
-        // Every 8 bits holds the sum of every 8-set of bits (4 significant bits) (8)
-        uint32_t x = (uint32_t)(x2 + (x2 >> 32));
-        // The lower 32 bits hold four 16 bit sums (5 significant bits).
-        //   Upper 32 bits are garbage
-        x = x + (x >> 16);
-        // The lower 16 bits hold two 32 bit sums (6 significant bits).
-        //   Upper 16 bits are garbage
-        return (x + (x >> 8)) & 0x0000007F; // (7 significant bits)
-    }
+    // int __popcountdi2(int64_t a) {
+    //     uint64_t x2 = (uint64_t)a;
+    //     x2 = x2 - ((x2 >> 1) & 0x5555555555555555uLL);
+    //     // Every 2 bits holds the sum of every pair of bits (32)
+    //     x2 = ((x2 >> 2) & 0x3333333333333333uLL) + (x2 & 0x3333333333333333uLL);
+    //     // Every 4 bits holds the sum of every 4-set of bits (3 significant bits) (16)
+    //     x2 = (x2 + (x2 >> 4)) & 0x0F0F0F0F0F0F0F0FuLL;
+    //     // Every 8 bits holds the sum of every 8-set of bits (4 significant bits) (8)
+    //     uint32_t x = (uint32_t)(x2 + (x2 >> 32));
+    //     // The lower 32 bits hold four 16 bit sums (5 significant bits).
+    //     //   Upper 32 bits are garbage
+    //     x = x + (x >> 16);
+    //     // The lower 16 bits hold two 32 bit sums (6 significant bits).
+    //     //   Upper 16 bits are garbage
+    //     return (x + (x >> 8)) & 0x0000007F; // (7 significant bits)
+    // }
 }

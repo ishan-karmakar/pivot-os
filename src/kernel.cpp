@@ -49,7 +49,7 @@ extern "C" [[noreturn]] void kinit() {
     mapper::init();
     vmm::init();
     heap::init();
-    cxxabi::call_constructors();
+    cxxabi::call_ctors();
     smp::early_init();
     gdt::init();
     term::init();
