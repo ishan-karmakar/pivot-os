@@ -27,6 +27,9 @@ public:
     void append(const char *s) { append(std::string_view{s}); }
 };
 
+struct cdev_t : vfs::cdev_t {
+};
+
 static term_writer *writer;
 
 void term::init() {

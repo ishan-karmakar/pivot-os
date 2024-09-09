@@ -8,9 +8,8 @@
 
 namespace vfs {
     struct cdev_t {
-        virtual ~cdev_t() = default;
-        virtual void write(const void *buffer, std::size_t off, std::size_t count) = 0;
-        virtual void read(void *buffer, std::size_t off, std::size_t count) = 0;
+        virtual ssize_t write(void*, std::size_t, off_t) = 0;
+        virtual ssize_t read(void*, std::size_t, off_t) = 0;
     };
 
     struct dentry_dir_t;
@@ -29,6 +28,7 @@ namespace vfs {
         virtual ~dentry_file_t() = default;
         virtual ssize_t write(void*, std::size_t, off_t) = 0;
         virtual ssize_t read(void*, std::size_t, off_t) = 0;
+        virtual void remove() { delete this; }
 
         std::size_t fsize;
     };
@@ -38,15 +38,18 @@ namespace vfs {
         virtual ~dentry_dir_t() = default;
         virtual dentry_t *find_child(std::string_view) = 0;
         virtual dentry_t *create_child(std::string_view, uint32_t) = 0;
+        // Remove itself - Not a destructor so it can choose to disable deletion (devices)
+        virtual void remove() { delete this; }
         virtual void unmount() = 0;
         
-        bool is_mount{false};
+        dentry_dir_t *mountp; // nullptr for non mounts, otherwise dentry of mounted root
         std::vector<dentry_t*> children;
     };
 
     struct dentry_lnk_t : public dentry_t {
         using dentry_t::dentry_t;
         virtual ~dentry_lnk_t() = default;
+        virtual void remove() { delete this; }
 
         dentry_t *target;
     };
@@ -63,10 +66,8 @@ namespace vfs {
         virtual ~fs_t() = default;
 
     public:
-        virtual dentry_dir_t *mount(dentry_dir_t*, std::string_view) = 0;
+        virtual vfs::dentry_dir_t *mount(dentry_dir_t*, std::string_view) = 0;
     };
 
     void init();
-    void mount(std::string_view, std::string_view);
-    void unmount(std::string_view);
 }

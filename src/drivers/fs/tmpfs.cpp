@@ -3,10 +3,10 @@
 #include <lib/logger.hpp>
 using namespace tmpfs;
 
-tmpfs::fs_t::fs_t() : vfs::fs_t{"tmpfs"} {}
-
-vfs::dentry_dir_t *fs_t::mount(vfs::dentry_dir_t *parent, std::string_view name) {
-    return new tmpfs::dentry_dir_t{parent, name, S_IFDIR};
+vfs::dentry_dir_t *fs_t::mount(vfs::dentry_dir_t *node, std::string_view name) {
+    auto n = new dentry_dir_t{nullptr, name, S_IFDIR};
+    if (node) node->mountp = n;
+    return n;
 }
 
 vfs::dentry_t *dentry_dir_t::find_child(std::string_view name) {
@@ -55,9 +55,9 @@ ssize_t dentry_file_t::read(void *buffer, std::size_t size, off_t off) {
     return rbytes;
 }
 
-dentry_file_t::~dentry_file_t() {
+void dentry_file_t::remove() {
     vmm::kvmm->free(start);
-    // std::erase(parent->children.begin(), parent->children.end(), )
+    delete this;
 }
 
 void dentry_dir_t::unmount() {}

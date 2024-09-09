@@ -73,18 +73,22 @@ dentry_t *path2ent(std::string_view path, bool follow) {
     return parent;
 }
 
-void vfs::mount(std::string_view path, std::string_view fs_name) {
-    if (filesystems.find(fs_name) == filesystems.end())
-        return logger::warning("VFS", "'%s' not found", fs_name.data());
-    if (path == "/") {
-        if (root)
-            logger::warning("VFS", "Root is already initialized, overwriting");
-        root = filesystems[fs_name]->mount(nullptr, "/");
-        logger::verbose("VFS", "Mounted root filesystem");
-    } else {
-        if (!root)
-            return logger::error("VFS", "Cannot mount filesystem at non root path if root doesn't exist");
+cpu::status *sys_mount(cpu::status *status) {
+    status->rax = -1;
+    // const char *source = reinterpret_cast<const char*>(status->rsi);
+    std::string_view target{reinterpret_cast<const char*>(status->rdx)};
+    std::string_view fs_type{reinterpret_cast<const char*>(status->rcx)};
+    if (filesystems.find(fs_type) == filesystems.end()) RETURN_ERR(ENODEV)
+    if (target == "/")
+        root = filesystems[fs_type]->mount(nullptr, "/");
+    else {
+        if (!root) RETURN_ERR(ENOENT)
+        auto n = path2ent(target, true);
+        if (!S_ISDIR(n->mode)) RETURN_ERR(ENOTDIR)
+        filesystems[fs_type]->mount(static_cast<dentry_dir_t*>(n), target);
     }
+    status->rax = 0;
+    return nullptr;
 }
 
 cpu::status *sys_open(cpu::status *status) {
@@ -235,7 +239,7 @@ cpu::status *sys_rmdir(cpu::status *status) {
     if (!S_ISDIR(dent->mode)) RETURN_ERR(ENOTDIR)
     auto d = static_cast<dentry_dir_t*>(dent);
     if (!d->children.empty()) RETURN_ERR(ENOTEMPTY)
-    delete d;
+    d->remove();
 
     status->rax = 0;
     return nullptr;
@@ -247,8 +251,8 @@ cpu::status *sys_unlink(cpu::status *status) {
     const char *target = reinterpret_cast<const char*>(status->rsi);
     dentry_t *src_ent = path2ent(target, false);
     if (S_ISDIR(src_ent->mode)) RETURN_ERR(EISDIR)
-    else if (S_ISREG(src_ent->mode)) delete static_cast<dentry_file_t*>(src_ent);
-    else if (S_ISLNK(src_ent->mode)) delete static_cast<dentry_lnk_t*>(src_ent);
+    else if (S_ISREG(src_ent->mode)) static_cast<dentry_file_t*>(src_ent)->remove();
+    else if (S_ISLNK(src_ent->mode)) static_cast<dentry_lnk_t*>(src_ent)->remove();
 
     status->rax = 0;
     return nullptr;
@@ -265,4 +269,5 @@ void vfs::init() {
     syscalls::handlers[SYS_symlink] = sys_symlink;
     syscalls::handlers[SYS_unlink] = sys_unlink;
     syscalls::handlers[SYS_rmdir] = sys_rmdir;
+    syscalls::handlers[SYS_mount] = sys_mount;
 }

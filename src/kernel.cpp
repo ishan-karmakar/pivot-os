@@ -16,6 +16,7 @@
 #include <drivers/lapic.hpp>
 #include <drivers/ioapic.hpp>
 #include <drivers/fs/tmpfs.hpp>
+#include <drivers/fs/devtmpfs.hpp>
 #include <drivers/pci.hpp>
 #include <drivers/qemu.hpp>
 #include <lib/syscalls.hpp>
@@ -40,7 +41,9 @@ void kmain() {
     acpi::late_init();
     vfs::init();
     tmpfs::init();
-    vfs::mount("/", "tmpfs");
+    syscall(SYS_mount, "", "/", "tmpfs");
+    logger::info("VFS", "Mounted root filesystem (tmpfs)");
+    devtmpfs::init();
 }
 
 extern "C" [[noreturn]] void kinit() {

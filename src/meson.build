@@ -48,6 +48,7 @@ sources = [
     'drivers/pci.cpp',
     'drivers/fs/vfs.cpp',
     'drivers/fs/tmpfs.cpp',
+    'drivers/fs/devtmpfs.cpp',
     'drivers/qemu.cpp',
     'io/serial.cpp',
     'io/stdio.cpp',
