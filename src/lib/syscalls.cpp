@@ -1,4 +1,4 @@
-#include <lib/syscall.hpp>
+#include <lib/syscalls.hpp>
 #include <cpu/idt.hpp>
 #include <lib/interrupts.hpp>
 #include <lib/proc.hpp>
@@ -18,6 +18,7 @@ void syscalls::init() {
     logger::info("SYSCALLS", "Initialized system calls");
 }
 
-extern "C" void syscall(std::size_t, ...) {
-    asm volatile ("int %0" :: "N" (VEC));
+[[gnu::naked]]
+extern "C" long int syscall(std::size_t, ...) {
+    asm volatile ("int $0x80; ret");
 }

@@ -8,7 +8,7 @@
 #include <syscall.h>
 #include <unistd.h>
 #include <assert.h>
-#include <lib/syscall.hpp>
+#include <lib/syscalls.hpp>
 using namespace proc;
 using namespace scheduler;
 
@@ -84,7 +84,7 @@ cpu::status *sys_nanosleep(cpu::status *status) {
 
 cpu::status *sys_getpid(cpu::status *status) {
     status->rax = smp::this_cpu()->cur_proc->pid;
-    return status;
+    return nullptr;
 }
 
 void proc::init() {

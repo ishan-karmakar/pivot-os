@@ -3,6 +3,8 @@
 #include <frg/hash_map.hpp>
 #include <mem/heap.hpp>
 #include <unordered_set>
+#include <sys/types.h>
+#include <variant>
 
 namespace vfs {
     struct cdev_t {
@@ -11,39 +13,60 @@ namespace vfs {
         virtual void read(void *buffer, std::size_t off, std::size_t count) = 0;
     };
 
-    class fs_t;
-    struct inode_t {
-        virtual ~inode_t() = default;
+    struct dentry_dir_t;
+    struct dentry_t {
+        dentry_t(dentry_dir_t *parent, std::string_view name, uint32_t mode) : name{name}, parent{parent}, mode{mode} {}
+        ~dentry_t();
+        dentry_t *follow();
 
-        // Unmounts the current inode (represents root of filesystem)
-        virtual void unmount() = 0;
-    
-        bool is_mount{false}; // Figure out where this can go in flags
+        std::string_view name;
+        dentry_dir_t *parent;
+        uint32_t mode;
     };
 
-    struct dentry_t {
-        dentry_t(frg::string_view name, dentry_t *parent, uint32_t flags, inode_t *inode) : name{name}, parent{parent}, flags{flags}, inode{inode} {}
+    struct dentry_file_t : public dentry_t {
+        using dentry_t::dentry_t;
+        virtual ~dentry_file_t() = default;
+        virtual ssize_t write(void*, std::size_t, off_t) = 0;
+        virtual ssize_t read(void*, std::size_t, off_t) = 0;
 
-        frg::string_view name;
-        dentry_t *parent;
-        uint32_t flags;
-        // Basically no space taken up because it is initialized empty
-        frg::hash_map<frg::string_view, dentry_t*, frg::hash<frg::string_view>, heap::allocator> children{{}};
-        inode_t *inode;
+        std::size_t fsize;
+    };
+    
+    struct dentry_dir_t : public dentry_t {
+        using dentry_t::dentry_t;
+        virtual ~dentry_dir_t() = default;
+        virtual dentry_t *find_child(std::string_view) = 0;
+        virtual dentry_t *create_child(std::string_view, uint32_t) = 0;
+        virtual void unmount() = 0;
+        
+        bool is_mount{false};
+        std::vector<dentry_t*> children;
+    };
+
+    struct dentry_lnk_t : public dentry_t {
+        using dentry_t::dentry_t;
+        virtual ~dentry_lnk_t() = default;
+
+        dentry_t *target;
+    };
+
+    struct fd_t {
+        dentry_t *dentry;
+        int flags;
+        off_t off;
     };
 
     class fs_t {
     protected:
-        fs_t(frg::string_view);
+        fs_t(std::string_view);
         virtual ~fs_t() = default;
 
     public:
-        virtual dentry_t *mount(dentry_t*, frg::string_view) = 0;
+        virtual dentry_dir_t *mount(dentry_dir_t*, std::string_view) = 0;
     };
 
-    void mount(frg::string_view, frg::string_view);
-    void unmount(frg::string_view);
-    void remove(frg::string_view, bool);
-    void remove(inode_t*, bool);
-    void create(frg::string_view, uint32_t flags);
+    void init();
+    void mount(std::string_view, std::string_view);
+    void unmount(std::string_view);
 }

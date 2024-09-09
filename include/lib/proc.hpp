@@ -2,6 +2,7 @@
 #include <frg/rbtree.hpp>
 #include <cpu/cpu.hpp>
 #include <mem/heap.hpp>
+#include <drivers/fs/vfs.hpp>
 #include <functional>
 
 namespace vmm {
@@ -33,6 +34,7 @@ namespace proc {
         cpu::status ef;
         vmm::vmm_t& vmm;
         heap::pool_t& pool;
+        std::vector<vfs::fd_t> fd_table;
         void *fpu_data;
     
     private:

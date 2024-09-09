@@ -27,7 +27,7 @@ sources = [
     'lib/scheduler.cpp',
     'lib/interrupts.cpp',
     'lib/modules.cpp',
-    'lib/syscall.cpp',
+    'lib/syscalls.cpp',
     'lib/proc.cpp',
     'cpu/cpu.cpp',
     'cpu/gdt.cpp',

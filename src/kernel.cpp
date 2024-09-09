@@ -18,13 +18,14 @@
 #include <drivers/fs/tmpfs.hpp>
 #include <drivers/pci.hpp>
 #include <drivers/qemu.hpp>
-#include <lib/syscall.hpp>
+#include <lib/syscalls.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
 #include <lib/scheduler.hpp>
 #include <limine.h>
 #include <fcntl.h>
 #include <cstdlib>
+#include <assert.h>
 
 __attribute__((used, section(".requests")))
 static LIMINE_BASE_REVISION(2);
@@ -37,6 +38,7 @@ static LIMINE_REQUESTS_END_MARKER;
 
 void kmain() {
     acpi::late_init();
+    vfs::init();
     tmpfs::init();
     vfs::mount("/", "tmpfs");
 }

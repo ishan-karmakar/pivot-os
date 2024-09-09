@@ -37,13 +37,24 @@ void cxxabi::call_dtors() {
 
 int *__errno_location() noexcept { return &errno_var; }
 
+inline std::size_t
+unaligned_load(const char* p)
+{
+    std::size_t result;
+    __builtin_memcpy(&result, p, sizeof(result));
+    return result;
+}
+
 namespace std {
+    template class allocator<char>;
+    template class allocator<wchar_t>;
+
     void __throw_bad_function_call() {
         logger::panic("STD", "__throw_bad_function_call()");
     }
 
-    void __throw_length_error(const char *s) {
-        logger::panic("STD", "__throw_length_error(), %s", s);
+    void __throw_length_error(const char*) {
+        logger::panic("STD", "__throw_length_error()");
     }
 
     void __throw_bad_array_new_length() {
@@ -54,8 +65,57 @@ namespace std {
         logger::panic("STD", "__throw_bad_alloc()");
     }
 
+    void __throw_logic_error(const char*) {
+        logger::panic("STD", "__throw_logic_error()");
+    }
+
     void __throw_system_error(int e) {
         logger::panic("CXXABI", "System error (%d)", e);
+    }
+
+    size_t
+    _Hash_bytes(const void* ptr, size_t len, size_t seed)
+    {
+        const size_t m = 0x5bd1e995;
+        size_t hash = seed ^ len;
+        const char* buf = static_cast<const char*>(ptr);
+
+        // Mix 4 bytes at a time into the hash.
+        while(len >= 4)
+        {
+        size_t k = unaligned_load(buf);
+        k *= m;
+        k ^= k >> 24;
+        k *= m;
+        hash *= m;
+        hash ^= k;
+        buf += 4;
+        len -= 4;
+        }
+
+        size_t k;
+        // Handle the last few bytes of the input array.
+        switch(len)
+        {
+        case 3:
+        k = static_cast<unsigned char>(buf[2]);
+        hash ^= k << 16;
+        [[gnu::fallthrough]];
+        case 2:
+        k = static_cast<unsigned char>(buf[1]);
+        hash ^= k << 8;
+        [[gnu::fallthrough]];
+        case 1:
+        k = static_cast<unsigned char>(buf[0]);
+        hash ^= k;
+        hash *= m;
+        };
+
+        // Do a few final mixes of the hash.
+        hash ^= hash >> 13;
+        hash *= m;
+        hash ^= hash >> 15;
+        return hash;
     }
 
     namespace __detail {
@@ -127,34 +187,25 @@ namespace std {
         std::pair<bool, std::size_t>
         _Prime_rehash_policy::
         _M_need_rehash(std::size_t __n_bkt, std::size_t __n_elt,
-                    std::size_t __n_ins) const
+		 std::size_t __n_ins) const
         {
             if (__n_elt + __n_ins > _M_next_resize)
             {
-                // If _M_next_resize is 0, it means that we have nothing allocated so far and that we start inserting elements.
-                // In this case, we start with an initial bucket size of 11.
-                std::size_t __min_bkts = std::max<std::size_t>(
-                    __n_elt + __n_ins,
-                    _M_next_resize ? 0 : 11);
-                
-                // Multiply instead of dividing by the load factor
-                if (__min_bkts * _M_max_load_factor >= __n_bkt)
-                {
-                    std::size_t new_bkt_count = _M_next_bkt(std::max<std::size_t>(
-                        (__min_bkts * _M_max_load_factor + 1) / _M_max_load_factor,
-                        __n_bkt * _S_growth_factor));
-                    
-                    return {true, new_bkt_count};
-                }
+            // If _M_next_resize is 0 it means that we have nothing allocated so
+            // far and that we start inserting elements. In this case we start
+            // with an initial bucket size of 11.
+            double __min_bkts = std::max<std::size_t>(__n_elt + __n_ins, _M_next_resize ? 0 : 11) / (double) _M_max_load_factor;
+            if (__min_bkts >= __n_bkt)
+            return { true,
+                _M_next_bkt(std::max<std::size_t>(static_cast<std::size_t>(__min_bkts) + 1,
+                                __n_bkt * _S_growth_factor)) };
 
-                // Calculate the next resize threshold without using floating-point division
-                _M_next_resize = __n_bkt * _M_max_load_factor;
-                return {false, 0};
+            _M_next_resize
+            = static_cast<std::size_t>(__n_bkt * (double)_M_max_load_factor);
+            return { false, 0 };
             }
             else
-            {
-                return {false, 0};
-            }
+            return { false, 0 };
         }
 
         std::size_t
@@ -167,18 +218,20 @@ namespace std {
 
             if (__n < sizeof(__fast_bkt))
             {
-                if (__n == 0)
-                    // Special case on container 1st initialization with 0 bucket count hint.
-                    // We keep _M_next_resize to 0 to make sure that next time we want to add an element allocation will take place.
-                    return 1;
+            if (__n == 0)
+            // Special case on container 1st initialization with 0 bucket count
+            // hint. We keep _M_next_resize to 0 to make sure that next time we
+            // want to add an element allocation will take place.
+            return 1;
 
-                // Calculate the next resize threshold using integer arithmetic.
-                _M_next_resize = __fast_bkt[__n] * _M_max_load_factor;
-                return __fast_bkt[__n];
+            _M_next_resize =
+            static_cast<std::size_t>(__fast_bkt[__n] * (double)_M_max_load_factor);
+            return __fast_bkt[__n];
             }
 
             // Number of primes (without sentinel).
-            constexpr auto __n_primes = sizeof(__prime_list) / sizeof(unsigned long) - 1;
+            constexpr auto __n_primes
+            = sizeof(__prime_list) / sizeof(unsigned long) - 1;
 
             // Don't include the last prime in the search, so that anything
             // higher than the second-to-last prime returns a past-the-end
@@ -189,17 +242,13 @@ namespace std {
             std::lower_bound(__prime_list + 6, __last_prime, __n);
 
             if (__next_bkt == __last_prime)
-            {
-                // Set next resize to the max value so that we never try to rehash again
-                // as we already reach the biggest possible bucket number.
-                // Note that it might result in max_load_factor not being respected.
-                _M_next_resize = size_t(-1);
-            }
+            // Set next resize to the max value so that we never try to rehash again
+            // as we already reach the biggest possible bucket number.
+            // Note that it might result in max_load_factor not being respected.
+            _M_next_resize = size_t(-1);
             else
-            {
-                // Calculate the next resize threshold using integer arithmetic.
-                _M_next_resize = (*__next_bkt) * _M_max_load_factor;
-            }
+            _M_next_resize =
+            static_cast<std::size_t>(*__next_bkt * (double)_M_max_load_factor);
 
             return *__next_bkt;
         }

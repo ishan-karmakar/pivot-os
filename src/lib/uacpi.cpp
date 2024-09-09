@@ -14,6 +14,7 @@
 #include <lib/proc.hpp>
 #include <drivers/pci.hpp>
 #include <assert.h>
+#include <unistd.h>
 
 uacpi_status uacpi_kernel_install_interrupt_handler(uacpi_u32 irq, uacpi_interrupt_handler func, uacpi_handle ctx, uacpi_handle *out_handle) {
     idt::handlers[irq].push_back([func, ctx](cpu::status*) {
@@ -60,9 +61,9 @@ uacpi_status uacpi_kernel_handle_firmware_request(uacpi_firmware_request *reques
 }
 
 void uacpi_kernel_vlog(uacpi_log_level log_level, const char *str, va_list args) {
-    frg::string<heap::allocator> string{str};
-    string.resize(string.size() - 1);
-    logger::log(static_cast<logger::log_level>(log_level), "UACPI", string.data(), args);
+    std::string s{str};
+    s.resize(s.size() - 1);
+    logger::log(static_cast<logger::log_level>(log_level), "UACPI", s.data(), args);
 }
 
 void uacpi_kernel_log(uacpi_log_level log_level, const char *str, ...) {
