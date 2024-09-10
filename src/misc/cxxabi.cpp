@@ -1,5 +1,4 @@
 #include <cstddef>
-#include <cstdint>
 #include <misc/cxxabi.hpp>
 #include <lib/logger.hpp>
 #include <cstdlib>
@@ -70,7 +69,11 @@ namespace std {
     }
 
     void __throw_system_error(int e) {
-        logger::panic("CXXABI", "System error (%d)", e);
+        logger::panic("STD", "System error (%d)", e);
+    }
+
+    void __throw_out_of_range_fmt(const char*, ...) {
+	logger::panic("STD", "__throw_out_of_range_fmt()");
     }
 
     size_t

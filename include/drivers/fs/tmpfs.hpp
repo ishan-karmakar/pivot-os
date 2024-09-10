@@ -29,7 +29,7 @@ namespace tmpfs {
         fs_t() : vfs::fs_t{"tmpfs"} {};
 
     private:
-        vfs::dentry_dir_t *mount(vfs::dentry_dir_t*, std::string_view) override;
+        vfs::dentry_dir_t *mount(std::string_view) override;
     };
 
     void init();

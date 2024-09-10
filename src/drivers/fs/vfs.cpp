@@ -35,6 +35,7 @@ dentry_t *dentry_t::follow() {
 }
 
 dentry_t::~dentry_t() {
+    // FIXME: We shouldn't delete directory when unmount occurs
     parent->children.erase(std::remove(parent->children.begin(), parent->children.end(), this), parent->children.end());
 }
 
@@ -68,6 +69,10 @@ dentry_t *path2ent(std::string_view path, bool follow) {
             }
             if (follow)
                 parent = parent->follow();
+	    if (S_ISDIR(parent->mode)) {
+		auto d = static_cast<dentry_dir_t*>(parent);
+		parent = d->mountp ? d->mountp : d;
+	    }
         }
     } while (cwk_path_get_next_segment(&seg));
     return parent;
@@ -80,12 +85,15 @@ cpu::status *sys_mount(cpu::status *status) {
     std::string_view fs_type{reinterpret_cast<const char*>(status->rcx)};
     if (filesystems.find(fs_type) == filesystems.end()) RETURN_ERR(ENODEV)
     if (target == "/")
-        root = filesystems[fs_type]->mount(nullptr, "/");
+        root = filesystems[fs_type]->mount("/");
     else {
         if (!root) RETURN_ERR(ENOENT)
         auto n = path2ent(target, true);
+	if (!n) RETURN_ERR(ENOENT)
         if (!S_ISDIR(n->mode)) RETURN_ERR(ENOTDIR)
-        filesystems[fs_type]->mount(static_cast<dentry_dir_t*>(n), target);
+	auto d = static_cast<dentry_dir_t*>(n);
+        d->mountp = filesystems[fs_type]->mount(target);
+	d->mountp->parent = d->parent;
     }
     status->rax = 0;
     return nullptr;

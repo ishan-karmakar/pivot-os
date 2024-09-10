@@ -1,12 +1,11 @@
 #include <drivers/fs/tmpfs.hpp>
 #include <sys/stat.h>
 #include <lib/logger.hpp>
+#include <syscall.h>
 using namespace tmpfs;
 
-vfs::dentry_dir_t *fs_t::mount(vfs::dentry_dir_t *node, std::string_view name) {
-    auto n = new dentry_dir_t{nullptr, name, S_IFDIR};
-    if (node) node->mountp = n;
-    return n;
+vfs::dentry_dir_t *fs_t::mount(std::string_view name) {
+    return new dentry_dir_t{nullptr, name, 0};
 }
 
 vfs::dentry_t *dentry_dir_t::find_child(std::string_view name) {
@@ -64,4 +63,6 @@ void dentry_dir_t::unmount() {}
 
 void tmpfs::init() {
     new fs_t;
+    syscall(SYS_mount, "", "/", "tmpfs");
+    logger::info("TMPFS", "Mounted root filesystem");
 }

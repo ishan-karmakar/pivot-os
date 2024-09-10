@@ -4,3 +4,4 @@ subprojects/*/
 !subprojects/packagefiles
 .vscode/
 .gdb_history
+.cache/

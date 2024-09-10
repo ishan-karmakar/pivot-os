@@ -2,29 +2,23 @@
 #include <frg/string.hpp>
 #include <frg/hash_map.hpp>
 #include <mem/heap.hpp>
-#include <unordered_set>
 #include <sys/types.h>
-#include <variant>
+#include <sys/stat.h>
 
 namespace vfs {
-    struct cdev_t {
-        virtual ssize_t write(void*, std::size_t, off_t) = 0;
-        virtual ssize_t read(void*, std::size_t, off_t) = 0;
-    };
-
     struct dentry_dir_t;
     struct dentry_t {
         dentry_t(dentry_dir_t *parent, std::string_view name, uint32_t mode) : name{name}, parent{parent}, mode{mode} {}
         ~dentry_t();
         dentry_t *follow();
 
-        std::string_view name;
+        std::string name;
         dentry_dir_t *parent;
         uint32_t mode;
     };
 
     struct dentry_file_t : public dentry_t {
-        using dentry_t::dentry_t;
+        dentry_file_t(dentry_dir_t *parent, std::string_view name, uint32_t mode) : dentry_t{parent, name, mode | S_IFREG} {}
         virtual ~dentry_file_t() = default;
         virtual ssize_t write(void*, std::size_t, off_t) = 0;
         virtual ssize_t read(void*, std::size_t, off_t) = 0;
@@ -34,7 +28,7 @@ namespace vfs {
     };
     
     struct dentry_dir_t : public dentry_t {
-        using dentry_t::dentry_t;
+        dentry_dir_t(dentry_dir_t *parent, std::string_view name, uint32_t mode) : dentry_t{parent, name, mode | S_IFDIR} {}
         virtual ~dentry_dir_t() = default;
         virtual dentry_t *find_child(std::string_view) = 0;
         virtual dentry_t *create_child(std::string_view, uint32_t) = 0;
@@ -47,7 +41,7 @@ namespace vfs {
     };
 
     struct dentry_lnk_t : public dentry_t {
-        using dentry_t::dentry_t;
+        dentry_lnk_t(dentry_dir_t *parent, std::string_view name, uint32_t mode) : dentry_t{parent, name, mode | S_IFLNK} {}
         virtual ~dentry_lnk_t() = default;
         virtual void remove() { delete this; }
 
@@ -66,7 +60,7 @@ namespace vfs {
         virtual ~fs_t() = default;
 
     public:
-        virtual vfs::dentry_dir_t *mount(dentry_dir_t*, std::string_view) = 0;
+        virtual vfs::dentry_dir_t *mount(std::string_view) = 0;
     };
 
     void init();

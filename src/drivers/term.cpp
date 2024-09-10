@@ -5,10 +5,31 @@
 #include <lib/modules.hpp>
 #include <io/stdio.hpp>
 #include <lib/logger.hpp>
+#include <drivers/fs/devtmpfs.hpp>
 using namespace term;
 
 __attribute__((section(".requests")))
 static limine_framebuffer_request fb_request = { LIMINE_FRAMEBUFFER_REQUEST, 2, nullptr };
+
+struct cdev_t : devtmpfs::cdev_t {
+    cdev_t(void *address, std::size_t i) : devtmpfs::cdev_t{std::string("fb") + std::to_string(i)}, fb{static_cast<char*>(address)} {}
+    ~cdev_t() = default;
+    
+    // FIXME: This is very dangerous! Fix this immediately
+    ssize_t read(void *buffer, size_t size, off_t off) {
+	memcpy(fb + off, buffer, size);
+	return size;
+    }
+
+    // FIXME: This is very dangerous! Fix this immediately
+    ssize_t write(void *buffer, size_t size, off_t off) {
+	memcpy(buffer, fb + off, size);
+	return size;
+    }
+
+private:
+    char *fb;
+};
 
 std::vector<term_t*> terms{fb_request.response->framebuffer_count};
 
@@ -25,9 +46,6 @@ public:
     }
 
     void append(const char *s) { append(std::string_view{s}); }
-};
-
-struct cdev_t : vfs::cdev_t {
 };
 
 static term_writer *writer;
@@ -82,6 +100,7 @@ void term::init() {
             back
         );
         terms[i]->cursor_enabled = false;
+	devtmpfs::register_dev(new cdev_t{framebuffer->address, i});
     }
     clear();
 
