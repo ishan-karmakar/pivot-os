@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <lib/logger.hpp>
 #include <syscall.h>
+#include <unistd.h>
 using namespace tmpfs;
 
 vfs::dentry_dir_t *fs_t::mount(std::string_view name) {
@@ -32,10 +33,9 @@ ssize_t dentry_file_t::write(void *buffer, std::size_t size, off_t off) {
         start = static_cast<char*>(vmm::kvmm->malloc(size));
         buf_size = round_up(size, PAGE_SIZE);
     } else if ((off + size) > buf_size) {
-        // TODO: Linux supports seeking to past the end of file, but fills in with zeroes if written to
-        // Right now we can do the same but it is garbage. Change to zeroes
         char *new_start = static_cast<char*>(vmm::kvmm->malloc(off + size));
         memcpy(new_start, start, buf_size);
+        memset(new_start + buf_size, 0, off + size - buf_size);
         vmm::kvmm->free(start);
         start = new_start;
         buf_size = off + size;
@@ -48,7 +48,7 @@ ssize_t dentry_file_t::write(void *buffer, std::size_t size, off_t off) {
 ssize_t dentry_file_t::read(void *buffer, std::size_t size, off_t off) {
     if (!start)
         return 0;
-    
+
     std::size_t rbytes = std::min(size, fsize - off);
     memcpy(buffer, start + off, rbytes);
     return rbytes;

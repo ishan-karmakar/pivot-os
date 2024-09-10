@@ -40,14 +40,14 @@ dentry_t::~dentry_t() {
 }
 
 // TODO: Traverse with permission checking
-dentry_t *path2ent(std::string_view path, bool follow) {
+std::pair<dentry_dir_t*, dentry_t*> path2ent(std::string_view path, bool follow) {
     cwk_segment seg;
-    if (!cwk_path_get_first_segment(path.data(), &seg)) return root;
+    if (!cwk_path_get_first_segment(path.data(), &seg)) return { nullptr, root };
     dentry_t *parent = root;
     do {
         if (!S_ISDIR(parent->mode)) {
             errno = ENOTDIR;
-            return nullptr;
+            return { nullptr, nullptr };
         }
         if (!follow)
             parent = parent->follow();
@@ -58,24 +58,25 @@ dentry_t *path2ent(std::string_view path, bool follow) {
             parent = parent->parent;
             if (!parent) {
                 errno = ENOENT;
-                return nullptr;
+                return { nullptr, nullptr };
             }
             continue;
         } else {
-            parent = static_cast<dentry_dir_t*>(parent)->find_child(name);
-            if (!parent) {
+            auto tmp = static_cast<dentry_dir_t*>(parent)->find_child(name);
+            if (!tmp) {
                 errno = ENOENT;
-                return nullptr;
+                return { static_cast<dentry_dir_t*>(parent), nullptr };
             }
+            parent = tmp;
             if (follow)
                 parent = parent->follow();
-	    if (S_ISDIR(parent->mode)) {
-		auto d = static_cast<dentry_dir_t*>(parent);
-		parent = d->mountp ? d->mountp : d;
-	    }
+            if (S_ISDIR(parent->mode)) {
+                auto d = static_cast<dentry_dir_t*>(parent);
+                parent = d->mountp ? d->mountp : d;
+            }
         }
     } while (cwk_path_get_next_segment(&seg));
-    return parent;
+    return { parent->parent, parent };
 }
 
 cpu::status *sys_mount(cpu::status *status) {
@@ -88,7 +89,7 @@ cpu::status *sys_mount(cpu::status *status) {
         root = filesystems[fs_type]->mount("/");
     else {
         if (!root) RETURN_ERR(ENOENT)
-        auto n = path2ent(target, true);
+        auto [parent, n] = path2ent(target, true);
 	if (!n) RETURN_ERR(ENOENT)
         if (!S_ISDIR(n->mode)) RETURN_ERR(ENOTDIR)
 	auto d = static_cast<dentry_dir_t*>(n);
@@ -103,21 +104,16 @@ cpu::status *sys_open(cpu::status *status) {
     status->rax = -1;
     const char *path = reinterpret_cast<const char*>(status->rsi);
     int flags = status->rdx;
-    dentry_t *ent = path2ent(path, true);
+    auto [parent, ent] = path2ent(path, true);
     if (!ent) {
         if (errno != ENOENT)
             return nullptr;
         if (!(flags & O_CREAT))
             RETURN_ERR(ENOENT)
         const char *bn;
-        std::size_t dn;
         cwk_path_get_basename(path, &bn, nullptr);
-        cwk_path_get_dirname(path, &dn);
-        ent = path2ent(std::string{path, dn}, true);
-        if (!ent)
-            return nullptr;
-        else if (!S_ISDIR(ent->mode)) RETURN_ERR(ENOTDIR);
-        ent = static_cast<dentry_dir_t*>(ent)->create_child(bn, static_cast<mode_t>(status->rcx) | S_IFREG);
+        if (!parent) RETURN_ERR(ENOENT)
+        ent = parent->create_child(bn, static_cast<mode_t>(status->rcx) | S_IFREG);
     } else if (S_ISDIR(ent->mode)) RETURN_ERR(EISDIR);
     auto& fd_table = smp::this_cpu()->cur_proc->fd_table;
     fd_t fd_ent = { ent, flags, 0 };
@@ -208,13 +204,9 @@ cpu::status *sys_mkdir(cpu::status *status) {
     status->rax = -1;
     const char *path = reinterpret_cast<const char*>(status->rsi);
     mode_t mode = status->rdx;
-    if (path2ent(path, true))
-        RETURN_ERR(EEXIST)
-    std::size_t dn;
-    cwk_path_get_dirname(path, &dn);
-    auto parent = path2ent(std::string{path, dn}, true);
+    auto [parent, child] = path2ent(path, true);
+    if (child) RETURN_ERR(EEXIST)
     if (!parent) return nullptr;
-    if (!S_ISDIR(parent->mode)) RETURN_ERR(ENOTDIR);
     const char *bn;
     cwk_path_get_basename(path, &bn, nullptr);
     static_cast<dentry_dir_t*>(parent)->create_child(bn, mode | S_IFDIR);
@@ -226,15 +218,13 @@ cpu::status *sys_symlink(cpu::status *status) {
     status->rax = -1;
     const char *source = reinterpret_cast<const char*>(status->rsi);
     const char *target = reinterpret_cast<const char*>(status->rdx);
-    dentry_t *src_ent = path2ent(source, true);
+    auto [_, src_ent] = path2ent(source, true);
     if (!src_ent) return nullptr;
-    std::size_t dn;
-    cwk_path_get_dirname(target, &dn);
-    dentry_t *parent = path2ent(std::string{target, dn}, true);
-    if (!parent) return nullptr;
+    auto [parent, child] = path2ent(target, true);
+    if (child) RETURN_ERR(EEXIST)
     const char *bn;
     cwk_path_get_basename(target, &bn, nullptr);
-    static_cast<dentry_lnk_t*>(static_cast<dentry_dir_t*>(parent)->create_child(bn, S_IFLNK))->target = src_ent;
+    static_cast<dentry_lnk_t*>(parent->create_child(bn, S_IFLNK))->target = src_ent;
     status->rax = 0;
     return nullptr;
 }
@@ -242,10 +232,10 @@ cpu::status *sys_symlink(cpu::status *status) {
 cpu::status *sys_rmdir(cpu::status *status) {
     status->rax = -1;
     const char *dir = reinterpret_cast<const char*>(status->rsi);
-    dentry_t *dent = path2ent(dir, true);
-    if (!dent) return nullptr;
-    if (!S_ISDIR(dent->mode)) RETURN_ERR(ENOTDIR)
-    auto d = static_cast<dentry_dir_t*>(dent);
+    auto [parent, child] = path2ent(dir, true);
+    if (!child) return nullptr;
+    if (!S_ISDIR(child->mode)) RETURN_ERR(ENOTDIR)
+    auto d = static_cast<dentry_dir_t*>(child);
     if (!d->children.empty()) RETURN_ERR(ENOTEMPTY)
     d->remove();
 
@@ -257,10 +247,10 @@ cpu::status *sys_unlink(cpu::status *status) {
     status->rax = -1;
 
     const char *target = reinterpret_cast<const char*>(status->rsi);
-    dentry_t *src_ent = path2ent(target, false);
-    if (S_ISDIR(src_ent->mode)) RETURN_ERR(EISDIR)
-    else if (S_ISREG(src_ent->mode)) static_cast<dentry_file_t*>(src_ent)->remove();
-    else if (S_ISLNK(src_ent->mode)) static_cast<dentry_lnk_t*>(src_ent)->remove();
+    auto [parent, child] = path2ent(target, false);
+    if (S_ISDIR(child->mode)) RETURN_ERR(EISDIR)
+    else if (S_ISREG(child->mode)) static_cast<dentry_file_t*>(child)->remove();
+    else if (S_ISLNK(child->mode)) static_cast<dentry_lnk_t*>(child)->remove();
 
     status->rax = 0;
     return nullptr;

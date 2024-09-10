@@ -41,16 +41,7 @@ void kmain() {
     acpi::late_init();
     vfs::init();
     tmpfs::init();
-    syscall(SYS_mount, "", "/", "tmpfs");
-    logger::info("VFS", "Mounted root filesystem (tmpfs)");
     devtmpfs::init();
-    syscall(SYS_mkdir, "/dev", S_IRWXU);
-    syscall(SYS_mount, "", "/dev", "devtmpfs");
-    int fd = syscall(SYS_open, "/dev/fb0", O_RDONLY);
-    assert(fd >= 0);
-    void *buffer = operator new(16);
-    assert(syscall(SYS_read, fd, buffer, 16) >= 0);
-    assert(syscall(SYS_close, fd) == 0);
 }
 
 extern "C" [[noreturn]] void kinit() {
