@@ -4,14 +4,10 @@
 
 namespace devtmpfs {
     struct cdev_t {
-        cdev_t(uint32_t maj, uint32_t min) : dev_num{maj, min} {}
+        cdev_t() = default;
         virtual ~cdev_t() = default;
         virtual ssize_t write(void*, std::size_t, off_t) = 0;
         virtual ssize_t read(void*, std::size_t, off_t) = 0;
-        bool operator==(std::pair<uint32_t, uint32_t> dn) { return dev_num == dn; }
-
-    private:
-        std::pair<uint32_t, uint32_t> dev_num;
     };
 
     struct dentry_dir_t : public vfs::dentry_dir_t {
@@ -23,7 +19,7 @@ namespace devtmpfs {
     };
 
     struct dentry_file_t : public vfs::dentry_file_t {
-        dentry_file_t(dentry_dir_t*, std::string_view, cdev_t*);
+        dentry_file_t(dentry_dir_t*, std::string_view, cdev_t*, mode_t);
         ssize_t write(void*, std::size_t, off_t) override;
         ssize_t read(void*, std::size_t, off_t) override;
         void remove() override;
@@ -46,6 +42,5 @@ namespace devtmpfs {
     };
 
     void init();
-    void register_dev(cdev_t*);
-    void add_dev(std::string_view, uint32_t maj, uint32_t min);
+    void add_dev(std::string_view, cdev_t*, mode_t);
 }

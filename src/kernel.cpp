@@ -42,6 +42,7 @@ void kmain() {
     vfs::init();
     tmpfs::init();
     devtmpfs::init();
+    term::register_devs();
 }
 
 extern "C" [[noreturn]] void kinit() {

@@ -11,25 +11,28 @@ using namespace term;
 __attribute__((section(".requests")))
 static limine_framebuffer_request fb_request = { LIMINE_FRAMEBUFFER_REQUEST, 2, nullptr };
 
-struct cdev_t : devtmpfs::cdev_t {
-    cdev_t(void *address, std::size_t i) : devtmpfs::cdev_t{std::string("fb") + std::to_string(i)}, fb{static_cast<char*>(address)} {}
-    ~cdev_t() = default;
+struct fb_cdev_t : devtmpfs::cdev_t {
+    fb_cdev_t(void *address, std::size_t size) : fb{static_cast<char*>(address)}, size{size} {}
+    ~fb_cdev_t() = default;
     
-    // FIXME: This is very dangerous! Fix this immediately
     ssize_t read(void *buffer, size_t size, off_t off) {
-	memcpy(fb + off, buffer, size);
-	return size;
+        size = std::min(this->size - off, size);
+        memcpy(fb + off, buffer, size);
+        return size;
     }
 
-    // FIXME: This is very dangerous! Fix this immediately
     ssize_t write(void *buffer, size_t size, off_t off) {
-	memcpy(buffer, fb + off, size);
-	return size;
+        size = std::min(this->size - off, size);
+        memcpy(buffer, fb + off, size);
+        return size;
     }
 
 private:
     char *fb;
+    std::size_t size;
 };
+
+struct tty_cdev_t : devtmpfs::cdev_t {};
 
 std::vector<term_t*> terms{fb_request.response->framebuffer_count};
 
@@ -100,7 +103,6 @@ void term::init() {
             back
         );
         terms[i]->cursor_enabled = false;
-	devtmpfs::register_dev(new cdev_t{framebuffer->address, i});
     }
     clear();
 
@@ -110,6 +112,13 @@ void term::init() {
     };
 
     logger::info("TERM", "Initialized terminal");
+}
+
+void term::register_devs() {
+    for (std::size_t i = 0; i < fb_request.response->framebuffer_count; i++) {
+        auto fb = fb_request.response->framebuffers[i];
+        devtmpfs::add_dev(std::string{"fb"} + std::to_string(i), new fb_cdev_t{fb->address, fb->pitch * fb->height}, S_IFCHR | S_IRWXU);
+    }
 }
 
 void term::clear() {
