@@ -17,9 +17,13 @@ int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {
     return 0;
 }
 
-int vprintf(const char *fmt, va_list a) {
-    return __vfprintf_chk(stdout, 0, fmt, a);
+int vfprintf(FILE *f, const char *fmt, va_list a) {
+    return __vfprintf_chk(f, 0, fmt, a);
 }
+
+/*int vprintf(const char *fmt, va_list a) {
+    return __vfprintf_chk(stdout, 0, fmt, a);
+}*/
 
 int __printf_chk(int, const char *fmt, ...) {
     va_list args;

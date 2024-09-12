@@ -21,6 +21,7 @@ sources = [
     'misc/mem.cpp',
     'misc/ubsan.cpp',
     'misc/string.cpp',
+    'misc/strchr.cpp',
     'lib/logger.cpp',
     'lib/timer.cpp',
     'lib/uacpi.cpp',

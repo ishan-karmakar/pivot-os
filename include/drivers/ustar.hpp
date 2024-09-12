@@ -25,6 +25,8 @@ namespace ustar {
 	    uint64_t dmin;
 	    char prefix[155];
 	};
+	std::size_t calc_chksum(std::size_t) const;
+
 	char *start;
 	std::size_t size;
     };
