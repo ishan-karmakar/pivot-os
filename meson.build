@@ -29,10 +29,11 @@ iso_files = files(
 
 iso_files += limine.get_variable('limine_binaries')
 
+initrd_dir = meson.source_root() / 'test-initrd'
 initrd = custom_target(
     'initrd',
     output: 'initrd.tar.gz',
-    command: ['tar', '-cf', '@OUTPUT@', 'system-root']
+    command: ['tar', '-H', 'ustar', '-C', initrd_dir, '-cf', '@OUTPUT@', '.']
 )
 
 os = custom_target(
@@ -41,7 +42,7 @@ os = custom_target(
     command: [
         'rm', '-rf', '@PRIVATE_DIR@', '&&',
         'mkdir', '@PRIVATE_DIR@', '&&',
-        'cp', iso_files, kernel, '@PRIVATE_DIR@', '&&',
+        'cp', iso_files, kernel, initrd, '@PRIVATE_DIR@', '&&',
         'xorriso', '-as', 'mkisofs', '-b', 'limine-bios-cd.bin', '-no-emul-boot',
             '-boot-load-size', '4', '-boot-info-table', '--efi-boot', 'limine-uefi-cd.bin',
             '-efi-boot-part', '--efi-boot-image', '--protective-msdos-label', '@PRIVATE_DIR@',

@@ -64,4 +64,6 @@ namespace vfs {
     };
 
     void init();
+    std::pair<dentry_dir_t*, dentry_t*> path2ent(std::string_view, bool);
+    std::pair<dentry_dir_t*, dentry_t*> path2ent(dentry_dir_t*, std::string_view, bool);
 }

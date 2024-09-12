@@ -66,5 +66,8 @@ void devtmpfs::add_dev(std::string_view name, cdev_t *dev, mode_t mode) {
     if (!dev_root)
         return logger::error("DEVTMPFS", "Dev root not initialized yet");
     logger::verbose("DEVTMPFS", "Registering device '%s'", name.data());
-    dev_root->children.push_back(new dentry_file_t{dev_root, name, dev, mode});
+    auto [parent, _] = vfs::path2ent(dev_root, name, true);
+    if (!parent)
+	return logger::warning("DEVTMPFS", "'%s' not found", name);
+    parent->children.push_back(new dentry_file_t{dev_root, name, dev, mode});
 }

@@ -46,6 +46,8 @@ sources = [
     'drivers/acpi.cpp',
     'drivers/madt.cpp',
     'drivers/pci.cpp',
+    'drivers/initrd.cpp',
+    'drivers/ustar.cpp',
     'drivers/fs/vfs.cpp',
     'drivers/fs/tmpfs.cpp',
     'drivers/fs/devtmpfs.cpp',

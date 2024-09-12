@@ -19,6 +19,7 @@
 #include <drivers/fs/devtmpfs.hpp>
 #include <drivers/pci.hpp>
 #include <drivers/qemu.hpp>
+#include <drivers/initrd.hpp>
 #include <lib/syscalls.hpp>
 #include <io/serial.hpp>
 #include <lib/logger.hpp>
@@ -43,6 +44,7 @@ void kmain() {
     tmpfs::init();
     devtmpfs::init();
     term::register_devs();
+    initrd::init();
 }
 
 extern "C" [[noreturn]] void kinit() {

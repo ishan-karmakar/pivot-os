@@ -39,11 +39,15 @@ dentry_t::~dentry_t() {
     parent->children.erase(std::remove(parent->children.begin(), parent->children.end(), this), parent->children.end());
 }
 
+std::pair<dentry_dir_t*, dentry_t*> vfs::path2ent(std::string_view path, bool follow) {
+    return path2ent(root, path, follow);
+}
+
 // TODO: Traverse with permission checking
-std::pair<dentry_dir_t*, dentry_t*> path2ent(std::string_view path, bool follow) {
+std::pair<dentry_dir_t*, dentry_t*> vfs::path2ent(dentry_dir_t *root_dent, std::string_view path, bool follow) {
     cwk_segment seg;
     if (!cwk_path_get_first_segment(path.data(), &seg)) return { nullptr, root };
-    dentry_t *parent = root;
+    dentry_t *parent = root_dent;
     do {
         if (!S_ISDIR(parent->mode)) {
             errno = ENOTDIR;
