@@ -5,27 +5,19 @@
 #include <cxxabi.h>
 #include <bits/stl_tree.h>
 #include <bits/hashtable_policy.h>
-#include <frg/eternal.hpp>
-#include <forward_list>
-typedef void (*func_t)(void);
-
+#include <errno.h>
 extern void (*__init_array_start[])();
 extern void (*__init_array_end[])();
 extern void (*__fini_array_start[])();
 extern void (*__fini_array_end[])();
 
-struct exit_handler {
-    void (*func)(void*);
-    void *arg;
-
-    bool operator==(void *f) { return func == f; }
-};
-frg::eternal<std::forward_list<exit_handler>> exit_queue;
 int errno_var;
 
 void cxxabi::call_ctors() {
-    for (auto ctor = __init_array_start; ctor < __init_array_end; ctor++)
+    for (auto ctor = __init_array_start; ctor < __init_array_end; ctor++) {
+	logger::verbose("CTORS", "Running constructor at %p", *ctor);
         (*ctor)();
+    }
     logger::info("CTORS", "Finished running global constructors");
 }
 
@@ -276,21 +268,8 @@ extern "C" {
     }
 
     void *__dso_handle = nullptr;
-    int __cxa_atexit(void (*func)(void*), void *arg, void*) {
-        exit_queue->push_front({ func, arg });
+    int __cxa_atexit(void (*)(void*), void *, void*) {
         return 0;
-    }
-
-    void __cxa_finalize(void *func) {
-        if (func) {
-            auto handler = std::find(exit_queue->begin(), exit_queue->end(), func);
-            if (handler != exit_queue->end())
-                handler->func(handler->arg);
-            else
-                logger::warning("CXXABI", "Could not find function %p", func);
-        } else
-            for (const auto& handler : *exit_queue)
-                handler.func(handler.arg);
     }
 
     void __cxa_pure_virtual() {

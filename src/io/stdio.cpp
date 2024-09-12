@@ -17,13 +17,15 @@ int __vfprintf_chk(FILE*, int, const char *fmt, va_list a) {
     return 0;
 }
 
+#ifdef __OPTIMIZE__
 int vfprintf(FILE *f, const char *fmt, va_list a) {
     return __vfprintf_chk(f, 0, fmt, a);
 }
-
-/*int vprintf(const char *fmt, va_list a) {
+#else
+int vprintf(const char *fmt, va_list a) {
     return __vfprintf_chk(stdout, 0, fmt, a);
-}*/
+}
+#endif
 
 int __printf_chk(int, const char *fmt, ...) {
     va_list args;

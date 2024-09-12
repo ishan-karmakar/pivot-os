@@ -65,12 +65,13 @@ sources = [
 
 options = []
 
-# if get_option('buildtype').startswith('debug')
-#     options += 'b_sanitize=undefined'
-# endif
+if get_option('buildtype').startswith('debug')
+  #    options += 'b_sanitize=undefined'
+endif
 
 c_args = [
     '-ffreestanding',
+    '-fno-exceptions',
     '-nostdlib',
     '-mno-red-zone',
     '-static',
@@ -86,7 +87,6 @@ endif
 
 cpp_args = [
     c_args,
-    '-fno-exceptions',
 ]
 
 link_args = cpp_args
