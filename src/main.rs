@@ -3,12 +3,13 @@
 
 use core::panic::PanicInfo;
 
-#[used]
-#[link_section = ".requests"]
-static BASE_REVISION: limine::BaseRevision = limine::BaseRevision::new();
+pub mod cpu;
+pub mod limine;
+pub mod serial;
 
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn kinit() -> ! {
+    unsafe { cpu::set_int(false); }
     loop {}
 }
 
