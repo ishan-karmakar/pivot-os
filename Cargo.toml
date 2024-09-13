@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 limine = "0.3.0"
+log = "0.4.22"
+uart_16550 = "0.3.1"
