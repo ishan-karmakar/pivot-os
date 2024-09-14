@@ -1,5 +1,6 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kinit)
+EXTERN(isr_table)
 
 PHDRS
 {

@@ -1,5 +1,7 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
+#![feature(naked_functions)]
 
 use core::panic::PanicInfo;
 
@@ -8,6 +10,7 @@ pub mod limine;
 pub mod qemu;
 pub mod logger;
 pub mod writer;
+pub mod idt;
 
 #[no_mangle]
 pub extern "C" fn kinit() -> ! {

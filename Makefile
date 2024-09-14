@@ -9,6 +9,8 @@ QEMU_FLAGS := -m 128M -smp 2 -serial stdio -no-reboot -no-shutdown
 XORRISO_FLAGS := -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
 				 --efi-boot limine-uefi-cd.bin -efi-boot-part --efi-boot-image --protective-msdos-label
 ISO := $(BUILD_DIR)/pivot-os.iso
+ASM_FILES := src/intr.asm
+ASM_FILES_OUT := $(patsubst %.asm,%.o,$(addprefix $(BUILD_DIR)/,$(notdir $(ASM_FILES))))
 
 all: iso
 
@@ -27,7 +29,14 @@ iso: kernel $(OUT_ISO_FILES)
 kernel:
 	mkdir -p $(TMP_DIR)
 	cargo $(CARGO_FLAGS) build
-	cp `cargo build --message-format=json 2> /dev/null | jq -r 'select((.target.kind == ["bin"]) and (.target.name == "pivot-os")) | .executable'` $(TMP_DIR)
+	cp `cargo build --message-format=json 2> /dev/null | jq -r 'select (.executable != null) | .executable'` $(TMP_DIR)
+
+$(BUILD_DIR)/libasm.a: $(ASM_FILES_OUT)
+	ar rcs $@ $^
+
+$(BUILD_DIR)/%.o: src/%.asm
+	mkdir -p build
+	nasm -felf64 $^ -o $@
 
 $(OUT_ISO_FILES): $(IN_ISO_FILES)
 	mkdir -p $(TMP_DIR)
