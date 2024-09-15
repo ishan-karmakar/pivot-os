@@ -48,7 +48,7 @@ static mut GDT: GlobalDescriptorTable = unsafe { GlobalDescriptorTable::new(STAT
 pub static KCODE: SegmentSelector = SegmentSelector::new(1, PrivilegeLevel::Ring0);
 pub static KDATA: SegmentSelector = SegmentSelector::new(2, PrivilegeLevel::Ring0);
 
-pub unsafe fn init() {
+pub unsafe fn init_static() {
     GDT.set(1, Descriptor::kernel_code_segment());
     GDT.set(2, Descriptor::kernel_data_segment());
     GDT.load();

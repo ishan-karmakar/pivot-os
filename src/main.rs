@@ -17,7 +17,7 @@ pub extern "C" fn kinit() -> ! {
     unsafe { cpu::set_int(false) }; // Disable all interrupts until we are ready to handle them
     unsafe { qemu::QEMU_WRITER.0.init() }; // Initialize the QEMU serial port + writer
     logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
-    unsafe { gdt::init() };
+    unsafe { gdt::init_static() };
     unsafe { idt::init() };
     loop {}
 }
