@@ -23,5 +23,6 @@ pub static LOGGER: SimpleLogger = SimpleLogger;
 pub fn init(l: LevelFilter) -> Result<(), SetLoggerError> {
     log::set_logger(&LOGGER)?;
     log::set_max_level(l);
+    log::info!("Initialized logger");
     Ok(())
 }

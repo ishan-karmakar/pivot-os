@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(abi_x86_interrupt)]
-#![feature(naked_functions)]
+#![feature(const_mut_refs)]
 
 use core::panic::PanicInfo;
 
@@ -11,16 +10,21 @@ pub mod qemu;
 pub mod logger;
 pub mod writer;
 pub mod idt;
+pub mod gdt;
 
 #[no_mangle]
 pub extern "C" fn kinit() -> ! {
-    unsafe { cpu::set_int(false); }
-    unsafe { qemu::QEMU_WRITER.0.init(); }
-    logger::init(log::LevelFilter::Debug).unwrap();
+    unsafe { cpu::set_int(false) }; // Disable all interrupts until we are ready to handle them
+    unsafe { qemu::QEMU_WRITER.0.init() }; // Initialize the QEMU serial port + writer
+    logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
+    unsafe { gdt::init() };
+    unsafe { idt::init() };
     loop {}
 }
 
 #[panic_handler]
-pub fn panic_handler(_info: &PanicInfo) -> ! {
+pub fn panic_handler(info: &PanicInfo) -> ! {
+    println!("{}", info);
+    unsafe { cpu::set_int(false) };
     loop {}
 }
