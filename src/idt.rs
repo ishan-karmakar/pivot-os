@@ -1,20 +1,30 @@
-use core::ptr::{addr_of, read_unaligned};
+use x86_64::{structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue}, VirtAddr};
 
-use x86_64::{instructions::interrupts::int3, structures::idt::{ExceptionVector, InterruptDescriptorTable, InterruptStackFrameValue}, VirtAddr};
+use crate::cpu;
 
 static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
-#[repr(C, packed)]
-struct ISRStatus {
-    pub restore_frame: InterruptStackFrameValue,
-    pub int_no: u64
+#[repr(C)]
+struct ExceptionStatus {
+    pub status: cpu::Status,
+    pub int_no: u64,
+    pub restore_frame: InterruptStackFrameValue
 }
 
-#[repr(C, packed)]
-struct ISRStatusEC {
-    pub restore_frame: InterruptStackFrameValue,
+#[repr(C)]
+struct ExceptionStatusEC {
+    pub status: cpu::Status,
+    pub int_no: u64,
     pub ec: u64,
-    pub int_no: u64
+    pub restore_frame: InterruptStackFrameValue
+}
+
+#[repr(C)]
+struct IRQStatus {
+    pub cr3: u64,
+    pub status: cpu::Status,
+    pub int_no: u64,
+    pub restore_frame: InterruptStackFrame
 }
 
 extern "C" {
@@ -50,20 +60,36 @@ pub unsafe fn init() {
     }
     IDT.load();
     log::info!("Loaded interrupt descriptor table");
-    int3();
+}
+
+fn log_registers(st: &cpu::Status, rf: &InterruptStackFrameValue) {
+    log::debug!("SS: {:#x}, RSP: {:#x}, RFLAGS: {:#x}, CS: {:#x}",
+        rf.stack_segment.0, rf.stack_pointer, rf.cpu_flags, rf.code_segment.0);
+    log::debug!("RIP: {:#x}, RAX: {:#x}, RBX: {:#x}, RCX: {:#x}",
+        rf.instruction_pointer, st.rax, st.rbx, st.rcx);
+    log::debug!("RDX: {:#x}, RBP: {:#x}, RSI: {:#x}, RDI: {:#x}",
+        st.rdx, st.rbp, st.rsi, st.rdi);
+    log::debug!("R8: {:#x}, R9: {:#x}, R10: {:#x}, R11: {:#x}",
+        st.r8, st.r9, st.r10, st.r11);
+    log::debug!("R12: {:#x}, R13: {:#x}, R14: {:#x}, R15: {:#x}",
+        st.r12, st.r13, st.r14, st.r15);
 }
 
 #[no_mangle]
-extern "C" fn exception_handler(status: ISRStatus) {
-    panic!("Encountered exception {}", unsafe { read_unaligned(addr_of!(status.int_no)) });
+extern "C" fn exception_handler(status: &ExceptionStatus) -> ! {
+    log::error!("Received exception {}", status.int_no);
+    log_registers(&status.status, &status.restore_frame);
+    panic!();
 }
 
 #[no_mangle]
-extern "C" fn exception_handler_ec(_status: ISRStatusEC) {
-    panic!("Exception + EC");
+extern "C" fn exception_handler_ec(status: &ExceptionStatusEC) -> ! {
+    log::error!("Received exception {} with error code {}", status.int_no, status.ec);
+    log_registers(&status.status, &status.restore_frame);
+    panic!();
 }
 
 #[no_mangle]
-extern "C" fn irq_handler(_status: ISRStatus) {
+extern "C" fn irq_handler(_status: &IRQStatus) -> &IRQStatus {
     panic!("IRQ");
 }

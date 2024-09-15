@@ -3,84 +3,65 @@
 [extern exception_handler]
 [extern exception_handler_ec]
 
-irq_common:
-    ; push rax
-    ; push rbx
-    ; push rcx
-    ; push rdx
-    ; push rbp
-    ; push rsi
-    ; push rdi
-    ; push r8
-    ; push r9
-    ; push r10
-    ; push r11
-    ; push r12
-    ; push r13
-    ; push r14
-    ; push r15
-    ; push 0
-    mov rdi, rsp
-    call irq_handler ; Now we call the interrupt handler
-    mov rsp, rax
-    ; pop rax
-    ; cmp rax, 0
-    ; je .no_switch
-    ; mov cr3, rax
-.no_switch:
-    ; pop r15
-    ; pop r14
-    ; pop r13
-    ; pop r12
-    ; pop r11
-    ; pop r10
-    ; pop r9
-    ; pop r8
-    ; pop rdi
-    ; pop rsi
-    ; pop rbp
-    ; pop rdx
-    ; pop rcx
-    ; pop rbx
-    ; pop rax
+%macro save_context 0
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+%endmacro
+
+%macro restore_context 0
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
     add rsp, 16 ; Remove error code and interrupt number from stack
-    iretq ; Now we can return from the interrupt
+%endmacro
+
+irq_common:
+    save_context
+    push 0
+    mov rdi, rsp
+    call irq_handler
+    mov rsp, rax
+    pop rax
+    cmp rax, 0
+    je .no_switch
+    mov cr3, rax
+.no_switch:
+    restore_context
+    iretq
 
 exception_common:
-    ; push rax
-    ; push rbx
-    ; push rcx
-    ; push rdx
-    ; push rbp
-    ; push rsi
-    ; push rdi
-    ; push r8
-    ; push r9
-    ; push r10
-    ; push r11
-    ; push r12
-    ; push r13
-    ; push r14
-    ; push r15
+    save_context
     mov rdi, rsp
     jmp exception_handler
 
 exception_common_ec:
-    ; push rax
-    ; push rbx
-    ; push rcx
-    ; push rdx
-    ; push rbp
-    ; push rsi
-    ; push rdi
-    ; push r8
-    ; push r9
-    ; push r10
-    ; push r11
-    ; push r12
-    ; push r13
-    ; push r14
-    ; push r15
+    save_context
+    mov rdi, rsp
     jmp exception_handler_ec
 
 %macro exception 1
