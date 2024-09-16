@@ -5,7 +5,9 @@ use spin::Lazy;
 
 pub mod pmm;
 pub mod mapper;
+pub mod vmm;
 
+// TODO: Add the actual limine requests here instead of through extern
 extern "Rust" {
     static HHDM_REQUEST: HhdmRequest;
 }

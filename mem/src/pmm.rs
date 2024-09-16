@@ -72,6 +72,7 @@ impl PhysicalMemoryManager {
 
 unsafe impl Send for PhysicalMemoryManager {}
 
+// TODO: Add the actual limine requests here instead of using extern
 extern "Rust" {
     static MMAP_REQUEST: MemoryMapRequest;
     static PAGING_REQUEST: PagingModeRequest;
