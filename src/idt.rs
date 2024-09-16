@@ -1,4 +1,4 @@
-use x86_64::{structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue}, VirtAddr};
+use x86_64::{registers::control::Cr2, structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue}, VirtAddr};
 
 use crate::cpu;
 
@@ -51,12 +51,12 @@ pub unsafe fn init() {
         set_ec_handler!(vmm_communication_exception, 29),
         set_ec_handler!(security_exception, 30)
     ];
-    for i in 0..=255 {
+    for i in 0..32 {
         if ec_ints.contains(&i) || isr_table[i].is_null() { continue; }
-        let options = IDT[i as u8].set_handler_addr(isr_table[i as usize]);
-        if i < 32 {
-            options.disable_interrupts(false); // Trap gate
-        }
+        IDT[i as u8].set_handler_addr(isr_table[i]).disable_interrupts(false);
+    }
+    for i in 32..=255 {
+        IDT[i].set_handler_addr(isr_table[i as usize]);
     }
     IDT.load();
     log::info!("Loaded interrupt descriptor table");
@@ -85,6 +85,9 @@ extern "C" fn exception_handler(status: &ExceptionStatus) -> ! {
 #[no_mangle]
 extern "C" fn exception_handler_ec(status: &ExceptionStatusEC) -> ! {
     log::error!("Received exception {} with error code {}", status.int_no, status.ec);
+    if status.int_no == 14 {
+        log::debug!("CR2: {:?}", Cr2::read().unwrap());
+    }
     log_registers(&status.status, &status.restore_frame);
     panic!();
 }

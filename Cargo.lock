@@ -36,14 +36,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
-name = "paste"
-version = "1.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
-
-[[package]]
 name = "pivot-mem"
 version = "0.1.0"
+dependencies = [
+ "limine",
+ "log",
+ "spin",
+ "x86_64",
+]
 
 [[package]]
 name = "pivot-os"
@@ -51,7 +51,6 @@ version = "0.1.0"
 dependencies = [
  "limine",
  "log",
- "paste",
  "pivot-mem",
  "uart_16550",
  "x86_64",
@@ -71,6 +70,12 @@ name = "rustversion"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
+
+[[package]]
+name = "spin"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "uart_16550"

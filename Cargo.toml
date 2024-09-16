@@ -6,9 +6,8 @@ edition = "2021"
 [dependencies]
 limine = "0.3.0"
 log = "0.4.22"
-paste = "1.0.15"
 uart_16550 = "0.3.1"
-x86_64 = "0.15.1"
+x86_64 = { version = "0.15.1", default-features = false, features = ["instructions"] }
 pivot-mem = { path = "mem" }
 
 [workspace]

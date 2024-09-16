@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![feature(const_mut_refs)]
 
 use core::panic::PanicInfo;
 
@@ -19,6 +18,7 @@ pub extern "C" fn kinit() -> ! {
     logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
     unsafe { gdt::init_static() };
     unsafe { idt::init() };
+    unsafe { pivot_mem::init() };
     loop {}
 }
 
