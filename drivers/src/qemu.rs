@@ -19,3 +19,7 @@ impl Write for QEMUWriter {
         Ok(())
     }
 }
+
+pub fn init() {
+    unsafe { QEMU_WRITER.0.init() };
+}

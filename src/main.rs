@@ -5,7 +5,6 @@ use core::panic::PanicInfo;
 
 pub mod cpu;
 pub mod limine;
-pub mod qemu;
 pub mod logger;
 pub mod writer;
 pub mod idt;
@@ -14,7 +13,7 @@ pub mod gdt;
 #[no_mangle]
 pub extern "C" fn kinit() -> ! {
     unsafe { cpu::set_int(false) }; // Disable all interrupts until we are ready to handle them
-    unsafe { qemu::QEMU_WRITER.0.init() }; // Initialize the QEMU serial port + writer
+    pivot_drivers::qemu::init(); // Initialize the QEMU serial port + writer
     logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
     unsafe { gdt::init_static() };
     unsafe { idt::init() };

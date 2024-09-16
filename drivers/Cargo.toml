@@ -1,0 +1,7 @@
+[package]
+name = "pivot-drivers"
+edition = "2021"
+description = "Collection of drivers that PivotOS uses"
+
+[dependencies]
+uart_16550 = "0.3.1"

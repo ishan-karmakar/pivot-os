@@ -31,3 +31,9 @@ kernel:
 $(OUT_ISO_FILES): $(IN_ISO_FILES)
 	mkdir -p $(TMP_DIR)
 	cp $^ $(TMP_DIR)
+
+.PHONY: clean
+clean:
+	rm -rf $(BUILD_DIR) $(TMP_DIR)
+	cargo clean
+	make -C $(LIMINE_DIR) clean

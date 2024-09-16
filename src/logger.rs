@@ -1,6 +1,5 @@
 use log::{LevelFilter, Log, SetLoggerError};
 use core::fmt::Write;
-use crate::qemu;
 
 pub struct SimpleLogger;
 
@@ -11,7 +10,7 @@ impl Log for SimpleLogger {
 
     fn log(&self, record: &log::Record) {
         // If terminal is not initialized
-        unsafe { writeln!(qemu::QEMU_WRITER, "[{}] {}: {}", record.level(), record.target(), record.args()) }.unwrap();
+        unsafe { writeln!(pivot_drivers::qemu::QEMU_WRITER, "[{}] {}: {}", record.level(), record.target(), record.args()) }.unwrap();
         // else write to terminal
     }
 
