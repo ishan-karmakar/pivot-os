@@ -2,7 +2,6 @@ use core::{cmp::min, mem::transmute};
 
 use limine::{memory_map::EntryType, request::{MemoryMapRequest, PagingModeRequest}};
 use spin::Mutex;
-use x86_64::{structures::paging::{FrameAllocator, FrameDeallocator, PageSize, PhysFrame}, PhysAddr};
 
 use crate::virt_addr;
 
