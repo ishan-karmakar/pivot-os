@@ -1,7 +1,7 @@
 use core::mem::transmute;
 
 use limine::{memory_map::EntryType, request::{MemoryMapRequest, PagingModeRequest}};
-use spin::Mutex;
+use spin::{Mutex, Once};
 
 use crate::{phys_addr, virt_addr};
 
@@ -74,24 +74,15 @@ static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 
 pub(crate) static PMM: Mutex<PhysicalMemoryManager> = Mutex::new(PhysicalMemoryManager::new());
+pub(crate) static MAX_ADDR: Once<usize> = Once::new();
 
 pub(crate) unsafe fn init() {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();
     // TODO: Consider removing this - we are only using it for debug
-    let max_addr: u64 = {
-        let mut it = mmap_res.entries().iter().rev();
-        let mut entry = it.next();
-        while let Some(ent) = entry {
-            if ent.entry_type == EntryType::FRAMEBUFFER {
-                entry = it.next();
-            } else { break; }
-        };
-        let entry = entry.unwrap();
-        entry.base + entry.length
-    };
-    log::debug!("Found {:#x} bytes of physical memory", max_addr);
+    MAX_ADDR.call_once(|| mmap_res.entries().last().map(|f| f.base + f.length).unwrap() as usize);
+    log::debug!("Found {:#x} bytes of physical memory", MAX_ADDR.get().unwrap());
     let mut pmm = PMM.lock();
     for (i, ent) in mmap_res.entries().iter().enumerate() {
         log::debug!("MMAP[{}] - Base: {:#x}, Length: {:#x}, Type: {}", i, ent.base, ent.length, unsafe { transmute::<EntryType, u64>(ent.entry_type) });

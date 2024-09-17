@@ -8,6 +8,7 @@ log = "0.4.22"
 x86_64 = { version = "0.15.1", default-features = false, features = ["instructions"] }
 pivot-mem = { path = "mem" }
 pivot-drivers = { path = "drivers" }
+buddy_system_allocator = { version = "0.10.0", default-features = false, features = ["use_spin"] }
 
 [workspace]
 members = ["mem", "drivers"]

@@ -5,6 +5,7 @@ use spin::Lazy;
 
 pub mod pmm;
 pub mod mapper;
+pub mod vmm;
 
 #[used]
 #[link_section = ".requests"]
@@ -25,4 +26,5 @@ pub fn phys_addr(virt: usize) -> usize {
 pub unsafe fn init() {
     pmm::init();
     mapper::init();
+    vmm::init();
 }
