@@ -3,91 +3,65 @@ use core::mem::transmute;
 use limine::{memory_map::EntryType, request::{MemoryMapRequest, PagingModeRequest}};
 use spin::Mutex;
 
-use crate::virt_addr;
+use crate::{phys_addr, virt_addr};
 
 struct FreeRegion {
-    pub start: usize,
-    pub num_pages: u64,
+    pub num_pages: usize,
     pub next: Option<*mut FreeRegion>
 }
 
 pub struct PhysicalMemoryManager {
-    free_list: Option<*mut FreeRegion>,
-    avail_list: Option<*mut FreeRegion>
+    free_list: Option<*mut FreeRegion>
 }
 
 impl FreeRegion {
-    pub fn frame(&mut self) -> (usize, bool) {
-        let addr = self.start;
-        self.start += 0x1000;
+    pub fn frame(&mut self) -> usize {
         self.num_pages -= 1;
-        (addr, self.num_pages == 0)
+        // We give frames from the end of the region so we don't have to move metadata
+        phys_addr(self as *const _ as usize) + self.num_pages * 0x1000
     }
 }
 
-// We are only accessing PMM through mutex, so I think this should be fine
+// We are only accessing PMM through a mutex
 unsafe impl Send for PhysicalMemoryManager {}
 
+// I am using a singly linked list and am only using the head of the list
+// Allocation, Freeing, and Insertion of regions are all O(1)
+// No extra space is wasted because it is placed at the start of free regions
 impl PhysicalMemoryManager {
     pub const fn new() -> Self {
-        Self { free_list: None, avail_list: None }
+        Self { free_list: None }
     }
 
+    // O(1)
+    pub fn add_region(&mut self, start: usize, num_pages: usize) {
+        let region = virt_addr(start) as *mut FreeRegion;
+        unsafe {
+            (*region).num_pages = num_pages;
+            (*region).next = self.free_list;
+        }
+        self.free_list = Some(region);
+    }
+
+    // O(1)
     pub fn frame(&mut self) -> usize {
         let region = self.free_list.unwrap();
-        let (frame, empty) = unsafe { (*region).frame() };
-        if empty {
+        let frm = unsafe { (*region).frame() };
+        if unsafe { (*region).num_pages } == 0 {
+            // Need to remove
             self.free_list = unsafe { (*region).next };
-            unsafe { (*region).next = self.avail_list };
-            self.avail_list = Some(region);
         }
-        frame
+        frm
     }
 
-    pub fn add_region(&mut self, start: usize, num_pages: u64) {
-        /*
-        If anything in avail_list: use it
-        If no regions are added: use start as pointer to region data and reserve frame
-        If regions are added:
-            Find end of free_list
-            If end_region + size of free list overflows to next page:
-                alloc frame and use that as start of region data
-            else:
-                put region data after end_region
-         */
-        if let Some(region) = self.avail_list {
-            unsafe {
-                self.avail_list = (*region).next;
-                (*region).next = self.free_list;
-                (*region).start = start;
-                (*region).num_pages = num_pages;
-            }
-            self.free_list = Some(region);
-        } else if let Some(mut region) = self.free_list {
-            while let Some(_region) = unsafe { (*region).next } { region = _region; }
-            let addr = region as usize + size_of::<FreeRegion>();
-            if addr + size_of::<FreeRegion>() >= addr.next_multiple_of(0x1000) {
-                // Will overflow, need to allocate new frame
-                region = virt_addr(self.frame()) as *mut FreeRegion;
-            } else {
-                region = addr as *mut FreeRegion;
-                log::debug!("New region address: {:#x}", addr);
-            }
-            unsafe {
-                (*region).next = self.free_list;
-                (*region).start = start;
-                (*region).num_pages = num_pages;
-            }
-            self.free_list = Some(region);
-        } else {
-            let region = virt_addr(start) as *mut FreeRegion;
-            unsafe {
-                (*region).next = None;
-                (*region).start = start + 0x1000;
-                (*region).num_pages = num_pages - 1;
-            }
-            self.free_list = Some(region);
+    // O(1)
+    pub fn free(&mut self, frm: usize) {
+        let region = virt_addr(frm) as *mut FreeRegion;
+        unsafe {
+            (*region).num_pages = 1;
+            (*region).next = self.free_list;
         }
+        self.free_list = Some(region);
     }
 }
 
@@ -105,6 +79,7 @@ pub(crate) unsafe fn init() {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();
+    // TODO: Consider removing this - we are only using it for debug
     let max_addr: u64 = {
         let mut it = mmap_res.entries().iter().rev();
         let mut entry = it.next();
@@ -117,29 +92,13 @@ pub(crate) unsafe fn init() {
         entry.base + entry.length
     };
     log::debug!("Found {:#x} bytes of physical memory", max_addr);
-    let num_pages = max_addr.div_ceil(0x1000);
-    let bitmap_size = num_pages.div_ceil(8);
-    let mut bitmap_start = 0;
-    for ent in mmap_res.entries() {
-        if ent.entry_type == EntryType::USABLE && ent.length >= bitmap_size {
-            bitmap_start = ent.base;
-            break;
-        }
-    }
-    assert!(bitmap_start != 0, "Could not find area large enough to fit PMM bitmap");
-    log::debug!("Bitmap start: {:#x}, size: {:#x}", bitmap_start, bitmap_size);
-    // let mut pmm = PhysicalMemoryManager::new(virt_addr(bitmap_start as usize), bitmap_size as usize);
     let mut pmm = PMM.lock();
     for (i, ent) in mmap_res.entries().iter().enumerate() {
         log::debug!("MMAP[{}] - Base: {:#x}, Length: {:#x}, Type: {}", i, ent.base, ent.length, unsafe { transmute::<EntryType, u64>(ent.entry_type) });
         if ent.entry_type == EntryType::USABLE {
-            pmm.add_region(ent.base as usize, ent.length / 0x1000);
-            // pmm.clear_range(ent.base as usize, ent.length.div_ceil(0x1000) as usize);
+            pmm.add_region(ent.base as usize, ent.length as usize / 0x1000);
         }
     }
 
-    // pmm.set_range(bitmap_start as usize, bitmap_size.div_ceil(0x1000) as usize);
-    // let mut p = PMM.lock();
-    // *p = Some(pmm);
     log::info!("Initialized physical memory manager");
 }

@@ -24,5 +24,5 @@ pub fn phys_addr(virt: usize) -> usize {
 
 pub unsafe fn init() {
     pmm::init();
-    // mapper::init();
+    mapper::init();
 }

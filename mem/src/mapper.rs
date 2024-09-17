@@ -73,5 +73,8 @@ impl<'a> PTMapper<'a> {
 pub static KMAPPER: Mutex<Option<PTMapper>> = Mutex::new(None);
 
 pub(crate) fn init() {
-    *KMAPPER.lock() = Some(PTMapper::new(Cr3::read().0.start_address().as_u64() as usize));
+    let cr3 = Cr3::read().0.start_address().as_u64() as usize;
+    log::debug!("CR3: {:#x}", cr3);
+    *KMAPPER.lock() = Some(PTMapper::new(cr3));
+    log::info!("Initialized kernel mapper");
 }
