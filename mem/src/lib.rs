@@ -5,14 +5,12 @@ use spin::Lazy;
 
 pub mod pmm;
 pub mod mapper;
-pub mod vmm;
 
-// TODO: Add the actual limine requests here instead of through extern
-extern "Rust" {
-    static HHDM_REQUEST: HhdmRequest;
-}
+#[used]
+#[link_section = ".requests"]
+static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
-static HH_OFF: Lazy<usize> = Lazy::new(|| unsafe { HHDM_REQUEST.get_response().unwrap().offset() } as usize);
+static HH_OFF: Lazy<usize> = Lazy::new(|| HHDM_REQUEST.get_response().unwrap().offset() as usize);
 
 pub fn virt_addr(phys: usize) -> usize {
     if phys >= *HH_OFF { return phys; }
@@ -26,5 +24,5 @@ pub fn phys_addr(virt: usize) -> usize {
 
 pub unsafe fn init() {
     pmm::init();
-    mapper::init();
+    // mapper::init();
 }

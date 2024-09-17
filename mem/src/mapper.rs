@@ -38,7 +38,7 @@ impl<'a> PTMapper<'a> {
                 None
             } else {
                 // Convert to non HP mapping
-                let tbl_phys = PMM.lock().as_mut().unwrap().frame();
+                let tbl_phys = PMM.lock().frame();
                 let tbl = unsafe { &mut *(virt_addr(tbl_phys) as *mut PageTable) };
                 for i in 0..512 {
                     tbl[i].set_addr(p2_ent.addr() + i as u64 * 0x1000u64, p2_ent.flags() & !PageTableFlags::HUGE_PAGE);
@@ -60,7 +60,7 @@ impl<'a> PTMapper<'a> {
     fn next_table(ent: &mut PageTableEntry) -> &'a mut PageTable {
         log::info!("{:#x}", ent.flags().bits());
         if ent.is_unused() {
-            ent.set_addr(PhysAddr::new(PMM.lock().as_mut().unwrap().frame() as u64), Self::TBL_FLAGS);
+            ent.set_addr(PhysAddr::new(PMM.lock().frame() as u64), Self::TBL_FLAGS);
         }
         let tbl = unsafe { &mut *(virt_addr(ent.addr().as_u64() as usize) as *mut PageTable) };
         for ent in tbl.iter_mut() {
