@@ -13,7 +13,7 @@ impl<'a> PTMapper<'a> {
         Self(unsafe { &mut *(virt_addr(pml4) as *mut PageTable) })
     }
 
-    pub fn map(&'a mut self, phys: usize, virt: usize, mut flags: PageTableFlags) {
+    pub fn map(&mut self, phys: usize, virt: usize, mut flags: PageTableFlags) {
         flags |= PageTableFlags::PRESENT;
         let virta = VirtAddr::new(virt as u64);
         let physa = PhysAddr::new(phys as u64);
@@ -58,11 +58,15 @@ impl<'a> PTMapper<'a> {
     }
 
     fn next_table(ent: &mut PageTableEntry) -> &'a mut PageTable {
-        log::info!("{:#x}", ent.flags().bits());
+        log::info!("test");
         if ent.is_unused() {
-            ent.set_addr(PhysAddr::new(PMM.lock().frame() as u64), Self::TBL_FLAGS);
+            let frm = PMM.lock().frame();
+            log::info!("is unused {:#x}", frm);
+            ent.set_addr(PhysAddr::new(frm as u64), Self::TBL_FLAGS);
         }
         let tbl = unsafe { &mut *(virt_addr(ent.addr().as_u64() as usize) as *mut PageTable) };
+        log::info!("test2");
+        // PROBLEM here
         for ent in tbl.iter_mut() {
             ent.set_unused();
         }
