@@ -58,19 +58,19 @@ impl<'a> PTMapper<'a> {
     }
 
     fn next_table(ent: &mut PageTableEntry) -> &'a mut PageTable {
-        log::info!("test");
+        // OPTIMIZATION - If we ever need to create a table we now know that all the future tables will need to be created
+        // There is no point in the ent.is_unused() check once we create a table
         if ent.is_unused() {
             let frm = PMM.lock().frame();
-            log::info!("is unused {:#x}", frm);
             ent.set_addr(PhysAddr::new(frm as u64), Self::TBL_FLAGS);
+            let tbl = unsafe { &mut *(virt_addr(frm) as *mut PageTable) };
+            for ent in tbl.iter_mut() {
+                ent.set_unused();
+            }
+            tbl
+        } else {
+            unsafe { &mut *(virt_addr(ent.addr().as_u64() as usize) as *mut PageTable) }
         }
-        let tbl = unsafe { &mut *(virt_addr(ent.addr().as_u64() as usize) as *mut PageTable) };
-        log::info!("test2");
-        // PROBLEM here
-        for ent in tbl.iter_mut() {
-            ent.set_unused();
-        }
-        tbl
     }
 }
 

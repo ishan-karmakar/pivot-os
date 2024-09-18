@@ -1,16 +1,26 @@
-use core::alloc::Layout;
+struct Block {
+    pub size: usize, // Always a power of two
+    pub sibling: *mut Block
+}
 
-use linked_list_allocator::Heap;
-use x86_64::structures::paging::PageTableFlags;
+pub struct VirtualMemoryManager<const MB: usize = 0x1000>(*mut Block);
 
-use crate::{mapper::KMAPPER, pmm::{MAX_ADDR, PMM}, virt_addr};
+impl<const MB: usize> VirtualMemoryManager<MB> {
+    pub fn new(mut start: usize, mut size: usize) -> Self {
+        size = (size / MB) * MB;
+        let root_block = start as *mut Block;
+        let mut cur_block = root_block;
+        loop {
+            let block_size = 2_usize.pow(size.ilog2());
+            size -= block_size as usize;
+            if size == 0 {
+                return Self(0 as *mut Block);
+            }
+            start += block_size;
+        }
+    }
+}
 
 pub(crate) fn init() {
-    let bottom = *MAX_ADDR.get().unwrap();
-    let frm = PMM.lock().frame();
-    KMAPPER.lock().as_mut().unwrap().map(frm, virt_addr(bottom), PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE);
-    // let mut heap = unsafe { Heap::new(virt_addr(bottom) as *mut u8, bottom) };
-    // let test = heap.allocate_first_fit(Layout::new::<u8>()).unwrap();
-    // log::info!("{:?}", test);
-    log::info!("Initialized kernel virtual memory manager");
+    let vmm: VirtualMemoryManager<> = VirtualMemoryManager::new(0, 0x11000);
 }

@@ -5,7 +5,6 @@ description = "Collection of components that manage the memory for PivotOS"
 
 [dependencies]
 limine = "0.3.0"
-linked_list_allocator = { version = "0.10.5", default-features = false }
 log = "0.4.22"
 spin = { version = "0.9.8", default-features = false, features = ["lazy", "mutex", "ticket_mutex", "use_ticket_mutex"] }
 x86_64 = { version = "0.15.1", default-features = false, features = ["instructions"] }
