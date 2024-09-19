@@ -13,14 +13,17 @@ static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 static HH_OFF: Lazy<usize> = Lazy::new(|| HHDM_REQUEST.get_response().unwrap().offset() as usize);
 
+#[inline]
+pub fn get_hh_off() -> usize { *HH_OFF }
+
 pub fn virt_addr(phys: usize) -> usize {
-    if phys >= *HH_OFF { return phys; }
-    phys + *HH_OFF
+    if phys >= get_hh_off() { return phys; }
+    phys + get_hh_off()
 }
 
 pub fn phys_addr(virt: usize) -> usize {
-    if virt < *HH_OFF { return virt; }
-    virt - *HH_OFF
+    if virt < get_hh_off() { return virt; }
+    virt - get_hh_off()
 }
 
 pub unsafe fn init() {

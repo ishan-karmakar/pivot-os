@@ -12,3 +12,6 @@ buddy_system_allocator = { version = "0.10.0", default-features = false, feature
 
 [workspace]
 members = ["mem", "drivers"]
+
+[build-dependencies]
+regex = "1.10.6"
