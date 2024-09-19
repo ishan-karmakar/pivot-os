@@ -7,6 +7,11 @@ pub mod pmm;
 pub mod mapper;
 pub mod vmm;
 
+macro_rules! unwrap_mutex {
+    ($expression:expr) => { $expression.lock().as_mut().unwrap() }
+}
+pub(crate) use unwrap_mutex;
+
 #[used]
 #[link_section = ".requests"]
 static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();

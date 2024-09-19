@@ -1,9 +1,13 @@
-use spin::Mutex;
+use core::ops::{Deref, DerefMut};
+
+use spin::{Mutex, MutexGuard};
 use x86_64::{registers::control::Cr3, structures::paging::{page_table::PageTableEntry, PageTable, PageTableFlags}, PhysAddr, VirtAddr};
 
 use crate::{pmm::PMM, virt_addr};
 
 pub struct PTMapper<'a>(&'a mut PageTable);
+
+pub struct LockedPTMapper<'a>(Mutex<Option<PTMapper<'a>>>);
 
 impl<'a> PTMapper<'a> {
     const HP_SIZE: usize = 0x20000;
