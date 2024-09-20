@@ -1,15 +1,12 @@
-use core::ops::{Deref, DerefMut};
-
-use spin::{Mutex, MutexGuard};
+use spin::Mutex;
 use x86_64::{registers::control::Cr3, structures::paging::{page_table::PageTableEntry, PageTable, PageTableFlags}, PhysAddr, VirtAddr};
 
-use crate::{pmm::PMM, virt_addr};
+use crate::{pmm, virt_addr};
 
-pub struct PTMapper<'a>(&'a mut PageTable);
+pub struct PTMapper(*mut PageTable);
+unsafe impl Send for PTMapper {}
 
-pub struct LockedPTMapper<'a>(Mutex<Option<PTMapper<'a>>>);
-
-impl<'a> PTMapper<'a> {
+impl PTMapper {
     const HP_SIZE: usize = 0x20000;
     const TBL_FLAGS: PageTableFlags = PageTableFlags::PRESENT.union(PageTableFlags::WRITABLE);
 
@@ -21,7 +18,7 @@ impl<'a> PTMapper<'a> {
         flags |= PageTableFlags::PRESENT;
         let virta = VirtAddr::new(virt as u64);
         let physa = PhysAddr::new(phys as u64);
-        let p3_tbl = Self::next_table(&mut self.0[virta.p4_index()]);
+        let p3_tbl = Self::next_table(unsafe { &mut (*self.0)[virta.p4_index()] });
         let p2_tbl = Self::next_table(&mut p3_tbl[virta.p3_index()]);
         let p2_ent = &mut p2_tbl[virta.p2_index()];
         /*
@@ -42,7 +39,7 @@ impl<'a> PTMapper<'a> {
                 None
             } else {
                 // Convert to non HP mapping
-                let tbl_phys = PMM.lock().frame();
+                let tbl_phys = pmm::frame();
                 let tbl = unsafe { &mut *(virt_addr(tbl_phys) as *mut PageTable) };
                 for i in 0..512 {
                     tbl[i].set_addr(p2_ent.addr() + i as u64 * 0x1000u64, p2_ent.flags() & !PageTableFlags::HUGE_PAGE);
@@ -61,11 +58,11 @@ impl<'a> PTMapper<'a> {
         }
     }
 
-    fn next_table(ent: &mut PageTableEntry) -> &'a mut PageTable {
+    fn next_table(ent: &mut PageTableEntry) -> &mut PageTable {
         // OPTIMIZATION - If we ever need to create a table we now know that all the future tables will need to be created
         // There is no point in the ent.is_unused() check once we create a table
         if ent.is_unused() {
-            let frm = PMM.lock().frame();
+            let frm = pmm::frame();
             ent.set_addr(PhysAddr::new(frm as u64), Self::TBL_FLAGS);
             let tbl = unsafe { &mut *(virt_addr(frm) as *mut PageTable) };
             for ent in tbl.iter_mut() {

@@ -73,21 +73,26 @@ static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[link_section = ".requests"]
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 
-pub(crate) static PMM: Mutex<PhysicalMemoryManager> = Mutex::new(PhysicalMemoryManager::new());
-static MEM_SIZE: Once<usize> = Once::new();
-static USABLE_SIZE: Once<usize> = Once::new();
+static PMM: Mutex<PhysicalMemoryManager> = Mutex::new(PhysicalMemoryManager::new());
+static MEM_SIZE: Once<u64> = Once::new();
+static USABLE_SIZE: Once<u64> = Once::new();
 
 #[inline]
-pub fn get_total_size() -> usize { *MEM_SIZE.get().unwrap() }
+pub(crate) fn get_total_size() -> u64 { *MEM_SIZE.get().unwrap() }
 
-pub fn get_usable_size() -> usize { *USABLE_SIZE.get().unwrap() }
+#[inline]
+pub(crate) fn get_usable_size() -> u64 { *USABLE_SIZE.get().unwrap() }
+
+#[inline]
+// We can't expose PMM static because PMM.lock needs to be dropped
+pub(crate) fn frame() -> usize { return PMM.lock().frame(); }
 
 pub(crate) unsafe fn init() {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();
-    MEM_SIZE.call_once(|| mmap_res.entries().last().map(|f| f.base + f.length).unwrap() as usize);
-    USABLE_SIZE.call_once(|| mmap_res.entries().iter().filter(|m| m.entry_type == EntryType::USABLE).map(|m| m.length).sum::<u64>() as usize);
+    MEM_SIZE.call_once(|| mmap_res.entries().last().map(|f| f.base + f.length).unwrap());
+    USABLE_SIZE.call_once(|| mmap_res.entries().iter().filter(|m| m.entry_type == EntryType::USABLE).map(|m| m.length).sum::<u64>());
     log::debug!("Found {:#x} bytes of physical memory", get_total_size());
     let mut pmm = PMM.lock();
     for (i, ent) in mmap_res.entries().iter().enumerate() {
