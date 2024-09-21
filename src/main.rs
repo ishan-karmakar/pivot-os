@@ -17,7 +17,10 @@ pub extern "C" fn kinit() -> ! {
     logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
     unsafe { gdt::init_static() };
     unsafe { idt::init() };
-    unsafe { pivot_mem::init() };
+    let pmm = pivot_mem::pmm::init();
+    let mpr = pivot_mem::mapper::init(&pmm);
+    let vmm = pivot_mem::vmm::init(&mpr, &pmm);
+    let heap = pivot_mem::heap::init();
     loop {}
 }
 

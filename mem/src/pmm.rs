@@ -11,7 +11,6 @@ struct FreeRegion {
 }
 
 pub struct PhysicalMemoryManager(Option<*mut FreeRegion>);
-// pub struct LockedPMM(Mutex<PhysicalMemoryManager>);
 
 impl FreeRegion {
     pub fn frame(&mut self) -> usize {
@@ -20,9 +19,6 @@ impl FreeRegion {
         phys_addr(self as *const _ as usize) + self.num_pages * 0x1000
     }
 }
-
-// We are only accessing PMM through a mutex
-unsafe impl Send for PhysicalMemoryManager {}
 
 // I am using a singly linked list and am only using the head of the list
 // Allocation, Freeing, and Insertion of regions are all O(1)
@@ -90,13 +86,6 @@ impl PhysicalMemoryManager {
     // }
 }
 
-// impl LockedPMM {
-//     pub const fn new() -> Self { Self(Mutex::new(PhysicalMemoryManager::new())) }
-//     pub fn add_region(&self, start: usize, size: usize) { self.0.lock().add_region(start, size) }
-//     pub fn frame(&self) -> usize { self.0.lock().frame() }
-//     pub fn free(&self, frm: usize) { self.0.lock().free(frm) }
-// }
-
 #[used]
 #[link_section = ".requests"]
 static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
@@ -105,11 +94,10 @@ static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[link_section = ".requests"]
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 
-// pub(crate) static PMM: LockedPMM = LockedPMM::new();
 
 pub(crate) fn get_mmap() -> &'static [&'static Entry] { MMAP_REQUEST.get_response().unwrap().entries() }
 
-pub(crate) unsafe fn init() -> PhysicalMemoryManager {
+pub fn init() -> Mutex<PhysicalMemoryManager> {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();
@@ -124,5 +112,5 @@ pub(crate) unsafe fn init() -> PhysicalMemoryManager {
     }
 
     log::info!("Initialized physical memory manager");
-    pmm
+    Mutex::new(pmm)
 }
