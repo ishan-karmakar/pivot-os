@@ -1,7 +1,7 @@
 use core::mem::transmute;
 
-use limine::{memory_map::EntryType, request::{MemoryMapRequest, PagingModeRequest}};
-use spin::{Mutex, Once};
+use limine::{memory_map::{Entry, EntryType}, request::{MemoryMapRequest, PagingModeRequest}};
+use spin::Mutex;
 
 use crate::{phys_addr, virt_addr};
 
@@ -10,9 +10,8 @@ struct FreeRegion {
     pub next: Option<*mut FreeRegion>
 }
 
-pub struct PhysicalMemoryManager {
-    free_list: Option<*mut FreeRegion>
-}
+pub struct PhysicalMemoryManager(Option<*mut FreeRegion>);
+// pub struct LockedPMM(Mutex<PhysicalMemoryManager>);
 
 impl FreeRegion {
     pub fn frame(&mut self) -> usize {
@@ -30,7 +29,7 @@ unsafe impl Send for PhysicalMemoryManager {}
 // No extra space is wasted because it is placed at the start of free regions
 impl PhysicalMemoryManager {
     pub const fn new() -> Self {
-        Self { free_list: None }
+        Self(None)
     }
 
     // O(1)
@@ -38,18 +37,18 @@ impl PhysicalMemoryManager {
         let region = virt_addr(start) as *mut FreeRegion;
         unsafe {
             (*region).num_pages = num_pages;
-            (*region).next = self.free_list;
+            (*region).next = self.0;
         }
-        self.free_list = Some(region);
+        self.0 = Some(region);
     }
 
     // O(1)
     pub fn frame(&mut self) -> usize {
-        let region = self.free_list.unwrap();
+        let region = self.0.unwrap();
         let frm = unsafe { (*region).frame() };
         if unsafe { (*region).num_pages } == 0 {
             // Need to remove
-            self.free_list = unsafe { (*region).next };
+            self.0 = unsafe { (*region).next };
         }
         frm
     }
@@ -59,11 +58,44 @@ impl PhysicalMemoryManager {
         let region = virt_addr(frm) as *mut FreeRegion;
         unsafe {
             (*region).num_pages = 1;
-            (*region).next = self.free_list;
+            (*region).next = self.0;
         }
-        self.free_list = Some(region);
+        self.0 = Some(region);
     }
+
+    // O(n), I think
+    // TODO: Implement this, I don't have a need for it right now
+    // My brain is too tired to think about this
+    // pub fn reserve(&mut self, _: usize) {
+        // unimplemented!()
+        // let mut region = self.0.unwrap();
+        // loop {
+        //     let addr = region as usize;
+        //     if addr <= frm && frm < (addr + unsafe { (*region).num_pages } * 0x1000) {
+        //         break;
+        //     } else {
+        //         if let Some(r) = unsafe { (*region).next } {
+        //             region = r;
+        //         } else {
+        //             let region = virt_addr(frm) as *mut FreeRegion;
+        //             unsafe {
+        //                 (*region).num_pages = 1;
+        //                 (*region).next = self.0;
+        //             }
+        //             self.0 = Some(region);
+        //             return;
+        //         }
+        //     }
+        // }
+    // }
 }
+
+// impl LockedPMM {
+//     pub const fn new() -> Self { Self(Mutex::new(PhysicalMemoryManager::new())) }
+//     pub fn add_region(&self, start: usize, size: usize) { self.0.lock().add_region(start, size) }
+//     pub fn frame(&self) -> usize { self.0.lock().frame() }
+//     pub fn free(&self, frm: usize) { self.0.lock().free(frm) }
+// }
 
 #[used]
 #[link_section = ".requests"]
@@ -73,28 +105,17 @@ static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[link_section = ".requests"]
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 
-static PMM: Mutex<PhysicalMemoryManager> = Mutex::new(PhysicalMemoryManager::new());
-static MEM_SIZE: Once<u64> = Once::new();
-static USABLE_SIZE: Once<u64> = Once::new();
+// pub(crate) static PMM: LockedPMM = LockedPMM::new();
 
-#[inline]
-pub(crate) fn get_total_size() -> u64 { *MEM_SIZE.get().unwrap() }
+pub(crate) fn get_mmap() -> &'static [&'static Entry] { MMAP_REQUEST.get_response().unwrap().entries() }
 
-#[inline]
-pub(crate) fn get_usable_size() -> u64 { *USABLE_SIZE.get().unwrap() }
-
-#[inline]
-// We can't expose PMM static because PMM.lock needs to be dropped
-pub(crate) fn frame() -> usize { return PMM.lock().frame(); }
-
-pub(crate) unsafe fn init() {
+pub(crate) unsafe fn init() -> PhysicalMemoryManager {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();
-    MEM_SIZE.call_once(|| mmap_res.entries().last().map(|f| f.base + f.length).unwrap());
-    USABLE_SIZE.call_once(|| mmap_res.entries().iter().filter(|m| m.entry_type == EntryType::USABLE).map(|m| m.length).sum::<u64>());
-    log::debug!("Found {:#x} bytes of physical memory", get_total_size());
-    let mut pmm = PMM.lock();
+    let total_size = get_mmap().iter().map(|m| m.base + m.length).max().unwrap();
+    let mut pmm = PhysicalMemoryManager::new();
+    log::debug!("Found {:#x} bytes of physical memory", total_size);
     for (i, ent) in mmap_res.entries().iter().enumerate() {
         log::debug!("MMAP[{}] - Base: {:#x}, Length: {:#x}, Type: {}", i, ent.base, ent.length, unsafe { transmute::<EntryType, u64>(ent.entry_type) });
         if ent.entry_type == EntryType::USABLE {
@@ -103,4 +124,5 @@ pub(crate) unsafe fn init() {
     }
 
     log::info!("Initialized physical memory manager");
+    pmm
 }
