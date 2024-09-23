@@ -1,0 +1,88 @@
+buckets = bitmap
+
+bitmap size(size)
+max block size = size aligned down to power of 2
+internal depth = log2(max block size / min block size)
+internal blocks = 2 ^ internal depth - 1
+bits = 2(internal blocks) + max block size / min block size
+bytes = ceil(bits / 8)
+
+bitmap init(start, size)
+bitmap size = bitmap size(size)
+bitmap pages = ceil(bitmap size / 0x1000)
+map (bitmap pages) at from start
+fill bitmap with zeroes
+
+allocate(size)
+bsize = size aligned to next power of two
+best block split, size = null // If no block of found of size bsize, best block split is split until target size is reached
+inorder traversal(root)
+    if block bsize is bsize
+        if block status == internal, abandon subtree
+        if block status == used, abandon subtree
+        if block status == free
+            bitmap set status(block, used | leaf)
+            return block
+    else
+        if block status == used, abandon subtree
+        if block status == internal, continue
+        if block bsize < best block size (and is free), update best block split + size
+    // if here, no suitable block found
+    if best block split == null, return alloc error
+    block = split block(best block split level, idx, bsize)
+    bitmap set status(block, used | leaf)
+    return block
+
+free(ptr, size)
+level, idx = parse ptr(ptr, size)
+set bitmap status(bitmap translate(level, idx), free | leaf)
+merge buddies(level, idx)
+
+merge buddies(level, idx)
+buddy = get buddy(bitmap translate(level, idx))
+if get bitmap status(buddy) == leaf | free
+    set bitmap status(bitmap translate(level + 1, idx), leaf | free)
+    merge buddies(level + 1, idx)
+
+get buddy(block)
+if block >= internal blocks
+    return block ^ 1
+else
+    return block ^ 2
+
+split block(level, idx, target size)
+if block bsize == target size, return block
+bitmap set status(bitmap translate(level, idx), internal | free)
+bitmap set status(bitmap translate(level + 1, idx), leaf | free)
+bitmap set status(bitmap translate(level + 1, idx + 1), leaf | free)
+return split block(level + 1, idx, target size)
+
+// ptr + size -> level + idx
+parse ptr(ptr, size)
+bsize = size aligned to next power of two
+level = log2(max block size / bsize)
+idx = (ptr - start) / bsize
+return level, idx
+
+// level + idx -> block
+bitmap translate(level, idx)
+2 ** (level - 1) - 1 + idx
+
+bitmap set status(block, status)
+int, off, mask = bitmap get off(block)
+int |= (status & mask) << off
+
+bitmap get status(block, status)
+int, off, mask = bitmap get off(block)
+return (int & (mask << off)) >> off
+
+bitmap get off(block)
+if block >= internal blocks
+    bit off = internal blocks * 2 + (block - internal blocks)
+    mask = 0b1
+else
+    bit off = block * 2
+    mask = 0b11
+int = bitmap[floor(bit off / 8)]
+off = bit off % 8
+return int, off, mask

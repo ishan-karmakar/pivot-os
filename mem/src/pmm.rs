@@ -1,7 +1,7 @@
 use core::mem::transmute;
 
 use limine::{memory_map::{Entry, EntryType}, request::{MemoryMapRequest, PagingModeRequest}};
-use spin::Mutex;
+use spin::{Lazy, Mutex};
 
 use crate::{phys_addr, virt_addr};
 
@@ -11,6 +11,7 @@ struct FreeRegion {
 }
 
 pub struct PhysicalMemoryManager(Option<*mut FreeRegion>);
+unsafe impl Send for PhysicalMemoryManager {}
 
 impl FreeRegion {
     pub fn frame(&mut self) -> usize {
@@ -94,10 +95,11 @@ static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[link_section = ".requests"]
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 
+pub static PMM: Lazy<Mutex<PhysicalMemoryManager>> = Lazy::new(init);
 
 pub(crate) fn get_mmap() -> &'static [&'static Entry] { MMAP_REQUEST.get_response().unwrap().entries() }
 
-pub fn init() -> Mutex<PhysicalMemoryManager> {
+fn init() -> Mutex<PhysicalMemoryManager> {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();

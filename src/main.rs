@@ -1,7 +1,10 @@
 #![no_std]
 #![no_main]
+#![feature(allocator_api)]
 
 use core::panic::PanicInfo;
+
+use pivot_mem::vmm::KVMM;
 
 pub mod cpu;
 pub mod limine;
@@ -17,10 +20,9 @@ pub extern "C" fn kinit() -> ! {
     logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
     unsafe { gdt::init_static() };
     unsafe { idt::init() };
-    let pmm = pivot_mem::pmm::init();
-    let mpr = pivot_mem::mapper::init(&pmm);
-    let vmm = pivot_mem::vmm::init(&mpr, &pmm);
-    let heap = pivot_mem::heap::init();
+    KVMM.lock();
+    // pivot_mem::heap::init();
+    // let test = Box::new(5);
     loop {}
 }
 

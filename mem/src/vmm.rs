@@ -1,69 +1,209 @@
-use core::{alloc::{GlobalAlloc, Layout}, ffi::{c_uchar, c_ulong, c_void}};
+use core::{alloc::AllocError, ptr::{slice_from_raw_parts_mut, NonNull}};
 
+use bitflags::bitflags;
 use limine::memory_map::EntryType;
-use spin::Mutex;
+use spin::{Lazy, Mutex};
 use x86_64::structures::paging::PageTableFlags;
 
-use crate::{mapper::PTMapper, pmm::{get_mmap, PhysicalMemoryManager}, virt_addr};
+use crate::{mapper::{PTMapper, KMAPPER}, pmm::{get_mmap, PMM}, virt_addr};
 
-extern "C" {
-    fn buddy_sizeof_alignment(_: c_ulong, _: c_ulong) -> c_ulong;
-    fn buddy_init_alignment(_: *mut c_uchar, _: *mut c_uchar, _: c_ulong, _: c_ulong) -> *mut c_void;
-    fn buddy_malloc(_: *mut c_void, _: c_ulong) -> *mut c_void;
-    fn buddy_safe_free(_: *mut c_void, _: *mut c_void, _: c_ulong);
+bitflags! {
+    struct BuddyStatus: u8 {
+        const USED = 1 << 0;
+        const INTERNAL = 1 << 1;
+    }
 }
 
-pub struct VirtualMemoryManager<'a, 'b> {
-    buddy: *mut c_void,
-    mpr: &'a Mutex<PTMapper<'b>>,
-    pmm: &'a Mutex<PhysicalMemoryManager>,
-    flags: PageTableFlags
+struct BuddyBitmap<const MIN_BSIZE: usize> {
+    bitmap: &'static mut [u8],
+    internal_blocks: usize
 }
 
-impl<'a, 'b> VirtualMemoryManager<'a, 'b> {
-    pub fn new(start: usize, size: u64, flags: PageTableFlags, mpr: &'a Mutex<PTMapper<'b>>, pmm: &'a Mutex<PhysicalMemoryManager>) -> Self {
-        let metadata_pages = unsafe { buddy_sizeof_alignment(size, 0x1000) }.div_ceil(0x1000) as usize;
-        for i in 0..metadata_pages {
-            let frm = pmm.lock().frame();
-            mpr.lock().map(frm, start + i * 0x1000, flags);
+pub struct VirtualMemoryManager<'a> {
+    max_bsize: usize,
+    start: usize,
+    mpr: &'a Mutex<PTMapper>,
+    flags: PageTableFlags,
+    bitmap: BuddyBitmap::<0x1000>
+}
+
+impl<'a> VirtualMemoryManager<'a> {
+    pub fn new(start: usize, size: usize, flags: PageTableFlags, mpr: &'a Mutex<PTMapper>) -> Self {
+        let (max_bsize, msize, fsize) = Self::calc_split(size);
+        log::debug!("VMM usable size: {:#x}, metadata size: {:#x}", fsize, msize);
+        let pages = msize.div_ceil(0x1000);
+        for i in 0..pages {
+            let frm = PMM.lock().frame();
+            mpr.lock().map(frm, start + i * 0x1000, flags | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE);
         }
-        let at = start as *mut u8;
-        Self {
-            buddy: unsafe { buddy_init_alignment(at, at.add(metadata_pages * 0x1000), size, 0x1000) },
+        let bitmap = unsafe { &mut *slice_from_raw_parts_mut(start as *mut u8, msize) };
+        let mut this = Self {
+            start: start + pages * 0x1000,
+            max_bsize,
+            flags,
             mpr,
-            pmm,
-            flags
+            bitmap: BuddyBitmap::new(bitmap, max_bsize)
+        };
+        this.reserve_extra_areas(((0, 0), max_bsize), fsize);
+        this
+    }
+
+    /// Calculates the maximum block size, metadata size, and free area size that will fit in the total size  
+    /// Probably pretty slow but we only run it once so :/
+    fn calc_split(mut size: usize) -> (usize, usize, usize) {
+        fn get_max_bsize(size: usize) -> usize {
+            let tmp = 2_usize.pow(size.ilog2());
+            if tmp != size {
+                tmp * 2
+            } else {
+                tmp
+            }
+        }
+
+        size = (size / 0x1000) * 0x1000;
+        let mut free_size = size - 0x1000; // Metadata must take up at least one page
+        let mut max_bsize = get_max_bsize(free_size);
+        let mut msize = BuddyBitmap::<0x1000>::size(max_bsize);
+        while msize + free_size > size {
+            free_size -= 0x1000;
+            max_bsize = get_max_bsize(free_size);
+            msize = BuddyBitmap::<0x1000>::size(max_bsize);
+        }
+        (max_bsize, msize, free_size)
+    }
+
+    fn reserve_extra_areas(&mut self, node: ((u32, usize), usize), org_size: usize) {
+        let start = node.0.1 * node.1;
+        let end = start + node.1;
+        if start >= org_size {
+            self.bitmap.set_status(node.0, BuddyStatus::USED);
+        } else if end > org_size {
+            self.reserve_extra_areas(((node.0.0 + 1, node.0.1 * 2), node.1 / 2), org_size);
+            self.reserve_extra_areas(((node.0.0 + 1, node.0.1 * 2 + 1), node.1 / 2), org_size);
+        }
+    }
+
+    pub fn allocate(&mut self, size: usize) -> Result<NonNull<[u8]>, AllocError> {
+        let bsize = size.next_power_of_two();
+        if bsize > self.max_bsize { return Err(AllocError) }
+        let mut best_block_split: Option<((u32, usize), usize)> = None;
+        let block = self.alloc_traverse(((0, 0), self.max_bsize), bsize, &mut best_block_split);
+        let block = block.or_else(|| best_block_split.map(|bbs| self.split_block(bbs, bsize)));
+        if let Some(block) = block {
+            self.bitmap.set_status(block.0, BuddyStatus::USED);
+            let addr = self.start + block.1 * block.0.1;
+            for i in 0..size.div_ceil(0x1000) {
+                let frm = PMM.lock().frame();
+                self.mpr.lock().map(frm, addr + i * 0x1000, self.flags);
+            }
+            Ok(NonNull::slice_from_raw_parts(NonNull::new(addr as *mut u8).unwrap(), size))
+        } else {
+            Err(AllocError)
+        }
+    }
+
+    pub fn free(&mut self, ptr: NonNull<u8>, size: usize) {
+        let bsize = size.next_power_of_two();
+        let block = ((self.max_bsize / bsize).ilog2(), (ptr.as_ptr() as usize - self.start) / bsize);
+        log::info!("Freeing block {:?}", block);
+        self.bitmap.set_status(block, BuddyStatus::empty());
+        self.merge_buddies(block);
+    }
+
+    fn alloc_traverse(&self, node: ((u32, usize), usize), tgt_bsize: usize, best_block_split: &mut Option<((u32, usize), usize)>) -> Option<((u32, usize), usize)> {
+        let status = self.bitmap.get_status(node.0);
+        if node.1 == tgt_bsize {
+            if status.intersects(BuddyStatus::INTERNAL | BuddyStatus::USED) { return None }
+            return Some(node);
+        } else {
+            if status.contains(BuddyStatus::USED) { return None }
+            if status.contains(BuddyStatus::INTERNAL) {
+                let mut block = self.alloc_traverse(((node.0.0 + 1, node.0.1 * 2), node.1 / 2), tgt_bsize, best_block_split);
+                if block.is_some() { return block }
+                block = self.alloc_traverse(((node.0.0 + 1, node.0.1 * 2 + 1), node.1 / 2), tgt_bsize, best_block_split);
+                return block;
+            }
+            if let Some(bbs) = best_block_split {
+                if node.1 < bbs.1 {
+                    *bbs = node;
+                }
+            } else {
+                *best_block_split = Some(node)
+            }
+            return None;
+        }
+    }
+
+    fn split_block(&mut self, split_block: ((u32, usize), usize), tgt_bsize: usize) -> ((u32, usize), usize) {
+        if split_block.1 == tgt_bsize {
+            return split_block;
+        }
+        self.bitmap.set_status(split_block.0, BuddyStatus::INTERNAL);
+        self.bitmap.set_status((split_block.0.0 + 1, split_block.0.1 + 1), BuddyStatus::empty()); // Leaf + free
+        self.split_block(((split_block.0.0 + 1, split_block.0.1 * 2), split_block.1 / 2), tgt_bsize)
+    }
+
+    fn merge_buddies(&mut self, block: (u32, usize)) {
+        // Return if root
+        if block.0 == 0 { return; }
+        let buddy = (block.0, block.1 ^ 1);
+        let status = self.bitmap.get_status(buddy);
+        if status.is_empty() {
+            // Can merge
+            let parent = (block.0 - 1, block.1 / 2);
+            self.bitmap.set_status(parent, BuddyStatus::empty());
+            self.merge_buddies(parent);
         }
     }
 }
 
-unsafe impl GlobalAlloc for VirtualMemoryManager<'_, '_> {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let size = layout.size() as u64;
-        let addr = unsafe { buddy_malloc(self.buddy, size) };
-        for i in 0..size.div_ceil(0x1000) {
-            self.mpr.lock().map(self.pmm.lock().frame(), addr as usize + i as usize * 0x1000, self.flags);
+impl<const MIN_BSIZE: usize> BuddyBitmap<MIN_BSIZE> {
+    pub fn new(bitmap: &'static mut [u8], max_bsize: usize) -> Self {
+        bitmap.fill(0);
+        let internal_depth = (max_bsize / MIN_BSIZE).ilog2();
+        Self {
+            bitmap,
+            internal_blocks: 2_usize.pow(internal_depth)
         }
-        addr as *mut u8
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        let size = layout.size();
-        buddy_safe_free(self.buddy, ptr as *mut _, size as u64);
-        for i in 0..size.div_ceil(0x1000) {
-            let ptr = ptr as usize + i * 0x1000;
-            self.pmm.lock().free(self.mpr.lock().translate(ptr));
-            self.mpr.lock().unmap(ptr);
-        }
+    pub fn size(max_bsize: usize) -> usize {
+        let internal_depth = (max_bsize / MIN_BSIZE).ilog2();
+        let internal_blocks = 2_usize.pow(internal_depth);
+        let bits = 2 * internal_blocks + max_bsize / MIN_BSIZE;
+        bits.div_ceil(8)
+    }
+
+    pub(super) fn get_status(&self, block: (u32, usize)) -> BuddyStatus {
+        let (int, off, mask) = self.translate(block);
+        BuddyStatus::from_bits_truncate((self.bitmap[int] & (mask << off)) >> off)
+    }
+    
+    pub(super) fn set_status(&mut self, block: (u32, usize), status: BuddyStatus) {
+        let (int, off, mask) = self.translate(block);
+        self.bitmap[int] &= !(mask << off); // Clear all the bits where we are setting
+        self.bitmap[int] |= (status.bits() & mask) << off;
+    }
+
+    fn translate(&self, block: (u32, usize)) -> (usize, u8, u8) {
+        let num_blocks = 2_usize.pow(block.0) + block.1;
+        let (bit_off, mask) = if num_blocks < self.internal_blocks {
+            (num_blocks * 2, 0b11)
+        } else {
+            (self.internal_blocks * 2 + (num_blocks - self.internal_blocks), 0b1)
+        };
+        return (
+            bit_off / 8,
+            (bit_off % 8) as u8,
+            mask
+        )
     }
 }
 
-pub fn init<'a, 'b>(mpr: &'a Mutex<PTMapper<'b>>, pmm: &'a Mutex<PhysicalMemoryManager>) -> Mutex<VirtualMemoryManager<'a, 'b>> {
-    let mmap = get_mmap();
-    let total_size = mmap.iter().map(|m| m.base + m.length).max().unwrap();
-    let free_size = mmap.iter().filter(|m| m.entry_type == EntryType::USABLE)
-        .map(|m| m.length).sum();
-    let vmm = VirtualMemoryManager::new(virt_addr(total_size as usize), free_size, PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE, mpr, pmm);
-    log::info!("Initialized virtual memory manager");
-    Mutex::new(vmm)
-}
+pub static KVMM: Lazy<Mutex<VirtualMemoryManager>> = Lazy::new(|| {
+    let start = get_mmap().iter().map(|m| m.length + m.base).max().unwrap();
+    let size = get_mmap().iter()
+        .filter(|m| m.entry_type == EntryType::USABLE)
+        .map(|m| m.length).sum::<u64>();
+    Mutex::new(VirtualMemoryManager::new(virt_addr(start as usize), size as usize, PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE, &KMAPPER))
+});
