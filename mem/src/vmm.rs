@@ -205,5 +205,7 @@ pub static KVMM: Lazy<Mutex<VirtualMemoryManager>> = Lazy::new(|| {
     let size = get_mmap().iter()
         .filter(|m| m.entry_type == EntryType::USABLE)
         .map(|m| m.length).sum::<u64>();
-    Mutex::new(VirtualMemoryManager::new(virt_addr(start as usize), size as usize, PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE, &KMAPPER))
+    let vmm = VirtualMemoryManager::new(virt_addr(start as usize), size as usize, PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE, &KMAPPER);
+    log::info!("Initialized virtual memory manager");
+    Mutex::new(vmm)
 });

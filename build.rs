@@ -6,8 +6,7 @@ const ASM_FILES: [&str; 1] = [
     "asm/intr.asm"
 ];
 
-const GLUE_FILES: [&str; 1] = [
-    "glue/buddy.c"
+const GLUE_FILES: [&str; 0] = [
 ];
 
 fn main() {
@@ -15,7 +14,7 @@ fn main() {
         fs::create_dir("build").unwrap();
     }
     compile_asm();
-    compile_glue();
+    // compile_glue();
     println!("cargo:rustc-link-search=build/");
     println!("cargo:rerun-if-changed=linker.ld");
 }

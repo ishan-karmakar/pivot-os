@@ -87,11 +87,9 @@ impl PhysicalMemoryManager {
     // }
 }
 
-#[used]
 #[link_section = ".requests"]
 static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
-#[used]
 #[link_section = ".requests"]
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 

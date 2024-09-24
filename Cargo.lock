@@ -55,9 +55,9 @@ checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 
 [[package]]
 name = "limine"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e067e3f6157e2a8514f98334ffa3bcf668bb25de7dc910ded7f84b2c662ca1eb"
+checksum = "9ca87cab008b8efeebdbe037cd4d1438037d48c5cb6fed939ffa5aa06315a321"
 dependencies = [
  "bitflags 2.6.0",
 ]
@@ -78,6 +78,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 name = "pivot-drivers"
 version = "0.0.0"
 dependencies = [
+ "limine",
  "uart_16550",
 ]
 

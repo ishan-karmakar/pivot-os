@@ -3,6 +3,8 @@ use core::{alloc::{GlobalAlloc, Layout}, ptr::{null_mut, NonNull}};
 use rlsf::Tlsf;
 use spin::Mutex;
 
+use crate::vmm::KVMM;
+
 // use crate::vmm::KVMM;
 
 const HEAP_SIZE: usize = 0x1000 * 4;
@@ -11,7 +13,6 @@ struct GlobalTlsf(pub Mutex<Tlsf<'static, u16, u16, 12, 16>>);
 
 unsafe impl GlobalAlloc for GlobalTlsf {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        log::info!("alloc(), {:?}", layout);
         self.0.lock().allocate(layout).map(NonNull::as_ptr).unwrap_or(null_mut())
     }
 
@@ -29,8 +30,7 @@ unsafe impl GlobalAlloc for GlobalTlsf {
 static HEAP: GlobalTlsf = GlobalTlsf(Mutex::new(Tlsf::new()));
 
 pub fn init() {
-    // let pool = KVMM.lock().allocate(Layout::from_size_align(HEAP_SIZE, 1).unwrap()).unwrap();
-    // log::debug!("{:?}", pool);
-    // unsafe { HEAP.0.lock().insert_free_block_ptr(pool) }.unwrap();
+    let pool = KVMM.lock().allocate(HEAP_SIZE).unwrap();
+    unsafe { HEAP.0.lock().insert_free_block_ptr(pool) }.unwrap();
     log::info!("Initialized kernel heap (TLSF)");
 }

@@ -38,27 +38,29 @@ macro_rules! set_ec_handler {
     }}
 }
 
-pub unsafe fn init() {
-    let ec_ints = [
-        set_ec_handler!(double_fault, 8),
-        set_ec_handler!(invalid_tss, 10),
-        set_ec_handler!(segment_not_present, 11),
-        set_ec_handler!(stack_segment_fault, 12),
-        set_ec_handler!(general_protection_fault, 13),
-        set_ec_handler!(page_fault, 14),
-        set_ec_handler!(alignment_check, 17),
-        set_ec_handler!(machine_check, 18),
-        set_ec_handler!(vmm_communication_exception, 29),
-        set_ec_handler!(security_exception, 30)
-    ];
-    for i in 0..32 {
-        if ec_ints.contains(&i) || isr_table[i].is_null() { continue; }
-        IDT[i as u8].set_handler_addr(isr_table[i]).disable_interrupts(false);
+pub fn init() {
+    unsafe {
+        let ec_ints = [
+            set_ec_handler!(double_fault, 8),
+            set_ec_handler!(invalid_tss, 10),
+            set_ec_handler!(segment_not_present, 11),
+            set_ec_handler!(stack_segment_fault, 12),
+            set_ec_handler!(general_protection_fault, 13),
+            set_ec_handler!(page_fault, 14),
+            set_ec_handler!(alignment_check, 17),
+            set_ec_handler!(machine_check, 18),
+            set_ec_handler!(vmm_communication_exception, 29),
+            set_ec_handler!(security_exception, 30)
+        ];
+        for i in 0..32 {
+            if ec_ints.contains(&i) || isr_table[i].is_null() { continue; }
+            IDT[i as u8].set_handler_addr(isr_table[i]).disable_interrupts(false);
+        }
+        for i in 32..=255 {
+            IDT[i].set_handler_addr(isr_table[i as usize]);
+        }
+        IDT.load();
     }
-    for i in 32..=255 {
-        IDT[i].set_handler_addr(isr_table[i as usize]);
-    }
-    IDT.load();
     log::info!("Loaded interrupt descriptor table");
 }
 
