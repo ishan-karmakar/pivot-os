@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(allocator_api)]
 
 use limine::request::HhdmRequest;
 use spin::Lazy;

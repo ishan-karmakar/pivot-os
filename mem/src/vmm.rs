@@ -1,4 +1,4 @@
-use core::{alloc::AllocError, ptr::{slice_from_raw_parts_mut, NonNull}};
+use core::ptr::{slice_from_raw_parts_mut, NonNull};
 
 use bitflags::bitflags;
 use limine::memory_map::EntryType;
@@ -83,9 +83,9 @@ impl<'a> VirtualMemoryManager<'a> {
         }
     }
 
-    pub fn allocate(&mut self, size: usize) -> Result<NonNull<[u8]>, AllocError> {
+    pub fn allocate(&mut self, size: usize) -> NonNull<[u8]> {
         let bsize = size.next_power_of_two();
-        if bsize > self.max_bsize { return Err(AllocError) }
+        if bsize > self.max_bsize { panic!("Allocation is larger than max block size"); }
         let mut best_block_split: Option<((u32, usize), usize)> = None;
         let block = self.alloc_traverse(((0, 0), self.max_bsize), bsize, &mut best_block_split);
         let block = block.or_else(|| best_block_split.map(|bbs| self.split_block(bbs, bsize)));
@@ -96,10 +96,9 @@ impl<'a> VirtualMemoryManager<'a> {
                 let frm = PMM.lock().frame();
                 self.mpr.lock().map(frm, addr + i * 0x1000, self.flags);
             }
-            Ok(NonNull::slice_from_raw_parts(NonNull::new(addr as *mut u8).unwrap(), size))
-        } else {
-            Err(AllocError)
+            return NonNull::slice_from_raw_parts(NonNull::new(addr as *mut u8).unwrap(), size);
         }
+        panic!("Out of memory");
     }
 
     pub fn free(&mut self, ptr: NonNull<u8>, size: usize) {

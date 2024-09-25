@@ -79,7 +79,10 @@ name = "pivot-drivers"
 version = "0.0.0"
 dependencies = [
  "limine",
+ "log",
+ "spin",
  "uart_16550",
+ "x86_64",
 ]
 
 [[package]]

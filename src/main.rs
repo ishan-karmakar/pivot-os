@@ -3,6 +3,8 @@
 
 use core::panic::PanicInfo;
 
+use pivot_drivers::smp::CPUS;
+
 pub mod cpu;
 pub mod limine;
 pub mod logger;
