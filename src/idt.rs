@@ -1,7 +1,5 @@
 use x86_64::{registers::control::Cr2, structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue}, VirtAddr};
-
-use crate::cpu;
-
+use pivot_util::cpu;
 static mut IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 
 #[repr(C)]

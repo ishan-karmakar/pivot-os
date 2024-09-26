@@ -1,7 +1,8 @@
 use alloc::{boxed::Box, vec::Vec};
 use limine::{request::SmpRequest, smp::RequestFlags};
+use pivot_util::cpu;
 use spin::Lazy;
-use x86_64::{registers::segmentation::{Segment64, GS}, VirtAddr};
+use x86_64::registers::segmentation::{Segment64, GS};
 
 pub struct CpuData {
     pub lapic_id: u32
@@ -28,7 +29,7 @@ pub static CPUS: Lazy<Box<[CpuData]>> = Lazy::new(|| {
         cpus.push(CpuData::new(cpu.lapic_id));
         cpu.extra = &cpus[i] as *const _ as u64;
         if cpu.lapic_id == bsp {
-            unsafe { GS::write_base(VirtAddr::new(cpu.extra)) };
+            cpu::wrgsbase(cpu.extra);
         }
     }
     cpus.into_boxed_slice()

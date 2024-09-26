@@ -1,0 +1,8 @@
+[package]
+name = "pivot-util"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+spin = { version = "0.9.8", default-features = false, features = ["lazy"] }
+x86_64 = { version = "0.15.1", default-features = false }
