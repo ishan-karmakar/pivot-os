@@ -105,7 +105,6 @@ impl<'a> VirtualMemoryManager<'a> {
         let bsize = size.next_power_of_two();
         let block = ((self.max_bsize / bsize).ilog2(), (ptr.as_ptr() as usize - self.start) / bsize);
         log::info!("Freeing block {:?}", block);
-        self.bitmap.set_status(block, BuddyStatus::empty());
         self.merge_buddies(block);
     }
 
@@ -146,12 +145,10 @@ impl<'a> VirtualMemoryManager<'a> {
         // Return if root
         if block.0 == 0 { return; }
         let buddy = (block.0, block.1 ^ 1);
-        let status = self.bitmap.get_status(buddy);
-        if status.is_empty() {
-            // Can merge
-            let parent = (block.0 - 1, block.1 / 2);
-            self.bitmap.set_status(parent, BuddyStatus::empty());
-            self.merge_buddies(parent);
+        if self.bitmap.get_status(buddy).is_empty() {
+            self.merge_buddies((block.0 - 1, block.1 / 2));
+        } else {
+            self.bitmap.set_status(block, BuddyStatus::empty());
         }
     }
 }
