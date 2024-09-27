@@ -3,15 +3,22 @@ name = "pivot-os"
 edition = "2021"
 
 [dependencies]
+pivot-drivers = { workspace = true }
+pivot-mem = { workspace = true }
+pivot-util = { workspace = true }
 limine = "0.3.0"
 log = "0.4.22"
 x86_64 = { version = "0.15.1", default-features = false, features = ["instructions"] }
-pivot-mem = { path = "mem" }
-pivot-drivers = { path = "drivers" }
-pivot-util = { path = "util" }
 spin = { version = "0.9.8", default-features = false, features = ["lazy"] }
 flanterm_bindings = "1.1.3"
-nasm = "0.0.1"
 
 [workspace]
 members = ["mem", "drivers", "util"]
+
+[workspace.dependencies]
+pivot-util = { path = "util" }
+pivot-drivers = { path = "drivers" }
+pivot-mem = { path = "mem" }
+
+[build-dependencies]
+nasm-rs = "0.3.0"

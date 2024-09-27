@@ -1,4 +1,4 @@
-use std::{fs, path::Path, process::Command};
+use std::{fs, path::Path};
 
 const ASM_FILES: [&str; 1] = [
     "asm/intr.asm"
@@ -8,14 +8,9 @@ fn main() {
     if !Path::new("build").exists() {
         fs::create_dir("build").unwrap();
     }
-    compile_asm();
-    // compile_glue();
-    println!("cargo:rustc-link-search=build/");
-    println!("cargo:rerun-if-changed=linker.ld");
-}
-
-fn compile_asm() {
+    nasm_rs::compile_library("libasm.a", &ASM_FILES).unwrap();
     println!("cargo:rustc-link-lib=static=asm");
+    println!("cargo:rerun-if-changed=linker.ld");
 }
 
 // fn compile_glue() {
