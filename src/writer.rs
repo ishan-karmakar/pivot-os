@@ -1,5 +1,7 @@
 use core::fmt::{Arguments, Write};
 
+use pivot_drivers::{qemu::QEMU_WRITER, term::TERM_WRITER};
+
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::writer::_print(format_args!($($arg)*)));
@@ -12,6 +14,6 @@ macro_rules! println {
 }
 
 pub fn _print(args: Arguments) {
-    unsafe { pivot_drivers::qemu::QEMU_WRITER.write_fmt(args).unwrap(); }
-    // TODO: Add framebuffer when implemented
+    QEMU_WRITER.lock().write_fmt(args).unwrap();
+    TERM_WRITER.lock().write_fmt(args).unwrap();
 }

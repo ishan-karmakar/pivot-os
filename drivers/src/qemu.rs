@@ -1,10 +1,15 @@
 use core::fmt::Write;
 
+use spin::{Lazy, Mutex};
 use uart_16550::SerialPort;
 
 pub struct QEMUWriter(pub SerialPort);
 
-pub static mut QEMU_WRITER: QEMUWriter = QEMUWriter(unsafe { SerialPort::new(0x3F8) });
+pub static QEMU_WRITER: Lazy<Mutex<QEMUWriter>> = Lazy::new(|| {
+    let mut port = unsafe { SerialPort::new(0x3F8) };
+    port.init();
+    Mutex::new(QEMUWriter(port))
+});
 
 impl Write for QEMUWriter {
     fn write_char(&mut self, c: char) -> core::fmt::Result {
@@ -18,8 +23,4 @@ impl Write for QEMUWriter {
         }
         Ok(())
     }
-}
-
-pub fn init() {
-    unsafe { QEMU_WRITER.0.init() };
 }

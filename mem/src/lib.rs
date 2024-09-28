@@ -1,5 +1,4 @@
 #![no_std]
-
 use limine::request::HhdmRequest;
 use spin::Lazy;
 

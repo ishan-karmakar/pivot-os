@@ -2,6 +2,6 @@
 	path = limine
 	url = https://github.com/limine-bootloader/limine
 	branch = v8.x-binary
-[submodule "buddy_alloc"]
-	path = buddy_alloc
-	url = https://github.com/spaskalev/buddy_alloc
+[submodule "flanterm"]
+	path = flanterm
+	url = https://github.com/mintsuki/flanterm

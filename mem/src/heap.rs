@@ -12,11 +12,12 @@ struct GlobalTlsf(pub Mutex<Tlsf<'static, u16, u16, 12, 16>>);
 unsafe impl GlobalAlloc for GlobalTlsf {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = self.0.lock().allocate(layout).map(NonNull::as_ptr).unwrap_or(null_mut());
-        log::info!("{:p}", ptr);
+        log::debug!("ALLOC: {:p}", ptr);
         ptr
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        log::debug!("DEALLOC: {:p}", ptr);
         self.0.lock().deallocate(NonNull::new_unchecked(ptr), layout.align())
     }
 
