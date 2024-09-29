@@ -28,6 +28,7 @@ pub extern "C" fn kinit() -> ! {
     idt::init();
     pivot_mem::heap::init();
     gdt::init_dyn();
+    pivot_drivers::acpi::init();
     loop {}
 }
 

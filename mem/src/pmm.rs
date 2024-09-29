@@ -93,11 +93,7 @@ static MMAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[link_section = ".requests"]
 static PAGING_REQUEST: PagingModeRequest = PagingModeRequest::new(); // Already set to default (LVL4)
 
-pub static PMM: Lazy<Mutex<PhysicalMemoryManager>> = Lazy::new(init);
-
-pub(crate) fn get_mmap() -> &'static [&'static Entry] { MMAP_REQUEST.get_response().unwrap().entries() }
-
-fn init() -> Mutex<PhysicalMemoryManager> {
+pub static PMM: Lazy<Mutex<PhysicalMemoryManager>> = Lazy::new(|| {
     assert!(PAGING_REQUEST.get_response().is_some(), "Limine failed to respond to paging request");
 
     let mmap_res = MMAP_REQUEST.get_response().unwrap();
@@ -113,4 +109,6 @@ fn init() -> Mutex<PhysicalMemoryManager> {
 
     log::info!("Initialized physical memory manager");
     Mutex::new(pmm)
-}
+});
+
+pub(crate) fn get_mmap() -> &'static [&'static Entry] { MMAP_REQUEST.get_response().unwrap().entries() }

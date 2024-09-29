@@ -12,8 +12,11 @@ ISO := $(BUILD_DIR)/pivot-os.iso
 
 all: iso
 
+release: CARGO_FLAGS += --release
+release: iso
+
 .PHONY: run
-run: iso
+run: iso # Replace with run: release here to test if release build works in emulator
 	qemu-system-x86_64 $(QEMU_FLAGS) -drive file=$(ISO),index=0,media=disk,format=raw
 
 .PHONY: iso
@@ -25,8 +28,8 @@ iso: kernel $(OUT_ISO_FILES)
 .PHONY: kernel
 kernel:
 	mkdir -p $(TMP_DIR)
-	cargo $(CARGO_FLAGS) build
-	cp `cargo build --message-format=json 2> /dev/null | jq -r 'select (.executable != null) | .executable'` $(TMP_DIR)
+	cargo build $(CARGO_FLAGS)
+	cp `cargo build $(CARGO_FLAGS) --message-format=json 2> /dev/null | jq -r 'select (.executable != null) | .executable'` $(TMP_DIR)
 
 $(OUT_ISO_FILES): $(IN_ISO_FILES)
 	mkdir -p $(TMP_DIR)
