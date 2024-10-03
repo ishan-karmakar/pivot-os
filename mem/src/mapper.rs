@@ -78,7 +78,7 @@ impl PTMapper {
     }
 
     // Gets the physical address given a virtual address. Returns 0 if intermediate page table doesn't exist
-    pub fn translate(&mut self, virt: usize) -> usize {
+    pub fn translate(&self, virt: usize) -> usize {
         let virt = VirtAddr::new(virt as u64);
         // Checks if unused twice for each new page table
         // But unused is just == 0 so I don't really care

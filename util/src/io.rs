@@ -8,35 +8,35 @@ pub trait InOut {
 impl InOut for u8 {
     fn read(port: u16) -> Self {
         let val: Self;
-        unsafe { asm!("inb %al, %dx", in("dx") port, out("al") val) };
+        unsafe { asm!("in al, dx", in("dx") port, out("al") val) };
         val
     }
 
     fn write(port: u16, value: Self) {
-        unsafe { asm!("outb %dx, %al", in("dx") port, in("al") value) };
+        unsafe { asm!("out dx, al", in("dx") port, in("al") value) };
     }
 }
 
 impl InOut for u16 {
     fn read(port: u16) -> Self {
         let val: Self;
-        unsafe { asm!("inw %ax, %dx", in("dx") port, out("ax") val) };
+        unsafe { asm!("in ax, dx", in("dx") port, out("ax") val) };
         val
     }
 
     fn write(port: u16, value: Self) {
-        unsafe { asm!("outw %dx, %ax", in("dx") port, in("ax") value) };
+        unsafe { asm!("out dx, ax", in("dx") port, in("ax") value) };
     }
 }
 
 impl InOut for u32 {
     fn read(port: u16) -> Self {
         let val: Self;
-        unsafe { asm!("inb %eax, %dx", in("dx") port, out("eax") val) };
+        unsafe { asm!("in eax, dx", in("dx") port, out("eax") val) };
         val
     }
 
     fn write(port: u16, value: Self) {
-        unsafe { asm!("outb %dx, %eax", in("dx") port, in("eax") value) };
+        unsafe { asm!("out dx, eax", in("dx") port, in("eax") value) };
     }
 }

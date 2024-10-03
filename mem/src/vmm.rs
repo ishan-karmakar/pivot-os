@@ -1,4 +1,4 @@
-use core::ptr::{slice_from_raw_parts_mut, NonNull};
+use core::{cmp::min, ptr::{slice_from_raw_parts_mut, NonNull}};
 
 use bitflags::bitflags;
 use limine::memory_map::EntryType;
@@ -84,7 +84,7 @@ impl<'a> VirtualMemoryManager<'a> {
     }
 
     pub fn allocate(&mut self, size: usize) -> NonNull<[u8]> {
-        let bsize = size.next_power_of_two();
+        let bsize = min(0x1000, size.next_power_of_two());
         if bsize > self.max_bsize { panic!("Allocation is larger than max block size"); }
         let mut best_block_split: Option<((u32, usize), usize)> = None;
         let block = self.alloc_traverse(((0, 0), self.max_bsize), bsize, &mut best_block_split);
@@ -105,6 +105,9 @@ impl<'a> VirtualMemoryManager<'a> {
         let bsize = size.next_power_of_two();
         let block = ((self.max_bsize / bsize).ilog2(), (ptr.as_ptr() as usize - self.start) / bsize);
         log::info!("Freeing block {:?}", block);
+        for i in 0..bsize / 0x1000 {
+            PMM.lock().free(self.mpr.lock().translate(ptr.as_ptr() as usize + i * 0x1000));
+        }
         self.merge_buddies(block);
     }
 

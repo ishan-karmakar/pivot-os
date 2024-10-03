@@ -23,7 +23,7 @@ This simplifies the code a lot and avoids much of static muts.
 #[no_mangle]
 pub extern "C" fn kinit() -> ! {
     cpu::init();
-    logger::init(log::LevelFilter::Debug).unwrap(); // Initialize logger + max level
+    logger::init(log::LevelFilter::Trace).unwrap(); // Initialize logger + max level
     gdt::init_static();
     idt::init();
     pivot_mem::heap::init();

@@ -79,5 +79,11 @@ pub fn init_dyn() {
         GDT.push(Descriptor::user_code_segment());
         GDT.push(Descriptor::user_data_segment());
         GDT.load();
+        CS::set_reg(KCODE);
+        DS::set_reg(KDATA);
+        SS::set_reg(KDATA);
+        ES::set_reg(KDATA);
+        FS::set_reg(KDATA);
+        GS::set_reg(KDATA);
     };
 }

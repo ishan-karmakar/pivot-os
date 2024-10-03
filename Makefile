@@ -17,7 +17,7 @@ release: iso
 
 .PHONY: run
 run: iso # Replace with run: release here to test if release build works in emulator
-	qemu-system-x86_64 $(QEMU_FLAGS) -drive file=$(ISO),index=0,media=disk,format=raw
+	qemu-system-x86_64 $(QEMU_FLAGS) -d int -drive file=$(ISO),index=0,media=disk,format=raw
 
 .PHONY: iso
 iso: kernel $(OUT_ISO_FILES)

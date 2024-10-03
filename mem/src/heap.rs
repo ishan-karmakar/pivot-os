@@ -7,17 +7,17 @@ use crate::vmm::KVMM;
 
 const HEAP_SIZE: usize = 0x1000 * 4;
 
-struct GlobalTlsf(pub Mutex<Tlsf<'static, u16, u16, 12, 16>>);
+struct GlobalTlsf(pub Mutex<Tlsf<'static, u16, u16, 9, 16>>);
 
 unsafe impl GlobalAlloc for GlobalTlsf {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = self.0.lock().allocate(layout).map(NonNull::as_ptr).unwrap_or(null_mut());
-        log::debug!("ALLOC: {:p}", ptr);
+        // log::info!("ALLOC: {:p} - {}", ptr, layout.size());
         ptr
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        log::debug!("DEALLOC: {:p}", ptr);
+        // log::info!("DEALLOC: {:p}", ptr);
         self.0.lock().deallocate(NonNull::new_unchecked(ptr), layout.align())
     }
 
