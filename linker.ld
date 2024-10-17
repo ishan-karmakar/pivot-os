@@ -1,0 +1,4 @@
+SECTIONS
+{
+    . = 0xFFFFFFFF80000000;
+}
