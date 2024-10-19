@@ -58,8 +58,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .code_model = .kernel,
     });
     kernel.setLinkerScript(b.path("linker.ld"));
+    b.installArtifact(kernel); // Installing kernel so we can examine it for debugging
 
     const wf = createISODir(b, kernel);
     const iso = runXorriso(b, wf.getDirectory());
@@ -75,7 +77,11 @@ pub fn build(b: *std.Build) void {
 
 fn qemuRun(b: *std.Build, iso: *std.Build.Step.InstallFile) void {
     const qemu_run = b.addSystemCommand(&QEMU_ARGS);
-    qemu_run.addArg("-drive");
+    qemu_run.addArg("-cdrom");
+    qemu_run.addFileArg(iso.source);
+    qemu_run.step.dependOn(b.getInstallStep());
+    const qemu_step = b.step("run", "Run the kernel with QEMU");
+    qemu_step.dependOn(&qemu_run.step);
 }
 
 fn createISODir(b: *std.Build, kernel: *std.Build.Step.Compile) *std.Build.Step.WriteFile {
