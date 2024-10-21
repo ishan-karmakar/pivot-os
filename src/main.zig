@@ -1,12 +1,12 @@
 const std = @import("std");
 const limine = @import("limine");
-const logger = @import("services/logger.zig");
-const mem = @import("services/mem.zig");
-const cpu = @import("services/cpu.zig");
 const log = std.log.scoped(.main);
+pub const services = @import("services/index.zig");
+pub const drivers = @import("drivers/index.zig");
+pub const lib = @import("lib/index.zig");
 
 pub const std_options = .{
-    .logFn = logger.logger,
+    .logFn = services.logger.logger,
 };
 
 export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 2 };
@@ -16,8 +16,9 @@ export fn _start() void {
         @panic("Limine bootloader base revision not supported");
     }
     log.info("Entered kernel, starting initialization", .{});
-    cpu.init();
-    mem.init();
+    services.cpu.init();
+    services.mem.init();
+    log.info("{x}", .{lib.mem.pmm.frame()});
 
     while (true) {}
 }

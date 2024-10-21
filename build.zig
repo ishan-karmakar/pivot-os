@@ -62,8 +62,10 @@ pub fn build(b: *std.Build) void {
         .code_model = .kernel,
         .single_threaded = true,
     });
+    const limineModule = b.dependency("limine_zig", .{}).module("limine");
     kernel.setLinkerScript(b.path("linker.ld"));
-    kernel.root_module.addImport("limine", b.dependency("limine_zig", .{}).module("limine"));
+    kernel.root_module.addImport("limine", limineModule);
+    kernel.root_module.addImport("kernel", &kernel.root_module);
     b.installArtifact(kernel); // Installing kernel so we can examine it for debugging
 
     const wf = createISODir(b, kernel);
