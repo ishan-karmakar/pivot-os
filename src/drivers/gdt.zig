@@ -1,4 +1,4 @@
-const log = @import("std").log;
+const log = @import("std").log.scoped(.gdt);
 
 const Entry = packed struct {
     limit0: u16 = 0xFFFF,
@@ -36,8 +36,6 @@ var gdtr = GDTR{
 };
 
 pub fn init_static() void {
-    log.debug("Starting init_static()", .{});
-    defer log.debug("Ending init_static()", .{});
     gdtr.addr = @intFromPtr(&static_gdt);
     lgdt();
     log.info("Loaded static GDT", .{});
@@ -46,7 +44,7 @@ pub fn init_static() void {
 fn lgdt() void {
     asm volatile ("lgdt (%[gdtr])"
         :
-        : [gdtr] "r" (@intFromPtr(&gdtr)),
+        : [gdtr] "r" (&gdtr),
     );
 
     asm volatile (

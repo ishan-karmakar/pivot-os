@@ -23,9 +23,13 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .limine = .{
+        .limine_c = .{
             .url = "https://github.com/limine-bootloader/limine/archive/refs/tags/v8.1.1-binary.zip",
             .hash = "1220ac064129e64e4269e6f1b24bbd66e7a94c32e8c0219a19630667bcc585ca875e",
+        },
+        .limine_zig = .{
+            .url = "https://github.com/48cf/limine-zig/archive/refs/heads/trunk.zip",
+            .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
         },
     },
 

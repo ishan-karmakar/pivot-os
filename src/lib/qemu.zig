@@ -1,5 +1,5 @@
 const std = @import("std");
-const serial = @import("serial.zig");
+const serial = @import("../drivers/serial.zig");
 
 const QEMU_SERIAL_PORT = 0x3F8;
 

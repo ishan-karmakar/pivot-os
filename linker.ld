@@ -29,9 +29,6 @@ SECTIONS
 
     .data (ALIGN(CONSTANT(MAXPAGESIZE))) : {
         *(.data .data.*)
-        *(.requests.start)
-        *(.requests)
-        *(.requests.end)
     } :data
 
     .bss : {

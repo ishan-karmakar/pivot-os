@@ -1,17 +1,32 @@
 const std = @import("std");
-const logger = @import("lib/logger.zig");
-const gdt = @import("drivers/gdt.zig");
-const idt = @import("drivers/idt.zig");
+const limine = @import("limine");
+const logger = @import("services/logger.zig");
+const mem = @import("services/mem.zig");
+const cpu = @import("services/cpu.zig");
+const log = std.log.scoped(.main);
 
 pub const std_options = .{
-    .log_level = .debug,
-    .logFn = logger.kernelLog,
+    .logFn = logger.logger,
 };
 
+export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 2 };
+
 export fn _start() void {
-    std.log.info("Entered kernel, starting initialization", .{});
-    gdt.init_static();
-    idt.init();
+    if (!LIMINE_BASE_REVISION.is_supported()) {
+        @panic("Limine bootloader base revision not supported");
+    }
+    log.info("Entered kernel, starting initialization", .{});
+    cpu.init();
+    mem.init();
 
     while (true) {}
+}
+
+pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+    std.log.err("{s}", .{msg});
+    asm volatile (
+        \\cli
+        \\hlt
+    );
+    unreachable;
 }

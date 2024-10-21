@@ -48,6 +48,7 @@ pub fn build(b: *std.Build) void {
     const target = b.resolveTargetQuery(.{
         .cpu_arch = .x86_64,
         .os_tag = .freestanding,
+        .abi = .none,
         .cpu_features_add = cpu_features_add,
         .cpu_features_sub = cpu_features_sub,
     });
@@ -59,8 +60,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .code_model = .kernel,
+        .single_threaded = true,
     });
     kernel.setLinkerScript(b.path("linker.ld"));
+    kernel.root_module.addImport("limine", b.dependency("limine_zig", .{}).module("limine"));
     b.installArtifact(kernel); // Installing kernel so we can examine it for debugging
 
     const wf = createISODir(b, kernel);
@@ -85,7 +88,7 @@ fn qemuRun(b: *std.Build, iso: *std.Build.Step.InstallFile) void {
 }
 
 fn createISODir(b: *std.Build, kernel: *std.Build.Step.Compile) *std.Build.Step.WriteFile {
-    const limine = b.dependency("limine", .{});
+    const limine = b.dependency("limine_c", .{});
     const wf = b.addWriteFiles();
     _ = wf.addCopyDirectory(
         limine.path(""),
