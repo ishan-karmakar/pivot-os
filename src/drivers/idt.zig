@@ -40,35 +40,35 @@ var table: [256]Entry = .{.{
 }} ** 256;
 
 pub fn init() void {
-    set_idt_ent(&table[0], create_exception_isr(0, false));
-    set_idt_ent(&table[1], create_exception_isr(1, false));
-    set_idt_ent(&table[2], create_exception_isr(2, false));
-    set_idt_ent(&table[3], create_exception_isr(3, false));
-    set_idt_ent(&table[4], create_exception_isr(4, false));
-    set_idt_ent(&table[5], create_exception_isr(5, false));
-    set_idt_ent(&table[6], create_exception_isr(6, false));
-    set_idt_ent(&table[7], create_exception_isr(7, false));
-    set_idt_ent(&table[8], create_exception_isr(8, true));
-    set_idt_ent(&table[10], create_exception_isr(10, true));
-    set_idt_ent(&table[11], create_exception_isr(11, true));
-    set_idt_ent(&table[12], create_exception_isr(12, true));
-    set_idt_ent(&table[13], create_exception_isr(13, true));
-    set_idt_ent(&table[14], pf_handler);
-    set_idt_ent(&table[16], create_exception_isr(16, false));
-    set_idt_ent(&table[17], create_exception_isr(17, true));
-    set_idt_ent(&table[18], create_exception_isr(18, false));
-    set_idt_ent(&table[19], create_exception_isr(19, false));
-    set_idt_ent(&table[20], create_exception_isr(20, false));
-    set_idt_ent(&table[21], create_exception_isr(21, false));
-    set_idt_ent(&table[22], create_exception_isr(22, false));
-    set_idt_ent(&table[23], create_exception_isr(23, false));
-    set_idt_ent(&table[24], create_exception_isr(24, false));
-    set_idt_ent(&table[25], create_exception_isr(25, false));
-    set_idt_ent(&table[26], create_exception_isr(26, false));
-    set_idt_ent(&table[27], create_exception_isr(27, false));
-    set_idt_ent(&table[28], create_exception_isr(28, false));
-    set_idt_ent(&table[29], create_exception_isr(29, true));
-    set_idt_ent(&table[30], create_exception_isr(30, true));
+    set_idt_ent(&table[0], create_exception_isr(0, false, "exception_handler"));
+    set_idt_ent(&table[1], create_exception_isr(1, false, "exception_handler"));
+    set_idt_ent(&table[2], create_exception_isr(2, false, "exception_handler"));
+    set_idt_ent(&table[3], create_exception_isr(3, false, "exception_handler"));
+    set_idt_ent(&table[4], create_exception_isr(4, false, "exception_handler"));
+    set_idt_ent(&table[5], create_exception_isr(5, false, "exception_handler"));
+    set_idt_ent(&table[6], create_exception_isr(6, false, "exception_handler"));
+    set_idt_ent(&table[7], create_exception_isr(7, false, "exception_handler"));
+    set_idt_ent(&table[8], create_exception_isr(8, true, "exception_handler"));
+    set_idt_ent(&table[10], create_exception_isr(10, true, "exception_handler"));
+    set_idt_ent(&table[11], create_exception_isr(11, true, "exception_handler"));
+    set_idt_ent(&table[12], create_exception_isr(12, true, "exception_handler"));
+    set_idt_ent(&table[13], create_exception_isr(13, true, "exception_handler"));
+    set_idt_ent(&table[14], create_exception_isr(14, true, "pf_handler"));
+    set_idt_ent(&table[16], create_exception_isr(16, false, "exception_handler"));
+    set_idt_ent(&table[17], create_exception_isr(17, true, "exception_handler"));
+    set_idt_ent(&table[18], create_exception_isr(18, false, "exception_handler"));
+    set_idt_ent(&table[19], create_exception_isr(19, false, "exception_handler"));
+    set_idt_ent(&table[20], create_exception_isr(20, false, "exception_handler"));
+    set_idt_ent(&table[21], create_exception_isr(21, false, "exception_handler"));
+    set_idt_ent(&table[22], create_exception_isr(22, false, "exception_handler"));
+    set_idt_ent(&table[23], create_exception_isr(23, false, "exception_handler"));
+    set_idt_ent(&table[24], create_exception_isr(24, false, "exception_handler"));
+    set_idt_ent(&table[25], create_exception_isr(25, false, "exception_handler"));
+    set_idt_ent(&table[26], create_exception_isr(26, false, "exception_handler"));
+    set_idt_ent(&table[27], create_exception_isr(27, false, "exception_handler"));
+    set_idt_ent(&table[28], create_exception_isr(28, false, "exception_handler"));
+    set_idt_ent(&table[29], create_exception_isr(29, true, "exception_handler"));
+    set_idt_ent(&table[30], create_exception_isr(30, true, "exception_handler"));
 
     idtr.addr = @intFromPtr(&table);
     lidt();
@@ -136,7 +136,7 @@ fn log_status(status: *const ExceptionStatus) void {
 //     );
 // }
 
-fn create_exception_isr(comptime int_num: usize, comptime ec: bool) ISR {
+fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_name: []const u8) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
             if (comptime !ec) {
@@ -146,55 +146,10 @@ fn create_exception_isr(comptime int_num: usize, comptime ec: bool) ISR {
             asm volatile (
                 \\mov %[int_num], %%rdi
                 \\mov %%rsp, %%rsi
-                \\jmp exception_handler
                 :
                 : [int_num] "i" (int_num),
             );
+            asm volatile ("jmp " ++ fn_name);
         }
     }.handler;
 }
-
-// fn create_fn_table() [256]fn () callconv(.Naked) void {
-//     var t: [256]fn () callconv(.Naked) void = undefined;
-//     t[0] = create_exception_handler(0, false);
-//     t[1] = create_exception_handler(1, false);
-//     t[2] = create_exception_handler(2, false);
-//     t[3] = create_exception_handler(3, false);
-//     t[4] = create_exception_handler(4, false);
-//     t[5] = create_exception_handler(5, false);
-//     t[6] = create_exception_handler(6, false);
-//     t[7] = create_exception_handler(7, false);
-//     t[8] = create_exception_handler(8, true);
-//     t[10] = create_exception_handler(10, true);
-//     t[11] = create_exception_handler(11, true);
-//     t[12] = create_exception_handler(12, true);
-//     t[13] = create_exception_handler(13, true);
-//     t[14] = create_exception_handler(14, true);
-//     t[16] = create_exception_handler(16, false);
-//     t[17] = create_exception_handler(17, true);
-//     t[18] = create_exception_handler(18, false);
-//     t[19] = create_exception_handler(19, false);
-//     t[20] = create_exception_handler(20, false);
-//     t[21] = create_exception_handler(21, false);
-//     t[22] = create_exception_handler(22, false);
-//     t[23] = create_exception_handler(23, false);
-//     t[24] = create_exception_handler(24, false);
-//     t[25] = create_exception_handler(25, false);
-//     t[26] = create_exception_handler(26, false);
-//     t[27] = create_exception_handler(27, false);
-//     t[28] = create_exception_handler(28, false);
-//     t[29] = create_exception_handler(29, true);
-//     t[30] = create_exception_handler(30, true);
-//     return t;
-// }
-
-// Loads the function addresses from fn_table to IDT table at runtime
-// fn load_idt_table() void {
-//     for (0..256) |i| {
-//         const ptr = @intFromPtr(&fn_table[i]);
-//         table[i].off0 = ptr & 0xFFFF;
-//         table[i].off1 = ptr & 0xFFFF;
-//         table[i].off2 = ptr & 0xFFFFFFFF;
-//         table[i].flags = 0x8E;
-//     }
-// }
