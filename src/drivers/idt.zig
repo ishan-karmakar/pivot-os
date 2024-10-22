@@ -53,7 +53,7 @@ pub fn init() void {
     set_idt_ent(&table[11], create_exception_isr(11, true));
     set_idt_ent(&table[12], create_exception_isr(12, true));
     set_idt_ent(&table[13], create_exception_isr(13, true));
-    set_idt_ent(&table[14], create_exception_isr(14, true));
+    set_idt_ent(&table[14], pf_handler);
     set_idt_ent(&table[16], create_exception_isr(16, false));
     set_idt_ent(&table[17], create_exception_isr(17, true));
     set_idt_ent(&table[18], create_exception_isr(18, false));
@@ -90,14 +90,27 @@ fn lidt() void {
     );
 }
 
-export fn exception_handler(int_num: usize, status: *const ExceptionStatus) void {
+export fn exception_handler(int_num: usize, status: *const ExceptionStatus) noreturn {
     log.err("Encountered exception {} with EC {}", .{ int_num, status.ec });
+    log_status(status);
+    @panic("Panicking...");
+}
+
+export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
+    log.err("Encountered #PF with EC {}", .{status.ec});
+    log.debug("CR2: 0x{x}", .{asm volatile ("mov %%cr2, %[result]"
+        : [result] "=r" (-> u64),
+    )});
+    log_status(status);
+    @panic("Panicking...");
+}
+
+fn log_status(status: *const ExceptionStatus) void {
     log.debug("RIP: 0x{x}", .{status.rip});
     log.debug("CS: {}", .{status.cs});
     log.debug("RFLAGS: 0x{x}", .{status.rflags});
     log.debug("RSP: 0x{x}", .{status.rsp});
     log.debug("SS: {}", .{status.ss});
-    @panic("Panicking...");
 }
 
 // export fn exception_common() callconv(.Naked) void {
