@@ -22,27 +22,28 @@ pub fn map(self: Self, phys: usize, virt: usize, flags: u64) void {
     const p3_tbl = next_table(&self.pml4[p4_ent]);
     const p2_tbl = next_table(&p3_tbl[p3_ent]);
     const hp_works = phys % HP_SIZE == virt % HP_SIZE;
-    var p1_tbl: Table = undefined;
-    if ((p2_tbl[p2_ent] & (1 << 8)) > 0) {
-        if ((phys / HP_SIZE * HP_SIZE) == (p2_ent & SIGN_MASK)) {
-            return;
-        } else {
-            const frm = pmm.frame();
-            const table: Table = @ptrFromInt(pmm.virt(frm));
-            for (0..512) |i| {
-                table[i] = ((p2_tbl[p2_ent] & SIGN_MASK) + i * 0x1000) | (p2_tbl[p2_ent] & ~(SIGN_MASK | (1 << 8)));
+    var p1_tbl: Table = block: {
+        if ((p2_tbl[p2_ent] & (1 << 8)) > 0) {
+            if ((phys / HP_SIZE * HP_SIZE) == (p2_ent & SIGN_MASK)) {
+                return;
+            } else {
+                const frm = pmm.frame();
+                const table: Table = @ptrFromInt(pmm.virt(frm));
+                for (0..512) |i| {
+                    table[i] = ((p2_tbl[p2_ent] & SIGN_MASK) + i * 0x1000) | (p2_tbl[p2_ent] & ~(SIGN_MASK | (1 << 8)));
+                }
+                p2_tbl[p2_ent] = frm | 0b11 | (1 << 63);
+                break :block table;
             }
-            p2_tbl[p2_ent] = frm | 0b11 | (1 << 63);
-            p1_tbl = table;
-        }
-    } else {
-        if ((p2_tbl[p2_ent] & 1) > 0 and hp_works) {
-            p2_tbl[p2_ent] = (phys / HP_SIZE * HP_SIZE) | 0b11 | (1 << 63) | (1 << 8);
-            return;
         } else {
-            p1_tbl = next_table(&p2_tbl[p2_ent]);
+            if ((p2_tbl[p2_ent] & 1) > 0 and hp_works) {
+                p2_tbl[p2_ent] = (phys / HP_SIZE * HP_SIZE) | 0b11 | (1 << 63) | (1 << 8);
+                return;
+            } else {
+                break :block next_table(&p2_tbl[p2_ent]);
+            }
         }
-    }
+    };
     p1_tbl[p1_ent] = phys | flags | 1;
 }
 
