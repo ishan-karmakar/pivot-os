@@ -1,5 +1,5 @@
 const log = @import("std").log.scoped(.mapper);
-const pmm = @import("kernel").lib.mem.pmm;
+const mem = @import("kernel").lib.mem;
 const Self = @This();
 const Table = *[512]u64;
 
@@ -27,8 +27,8 @@ pub fn map(self: Self, phys: usize, virt: usize, flags: u64) void {
             if ((phys / HP_SIZE * HP_SIZE) == (p2_ent & SIGN_MASK)) {
                 return;
             } else {
-                const frm = pmm.frame();
-                const table: Table = @ptrFromInt(pmm.virt(frm));
+                const frm = mem.pmm.frame();
+                const table: Table = @ptrFromInt(mem.virt(frm));
                 for (0..512) |i| {
                     table[i] = ((p2_tbl[p2_ent] & SIGN_MASK) + i * 0x1000) | (p2_tbl[p2_ent] & ~(SIGN_MASK | (1 << 8)));
                 }
@@ -49,11 +49,11 @@ pub fn map(self: Self, phys: usize, virt: usize, flags: u64) void {
 
 fn next_table(entry: *u64) Table {
     if ((entry.* & 1) > 0) {
-        return @ptrFromInt(pmm.virt(entry.* & SIGN_MASK));
+        return @ptrFromInt(mem.virt(entry.* & SIGN_MASK));
     } else {
-        const frm = pmm.frame();
+        const frm = mem.pmm.frame();
         entry.* = frm | 0b11 | (1 << 63); // Writable, present, no execute
-        const table: Table = @ptrFromInt(pmm.virt(frm));
+        const table: Table = @ptrFromInt(mem.virt(frm));
         @memset(table, 0);
         return table;
     }

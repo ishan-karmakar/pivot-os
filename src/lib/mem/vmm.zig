@@ -16,16 +16,16 @@ flags: u64,
 
 pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     const sizes = calc_split(size);
-    log.debug("Max block size: {}, Free size: {}, Metadata size: {}", .{ sizes[0], sizes[1], sizes[2] });
+    log.debug("Start: 0x{x}, Max block size: {}, Free size: {}, Metadata size: {}", .{ start, sizes[0], sizes[1], sizes[2] });
     const pages = math.divCeil(usize, sizes[2], 0x1000) catch unreachable;
     for (0..pages) |i| {
         const frm = mem.pmm.frame();
         mapper.map(frm, start + i * 0x1000, flags | 0b10 | (1 << 63));
     }
-    const bitmap: [*]u8 = @ptrFromInt(start);
-    // memset to zero
+    const bitmap = @as([*]u8, @ptrFromInt(start))[0..sizes[2]];
+    @memset(bitmap, 0);
     return Self{
-        .bitmap = bitmap[0..sizes[2]],
+        .bitmap = bitmap,
         .flags = flags,
         .internal_blocks = sizes[3],
         .mapper = mapper,
