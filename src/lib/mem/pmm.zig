@@ -13,6 +13,8 @@ const FreeRegion = struct {
     }
 };
 
+// FIXME: mutex
+
 var head_region: ?*FreeRegion = null;
 
 /// Adds region (start and number of pages) to free regions linked list

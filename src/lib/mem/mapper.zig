@@ -7,6 +7,7 @@ const HP_SIZE = 0x20000;
 const SIGN_MASK: usize = 0x000ffffffffff00;
 
 pml4: Table,
+// FIXME: mutex
 
 pub fn create(tbl: usize) Self {
     log.debug("Creating mapper with PML4 at 0x{x}", .{tbl});

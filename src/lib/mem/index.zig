@@ -28,9 +28,13 @@ pub fn init() void {
     const free_mem = pmm_init();
     mapper_init();
     vmm_init(free_mem);
+    _ = kvmm.alloc(0x1000, 0, 0);
+    _ = kvmm.alloc(0x1000, 0, 0);
+    // const allocator = kvmm.allocator();
+    // log.info("{}", .{allocator});
 }
 
-pub fn pmm_init() usize {
+fn pmm_init() usize {
     var free_mem: usize = 0;
     for (MMAP_REQUEST.response.?.entries()) |ent| {
         log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
