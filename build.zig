@@ -60,7 +60,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .code_model = .kernel,
-        .single_threaded = true,
     });
     const limineModule = b.dependency("limine_zig", .{}).module("limine");
     kernel.setLinkerScript(b.path("linker.ld"));
