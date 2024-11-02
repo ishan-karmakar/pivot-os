@@ -50,31 +50,46 @@ pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
 //     };
 // }
 
-pub fn alloc(self: *Self, len: usize, ptr_align: u8, ret_addr: usize) ?[*]u8 {
-    _ = ptr_align; // TODO: Handle alignment
-    _ = ret_addr;
-    const bsize = @min(0x1000, math.ceilPowerOfTwoAssert(usize, len));
+pub fn alloc(self: *Self, len: usize, _: u8, _: usize) ?[*]u8 {
+    // TODO: Maybe implement pointer alignment, but right now no need for it and will unnecessarily complicate code
+    const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
     if (bsize > self.max_bsize) {
         return null;
     }
-    const block = self.alloc_traverse(Block{
+    var block = self.alloc_traverse(Block{
         .depth = 0,
         .col = 0,
         .bsize = self.max_bsize,
-    }, bsize);
-    if (block) |b| {
-        const final_block = if (b.bsize == bsize) b else self.split_block(b, bsize);
-        self.set_status(final_block, 1);
-        log.debug("Using block {any}", .{final_block});
-        const addr = @intFromPtr(self.bitmap.ptr) + self.bitmap.len + final_block.bsize * final_block.col;
-        log.debug("Allocation address: 0x{x}", .{addr});
-        for (0..math.divCeil(usize, len, 0x1000) catch unreachable) |i| {
-            const frm = mem.pmm.frame();
-            self.mapper.map(frm, addr + i * 0x1000, self.flags);
-        }
-        return @ptrFromInt(addr);
+    }, bsize) orelse return null;
+    block = if (block.bsize == bsize) block else self.split_block(block, bsize);
+    self.set_status(block, 1);
+    log.debug("Using block {any}", .{block});
+    const addr = self.block_addr(block);
+    log.debug("Allocation address: 0x{x}", .{addr});
+    for (0..math.divCeil(usize, len, 0x1000) catch unreachable) |i| {
+        const frm = mem.pmm.frame();
+        self.mapper.map(frm, addr + i * 0x1000, self.flags);
     }
-    return null;
+    return @ptrFromInt(addr);
+}
+
+pub fn free(self: *Self, buf: []u8, _: u8, _: usize) void {
+    const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
+    if (bsize > self.max_bsize) {
+        return;
+    }
+
+    const block = Block{
+        .depth = math.log2(self.max_bsize / bsize),
+        .col = (@intFromPtr(buf.ptr) - @intFromPtr(self.bitmap.ptr)) / bsize,
+        .bsize = bsize,
+    };
+    log.debug("Freeing block {any}", .{block});
+    for (0..math.divCeil(usize, buf.len, 0x1000) catch unreachable) |i| {
+        // mem.pmm.free(mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000));
+        log.info("{x}", .{mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000) orelse unreachable});
+        break;
+    }
 }
 
 fn alloc_traverse(self: Self, node: Block, target_bsize: usize) ?Block {
@@ -118,6 +133,10 @@ fn split_block(self: *Self, block: Block, target_bsize: usize) Block {
     self.set_status(child, 0);
     child.col -= 1;
     return self.split_block(child, target_bsize);
+}
+
+fn block_addr(self: Self, block: Block) usize {
+    return @intFromPtr(self.bitmap.ptr) + self.bitmap.len + block.bsize * block.col;
 }
 
 fn get_status(self: Self, block: Block) u2 {

@@ -14,7 +14,7 @@ pub fn create(tbl: usize) Self {
     return Self{ .pml4 = @ptrFromInt(tbl) };
 }
 
-pub fn map(self: Self, phys: usize, virt: usize, flags: u64) void {
+pub fn map(self: *Self, phys: usize, virt: usize, flags: u64) void {
     const p4_ent = (virt >> 39) & 0x1FF;
     const p3_ent = (virt >> 30) & 0x1FF;
     const p2_ent = (virt >> 21) & 0x1FF;
@@ -46,6 +46,25 @@ pub fn map(self: Self, phys: usize, virt: usize, flags: u64) void {
         }
     };
     p1_tbl[p1_ent] = phys | flags | 1;
+}
+
+pub fn translate(self: Self, virt: usize) ?usize {
+    const p4_ent = (virt >> 39) & 0x1FF;
+    const p3_ent = (virt >> 30) & 0x1FF;
+    const p2_ent = (virt >> 21) & 0x1FF;
+    const p1_ent = (virt >> 12) & 0x1FF;
+    const p3_tbl: Table = if (self.pml4[p4_ent] & 1 > 0) @ptrFromInt(mem.virt(self.pml4[p4_ent] & SIGN_MASK)) else return null;
+    const p2_tbl: Table = block: {
+        const addr = p3_tbl[p3_ent] & SIGN_MASK;
+        if (p3_tbl[p3_ent] & 1 > 0) {
+            if (p3_tbl[p3_ent] & (1 << 8) > 0) {
+                return addr + virt % 0x20000;
+            } else break :block @ptrFromInt(mem.virt(addr));
+        }
+        return null;
+    };
+    const p1_tbl: Table = if (p2_tbl[p2_ent] & 1 > 0) @ptrFromInt(mem.virt(p2_tbl[p2_ent] & SIGN_MASK)) else return null;
+    return if (p1_tbl[p1_ent] & 1 > 0) p1_tbl[p1_ent] & SIGN_MASK else null;
 }
 
 fn next_table(entry: *u64) Table {
