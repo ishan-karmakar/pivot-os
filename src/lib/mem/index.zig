@@ -2,10 +2,13 @@ pub const pmm = @import("pmm.zig");
 pub const Mapper = @import("mapper.zig");
 pub const VMM = @import("vmm.zig");
 const limine = @import("limine");
-const log = @import("std").log.scoped(.mem);
+const std = @import("std");
+const log = std.log.scoped(.mem);
+const FixedBufferAllocator = std.heap.FixedBufferAllocator;
 
 pub var kmapper: Mapper = undefined;
 pub var kvmm: VMM = undefined;
+pub var kheap: FixedBufferAllocator = undefined;
 
 export var MMAP_REQUEST: limine.MemoryMapRequest = .{};
 export var HHDM_REQUEST: limine.HhdmRequest = .{};
@@ -13,6 +16,8 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .mode = .four_level,
     .flags = 0,
 };
+
+const KHEAP_SIZE = 0x1000 * 4;
 
 pub fn init() void {
     if (HHDM_REQUEST.response == null) {
@@ -28,6 +33,7 @@ pub fn init() void {
     const free_mem = pmm_init();
     mapper_init();
     vmm_init(free_mem);
+    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, KHEAP_SIZE) catch @panic("OOM"));
 }
 
 fn pmm_init() usize {
