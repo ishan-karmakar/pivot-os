@@ -75,9 +75,7 @@ pub fn alloc(self: *Self, len: usize, _: u8, _: usize) ?[*]u8 {
 
 pub fn free(self: *Self, buf: []u8, _: u8, _: usize) void {
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
-    if (bsize > self.max_bsize) {
-        return;
-    }
+    if (bsize > self.max_bsize) return;
 
     const block = Block{
         .depth = math.log2(self.max_bsize / bsize),
@@ -86,11 +84,12 @@ pub fn free(self: *Self, buf: []u8, _: u8, _: usize) void {
     };
     log.debug("Freeing block {any}", .{block});
     for (0..math.divCeil(usize, buf.len, 0x1000) catch unreachable) |i| {
-        // mem.pmm.free(mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000));
-        log.info("{x}", .{mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000) orelse unreachable});
-        break;
+        mem.pmm.free(mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000) orelse @panic("Page was not mapped to a physical address"));
     }
+    self.merge_buddies(block);
 }
+
+// pub fn resize(self: *Self, buf: []u8, _: u8, len: usize, _: usize)
 
 fn alloc_traverse(self: Self, node: Block, target_bsize: usize) ?Block {
     const status = self.get_status(node);
@@ -133,6 +132,20 @@ fn split_block(self: *Self, block: Block, target_bsize: usize) Block {
     self.set_status(child, 0);
     child.col -= 1;
     return self.split_block(child, target_bsize);
+}
+
+fn merge_buddies(self: *Self, block: Block) void {
+    var buddy = block;
+    buddy.col ^= 1;
+    if (buddy.depth > 0 and self.get_status(buddy) == 0) {
+        self.merge_buddies(Block{
+            .depth = block.depth - 1,
+            .col = block.col / 2,
+            .bsize = block.bsize / 2,
+        });
+    } else {
+        self.set_status(block, 0);
+    }
 }
 
 fn block_addr(self: Self, block: Block) usize {

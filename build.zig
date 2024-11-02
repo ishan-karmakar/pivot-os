@@ -97,8 +97,12 @@ fn createISODir(b: *std.Build, kernel: *std.Build.Step.Compile) *std.Build.Step.
         .{ .include_extensions = &.{
             "sys",
             "bin",
-            "EFI",
         } },
+    );
+    _ = wf.addCopyDirectory(
+        limine.path(""),
+        "EFI/BOOT",
+        .{ .include_extensions = &.{"EFI"} },
     );
 
     _ = wf.addCopyFile(kernel.getEmittedBin(), KERNEL_NAME);
