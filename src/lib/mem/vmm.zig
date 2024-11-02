@@ -17,6 +17,7 @@ const Block = struct {
 // FIXME: Actually think about all these divCeil catch unreachables
 
 bitmap: []u8,
+start: usize,
 internal_blocks: usize,
 max_bsize: usize,
 mapper: *mem.Mapper,
@@ -33,9 +34,10 @@ pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     }
     const bitmap = @as([*]u8, @ptrFromInt(start))[0..(pages * 0x1000)];
     @memset(bitmap, 0);
-    // reserve extra areas
+    // FIXME: reserve extra areas
     return Self{
         .bitmap = bitmap,
+        .start = start + pages * 0x1000,
         .flags = flags,
         .internal_blocks = sizes[3],
         .mapper = mapper,
@@ -43,15 +45,20 @@ pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     };
 }
 
-// pub fn allocator(self: *Self) Allocator {
-//     return .{
-//         .ptr = self,
-//         .vtable = &.{},
-//     };
-// }
+pub fn allocator(self: *Self) Allocator {
+    return .{
+        .ptr = self,
+        .vtable = &.{
+            .alloc = alloc,
+            .resize = resize,
+            .free = free,
+        },
+    };
+}
 
-pub fn alloc(self: *Self, len: usize, _: u8, _: usize) ?[*]u8 {
+pub fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
     // TODO: Maybe implement pointer alignment, but right now no need for it and will unnecessarily complicate code
+    const self: *Self = @ptrCast(@alignCast(ctx));
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
     if (bsize > self.max_bsize) {
         return null;
@@ -65,31 +72,76 @@ pub fn alloc(self: *Self, len: usize, _: u8, _: usize) ?[*]u8 {
     self.set_status(block, 1);
     log.debug("Using block {any}", .{block});
     const addr = self.block_addr(block);
-    log.debug("Allocation address: 0x{x}", .{addr});
     for (0..math.divCeil(usize, len, 0x1000) catch unreachable) |i| {
         const frm = mem.pmm.frame();
         self.mapper.map(frm, addr + i * 0x1000, self.flags);
     }
+    log.debug("Allocation address: 0x{x}", .{addr});
     return @ptrFromInt(addr);
 }
 
-pub fn free(self: *Self, buf: []u8, _: u8, _: usize) void {
+pub fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
+    const self: *Self = @ptrCast(@alignCast(ctx));
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
     if (bsize > self.max_bsize) return;
 
     const block = Block{
         .depth = math.log2(self.max_bsize / bsize),
-        .col = (@intFromPtr(buf.ptr) - @intFromPtr(self.bitmap.ptr)) / bsize,
+        .col = (@intFromPtr(buf.ptr) - self.start) / bsize,
         .bsize = bsize,
     };
-    log.debug("Freeing block {any}", .{block});
     for (0..math.divCeil(usize, buf.len, 0x1000) catch unreachable) |i| {
         mem.pmm.free(mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000) orelse @panic("Page was not mapped to a physical address"));
     }
+    log.debug("Freeing block {any}", .{block});
     self.merge_buddies(block);
 }
 
-// pub fn resize(self: *Self, buf: []u8, _: u8, len: usize, _: usize)
+pub fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
+    const self: *Self = @ptrCast(@alignCast(ctx));
+    log.debug("Attempting to resize alloc at 0x{x} from 0x{x} -> 0x{x}", .{ @intFromPtr(buf.ptr), buf.len, len });
+    const new_bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
+    const old_bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
+    if (new_bsize > self.max_bsize) return false;
+    const old_pages = math.divCeil(usize, buf.len, 0x1000) catch unreachable;
+    const new_pages = math.divCeil(usize, len, 0x1000) catch unreachable;
+    const end = @intFromPtr(buf.ptr) + 0x1000 * @min(old_pages, new_pages);
+    var new_block: Block = undefined;
+    if (old_bsize == new_bsize) {
+        return true;
+    } else if (new_bsize > old_bsize) {
+        // Expanding
+        if ((@intFromPtr(buf.ptr) - self.start) % new_bsize != 0) return false;
+        // Now is possible, but are the blocks free?
+        new_block = Block{
+            .depth = math.log2(self.max_bsize / new_bsize),
+            .col = (@intFromPtr(buf.ptr) - self.start) / new_bsize,
+            .bsize = new_bsize,
+        };
+        var buddy = new_block;
+        buddy.depth += 1;
+        buddy.col = buddy.col * 2 + 1;
+        // Buddy is not free, cannot resize
+        if (self.get_status(buddy) != 0) return false;
+        for (0..new_pages - old_pages) |i| {
+            mem.kmapper.map(mem.pmm.frame(), end + i * 0x1000, self.flags);
+        }
+    } else {
+        // Shrinking
+        const old_block = Block{
+            .depth = math.log2(self.max_bsize / old_bsize),
+            .col = (@intFromPtr(buf.ptr) - self.start) / old_bsize,
+            .bsize = old_bsize,
+        };
+        new_block = self.split_block(old_block, new_bsize);
+        for (0..(old_pages - new_pages)) |i| {
+            mem.pmm.free(mem.kmapper.translate(end + i * 0x1000) orelse @panic("Page was not mapped to a physical address"));
+        }
+    }
+    self.set_status(new_block, 0b1);
+    log.debug("Successfully resized, new block is {any}", .{new_block});
+    return true;
+}
 
 fn alloc_traverse(self: Self, node: Block, target_bsize: usize) ?Block {
     const status = self.get_status(node);

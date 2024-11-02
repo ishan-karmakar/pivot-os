@@ -28,13 +28,6 @@ pub fn init() void {
     const free_mem = pmm_init();
     mapper_init();
     vmm_init(free_mem);
-    _ = kvmm.alloc(0x1000, 0, 0);
-    // kvmm.alloc(0x2000, 0, 0);
-    kvmm.free((kvmm.alloc(0x3000, 0, 0) orelse @panic("alloc failed"))[0..0x3000], 0, 0);
-    _ = kvmm.alloc(0x3000, 0, 0);
-
-    // const allocator = kvmm.allocator();
-    // log.info("{}", .{allocator});
 }
 
 fn pmm_init() usize {

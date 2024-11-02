@@ -4,6 +4,9 @@ const log = std.log.scoped(.main);
 pub const drivers = @import("drivers/index.zig");
 pub const lib = @import("lib/index.zig");
 
+// TODO: Support options for logging for each service
+// Ex. Only log PMM but not VMM, etc.
+
 pub const std_options = .{
     .logFn = lib.logger.logger,
 };

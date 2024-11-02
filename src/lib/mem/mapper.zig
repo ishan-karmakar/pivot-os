@@ -15,6 +15,7 @@ pub fn create(tbl: usize) Self {
 }
 
 pub fn map(self: *Self, phys: usize, virt: usize, flags: u64) void {
+    log.debug("Mapping 0x{x} (virt) -> 0x{x} (phys)", .{ virt, phys });
     const p4_ent = (virt >> 39) & 0x1FF;
     const p3_ent = (virt >> 30) & 0x1FF;
     const p2_ent = (virt >> 21) & 0x1FF;
@@ -24,26 +25,23 @@ pub fn map(self: *Self, phys: usize, virt: usize, flags: u64) void {
     const p2_tbl = next_table(&p3_tbl[p3_ent]);
     const hp_works = phys % HP_SIZE == virt % HP_SIZE;
     var p1_tbl: Table = block: {
-        if ((p2_tbl[p2_ent] & (1 << 8)) > 0) {
-            if ((phys / HP_SIZE * HP_SIZE) == (p2_ent & SIGN_MASK)) {
-                return;
-            } else {
+        const ent = p2_tbl[p2_ent];
+        if (ent & 1 > 0) {
+            if (ent & (1 << 8) > 0) {
+                if ((phys / HP_SIZE * HP_SIZE == (ent & SIGN_MASK))) return;
                 const frm = mem.pmm.frame();
                 const table: Table = @ptrFromInt(mem.virt(frm));
                 for (0..512) |i| {
-                    table[i] = ((p2_tbl[p2_ent] & SIGN_MASK) + i * 0x1000) | (p2_tbl[p2_ent] & ~(SIGN_MASK | (1 << 8)));
+                    table[i] = ((ent & SIGN_MASK) + i * 0x1000) | (ent & ~(SIGN_MASK | (1 << 8)));
                 }
                 p2_tbl[p2_ent] = frm | 0b11 | (1 << 63);
                 break :block table;
             }
-        } else {
-            if ((p2_tbl[p2_ent] & 1) > 0 and hp_works) {
-                p2_tbl[p2_ent] = (phys / HP_SIZE * HP_SIZE) | 0b11 | (1 << 63) | (1 << 8);
-                return;
-            } else {
-                break :block next_table(&p2_tbl[p2_ent]);
-            }
+        } else if (hp_works) {
+            p2_tbl[p2_ent] = (phys / HP_SIZE * HP_SIZE) | 0b11 | (1 << 63) | (1 << 8);
+            return;
         }
+        break :block next_table(&p2_tbl[p2_ent]);
     };
     p1_tbl[p1_ent] = phys | flags | 1;
 }
@@ -56,12 +54,10 @@ pub fn translate(self: Self, virt: usize) ?usize {
     const p3_tbl: Table = if (self.pml4[p4_ent] & 1 > 0) @ptrFromInt(mem.virt(self.pml4[p4_ent] & SIGN_MASK)) else return null;
     const p2_tbl: Table = block: {
         const addr = p3_tbl[p3_ent] & SIGN_MASK;
-        if (p3_tbl[p3_ent] & 1 > 0) {
-            if (p3_tbl[p3_ent] & (1 << 8) > 0) {
-                return addr + virt % 0x20000;
-            } else break :block @ptrFromInt(mem.virt(addr));
-        }
-        return null;
+        if (p3_tbl[p3_ent] & 1 == 0) return null;
+        if (p3_tbl[p3_ent] & (1 << 8) > 0) {
+            return addr + virt % 0x20000;
+        } else break :block @ptrFromInt(mem.virt(addr));
     };
     const p1_tbl: Table = if (p2_tbl[p2_ent] & 1 > 0) @ptrFromInt(mem.virt(p2_tbl[p2_ent] & SIGN_MASK)) else return null;
     return if (p1_tbl[p1_ent] & 1 > 0) p1_tbl[p1_ent] & SIGN_MASK else null;

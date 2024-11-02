@@ -34,7 +34,6 @@ pub fn frame() usize {
     if (hregion.num_pages == 0) {
         head_region = hregion.next;
     }
-    log.debug("Allocated frame 0x{x}", .{frm});
     return frm;
 }
 
@@ -42,6 +41,5 @@ pub fn frame() usize {
 /// Takes in the PHYSICAL address
 /// Runs in O(1) time
 pub fn free(frm: usize) void {
-    log.debug("Freeing frame 0x{x}", .{frm});
     add_region(frm, 1);
 }
