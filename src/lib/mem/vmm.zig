@@ -34,8 +34,7 @@ pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     }
     const bitmap = @as([*]u8, @ptrFromInt(start))[0..(pages * 0x1000)];
     @memset(bitmap, 0);
-    // FIXME: reserve extra areas
-    return Self{
+    var vmm = Self{
         .bitmap = bitmap,
         .start = start + pages * 0x1000,
         .flags = flags,
@@ -43,6 +42,12 @@ pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
         .mapper = mapper,
         .max_bsize = sizes[0],
     };
+    vmm.rsv_extra(Block{
+        .depth = 0,
+        .col = 0,
+        .bsize = vmm.max_bsize,
+    }, sizes[1]);
+    return vmm;
 }
 
 pub fn allocator(self: *Self) Allocator {
@@ -54,6 +59,24 @@ pub fn allocator(self: *Self) Allocator {
             .free = free,
         },
     };
+}
+
+// TODO: Haven't tested if this actually works yet
+fn rsv_extra(self: *Self, block: Block, size: usize) void {
+    const start = block.col * block.bsize;
+    const end = start + block.bsize;
+    if (start >= size) {
+        self.set_status(block, 0b1);
+    } else if (end > size) {
+        var child = Block{
+            .depth = block.depth + 1,
+            .col = block.col * 2,
+            .bsize = block.bsize / 2,
+        };
+        self.rsv_extra(child, size);
+        child.col += 1;
+        self.rsv_extra(child, size);
+    }
 }
 
 pub fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
