@@ -1,6 +1,5 @@
 const std = @import("std");
-const term = @import("kernel").drivers.term;
-const qemu = @import("kernel").lib.qemu;
+const drivers = @import("kernel").drivers;
 
 const Writer = std.io.GenericWriter(void, anyerror, kernelWrite);
 const writer = Writer{ .context = {} };
@@ -12,6 +11,6 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.EnumLiteral)
 }
 
 fn kernelWrite(_: void, bytes: []const u8) !usize {
-    _ = try term.write(bytes);
-    return qemu.write(bytes);
+    _ = try drivers.term.write(bytes);
+    return drivers.qemu.write(bytes);
 }

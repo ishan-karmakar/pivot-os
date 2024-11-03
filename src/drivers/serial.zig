@@ -1,5 +1,5 @@
-pub fn out(port: u16, val: anytype) !void {
-    return switch (@TypeOf(val)) {
+pub fn out(port: u16, val: anytype) void {
+    switch (@TypeOf(val)) {
         u32 => asm volatile ("out %%eax, %%dx"
             :
             : [port] "{dx}" (port),
@@ -15,6 +15,6 @@ pub fn out(port: u16, val: anytype) !void {
             : [port] "{dx}" (port),
               [val] "{al}" (val),
         ),
-        else => error.UnknownSize,
-    };
+        else => @compileError("Unknown size used"),
+    }
 }
