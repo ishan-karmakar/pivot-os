@@ -11,15 +11,17 @@ pub const std_options = .{
     .logFn = lib.logger.logger,
 };
 
-export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 2 };
+export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 3 };
 
 export fn _start() void {
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
     log.info("Entered kernel, starting initialization", .{});
-    lib.cpu.init();
+    drivers.gdt.init_static();
+    drivers.idt.init();
     lib.mem.init();
+    drivers.gdt.init_dyn();
 
     while (true) {}
 }
