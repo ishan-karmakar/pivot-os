@@ -62,9 +62,22 @@ pub fn build(b: *std.Build) void {
         .code_model = .kernel,
     });
     const limineModule = b.dependency("limine_zig", .{}).module("limine");
+    const flanterm = b.dependency("flanterm", .{});
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.root_module.addImport("limine", limineModule);
     kernel.root_module.addImport("kernel", &kernel.root_module);
+    kernel.addCSourceFiles(.{
+        .root = flanterm.path(""),
+        .files = &.{ "flanterm.c", "backends/fb.c" },
+        .flags = &.{"-DFLANTERM_FB_DISABLE_BUMP_ALLOC"},
+    });
+    const translateC = b.addTranslateC(.{
+        .root_source_file = flanterm.path("backends/fb.h"),
+        .link_libc = false,
+        .target = target,
+        .optimize = optimize,
+    });
+    kernel.root_module.addImport("c", translateC.addModule("c"));
     b.installArtifact(kernel); // Installing kernel so we can examine it for debugging
 
     const wf = createISODir(b, kernel);

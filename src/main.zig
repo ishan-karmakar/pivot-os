@@ -22,6 +22,7 @@ export fn _start() void {
     drivers.idt.init();
     lib.mem.init();
     drivers.gdt.init_dyn();
+    drivers.term.init();
 
     while (true) {}
 }
