@@ -18,3 +18,21 @@ pub fn out(port: u16, val: anytype) void {
         else => @compileError("Unknown size used"),
     }
 }
+
+pub fn in(port: u16, T: anytype) T {
+    switch (T) {
+        u32 => return asm volatile ("in %%dx, %%eax"
+            : [val] "={eax}" (-> T),
+            : [port] "{dx}" (port),
+        ),
+        u16 => return asm volatile ("in %%dx, %%ax"
+            : [val] "={ax}" (-> T),
+            : [port] "{dx}" (port),
+        ),
+        u8 => return asm volatile ("in %%dx, %%al"
+            : [val] "={al}" (-> T),
+            : [port] "{dx}" (port),
+        ),
+        else => @compileError("Unknown size used"),
+    }
+}

@@ -21,13 +21,26 @@ pub fn init() void {
     log.info("Initialized 8259 PIC", .{});
 }
 
-pub fn eoi(_irq: u8) void {
+pub inline fn eoi(irq: u8) void {
+    serial.out(if (irq < 8) PIC1_DATA else PIC2_DATA, @as(u8, PIC_EOI));
+}
+
+pub fn mask(_irq: u8) void {
     var irq = _irq;
-    var port = block: {
-        if (irq < 8) break :block PIC1_DATA;
-        irq -= 8;
-        break :block PIC2_DATA;
-    };
+    const port = get_port(&irq);
+    serial.out(port, serial.in(port, u8) | (@as(u8, 1) << @intCast(irq)));
+}
+
+pub fn unmask(_irq: u8) void {
+    var irq = _irq;
+    const port = get_port(&irq);
+    serial.out(port, serial.in(port, u8) & ~(@as(u8, 1) << @intCast(irq)));
+}
+
+fn get_port(irq: *u8) u16 {
+    if (irq.* < 8) return PIC1_DATA;
+    irq.* -= 8;
+    return PIC2_DATA;
 }
 
 fn disable() void {
