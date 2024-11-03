@@ -17,7 +17,7 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .flags = 0,
 };
 
-const KHEAP_SIZE = 0x1000 * 4;
+const KHEAP_SIZE = 0x1000 * 128;
 
 pub fn init() void {
     if (HHDM_REQUEST.response == null) {
