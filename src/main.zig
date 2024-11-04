@@ -25,8 +25,9 @@ export fn _start() void {
     drivers.term.init();
     drivers.pic.init();
     drivers.timers.pit.init();
-    drivers.timers.pit.start(1);
     drivers.lapic.bsp_init();
+    drivers.timers.lapic.calibrate();
+    drivers.timers.lapic.start(1);
 
     while (true) {}
 }

@@ -16,7 +16,7 @@ pub fn init() void {
 
 pub fn start(ms: u16) void {
     const d = ms * MS_TICKS;
-    log.info("Starting PIT timer to trigger every {} milliseconds", .{ms});
+    log.debug("Starting PIT timer to trigger every {} milliseconds", .{ms});
     serial.out(DATA_REG, @as(u8, @truncate(d)));
     serial.out(DATA_REG, @as(u8, @truncate(d >> 8)));
     pic.unmask(IRQ);

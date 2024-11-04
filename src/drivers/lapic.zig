@@ -15,11 +15,13 @@ pub fn bsp_init() void {
 
     const cpuid = cpu.cpuid(1, 0);
     if (cpuid.edx & (1 << 9) > 0) {
-        addr = mem.virt(msr & 0xffffffffff000);
+        addr = msr & 0xffffffffff000;
+        mem.kmapper.map(addr.?, addr.?, 0b10);
     } else if (cpuid.ecx & (1 << 21) == 0) @panic("Neither X2APIC nor XAPIC is set in CPUID");
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(false, "spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    log.info("Initialized Local APIC", .{});
 }
 
 pub fn write_reg(off: u32, val: u64) void {

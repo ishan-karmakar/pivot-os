@@ -35,6 +35,10 @@
             .url = "https://github.com/48cf/limine-zig/archive/7b29b6e6f6d35052f01ed3831085a39aae131705.zip",
             .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
         },
+        .uacpi = .{
+            .url = "https://github.com/UltraOS/uACPI/archive/98784e2b8536588a2536c9ef07e359e1da38bef1.zip",
+            .hash = "1220cce634b142e1637cceb24b7964f3ae685178d93798ebc4e4f9797fc6067d5c3e",
+        },
     },
 
     // Specifies the set of files and directories that are included in this package.
