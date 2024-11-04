@@ -16,7 +16,7 @@ pub fn bsp_init() void {
     const cpuid = cpu.cpuid(1, 0);
     if (cpuid.edx & (1 << 9) > 0) {
         addr = msr & 0xffffffffff000;
-        mem.kmapper.map(addr.?, addr.?, 0b10);
+        mem.kmapper.map(addr.?, addr.?, (1 << 63) | 0b10);
     } else if (cpuid.ecx & (1 << 21) == 0) @panic("Neither X2APIC nor XAPIC is set in CPUID");
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(false, "spurious_handler"));

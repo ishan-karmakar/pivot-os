@@ -61,23 +61,63 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .code_model = .kernel,
     });
-    const limineModule = b.dependency("limine_zig", .{}).module("limine");
-    const flanterm = b.dependency("flanterm", .{});
     kernel.setLinkerScript(b.path("linker.ld"));
+    const limineModule = b.dependency("limine_zig", .{}).module("limine");
+
+    const flanterm = b.dependency("flanterm", .{});
+    const uacpi = b.dependency("uacpi", .{});
     kernel.root_module.addImport("limine", limineModule);
     kernel.root_module.addImport("kernel", &kernel.root_module);
+
     kernel.addCSourceFiles(.{
         .root = flanterm.path(""),
         .files = &.{ "flanterm.c", "backends/fb.c" },
         .flags = &.{"-DFLANTERM_FB_DISABLE_BUMP_ALLOC"},
     });
-    const translateC = b.addTranslateC(.{
+
+    kernel.addCSourceFiles(.{
+        .root = uacpi.path("source"),
+        .files = &.{
+            "default_handlers.c",
+            "event.c",
+            "interpreter.c",
+            "io.c",
+            "mutex.c",
+            "namespace.c",
+            "notify.c",
+            "opcodes.c",
+            "opregion.c",
+            "osi.c",
+            "registers.c",
+            "resources.c",
+            "shareable.c",
+            "sleep.c",
+            "stdlib.c",
+            "tables.c",
+            "types.c",
+            "uacpi.c",
+            "utilities.c",
+        },
+    });
+    kernel.addIncludePath(uacpi.path("include"));
+
+    const flantermTranslate = b.addTranslateC(.{
         .root_source_file = flanterm.path("backends/fb.h"),
         .link_libc = false,
         .target = target,
         .optimize = optimize,
     });
-    kernel.root_module.addImport("c", translateC.addModule("c"));
+    kernel.root_module.addImport("flanterm", flantermTranslate.addModule("flanterm"));
+
+    const uacpiTranslate = b.addTranslateC(.{
+        .link_libc = false,
+        .target = target,
+        .optimize = optimize,
+        .root_source_file = b.path("src/drivers/uacpi.h"),
+    });
+    uacpiTranslate.addIncludeDir(uacpi.path("include").getPath(b));
+    kernel.root_module.addImport("uacpi", uacpiTranslate.addModule("uacpi"));
+
     b.installArtifact(kernel); // Installing kernel so we can examine it for debugging
 
     const wf = createISODir(b, kernel);

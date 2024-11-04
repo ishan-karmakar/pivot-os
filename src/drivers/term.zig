@@ -1,5 +1,5 @@
 const limine = @import("limine");
-const flanterm = @import("c");
+const flanterm = @import("flanterm");
 const mem = @import("kernel").lib.mem;
 const log = @import("std").log.scoped(.term);
 const ArrayList = @import("std").ArrayList;
