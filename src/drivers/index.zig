@@ -5,3 +5,4 @@ pub const smp = @import("smp.zig");
 pub const term = @import("term.zig");
 pub const qemu = @import("qemu.zig");
 pub const pic = @import("pic.zig");
+pub const timers = @import("timers/index.zig");

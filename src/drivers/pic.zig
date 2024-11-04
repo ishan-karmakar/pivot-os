@@ -18,11 +18,12 @@ pub fn init() void {
     serial.out(PIC1_DATA, @as(u8, 1));
     serial.out(PIC2_DATA, @as(u8, 1));
     disable();
+    asm volatile ("sti");
     log.info("Initialized 8259 PIC", .{});
 }
 
 pub inline fn eoi(irq: u8) void {
-    serial.out(if (irq < 8) PIC1_DATA else PIC2_DATA, @as(u8, PIC_EOI));
+    serial.out(if (irq < 8) PIC1 else PIC2, @as(u8, PIC_EOI));
 }
 
 pub fn mask(_irq: u8) void {

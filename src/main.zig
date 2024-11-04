@@ -24,6 +24,8 @@ export fn _start() void {
     drivers.gdt.init_dyn();
     drivers.term.init();
     drivers.pic.init();
+    drivers.timers.pit.init();
+    drivers.timers.pit.start(1);
 
     while (true) {}
 }
