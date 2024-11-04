@@ -6,3 +6,5 @@ pub const term = @import("term.zig");
 pub const qemu = @import("qemu.zig");
 pub const pic = @import("pic.zig");
 pub const timers = @import("timers/index.zig");
+pub const lapic = @import("lapic.zig");
+pub const cpu = @import("cpu.zig");
