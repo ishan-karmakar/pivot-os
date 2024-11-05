@@ -2,6 +2,7 @@
 // TODO: Figure out a appropriate directory to put this, right now it's just in src/
 
 #pragma once
+#define UACPI_SIZED_FREES
 #include <uacpi/acpi.h>
 #include <uacpi/context.h>
 #include <uacpi/event.h>

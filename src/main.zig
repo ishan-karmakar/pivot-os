@@ -1,5 +1,6 @@
 const std = @import("std");
 const limine = @import("limine");
+const config = @import("config");
 const log = std.log.scoped(.main);
 pub const drivers = @import("drivers/index.zig");
 pub const lib = @import("lib/index.zig");
@@ -14,6 +15,7 @@ pub const std_options = .{
 export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 3 };
 
 export fn _start() void {
+    if (comptime config.debug) asm volatile ("1: jmp 1b");
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
@@ -27,7 +29,8 @@ export fn _start() void {
     drivers.timers.pit.init();
     drivers.lapic.bsp_init();
     drivers.timers.lapic.calibrate();
-    drivers.timers.lapic.start(1);
+    // drivers.timers.lapic.start(1);
+    drivers.acpi.init();
 
     while (true) {}
 }

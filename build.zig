@@ -53,6 +53,9 @@ pub fn build(b: *std.Build) void {
         .cpu_features_sub = cpu_features_sub,
     });
     const optimize = b.standardOptimizeOption(.{});
+    const debug = b.option(bool, "debug", "Run OS in GDB debugging mode") orelse false;
+    const options = b.addOptions();
+    options.addOption(bool, "debug", debug);
 
     const kernel = b.addExecutable(.{
         .name = KERNEL_NAME,
@@ -60,7 +63,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .code_model = .kernel,
+        .linkage = .static,
     });
+    kernel.root_module.addImport("config", options.createModule());
     kernel.setLinkerScript(b.path("linker.ld"));
     const limineModule = b.dependency("limine_zig", .{}).module("limine");
 
@@ -98,6 +103,7 @@ pub fn build(b: *std.Build) void {
             "uacpi.c",
             "utilities.c",
         },
+        .flags = &.{"-DUACPI_SIZED_FREES"},
     });
     kernel.addIncludePath(uacpi.path("include"));
 
@@ -123,22 +129,19 @@ pub fn build(b: *std.Build) void {
     const wf = createISODir(b, kernel);
     const iso = runXorriso(b, wf.getDirectory());
     b.getInstallStep().dependOn(&iso.step);
-    qemuRun(b, iso);
+    const qemu_run = b.addSystemCommand(&QEMU_ARGS);
+    if (debug) qemu_run.addArg("-s");
+    qemu_run.addArg("-cdrom");
+    qemu_run.addFileArg(iso.source);
+    qemu_run.step.dependOn(b.getInstallStep());
+    const qemu_step = b.step("run", "Run the kernel with QEMU");
+    qemu_step.dependOn(&qemu_run.step);
 
     b.installDirectory(.{
         .source_dir = kernel.getEmittedDocs(),
         .install_dir = .prefix,
         .install_subdir = "docs",
     });
-}
-
-fn qemuRun(b: *std.Build, iso: *std.Build.Step.InstallFile) void {
-    const qemu_run = b.addSystemCommand(&QEMU_ARGS);
-    qemu_run.addArg("-cdrom");
-    qemu_run.addFileArg(iso.source);
-    qemu_run.step.dependOn(b.getInstallStep());
-    const qemu_step = b.step("run", "Run the kernel with QEMU");
-    qemu_step.dependOn(&qemu_run.step);
 }
 
 fn createISODir(b: *std.Build, kernel: *std.Build.Step.Compile) *std.Build.Step.WriteFile {
