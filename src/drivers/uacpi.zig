@@ -3,6 +3,7 @@ const serial = @import("kernel").drivers.serial;
 const mem = @import("kernel").lib.mem;
 const timers = @import("kernel").drivers.timers;
 const idt = @import("kernel").drivers.idt;
+const ioapic = @import("kernel").drivers.ioapic;
 const math = @import("std").math;
 const log = @import("std").log.scoped(.uacpi);
 const Mutex = @import("std").Thread.Mutex;
@@ -12,15 +13,14 @@ const std = @import("std");
 const UACPI_CTX = std.meta.Tuple(&.{ uacpi.uacpi_interrupt_handler, uacpi.uacpi_handle });
 
 var RSDP_REQUEST: limine.RsdpRequest = .{};
-const ACPI_VEC1 = 0x30;
-const ACPI_VEC2 = 0x31;
-var handler1: ?UACPI_CTX = null;
-var handler2: ?UACPI_CTX = null;
+const ACPI_MAX_HANDLERS = 3;
+var handler_data: [ACPI_MAX_HANDLERS]UACPI_CTX = .{.{ null, null }} ** 3;
 
 export fn uacpi_kernel_initialize(lvl: uacpi.uacpi_init_level) uacpi.uacpi_status {
     if (lvl == uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED) {
-        idt.set_ent(ACPI_VEC1, idt.create_irq("acpi_handler1"));
-        idt.set_ent(ACPI_VEC2, idt.create_irq("acpi_handler2"));
+        idt.set_ent(0x30, idt.create_irq(0, "acpi_handler"));
+        idt.set_ent(0x31, idt.create_irq(1, "acpi_handler"));
+        idt.set_ent(0x32, idt.create_irq(2, "acpi_handler"));
     }
     return uacpi.UACPI_STATUS_OK;
 }
@@ -172,23 +172,23 @@ export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_hand
 }
 
 export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, handler: uacpi.uacpi_interrupt_handler, ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
-    log.info("uacpi_kernel_install_interrupt_handler: {}", .{irq});
-    if (handler1 != null) {
-        handler1 = .{ handler, ctx };
-        // map IRQ to vector here
-    } else if (handler2 != null) {
-        handler2 = .{ handler, ctx };
-        // map IRQ to vector here
-    } else return uacpi.UACPI_STATUS_NO_HANDLER;
-    return uacpi.UACPI_STATUS_OK;
+    for (0.., &handler_data) |i, *d| {
+        if (d[0] == null) {
+            d.* = .{ handler, ctx };
+            ioapic.set(@intCast(0x30 + i), @intCast(irq), 0, 0);
+            ioapic.mask(@intCast(irq), false);
+            return uacpi.UACPI_STATUS_OK;
+        }
+    }
+    @panic("Ran out of interrupt handlers for uACPI");
 }
 
 export fn uacpi_kernel_create_event() uacpi.uacpi_handle {
-    @panic("uacpi_kernel_create_event unimplemented");
+    return @ptrCast(mem.kheap.allocator().create(bool) catch @panic("OOM"));
 }
 
 export fn uacpi_kernel_create_spinlock() uacpi.uacpi_handle {
-    @panic("uacpi_kernel_create_spinlock unimplemented");
+    return uacpi_kernel_create_mutex();
 }
 
 export fn uacpi_kernel_lock_spinlock(_: uacpi.uacpi_handle) uacpi.uacpi_cpu_flags {
@@ -276,18 +276,10 @@ export fn uacpi_kernel_free_event(_: uacpi.uacpi_handle) void {
     @panic("uacpi_kernel_free_event unimplemented");
 }
 
-export fn acpi_handler1(status: *const idt.Status) *const idt.Status {
-    log.info("acpi_handler1", .{});
-    if (handler1) |h| {
-        if ((h[0].?)(h[1]) != uacpi.UACPI_INTERRUPT_HANDLED) @panic("uACPI handler 1 was not handled");
-    }
-    return status;
-}
-
-export fn acpi_handler2(status: *const idt.Status) *const idt.Status {
-    log.info("acpi_handler2", .{});
-    if (handler2) |h| {
-        if ((h[0].?)(h[1]) != uacpi.UACPI_INTERRUPT_HANDLED) @panic("uACPI handler 2 was not handled");
-    }
+export fn acpi_handler(status: *const idt.Status, idx: u8) *const idt.Status {
+    log.info("acpi_handler: handler {} triggered", .{idx});
+    const handler = handler_data[idx][0] orelse @panic("Handler triggered when no uACPI handler registered");
+    const ctx = handler_data[idx][1] orelse @panic("Handler triggered when no uACPI handler context available");
+    if (handler(ctx) != uacpi.UACPI_INTERRUPT_HANDLED) @panic("uACPI handler did not handle interrupt");
     return status;
 }

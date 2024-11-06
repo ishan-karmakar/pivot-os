@@ -3,7 +3,7 @@ const uacpi = @import("uacpi");
 const mem = @import("kernel").lib.mem;
 const log = @import("std").log.scoped(.ioapic);
 
-const RedirectionEntry = extern struct {
+const RedirectionEntry = packed struct {
     vec: u8,
     delivery_mode: u3,
     dest_mode: u1 = 0,
@@ -44,12 +44,13 @@ pub fn init() void {
 
 pub fn set(vec: u8, _irq: u8, dest: u8, flags: u64) void {
     var irq = _irq;
-    var ent = @as(RedirectionEntry, flags);
+    var ent: RedirectionEntry = @bitCast(flags);
     ent.vec = vec;
     ent.dest = dest;
+    ent.mask = true;
     if (find_so(irq)) |so| {
         log.debug("Found interrupt source override for IRQ {}: {}", .{ irq, so });
-        irq = so.gsi;
+        irq = @intCast(so.gsi);
         ent.pin_polarity = @intFromBool(so.flags & 2 > 0);
         ent.trigger_mode = @intFromBool(so.flags & 8 > 0);
     }
@@ -59,7 +60,7 @@ pub fn set(vec: u8, _irq: u8, dest: u8, flags: u64) void {
 }
 
 pub fn mask(_irq: u8, m: bool) void {
-    const irq = if (find_so(_irq)) |i| @as(u8, i.gsi) else _irq;
+    const irq = if (find_so(_irq)) |i| @as(u8, @intCast(i.gsi)) else _irq;
     var ent = read_red(irq);
     ent.mask = m;
     write_red(irq, ent);
@@ -67,8 +68,8 @@ pub fn mask(_irq: u8, m: bool) void {
 
 fn write_red(_irq: u8, ent: RedirectionEntry) void {
     const irq = _irq * 2 + 0x10;
-    const lower: u32 = @truncate(@as(u64, ent));
-    const upper: u32 = @truncate(@as(u64, ent) >> 32);
+    const lower: u32 = @truncate(@as(u64, @bitCast(ent)));
+    const upper: u32 = @truncate(@as(u64, @bitCast(ent)) >> 32);
 
     write_reg(irq, lower);
     write_reg(irq, upper);
@@ -76,7 +77,7 @@ fn write_red(_irq: u8, ent: RedirectionEntry) void {
 
 fn read_red(_irq: u8) RedirectionEntry {
     const irq = _irq * 2 + 0x10;
-    return @as(RedirectionEntry, @as(u64, @intCast(read_reg(irq))) | read_reg(irq + 1));
+    return @bitCast(@as(u64, @intCast(read_reg(irq))) | read_reg(irq + 1));
 }
 
 fn write_reg(off: u32, val: u32) void {

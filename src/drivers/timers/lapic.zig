@@ -21,7 +21,7 @@ pub fn calibrate() void {
     ms_ticks = (0xFFFFFFFF - lapic.read_reg(CUR_COUNT_OFF)) / 100;
     stop();
     timers.pit.stop();
-    idt.set_ent(0x20, idt.create_irq("lapic_timer_handler"));
+    idt.set_ent(0x20, idt.create_irq(0, "lapic_timer_handler"));
     log.debug("LAPIC ticks per millisecond: {}", .{ms_ticks});
 }
 
@@ -35,7 +35,7 @@ pub fn stop() void {
     lapic.write_reg(INITIAL_COUNT_OFF, 0);
 }
 
-export fn lapic_timer_handler(status: *const idt.Status) *const idt.Status {
+export fn lapic_timer_handler(status: *const idt.Status, _: usize) *const idt.Status {
     _ = @atomicRmw(usize, &timers.ticks, .Add, 1, .acq_rel);
     lapic.write_reg(EOI_OFF, 0);
     return status;

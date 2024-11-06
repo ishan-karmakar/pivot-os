@@ -151,7 +151,7 @@ fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_
     }.handler;
 }
 
-pub fn create_irq(comptime handler_name: []const u8) ISR {
+pub fn create_irq(comptime int_num: usize, comptime handler_name: []const u8) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
             asm volatile ("cli");
@@ -173,6 +173,9 @@ pub fn create_irq(comptime handler_name: []const u8) ISR {
                 \\push %%r15
                 \\
                 \\mov %%rsp, %%rdi
+                \\mov %[int_num], %%rsi
+                :
+                : [int_num] "i" (int_num),
             );
             asm volatile ("call " ++ handler_name);
             asm volatile (
