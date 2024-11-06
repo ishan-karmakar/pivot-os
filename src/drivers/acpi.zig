@@ -6,3 +6,9 @@ pub fn init() void {
         @panic("uacpi_initialize failed");
     }
 }
+
+pub fn init2() void {
+    if (uacpi.uacpi_namespace_load() != uacpi.UACPI_STATUS_OK) {
+        @panic("uacpi_namespace_load failed");
+    }
+}

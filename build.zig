@@ -103,7 +103,7 @@ pub fn build(b: *std.Build) void {
             "uacpi.c",
             "utilities.c",
         },
-        .flags = &.{"-DUACPI_SIZED_FREES"},
+        .flags = &.{ "-DUACPI_SIZED_FREES", "-DUACPI_KERNEL_INITIALIZATION" },
     });
     kernel.addIncludePath(uacpi.path("include"));
 

@@ -3,6 +3,7 @@
 
 #pragma once
 #define UACPI_SIZED_FREES
+#define UACPI_KERNEL_INITIALIZATION
 #include <uacpi/acpi.h>
 #include <uacpi/context.h>
 #include <uacpi/event.h>

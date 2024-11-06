@@ -18,13 +18,32 @@ const IDTR = packed struct {
     addr: usize,
 };
 
-const ExceptionStatus = struct {
+const ExceptionStatus = packed struct {
     ec: u64,
     rip: u64,
     cs: u64,
     rflags: u64,
     rsp: u64,
     ss: u64,
+};
+
+pub const Status = packed struct {
+    exc_status: ExceptionStatus,
+    rax: u64,
+    rbx: u64,
+    rcx: u64,
+    rdx: u64,
+    rbp: u64,
+    rsi: u64,
+    rdi: u64,
+    r8: u64,
+    r9: u64,
+    r10: u64,
+    r11: u64,
+    r12: u64,
+    r13: u64,
+    r14: u64,
+    r15: u64,
 };
 
 var idtr = IDTR{
@@ -114,29 +133,6 @@ fn log_status(status: *const ExceptionStatus) void {
     log.debug("SS: {}", .{status.ss});
 }
 
-// export fn exception_common() callconv(.Naked) void {
-//     asm volatile (
-//         \\push %%rax
-//         \\push %%rbx
-//         \\push %%rcx
-//         \\push %%rdx
-//         \\push %%rbp
-//         \\push %%rsi
-//         \\push %%rdi
-//         \\push %%r8
-//         \\push %%r9
-//         \\push %%r10
-//         \\push %%r11
-//         \\push %%r12
-//         \\push %%r13
-//         \\push %%r14
-//         \\push %%r15
-//         \\
-//         \\mov %%rsp, %%rdi
-//         \\jmp exception_handler
-//     );
-// }
-
 fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_name: []const u8) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
@@ -155,12 +151,49 @@ fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_
     }.handler;
 }
 
-pub fn create_irq(comptime needs_status: bool, comptime handler_name: []const u8) ISR {
-    _ = needs_status;
+pub fn create_irq(comptime handler_name: []const u8) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
             asm volatile ("cli");
+            asm volatile (
+                \\push %%rax
+                \\push %%rbx
+                \\push %%rcx
+                \\push %%rdx
+                \\push %%rbp
+                \\push %%rsi
+                \\push %%rdi
+                \\push %%r8
+                \\push %%r9
+                \\push %%r10
+                \\push %%r11
+                \\push %%r12
+                \\push %%r13
+                \\push %%r14
+                \\push %%r15
+                \\
+                \\mov %%rsp, %%rdi
+            );
             asm volatile ("call " ++ handler_name);
+            asm volatile (
+                \\mov %%rax, %%rsp
+                \\pop %%r15
+                \\pop %%r14
+                \\pop %%r13
+                \\pop %%r12
+                \\pop %%r11
+                \\pop %%r10
+                \\pop %%r9
+                \\pop %%r8
+                \\pop %%rdi
+                \\pop %%rsi
+                \\pop %%rbp
+                \\pop %%rdx
+                \\pop %%rcx
+                \\pop %%rbx
+                \\pop %%rax
+            );
+            // TODO: Handle CR3 change
             asm volatile ("iretq");
         }
     }.handler;

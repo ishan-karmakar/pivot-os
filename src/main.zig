@@ -31,6 +31,8 @@ export fn _start() void {
     drivers.timers.lapic.calibrate();
     // drivers.timers.lapic.start(1);
     drivers.acpi.init();
+    drivers.ioapic.init();
+    drivers.acpi.init2();
 
     while (true) {}
 }

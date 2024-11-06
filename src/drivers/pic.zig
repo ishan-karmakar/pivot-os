@@ -44,7 +44,7 @@ fn get_port(irq: *u8) u16 {
     return PIC2_DATA;
 }
 
-fn disable() void {
+pub fn disable() void {
     serial.out(PIC1_DATA, @as(u8, 0xFF));
     serial.out(PIC2_DATA, @as(u8, 0xFF));
 }

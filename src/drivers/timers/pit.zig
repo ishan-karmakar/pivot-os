@@ -10,7 +10,7 @@ const IRQ = 0;
 const MS_TICKS = 1193;
 
 pub fn init() void {
-    idt.set_ent(0x20 + IRQ, idt.create_irq(false, "pit_handler"));
+    idt.set_ent(0x20 + IRQ, idt.create_irq("pit_handler"));
     serial.out(CMD_REG, @as(u8, 0x34));
 }
 
@@ -27,7 +27,8 @@ pub fn stop() void {
     pic.mask(IRQ);
 }
 
-export fn pit_handler() void {
+export fn pit_handler(status: *const idt.Status) *const idt.Status {
     _ = @atomicRmw(usize, &timers.ticks, .Add, 1, .acq_rel);
     pic.eoi(IRQ);
+    return status;
 }

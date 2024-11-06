@@ -19,7 +19,7 @@ pub fn bsp_init() void {
         mem.kmapper.map(addr.?, addr.?, (1 << 63) | 0b10);
     } else if (cpuid.ecx & (1 << 21) == 0) @panic("Neither X2APIC nor XAPIC is set in CPUID");
 
-    idt.set_ent(SPURIOUS_VEC, idt.create_irq(false, "spurious_handler"));
+    idt.set_ent(SPURIOUS_VEC, idt.create_irq("spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
     log.info("Initialized Local APIC", .{});
 }
@@ -36,4 +36,6 @@ pub fn read_reg(off: u32) u64 {
     } else return cpu.rdmsr((off >> 4) + 0x800);
 }
 
-export fn spurious_handler() void {}
+export fn spurious_handler(status: *const idt.Status) *const idt.Status {
+    return status;
+}
