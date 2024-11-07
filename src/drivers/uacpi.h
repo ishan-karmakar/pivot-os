@@ -1,6 +1,4 @@
 // This is a shortcut so that all the necessary include files are translated at once for Zig
-// TODO: Figure out a appropriate directory to put this, right now it's just in src/
-
 #pragma once
 #define UACPI_SIZED_FREES
 #define UACPI_KERNEL_INITIALIZATION

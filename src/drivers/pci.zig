@@ -24,6 +24,7 @@ pub fn init() void {
     @panic("pcie init unimplemented");
 }
 
+// TODO: PCIe enhanced mechanism
 pub fn read(_bus: u8, _dev: u8, _func: u8, _off: u8, T: type) T {
     const bus: u32 = @intCast(_bus);
     const dev: u32 = @intCast(_dev);
@@ -33,11 +34,12 @@ pub fn read(_bus: u8, _dev: u8, _func: u8, _off: u8, T: type) T {
     return serial.in(CONFIG_DATA, T);
 }
 
+// TODO: PCIe enhanced mechanism
 pub fn write(_bus: u8, _dev: u8, _func: u8, _off: u8, val: anytype) void {
     const bus: u32 = @intCast(_bus);
     const dev: u32 = @intCast(_dev);
     const func: u32 = @intCast(_func);
     const off: u32 = @intCast(_off);
     serial.out(CONFIG_ADDRESS, (bus << 16) | (dev << 11) | (func << 8) | (off & 0xFC) | 0x80000000);
-    serial.out(CONFIG_DATA + (off & 3), val);
+    serial.out(@intCast(CONFIG_DATA + (off & 3)), val);
 }

@@ -97,21 +97,25 @@ export fn uacpi_kernel_io_write(handle: uacpi.uacpi_handle, off: uacpi.uacpi_siz
 }
 
 export fn uacpi_kernel_pci_read(addr: [*c]uacpi.uacpi_pci_address, off: uacpi.uacpi_size, bw: uacpi.uacpi_u8, val: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {
-    _ = addr;
-    _ = off;
-    _ = bw;
-    _ = val;
-    @panic("uacpi_kernel_pci_read is unimplemented");
-    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
+    if (addr.*.segment != 0) @panic("uacpi_kernel_pci_read segment != 0");
+    val.* = switch (bw) {
+        1 => @intCast(pci.read(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), u8)),
+        2 => @intCast(pci.read(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), u16)),
+        4 => @intCast(pci.read(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), u32)),
+        else => @panic("uacpi_kernel_pci_read received invalid byte width"),
+    };
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write(addr: [*c]uacpi.uacpi_pci_address, off: uacpi.uacpi_size, bw: uacpi.uacpi_u8, val: uacpi.uacpi_u64) uacpi.uacpi_status {
-    _ = addr;
-    _ = off;
-    _ = bw;
-    _ = val;
-    @panic("uacpi_kernel_pci_write is unimplemented");
-    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
+    if (addr.*.segment != 0) @panic("uacpi_kernel_pci_write segment != 0");
+    switch (bw) {
+        1 => pci.write(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), @as(u8, @intCast(val))),
+        2 => pci.write(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), @as(u16, @intCast(val))),
+        4 => pci.write(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), @as(u32, @intCast(val))),
+        else => @panic("uacpi_kernel_pci_write received invalid byte width"),
+    }
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacpi.uacpi_work_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
@@ -197,16 +201,19 @@ export fn uacpi_kernel_create_spinlock() uacpi.uacpi_handle {
     return uacpi_kernel_create_mutex();
 }
 
-export fn uacpi_kernel_lock_spinlock(_: uacpi.uacpi_handle) uacpi.uacpi_cpu_flags {
-    @panic("uacpi_kernel_lock_spinlock unimplemented");
+export fn uacpi_kernel_lock_spinlock(handle: uacpi.uacpi_handle) uacpi.uacpi_cpu_flags {
+    asm volatile ("cli");
+    _ = uacpi_kernel_acquire_mutex(handle, 0xFFFF);
+    return 0;
 }
 
 export fn uacpi_kernel_signal_event(_: uacpi.uacpi_handle) void {
     @panic("uacpi_kernel_signal_event unimplemented");
 }
 
-export fn uacpi_kernel_unlock_spinlock(_: uacpi.uacpi_handle, _: uacpi.uacpi_cpu_flags) void {
-    @panic("uacpi_kernel_unlock_spinlock unimplemented");
+export fn uacpi_kernel_unlock_spinlock(handle: uacpi.uacpi_handle, _: uacpi.uacpi_cpu_flags) void {
+    uacpi_kernel_release_mutex(handle);
+    asm volatile ("sti");
 }
 
 export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
