@@ -11,4 +11,7 @@ pub fn init2() void {
     if (uacpi.uacpi_namespace_load() != uacpi.UACPI_STATUS_OK) {
         @panic("uacpi_namespace_load failed");
     }
+    if (uacpi.uacpi_namespace_initialize() != uacpi.UACPI_STATUS_OK) {
+        @panic("uacpi_namespace_initialize failed");
+    }
 }

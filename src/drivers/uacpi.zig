@@ -44,7 +44,7 @@ export fn uacpi_kernel_raw_memory_write(addr: uacpi.uacpi_phys_addr, bw: uacpi.u
         1 => @as(*u8, @ptrFromInt(addr)).* = @truncate(val),
         2 => @as(*u16, @ptrFromInt(addr)).* = @truncate(val),
         4 => @as(*u32, @ptrFromInt(addr)).* = @truncate(val),
-        8 => @as(*u64, @ptrFromInt(addr)).* = @truncate(val),
+        8 => @as(*u64, @ptrFromInt(addr)).* = val,
         else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
     }
     @panic("uacpi_kernel_raw_memory_write is unimplemented");
@@ -73,7 +73,8 @@ export fn uacpi_kernel_raw_io_write(_addr: uacpi.uacpi_io_addr, bw: uacpi.uacpi_
     return uacpi.UACPI_STATUS_OK;
 }
 
-export fn uacpi_kernel_io_map(_: uacpi.uacpi_io_addr, _: uacpi.uacpi_size, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+export fn uacpi_kernel_io_map(addr: uacpi.uacpi_io_addr, _: uacpi.uacpi_size, out: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+    out.* = @ptrFromInt(addr);
     return uacpi.UACPI_STATUS_OK;
 }
 
@@ -119,12 +120,11 @@ export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
 }
 
 export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    @panic("uacpi_kernel_get_thread_id is unimplemented");
+    return null; // 0
 }
 
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
     const ptr = mem.kheap.allocator().alignedAlloc(u8, 8, size) catch @panic("OOM");
-    log.debug("uacpi_kernel_alloc: {*}, {}", .{ ptr.ptr, size });
     return @ptrCast(ptr.ptr);
 }
 
@@ -132,13 +132,11 @@ export fn uacpi_kernel_calloc(count: uacpi.uacpi_size, size: uacpi.uacpi_size) ?
     // We are just using a alignment of 8 here as a constant. Ideally, we should test what the minimum needed is.
     const a = mem.kheap.allocator().alignedAlloc(u8, 8, count * size) catch @panic("OOM");
     for (a) |*b| b.* = 0;
-    log.debug("uacpi_kernel_calloc: {*}, {}", .{ a.ptr, size });
     return @ptrCast(a.ptr);
 }
 
 export fn uacpi_kernel_free(_ptr: ?*anyopaque, size: uacpi.uacpi_size) void {
     const ptr: [*]const u8 = @ptrCast(_ptr orelse return);
-    log.debug("uacpi_kernel_free: {*}, {}", .{ ptr, size });
     mem.kheap.allocator().free(ptr[0..size]);
 }
 
@@ -163,7 +161,6 @@ export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_stat
 
 export fn uacpi_kernel_get_ticks() uacpi.uacpi_u64 {
     @panic("uacpi_kernel_get_ticks unimplemented");
-    // return timers.time();
 }
 
 export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_handler, _: uacpi.uacpi_handle) uacpi.uacpi_status {
@@ -172,6 +169,7 @@ export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_hand
 }
 
 export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, handler: uacpi.uacpi_interrupt_handler, ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+    log.info("uacpi_kernel_install_interrupt_handler", .{});
     for (0.., &handler_data) |i, *d| {
         if (d[0] == null) {
             d.* = .{ handler, ctx };
