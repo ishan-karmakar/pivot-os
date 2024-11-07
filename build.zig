@@ -77,7 +77,6 @@ pub fn build(b: *std.Build) void {
     kernel.addCSourceFiles(.{
         .root = flanterm.path(""),
         .files = &.{ "flanterm.c", "backends/fb.c" },
-        .flags = &.{"-DFLANTERM_FB_DISABLE_BUMP_ALLOC"},
     });
 
     kernel.addCSourceFiles(.{
