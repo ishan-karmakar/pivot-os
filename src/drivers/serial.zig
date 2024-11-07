@@ -19,7 +19,7 @@ pub fn out(port: u16, val: anytype) void {
     }
 }
 
-pub fn in(port: u16, T: anytype) T {
+pub fn in(port: u16, T: type) T {
     switch (T) {
         u32 => return asm volatile ("in %%dx, %%eax"
             : [val] "={eax}" (-> T),

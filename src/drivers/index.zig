@@ -10,6 +10,7 @@ pub const lapic = @import("lapic.zig");
 pub const ioapic = @import("ioapic.zig");
 pub const cpu = @import("cpu.zig");
 pub const acpi = @import("acpi.zig");
+pub const pci = @import("pci.zig");
 
 comptime {
     _ = @import("uacpi.zig");

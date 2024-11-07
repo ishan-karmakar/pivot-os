@@ -4,6 +4,7 @@ const mem = @import("kernel").lib.mem;
 const timers = @import("kernel").drivers.timers;
 const idt = @import("kernel").drivers.idt;
 const ioapic = @import("kernel").drivers.ioapic;
+const pci = @import("kernel").drivers.pci;
 const math = @import("std").math;
 const log = @import("std").log.scoped(.uacpi);
 const Mutex = @import("std").Thread.Mutex;
@@ -17,10 +18,17 @@ const ACPI_MAX_HANDLERS = 3;
 var handler_data: [ACPI_MAX_HANDLERS]UACPI_CTX = .{.{ null, null }} ** 3;
 
 export fn uacpi_kernel_initialize(lvl: uacpi.uacpi_init_level) uacpi.uacpi_status {
-    if (lvl == uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED) {
-        idt.set_ent(0x30, idt.create_irq(0, "acpi_handler"));
-        idt.set_ent(0x31, idt.create_irq(1, "acpi_handler"));
-        idt.set_ent(0x32, idt.create_irq(2, "acpi_handler"));
+    switch (lvl) {
+        uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED => {
+            ioapic.init();
+            idt.set_ent(0x30, idt.create_irq(0, "acpi_handler"));
+            idt.set_ent(0x31, idt.create_irq(1, "acpi_handler"));
+            idt.set_ent(0x32, idt.create_irq(2, "acpi_handler"));
+        },
+        uacpi.UACPI_INIT_LEVEL_NAMESPACE_LOADED => {
+            pci.init();
+        },
+        else => {},
     }
     return uacpi.UACPI_STATUS_OK;
 }

@@ -22,17 +22,17 @@ var madt: *const uacpi.acpi_madt = undefined; // Just caching MADT here
 pub fn init() void {
     pic.disable();
     var out_table: uacpi.uacpi_table = undefined;
-    if (uacpi.uacpi_table_find_by_signature("APIC", @ptrCast(&out_table)) != uacpi.UACPI_STATUS_OK) {
+    if (uacpi.uacpi_table_find_by_signature("APIC", &out_table) != uacpi.UACPI_STATUS_OK) {
         @panic("uACPI error finding MADT");
     }
     madt = @ptrCast(out_table.unnamed_0.hdr);
-    var hdr: *const uacpi.acpi_entry_hdr = @ptrFromInt(@intFromPtr(madt) + @sizeOf(uacpi.acpi_madt));
+    var i: usize = 0;
     while (true) {
-        if (hdr.type == uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC) break;
-        hdr = @ptrFromInt(@intFromPtr(hdr) + hdr.length);
-        if (@intFromPtr(hdr) >= @intFromPtr(madt) + madt.hdr.length) @panic("Could not find IOAPIC entry in MADT");
+        if (@intFromPtr(madt.entries() + i) >= @intFromPtr(madt) + madt.hdr.length) @panic("Could not find IOAPIC entry in MADT");
+        if (madt.entries()[i].type == uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC) break;
+        i += 1;
     }
-    const ioapic: *const uacpi.acpi_madt_ioapic = @ptrCast(hdr);
+    const ioapic: *const uacpi.acpi_madt_ioapic = @ptrCast(madt.entries() + i);
     log.debug("Found I/O APIC entry in MADT: {}", .{ioapic});
     // TODO: Do we alert PMM to reserve address? Does the limine memory map overlap with LAPIC / IOAPIC?
     addr = @intCast(ioapic.address);
@@ -93,13 +93,13 @@ fn read_reg(off: u32) u32 {
 }
 
 fn find_so(irq: u8) ?*const uacpi.acpi_madt_interrupt_source_override {
-    var hdr: *const uacpi.acpi_entry_hdr = @ptrFromInt(@intFromPtr(madt) + @sizeOf(uacpi.acpi_madt));
+    var i: usize = 0;
     while (true) {
-        if (hdr.type == uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE) {
-            const so: *const uacpi.acpi_madt_interrupt_source_override = @ptrCast(hdr);
+        if (@intFromPtr(madt.entries() + i) >= @intFromPtr(madt) + madt.hdr.length) return null;
+        const so: *const uacpi.acpi_madt_interrupt_source_override = @ptrCast(madt.entries() + i);
+        if (so.hdr.type == uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE) {
             if (so.source == irq) return so;
         }
-        hdr = @ptrFromInt(@intFromPtr(hdr) + hdr.length);
-        if (@intFromPtr(hdr) >= @intFromPtr(madt) + madt.hdr.length) return null;
+        i += 1;
     }
 }
