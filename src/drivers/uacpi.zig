@@ -152,13 +152,14 @@ export fn uacpi_kernel_free(_ptr: ?*anyopaque, size: uacpi.uacpi_size) void {
     mem.kheap.allocator().free(ptr[0..size]);
 }
 
-export fn uacpi_kernel_map(addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) ?*anyopaque {
-    const virt = mem.virt(addr);
-    const num_pages = math.divCeil(usize, size, 0x1000) catch unreachable;
-    for (0..num_pages) |p| {
-        mem.kmapper.map(addr + p * 0x1000, virt + p * 0x1000, (1 << 63) | 0b11);
+export fn uacpi_kernel_map(_addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) ?*anyopaque {
+    var start = (math.divFloor(usize, _addr, 0x1000) catch unreachable) * 0x1000;
+    const end = (math.divFloor(usize, _addr + size, 0x1000) catch unreachable) * 0x1000;
+    while (start <= end) {
+        mem.kmapper.map(start, start, 0b10);
+        start += 0x1000;
     }
-    return @ptrFromInt(virt);
+    return @ptrFromInt(_addr);
 }
 
 export fn uacpi_kernel_unmap(addr: ?*anyopaque, size: uacpi.uacpi_size) void {

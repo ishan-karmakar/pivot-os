@@ -40,8 +40,10 @@ pub fn map(self: *Self, phys: usize, virt: usize, flags: u64) void {
                 break :block table;
             }
         } else if (hp_works) {
-            p2_tbl[p2_ent] = ((math.divFloor(usize, phys, HP_SIZE) catch unreachable) * HP_SIZE) | flags | 1 | (1 << 7);
-            return;
+            // TODO: For ACPI, this isn't working. Figure out why, and alternative so we can use this optimization
+            // p2_tbl[p2_ent] = ((math.divFloor(usize, phys, HP_SIZE) catch unreachable) * HP_SIZE) | flags | 1 | (1 << 7);
+            // log.info("map: 0x{x}", .{p2_tbl[p2_ent]});
+            // return;
         }
         break :block next_table(&p2_tbl[p2_ent]);
     };
