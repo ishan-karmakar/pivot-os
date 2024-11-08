@@ -44,7 +44,6 @@ export fn uacpi_kernel_raw_memory_read(addr: uacpi.uacpi_phys_addr, bw: uacpi.ua
         else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
     };
     @panic("uacpi_kernel_raw_memory_read is unimplemented");
-    // return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_raw_memory_write(addr: uacpi.uacpi_phys_addr, bw: uacpi.uacpi_u8, val: uacpi.uacpi_u64) uacpi.uacpi_status {
@@ -56,7 +55,6 @@ export fn uacpi_kernel_raw_memory_write(addr: uacpi.uacpi_phys_addr, bw: uacpi.u
         else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
     }
     @panic("uacpi_kernel_raw_memory_write is unimplemented");
-    // return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_raw_io_read(_addr: uacpi.uacpi_io_addr, bw: uacpi.uacpi_u8, out: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {

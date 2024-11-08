@@ -16,13 +16,13 @@ export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 3 };
 
 export fn _start() void {
     if (comptime config.debug) asm volatile ("1: jmp 1b");
-    drivers.term.init();
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.gdt.init_static();
     drivers.idt.init();
     lib.mem.init();
+    drivers.term.init();
     drivers.gdt.init_dyn();
     drivers.pic.init();
     drivers.timers.pit.init();
@@ -30,6 +30,7 @@ export fn _start() void {
     drivers.timers.lapic.calibrate();
     // drivers.timers.lapic.start(1);
     drivers.acpi.init();
+    drivers.ec.init();
 
     while (true) {}
 }
