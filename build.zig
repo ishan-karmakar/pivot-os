@@ -65,6 +65,7 @@ pub fn build(b: *std.Build) void {
         .code_model = .kernel,
         .linkage = .static,
     });
+    kernel.want_lto = false;
     kernel.root_module.addImport("config", options.createModule());
     kernel.setLinkerScript(b.path("linker.ld"));
     const limineModule = b.dependency("limine_zig", .{}).module("limine");

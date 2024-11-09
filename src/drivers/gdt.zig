@@ -60,7 +60,7 @@ pub fn init_dyn() void {
     lgdt();
 }
 
-fn lgdt() void {
+pub fn lgdt() void {
     asm volatile ("lgdt (%[gdtr])"
         :
         : [gdtr] "r" (&gdtr),

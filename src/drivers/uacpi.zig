@@ -7,7 +7,7 @@ const ioapic = @import("kernel").drivers.ioapic;
 const pci = @import("kernel").drivers.pci;
 const math = @import("std").math;
 const log = @import("std").log.scoped(.uacpi);
-const Mutex = @import("std").Thread.Mutex;
+const Mutex = @import("kernel").lib.Mutex;
 const limine = @import("limine");
 const std = @import("std");
 
@@ -248,14 +248,14 @@ export fn uacpi_kernel_wait_for_event(_: uacpi.uacpi_handle, _: uacpi.uacpi_u16)
 
 // TODO: Handle timeout
 export fn uacpi_kernel_acquire_mutex(handle: uacpi.uacpi_handle, _: uacpi.uacpi_u16) uacpi.uacpi_bool {
-    const mutex: *bool = @ptrCast(handle);
-    while (@cmpxchgWeak(bool, mutex, false, true, .acquire, .monotonic) != null) {}
+    const mutex: *Mutex = @ptrCast(handle);
+    mutex.lock();
     return true;
 }
 
 export fn uacpi_kernel_create_mutex() uacpi.uacpi_handle {
-    const mutex = mem.kheap.allocator().create(bool) catch @panic("OOM");
-    mutex.* = false;
+    const mutex = mem.kheap.allocator().create(Mutex) catch @panic("OOM");
+    mutex.* = Mutex{};
     return @ptrCast(mutex);
 }
 
@@ -264,8 +264,8 @@ export fn uacpi_kernel_free_mutex(_: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_release_mutex(handle: uacpi.uacpi_handle) void {
-    const mutex: *bool = @ptrCast(handle);
-    @atomicStore(bool, mutex, false, .release);
+    const mutex: *Mutex = @ptrCast(handle);
+    mutex.unlock();
 }
 
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {

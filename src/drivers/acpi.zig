@@ -18,10 +18,7 @@ pub fn init() void {
     if (uacpi.uacpi_finalize_gpe_initialization() != uacpi.UACPI_STATUS_OK) {
         @panic("uacpi_finalize_gpe_initialization failed");
     }
-    if (uacpi.uacpi_install_fixed_event_handler(uacpi.UACPI_FIXED_EVENT_POWER_BUTTON, handle_power_button, null) != uacpi.UACPI_STATUS_OK) {
-        @panic("uacpi_install_fixed_event_handler failed");
-    }
-    if (uacpi.uacpi_find_devices("PNP0C0C")) {}
+    // TODO: Handle power button
     // TODO: Handle embedded controller
 }
 

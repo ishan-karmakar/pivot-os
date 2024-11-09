@@ -10,11 +10,12 @@ pub const lib = @import("lib/index.zig");
 
 pub const std_options = .{
     .logFn = lib.logger.logger,
+    .log_level = .debug,
 };
 
 export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 3 };
 
-export fn _start() void {
+export fn _start() noreturn {
     if (comptime config.debug) asm volatile ("1: jmp 1b");
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
@@ -29,9 +30,20 @@ export fn _start() void {
     drivers.lapic.bsp_init();
     drivers.timers.lapic.calibrate();
     // drivers.timers.lapic.start(1);
-    drivers.acpi.init();
+    // drivers.acpi.init();
     drivers.smp.init();
-    drivers.tss.init();
+    // drivers.tss.init();
+
+    while (true) {}
+}
+
+pub fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
+    drivers.cpu.set_kgs(info.extra_argument);
+    drivers.gdt.lgdt();
+    drivers.idt.lidt();
+    drivers.lapic.ap_init();
+    // drivers.smp.cpu_info(null).ready = true;
+    @atomicStore(bool, &drivers.smp.cpu_info(null).ready, true, .unordered);
 
     while (true) {}
 }

@@ -1,6 +1,7 @@
 const limine = @import("limine");
 const log = @import("std").log.scoped(.pmm);
 const mem = @import("kernel").lib.mem;
+const Mutex = @import("kernel").lib.Mutex;
 
 const FreeRegion = struct {
     const Self = @This();
@@ -13,12 +14,13 @@ const FreeRegion = struct {
     }
 };
 
-// FIXME: mutex
-
+var mutex = Mutex{};
 var head_region: ?*FreeRegion = null;
 
 /// Adds region (start and number of pages) to free regions linked list
 pub fn add_region(start: usize, num_pages: usize) void {
+    mutex.lock();
+    defer mutex.unlock();
     var region: *FreeRegion = @ptrFromInt(mem.virt(start));
     region.num_pages = num_pages;
     region.next = head_region;
@@ -29,6 +31,8 @@ pub fn add_region(start: usize, num_pages: usize) void {
 /// The PHYSICAL address is returned
 /// Runs in O(1) time
 pub fn frame() usize {
+    mutex.lock();
+    defer mutex.unlock();
     const hregion: *FreeRegion = head_region orelse @panic("No region has been added yet");
     const frm = hregion.frame();
     if (hregion.num_pages == 0) {
@@ -40,6 +44,6 @@ pub fn frame() usize {
 /// Free a frame allocated with frame()
 /// Takes in the PHYSICAL address
 /// Runs in O(1) time
-pub fn free(frm: usize) void {
+pub inline fn free(frm: usize) void {
     add_region(frm, 1);
 }

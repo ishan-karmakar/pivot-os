@@ -3,6 +3,7 @@ const flanterm = @import("flanterm");
 const mem = @import("kernel").lib.mem;
 const log = @import("std").log.scoped(.term);
 const ArrayList = @import("std").ArrayList;
+const std = @import("std");
 export var FB_REQUEST: limine.FramebufferRequest = .{};
 
 var terms: ?ArrayList([*c]flanterm.struct_flanterm_context) = null;

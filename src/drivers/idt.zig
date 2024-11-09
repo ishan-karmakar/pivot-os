@@ -59,6 +59,7 @@ pub var table: [256]Entry = .{.{
 }} ** 256;
 
 pub fn init() void {
+    // TODO: Find a better way or new model for interrupts
     set_ent(0, create_exception_isr(0, false, "exception_handler"));
     set_ent(1, create_exception_isr(1, false, "exception_handler"));
     set_ent(2, create_exception_isr(2, false, "exception_handler"));
@@ -103,20 +104,20 @@ pub fn set_ent(vec: u8, comptime handler: ISR) void {
     ent.flags = 0x8E;
 }
 
-fn lidt() void {
+pub fn lidt() void {
     asm volatile ("lidt (%[idtr])"
         :
         : [idtr] "r" (&idtr),
     );
 }
 
-export fn exception_handler(int_num: usize, status: *const ExceptionStatus) noreturn {
+pub export fn exception_handler(int_num: usize, status: *const ExceptionStatus) noreturn {
     log.err("Encountered exception {} with EC {}", .{ int_num, status.ec });
     log_status(status);
     @panic("Panicking...");
 }
 
-export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
+pub export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
     log.err("Encountered #PF with EC {}", .{status.ec});
     log.debug("CR2: 0x{x}", .{asm volatile ("mov %%cr2, %[result]"
         : [result] "=r" (-> u64),

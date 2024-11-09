@@ -7,6 +7,7 @@ const log = std.log.scoped(.vmm);
 const math = std.math;
 const Allocator = std.mem.Allocator;
 const mem = @import("kernel").lib.mem;
+const Mutex = @import("kernel").lib.Mutex;
 const Self = @This();
 const Block = struct {
     depth: usize,
@@ -22,6 +23,7 @@ internal_blocks: usize,
 max_bsize: usize,
 mapper: *mem.Mapper,
 flags: u64,
+// mutex: Mutex = Mutex{},
 
 pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     const sizes = calc_split(size);
@@ -86,6 +88,7 @@ pub fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
     if (bsize > self.max_bsize) {
         return null;
     }
+    // self.mutex.lock();
     var block = self.alloc_traverse(Block{
         .depth = 0,
         .col = 0,
@@ -93,6 +96,7 @@ pub fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
     }, bsize) orelse return null;
     block = if (block.bsize == bsize) block else self.split_block(block, bsize);
     self.set_status(block, 1);
+    // self.mutex.unlock();
     log.debug("Using block {any}", .{block});
     const addr = self.block_addr(block);
     for (0..math.divCeil(usize, len, 0x1000) catch unreachable) |i| {
@@ -117,7 +121,9 @@ pub fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
         mem.pmm.free(mem.kmapper.translate(@intFromPtr(buf.ptr) + i * 0x1000) orelse @panic("Page was not mapped to a physical address"));
     }
     log.debug("Freeing block {any}", .{block});
+    // self.mutex.lock();
     self.merge_buddies(block);
+    // self.mutex.unlock();
 }
 
 pub fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {

@@ -24,6 +24,10 @@ pub fn bsp_init() void {
     log.info("Initialized Local APIC", .{});
 }
 
+pub inline fn ap_init() void {
+    write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_VEC);
+}
+
 pub fn write_reg(off: u32, val: u64) void {
     if (addr) |a| {
         @as(*u32, @ptrFromInt(a + off)).* = @truncate(val);

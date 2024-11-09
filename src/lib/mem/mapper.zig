@@ -1,28 +1,30 @@
 const log = @import("std").log.scoped(.mapper);
 const mem = @import("kernel").lib.mem;
 const math = @import("std").math;
-const Self = @This();
 const Table = *[512]u64;
+const Mutex = @import("kernel").lib.Mutex;
 
 const HP_SIZE = 0x20000;
 const SIGN_MASK: usize = 0x000ffffffffff00;
 
 pml4: Table,
-// FIXME: mutex
+// mutex: Mutex = Mutex{},
 
-pub fn create(tbl: usize) Self {
+pub fn create(tbl: usize) @This() {
     log.debug("Creating mapper with PML4 at 0x{x}", .{tbl});
-    return Self{ .pml4 = @ptrFromInt(tbl) };
+    return .{ .pml4 = @ptrFromInt(tbl) };
 }
 
 // TODO: Handle hp_works when flags are different/conflicting
-pub fn map(self: *Self, phys: usize, virt: usize, flags: u64) void {
+pub fn map(self: *@This(), phys: usize, virt: usize, flags: u64) void {
     log.debug("Mapping 0x{x} (virt) -> 0x{x} (phys)", .{ virt, phys });
     const p4_ent = (virt >> 39) & 0x1FF;
     const p3_ent = (virt >> 30) & 0x1FF;
     const p2_ent = (virt >> 21) & 0x1FF;
     const p1_ent = (virt >> 12) & 0x1FF;
 
+    // self.mutex.lock();
+    // defer self.mutex.unlock();
     const p3_tbl = next_table(&self.pml4[p4_ent]);
     const p2_tbl = next_table(&p3_tbl[p3_ent]);
     const hp_works = phys % HP_SIZE == virt % HP_SIZE;
@@ -50,11 +52,15 @@ pub fn map(self: *Self, phys: usize, virt: usize, flags: u64) void {
     p1_tbl[p1_ent] = phys | flags | 1;
 }
 
-pub fn translate(self: Self, virt: usize) ?usize {
+pub fn translate(self: *@This(), virt: usize) ?usize {
     const p4_ent = (virt >> 39) & 0x1FF;
     const p3_ent = (virt >> 30) & 0x1FF;
     const p2_ent = (virt >> 21) & 0x1FF;
     const p1_ent = (virt >> 12) & 0x1FF;
+    // FIXME: This is not efficient at all - consider readers writer lock implementation
+    // Technically right now it shouldn't cause a problem because it will only be called from single threaded envs
+    // self.mutex.lock();
+    // defer self.mutex.unlock();
     const p3_tbl: Table = if (self.pml4[p4_ent] & 1 > 0) @ptrFromInt(mem.virt(self.pml4[p4_ent] & SIGN_MASK)) else return null;
     const p2_tbl: Table = if (p3_tbl[p3_ent] & 1 > 0) @ptrFromInt(mem.virt(p3_tbl[p3_ent] & SIGN_MASK)) else return null;
     const p1_tbl: Table = block: {
@@ -66,6 +72,8 @@ pub fn translate(self: Self, virt: usize) ?usize {
     };
     return if (p1_tbl[p1_ent] & 1 > 0) p1_tbl[p1_ent] & SIGN_MASK else null;
 }
+
+// TODO: Unmap function, is needed?
 
 fn next_table(entry: *u64) Table {
     if ((entry.* & 1) > 0) {
