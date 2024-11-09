@@ -12,6 +12,7 @@ pub const cpu = @import("cpu.zig");
 pub const acpi = @import("acpi.zig");
 pub const pci = @import("pci.zig");
 pub const ec = @import("ec.zig");
+pub const tss = @import("tss.zig");
 
 comptime {
     _ = @import("uacpi.zig");

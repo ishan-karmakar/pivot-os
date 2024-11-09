@@ -21,6 +21,8 @@ pub fn init() void {
     if (uacpi.uacpi_install_fixed_event_handler(uacpi.UACPI_FIXED_EVENT_POWER_BUTTON, handle_power_button, null) != uacpi.UACPI_STATUS_OK) {
         @panic("uacpi_install_fixed_event_handler failed");
     }
+    if (uacpi.uacpi_find_devices("PNP0C0C")) {}
+    // TODO: Handle embedded controller
 }
 
 fn shutdown(_: uacpi.uacpi_handle) callconv(.C) noreturn {

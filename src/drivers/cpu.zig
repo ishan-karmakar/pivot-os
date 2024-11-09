@@ -45,3 +45,11 @@ pub fn cpuid(level: u32, count: u32) CPUIDResult {
         .edx = edx,
     };
 }
+
+pub inline fn set_kgs(a: u64) void {
+    wrmsr(0xC0000102, a);
+}
+
+pub inline fn get_kgs() u64 {
+    return rdmsr(0xC0000102);
+}

@@ -30,7 +30,8 @@ export fn _start() void {
     drivers.timers.lapic.calibrate();
     // drivers.timers.lapic.start(1);
     drivers.acpi.init();
-    drivers.ec.init();
+    drivers.smp.init();
+    drivers.tss.init();
 
     while (true) {}
 }
