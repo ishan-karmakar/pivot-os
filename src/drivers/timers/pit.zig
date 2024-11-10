@@ -9,26 +9,24 @@ const DATA_REG = 0x40;
 const IRQ = 0;
 const MS_TICKS = 1193;
 
+var triggered: bool = false;
+
 pub fn init() void {
     idt.set_ent(0x20 + IRQ, idt.create_irq(0, "pit_handler"));
     serial.out(CMD_REG, @as(u8, 0x34));
 }
 
-pub fn start(ms: u16) void {
+pub fn sleep(ms: u16) void {
     const d = ms * MS_TICKS;
-    log.debug("Starting PIT timer to trigger every {} milliseconds", .{ms});
     serial.out(DATA_REG, @as(u8, @truncate(d)));
     serial.out(DATA_REG, @as(u8, @truncate(d >> 8)));
     pic.unmask(IRQ);
-}
-
-pub fn stop() void {
-    start(0);
+    while (@cmpxchgWeak(bool, &triggered, true, false, .acq_rel, .monotonic) != null) {}
     pic.mask(IRQ);
 }
 
 export fn pit_handler(status: *const idt.Status, _: usize) *const idt.Status {
-    _ = @atomicRmw(usize, &timers.ticks, .Add, 1, .acq_rel);
+    @atomicStore(bool, &triggered, true, .unordered);
     pic.eoi(IRQ);
     return status;
 }

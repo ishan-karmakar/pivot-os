@@ -1,14 +1,8 @@
 pub const pit = @import("pit.zig");
 pub const lapic = @import("lapic.zig");
 
-pub var ticks: usize = 0;
-
-pub fn sleep(ms: usize) void {
-    const org = ticks;
-
-    while (time() < (org + ms)) {}
-}
-
+/// This is an ESTIMATE of the current time
+/// In reality, it is only updated once every ~50 ms
 pub inline fn time() usize {
-    return @atomicLoad(usize, &ticks, .monotonic);
+    return 0;
 }

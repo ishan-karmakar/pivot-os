@@ -5,9 +5,11 @@ const idt = @import("kernel").drivers.idt;
 
 const MSR = 0x1B;
 const SPURIOUS_VEC = 0xFF;
+pub const TIMER_VEC = 0x20;
 var addr: ?usize = null;
 
 const SPURIOUS_OFF = 0xF0;
+const LVT_OFF = 0x320;
 
 pub fn bsp_init() void {
     const msr = cpu.rdmsr(MSR);
@@ -21,11 +23,13 @@ pub fn bsp_init() void {
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(0, "spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    write_reg(LVT_OFF, TIMER_VEC);
     log.info("Initialized Local APIC", .{});
 }
 
 pub inline fn ap_init() void {
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_VEC);
+    write_reg(LVT_OFF, TIMER_VEC);
 }
 
 pub fn write_reg(off: u32, val: u64) void {
