@@ -6,7 +6,6 @@ pub const CPUIDResult = struct {
 };
 
 pub const IRETStatus = packed struct {
-    ec: u64,
     rip: u64,
     cs: u64,
     rflags: u64,
@@ -15,7 +14,7 @@ pub const IRETStatus = packed struct {
 };
 
 pub const Status = packed struct {
-    exc_status: IRETStatus,
+    iret_status: IRETStatus,
     rax: u64,
     rbx: u64,
     rcx: u64,
@@ -80,4 +79,11 @@ pub inline fn set_kgs(a: u64) void {
 
 pub inline fn get_kgs() u64 {
     return rdmsr(0xC0000102);
+}
+
+pub inline fn set_cr3(pml4: usize) void {
+    asm volatile ("mov %[pml4], %%cr3"
+        :
+        : [pml4] "r" (pml4),
+    );
 }

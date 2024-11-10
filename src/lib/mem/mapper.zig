@@ -1,7 +1,7 @@
 const log = @import("std").log.scoped(.mapper);
 const mem = @import("kernel").lib.mem;
 const math = @import("std").math;
-const Table = *[512]u64;
+pub const Table = *[512]u64;
 const Mutex = @import("kernel").lib.Mutex;
 
 const HP_SIZE = 0x20000;

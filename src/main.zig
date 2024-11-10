@@ -32,8 +32,19 @@ export fn _start() noreturn {
     drivers.timers.lapic.calibrate();
     // drivers.acpi.init();
     drivers.smp.init();
+    const kproc: lib.Process = .{
+        .ef = lib.Process.create_ef(kmain),
+        .mapper = lib.mem.kmapper,
+        .vmm = lib.mem.kvmm,
+        .heap = lib.mem.kheap,
+    };
+    _ = kproc;
     // drivers.tss.init();
 
+    while (true) {}
+}
+
+fn kmain() void {
     while (true) {}
 }
 

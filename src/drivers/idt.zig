@@ -84,14 +84,14 @@ pub fn lidt() void {
     );
 }
 
-export fn exception_handler(int_num: usize, status: *const cpu.IRETStatus) noreturn {
-    log.err("Encountered exception {} with EC {}", .{ int_num, status.ec });
+export fn exception_handler(int_num: usize, ec: usize, status: *const cpu.IRETStatus) noreturn {
+    log.err("Encountered exception {} with EC {}", .{ int_num, ec });
     log_status(status);
     @panic("Panicking...");
 }
 
-export fn pf_handler(_: usize, status: *const cpu.IRETStatus) noreturn {
-    log.err("Encountered #PF with EC {}", .{status.ec});
+export fn pf_handler(_: usize, ec: usize, status: *const cpu.IRETStatus) noreturn {
+    log.err("Encountered #PF with EC {}", .{ec});
     log.debug("CR2: 0x{x}", .{asm volatile ("mov %%cr2, %[result]"
         : [result] "=r" (-> u64),
     )});
@@ -110,13 +110,13 @@ fn log_status(status: *const cpu.IRETStatus) void {
 fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_name: []const u8) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
-            if (comptime !ec) {
-                asm volatile ("push $0");
+            if (comptime ec) {
+                asm volatile ("pop %%rsi");
             }
 
             asm volatile (
                 \\mov %[int_num], %%rdi
-                \\mov %%rsp, %%rsi
+                \\mov %%rsp, %%rdx
                 :
                 : [int_num] "i" (int_num),
             );
