@@ -6,7 +6,6 @@ const idt = @import("kernel").drivers.idt;
 const INITIAL_COUNT_OFF = 0x380;
 const CONFIG_OFF = 0x3E0;
 const CUR_COUNT_OFF = 0x390;
-const EOI_OFF = 0xB0;
 
 var ms_ticks: usize = undefined;
 var triggered: bool = false;
@@ -25,7 +24,6 @@ pub fn calibrate() void {
 
 pub fn sleep(ms: usize) void {
     lapic.write_reg(INITIAL_COUNT_OFF, ms * ms_ticks);
-    lapic.write_reg(CONFIG_OFF, 1);
     while (@cmpxchgWeak(bool, &triggered, true, false, .acq_rel, .monotonic) != null) {}
     stop();
 }
@@ -36,6 +34,6 @@ fn stop() void {
 
 export fn lapic_timer_handler(status: *const idt.Status, _: usize) *const idt.Status {
     @atomicStore(bool, &triggered, true, .unordered);
-    lapic.write_reg(EOI_OFF, 0);
+    lapic.eoi();
     return status;
 }

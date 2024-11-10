@@ -26,14 +26,16 @@ export fn _start() noreturn {
     drivers.term.init();
     drivers.gdt.init_dyn();
     drivers.pic.init();
+    asm volatile ("sti");
     drivers.timers.pit.init();
     drivers.lapic.bsp_init();
     drivers.timers.lapic.calibrate();
     // drivers.acpi.init();
     drivers.smp.init();
-    drivers.lapic.write_reg(0x300, @as(u32, 1) | (1 << 14));
+    drivers.lapic.write_reg(0x310, 1 << 24);
+    drivers.lapic.write_reg(0x300, @as(u32, 33));
     // log.info("{}", .{drivers.smp.SMP_REQUEST.response.?.cpus_ptr[1].lapic_id});
-    drivers.lapic.write_reg(0x310, drivers.smp.SMP_REQUEST.response.?.cpus_ptr[1].lapic_id << 24);
+    // drivers.lapic.write_reg(0x310, drivers.smp.SMP_REQUEST.response.?.cpus_ptr[1].lapic_id << 24);
     // log.info("tried to make ipi", .{});
     // drivers.tss.init();
 
@@ -45,6 +47,7 @@ pub fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
     drivers.gdt.lgdt();
     drivers.idt.lidt();
     drivers.lapic.ap_init();
+    asm volatile ("sti");
     @atomicStore(bool, &drivers.smp.cpu_info(null).ready, true, .unordered);
     while (true) {}
 }

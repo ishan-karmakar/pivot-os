@@ -10,26 +10,39 @@ var addr: ?usize = null;
 
 const SPURIOUS_OFF = 0xF0;
 const LVT_OFF = 0x320;
+const EOI_OFF = 0xB0;
 
 pub fn bsp_init() void {
-    const msr = cpu.rdmsr(MSR);
-    if (msr & (1 << 11) == 0) @panic("APIC is not enabled");
+    var msr = cpu.rdmsr(MSR) | (1 << 11);
 
     const cpuid = cpu.cpuid(1, 0);
     if (cpuid.edx & (1 << 9) > 0) {
-        addr = msr & 0xffffffffff000;
+        addr = msr & ~@as(u64, 0xFFF);
         mem.kmapper.map(addr.?, addr.?, (1 << 63) | 0b10);
-    } else if (cpuid.ecx & (1 << 21) == 0) @panic("Neither X2APIC nor XAPIC is set in CPUID");
+    } else if (cpuid.ecx & (1 << 21) == 0) {
+        msr |= (1 << 10);
+    } else @panic("Neither x2APIC nor xAPIC is set in CPUID");
+    log.debug("Using {s}", .{if (addr == null) "x2APIC" else "xAPIC"});
+    cpu.wrmsr(MSR, msr);
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(0, "spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
     write_reg(LVT_OFF, TIMER_VEC);
+    eoi();
     log.info("Initialized Local APIC", .{});
 }
 
-pub inline fn ap_init() void {
+pub fn ap_init() void {
+    var msr = cpu.rdmsr(MSR) | (1 << 11);
+    if (addr == null) msr |= (1 << 10);
+    cpu.wrmsr(MSR, msr);
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_VEC);
     write_reg(LVT_OFF, TIMER_VEC);
+    eoi();
+}
+
+pub inline fn eoi() void {
+    write_reg(EOI_OFF, 0);
 }
 
 pub fn write_reg(off: u32, val: u64) void {

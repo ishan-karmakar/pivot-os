@@ -18,7 +18,6 @@ pub fn init() void {
     serial.out(PIC1_DATA, @as(u8, 1));
     serial.out(PIC2_DATA, @as(u8, 1));
     disable();
-    asm volatile ("sti");
     log.info("Initialized 8259 PIC", .{});
 }
 

@@ -89,6 +89,7 @@ pub fn init() void {
     set_ent(28, create_exception_isr(28, false, "exception_handler"));
     set_ent(29, create_exception_isr(29, true, "exception_handler"));
     set_ent(30, create_exception_isr(30, true, "exception_handler"));
+    set_ent(33, create_irq(33, "test_handler"));
 
     idtr.addr = @intFromPtr(&table);
     lidt();
@@ -111,13 +112,18 @@ pub fn lidt() void {
     );
 }
 
-pub export fn exception_handler(int_num: usize, status: *const ExceptionStatus) noreturn {
+export fn test_handler(_: usize, _: *const Status) noreturn {
+    log.err("Got IPI, {}", .{});
+    @panic("test");
+}
+
+export fn exception_handler(int_num: usize, status: *const ExceptionStatus) noreturn {
     log.err("Encountered exception {} with EC {}", .{ int_num, status.ec });
     log_status(status);
     @panic("Panicking...");
 }
 
-pub export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
+export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
     log.err("Encountered #PF with EC {}", .{status.ec});
     log.debug("CR2: 0x{x}", .{asm volatile ("mov %%cr2, %[result]"
         : [result] "=r" (-> u64),
