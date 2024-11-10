@@ -57,6 +57,6 @@ pub fn read_reg(off: u32) u64 {
     } else return cpu.rdmsr((off >> 4) + 0x800);
 }
 
-export fn spurious_handler(status: *const idt.Status, _: usize) *const idt.Status {
+export fn spurious_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
     return status;
 }

@@ -1,5 +1,6 @@
 const pic = @import("kernel").drivers.pic;
 const idt = @import("kernel").drivers.idt;
+const cpu = @import("kernel").drivers.cpu;
 const timers = @import("kernel").drivers.timers;
 const serial = @import("kernel").drivers.serial;
 const log = @import("std").log.scoped(.pit);
@@ -25,7 +26,7 @@ pub fn sleep(ms: u16) void {
     pic.mask(IRQ);
 }
 
-export fn pit_handler(status: *const idt.Status, _: usize) *const idt.Status {
+export fn pit_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
     @atomicStore(bool, &triggered, true, .unordered);
     pic.eoi(IRQ);
     return status;

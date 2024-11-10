@@ -32,11 +32,6 @@ export fn _start() noreturn {
     drivers.timers.lapic.calibrate();
     // drivers.acpi.init();
     drivers.smp.init();
-    drivers.lapic.write_reg(0x310, 1 << 24);
-    drivers.lapic.write_reg(0x300, @as(u32, 33));
-    // log.info("{}", .{drivers.smp.SMP_REQUEST.response.?.cpus_ptr[1].lapic_id});
-    // drivers.lapic.write_reg(0x310, drivers.smp.SMP_REQUEST.response.?.cpus_ptr[1].lapic_id << 24);
-    // log.info("tried to make ipi", .{});
     // drivers.tss.init();
 
     while (true) {}

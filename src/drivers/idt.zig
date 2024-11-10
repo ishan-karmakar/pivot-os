@@ -1,4 +1,5 @@
 const std = @import("std");
+const cpu = @import("kernel").drivers.cpu;
 const log = std.log.scoped(.idt);
 
 const ISR = fn () callconv(.Naked) void;
@@ -16,34 +17,6 @@ const Entry = packed struct {
 const IDTR = packed struct {
     size: u16,
     addr: usize,
-};
-
-const ExceptionStatus = packed struct {
-    ec: u64,
-    rip: u64,
-    cs: u64,
-    rflags: u64,
-    rsp: u64,
-    ss: u64,
-};
-
-pub const Status = packed struct {
-    exc_status: ExceptionStatus,
-    rax: u64,
-    rbx: u64,
-    rcx: u64,
-    rdx: u64,
-    rbp: u64,
-    rsi: u64,
-    rdi: u64,
-    r8: u64,
-    r9: u64,
-    r10: u64,
-    r11: u64,
-    r12: u64,
-    r13: u64,
-    r14: u64,
-    r15: u64,
 };
 
 var idtr = IDTR{
@@ -89,7 +62,6 @@ pub fn init() void {
     set_ent(28, create_exception_isr(28, false, "exception_handler"));
     set_ent(29, create_exception_isr(29, true, "exception_handler"));
     set_ent(30, create_exception_isr(30, true, "exception_handler"));
-    set_ent(33, create_irq(33, "test_handler"));
 
     idtr.addr = @intFromPtr(&table);
     lidt();
@@ -112,18 +84,13 @@ pub fn lidt() void {
     );
 }
 
-export fn test_handler(_: usize, _: *const Status) noreturn {
-    log.err("Got IPI, {}", .{});
-    @panic("test");
-}
-
-export fn exception_handler(int_num: usize, status: *const ExceptionStatus) noreturn {
+export fn exception_handler(int_num: usize, status: *const cpu.IRETStatus) noreturn {
     log.err("Encountered exception {} with EC {}", .{ int_num, status.ec });
     log_status(status);
     @panic("Panicking...");
 }
 
-export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
+export fn pf_handler(_: usize, status: *const cpu.IRETStatus) noreturn {
     log.err("Encountered #PF with EC {}", .{status.ec});
     log.debug("CR2: 0x{x}", .{asm volatile ("mov %%cr2, %[result]"
         : [result] "=r" (-> u64),
@@ -132,7 +99,7 @@ export fn pf_handler(_: usize, status: *const ExceptionStatus) noreturn {
     @panic("Panicking...");
 }
 
-fn log_status(status: *const ExceptionStatus) void {
+fn log_status(status: *const cpu.IRETStatus) void {
     log.debug("RIP: 0x{x}", .{status.rip});
     log.debug("CS: {}", .{status.cs});
     log.debug("RFLAGS: 0x{x}", .{status.rflags});

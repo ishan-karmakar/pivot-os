@@ -3,6 +3,7 @@ const serial = @import("kernel").drivers.serial;
 const mem = @import("kernel").lib.mem;
 const timers = @import("kernel").drivers.timers;
 const idt = @import("kernel").drivers.idt;
+const cpu = @import("kernel").drivers.cpu;
 const ioapic = @import("kernel").drivers.ioapic;
 const pci = @import("kernel").drivers.pci;
 const math = @import("std").math;
@@ -288,7 +289,7 @@ export fn uacpi_kernel_free_event(_: uacpi.uacpi_handle) void {
     @panic("uacpi_kernel_free_event unimplemented");
 }
 
-export fn acpi_handler(status: *const idt.Status, idx: u8) *const idt.Status {
+export fn acpi_handler(status: *const cpu.Status, idx: u8) *const cpu.Status {
     log.info("acpi_handler: handler {} triggered", .{idx});
     const handler = handler_data[idx][0] orelse @panic("Handler triggered when no uACPI handler registered");
     const ctx = handler_data[idx][1] orelse @panic("Handler triggered when no uACPI handler context available");
