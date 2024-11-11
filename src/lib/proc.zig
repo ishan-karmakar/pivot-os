@@ -7,7 +7,6 @@ const PROC_STACK_SIZE = 0x1000;
 const PROC_HEAP_SIZE = 0x1000;
 
 const ProcStatus = enum {
-    new,
     ready,
     dead,
     sleep,
@@ -19,7 +18,7 @@ heap: ?Allocator,
 mapper: *mem.Mapper,
 vmm: ?mem.VMM,
 ef: cpu.Status,
-status: ProcStatus = .new,
+status: ProcStatus = .ready,
 
 // pub fn create(func: fn () void) @This() {
 //     const pml4 = mem.virt(mem.pmm.frame());

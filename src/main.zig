@@ -32,24 +32,59 @@ export fn _start() noreturn {
     drivers.timers.lapic.calibrate();
     drivers.smp.init();
     lib.scheduler.init();
-    const kproc: lib.Process = .{
+    const kproc = lib.mem.kheap.allocator().create(lib.Process) catch @panic("OOM");
+    kproc.* = .{
         .ef = .{ .iret_status = .{
             .cs = 0x8,
             .ss = 0x10,
             .rip = @intFromPtr(&kmain),
-            .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x2000) catch @panic("OOM")).ptr),
+            .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x2000) catch @panic("OOM")).ptr) + 0x2000,
         } },
         .mapper = &lib.mem.kmapper,
         .vmm = null,
-        .heap = lib.mem.kheap.allocator(),
+        .heap = lib.mem.kheap.threadSafeAllocator(),
     };
     lib.scheduler.queue(kproc);
 
     while (true) {}
 }
 
-fn kmain() void {
+fn kmain() noreturn {
     log.info("Entered main kernel thread", .{});
+    // const thread2_proc: lib.Process = .{
+    //     .ef = .{ .iret_status = .{
+    //         .cs = 0x8,
+    //         .ss = 0x10,
+    //         .rip = @intFromPtr(&thread2),
+    //         .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM")).ptr) + 0x1000,
+    //     } },
+    //     .mapper = &lib.mem.kmapper,
+    //     .vmm = null,
+    //     .heap = null,
+    // };
+    // lib.scheduler.queue(thread2_proc);
+    // const thread3_proc: lib.Process = .{
+    //     .ef = .{ .iret_status = .{
+    //         .cs = 0x8,
+    //         .ss = 0x10,
+    //         .rip = @intFromPtr(&thread3),
+    //         .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM")).ptr) + 0x1000,
+    //     } },
+    //     .mapper = &lib.mem.kmapper,
+    //     .vmm = null,
+    //     .heap = null,
+    // };
+    // lib.scheduler.queue(thread3_proc);
+    while (true) {}
+}
+
+fn thread2() noreturn {
+    log.info("This is thread 2", .{});
+    while (true) {}
+}
+
+fn thread3() noreturn {
+    log.info("This is thread 3", .{});
     while (true) {}
 }
 

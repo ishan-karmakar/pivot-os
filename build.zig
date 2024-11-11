@@ -31,8 +31,6 @@ const QEMU_ARGS = .{
     "stdio",
     "-no-reboot",
     "-no-shutdown",
-    "-d",
-    "int",
     "-bios",
     "OVMF.fd",
 };
