@@ -2,7 +2,7 @@ const limine = @import("limine");
 const std = @import("std");
 const mem = @import("kernel").lib.mem;
 const cpu = @import("kernel").drivers.cpu;
-const Process = @import("kernel").lib.Process;
+const scheduler = @import("kernel").lib.scheduler;
 const kernel = @import("kernel");
 const log = std.log.scoped(.smp);
 
@@ -10,7 +10,7 @@ pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1 };
 
 pub const CPU = struct {
     ready: bool,
-    cur_proc: ?*Process,
+    cur_proc: ?*scheduler.ReadyQueue.Node = null,
 };
 
 pub fn init() void {
@@ -19,7 +19,6 @@ pub fn init() void {
         const _info = mem.kheap.allocator().create(CPU) catch @panic("OOM");
         _info.* = CPU{
             .ready = false,
-            .cur_proc = null,
         };
         info.extra_argument = @intFromPtr(_info);
         if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {

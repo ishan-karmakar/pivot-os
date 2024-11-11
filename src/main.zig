@@ -30,21 +30,26 @@ export fn _start() noreturn {
     drivers.timers.pit.init();
     drivers.lapic.bsp_init();
     drivers.timers.lapic.calibrate();
-    // drivers.acpi.init();
     drivers.smp.init();
+    lib.scheduler.init();
     const kproc: lib.Process = .{
-        .ef = lib.Process.create_ef(kmain),
-        .mapper = lib.mem.kmapper,
-        .vmm = lib.mem.kvmm,
-        .heap = lib.mem.kheap,
+        .ef = .{ .iret_status = .{
+            .cs = 0x8,
+            .ss = 0x10,
+            .rip = @intFromPtr(&kmain),
+            .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x2000) catch @panic("OOM")).ptr),
+        } },
+        .mapper = &lib.mem.kmapper,
+        .vmm = null,
+        .heap = lib.mem.kheap.allocator(),
     };
-    _ = kproc;
-    // drivers.tss.init();
+    lib.scheduler.queue(kproc);
 
     while (true) {}
 }
 
 fn kmain() void {
+    log.info("Entered main kernel thread", .{});
     while (true) {}
 }
 

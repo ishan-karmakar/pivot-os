@@ -2,15 +2,18 @@ const log = @import("std").log.scoped(.lapic);
 const cpu = @import("kernel").drivers.cpu;
 const mem = @import("kernel").lib.mem;
 const idt = @import("kernel").drivers.idt;
+const scheduler = @import("kernel").lib.scheduler;
 
 const MSR = 0x1B;
 const SPURIOUS_VEC = 0xFF;
-pub const TIMER_VEC = 0x20;
 var addr: ?usize = null;
 
 const SPURIOUS_OFF = 0xF0;
 const LVT_OFF = 0x320;
 const EOI_OFF = 0xB0;
+pub const INITIAL_COUNT_OFF = 0x380;
+pub const CONFIG_OFF = 0x3E0;
+pub const CUR_COUNT_OFF = 0x390;
 
 pub fn bsp_init() void {
     var msr = cpu.rdmsr(MSR) | (1 << 11);
@@ -27,8 +30,8 @@ pub fn bsp_init() void {
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(0, "spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
-    write_reg(LVT_OFF, TIMER_VEC);
-    eoi();
+    write_reg(LVT_OFF, scheduler.SCHED_VEC);
+    write_reg(CONFIG_OFF, 1);
     log.info("Initialized Local APIC", .{});
 }
 
@@ -37,8 +40,8 @@ pub fn ap_init() void {
     if (addr == null) msr |= (1 << 10);
     cpu.wrmsr(MSR, msr);
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_VEC);
-    write_reg(LVT_OFF, TIMER_VEC);
-    eoi();
+    write_reg(LVT_OFF, scheduler.SCHED_VEC);
+    write_reg(CONFIG_OFF, 1);
 }
 
 pub inline fn eoi() void {
