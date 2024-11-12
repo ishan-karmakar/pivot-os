@@ -18,6 +18,8 @@ pub const SCHED_VEC = 0x20;
 var idle_proc: Process = undefined;
 var ready_queue_start: ?*Process = null;
 var ready_queue_end: *Process = undefined;
+var sleeping_queue_start: ?*Process = null;
+var sleeping_queue_end: *Process = undefined;
 var lock: Mutex = .{};
 
 pub fn init() void {
@@ -34,6 +36,7 @@ pub fn init() void {
 
 pub fn queue(proc: *Process) void {
     proc.status = .ready;
+    lock.lock();
     if (ready_queue_start == null) {
         ready_queue_start = proc;
         ready_queue_end = proc;
@@ -41,6 +44,7 @@ pub fn queue(proc: *Process) void {
         ready_queue_end.next = proc;
         ready_queue_end = proc;
     }
+    lock.unlock();
 
     // const node = mem.kheap.allocator().create(ReadyQueue.Node) catch @panic("OOM");
     // node.* = .{ .data = proc };
@@ -58,8 +62,35 @@ pub fn queue(proc: *Process) void {
     // If all threads are running a process, we don't do anything - they will preempt eventually
 }
 
+pub fn sleep(ms: usize) void {
+    const proc = smp.cpu_info(null).cur_proc.?;
+    proc.status = .sleeping;
+    proc.wakeup = ms;
+    if (sleeping_queue_start == null) {
+        sleeping_queue_start = proc;
+        sleeping_queue_end = proc;
+    } else {
+        sleeping_queue_end.next = proc;
+        sleeping_queue_end = proc;
+    }
+}
+
+pub fn unblock_proc(proc: *Process) void {
+    if (ready_queue_start == null) {
+        ready_queue_start = proc;
+        ready_queue_end = proc;
+        asm volatile ("int $0x20");
+    } else {
+        ready_queue_end.next = proc;
+        ready_queue_end = proc;
+    }
+}
+
 export fn sched_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
     const cpu_info = smp.cpu_info(null);
+    if (@atomicLoad(bool, &lock.locked, .acquire)) return status;
+    lock.lock();
+    defer lock.unlock();
     if (ready_queue_start) |proc| {
         if (cpu_info.cur_proc) |c| {
             c.ef = status.*;

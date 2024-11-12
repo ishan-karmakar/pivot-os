@@ -9,8 +9,8 @@ const PROC_HEAP_SIZE = 0x1000;
 const ProcStatus = enum {
     ready,
     running,
+    sleeping,
     dead,
-    sleep,
 };
 
 // If these are null, then we use kheap instead
@@ -18,6 +18,7 @@ const ProcStatus = enum {
 mapper: mem.Mapper,
 ef: cpu.Status,
 status: ProcStatus = .ready,
+wakeup: usize = 0,
 next: ?*@This(),
 
 // pub fn create(func: fn () void) @This() {
