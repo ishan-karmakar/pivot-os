@@ -32,59 +32,27 @@ export fn _start() noreturn {
     drivers.timers.lapic.calibrate();
     drivers.smp.init();
     lib.scheduler.init();
-    const kproc = lib.mem.kheap.allocator().create(lib.Process) catch @panic("OOM");
-    kproc.* = .{
+    const thread2_proc = lib.mem.kheap.allocator().create(lib.Process) catch @panic("OOM");
+    thread2_proc.* = .{
         .ef = .{ .iret_status = .{
             .cs = 0x8,
             .ss = 0x10,
-            .rip = @intFromPtr(&kmain),
-            .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x2000) catch @panic("OOM")).ptr) + 0x2000,
+            .rip = @intFromPtr(&thread2),
+            .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM")).ptr) + 0x1000,
         } },
-        .mapper = &lib.mem.kmapper,
-        .vmm = null,
-        .heap = lib.mem.kheap.threadSafeAllocator(),
+        .mapper = lib.mem.kmapper,
+        .next = null,
     };
-    lib.scheduler.queue(kproc);
-
-    while (true) {}
-}
-
-fn kmain() noreturn {
-    log.info("Entered main kernel thread", .{});
-    // const thread2_proc: lib.Process = .{
-    //     .ef = .{ .iret_status = .{
-    //         .cs = 0x8,
-    //         .ss = 0x10,
-    //         .rip = @intFromPtr(&thread2),
-    //         .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM")).ptr) + 0x1000,
-    //     } },
-    //     .mapper = &lib.mem.kmapper,
-    //     .vmm = null,
-    //     .heap = null,
-    // };
-    // lib.scheduler.queue(thread2_proc);
-    // const thread3_proc: lib.Process = .{
-    //     .ef = .{ .iret_status = .{
-    //         .cs = 0x8,
-    //         .ss = 0x10,
-    //         .rip = @intFromPtr(&thread3),
-    //         .rsp = @intFromPtr((lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM")).ptr) + 0x1000,
-    //     } },
-    //     .mapper = &lib.mem.kmapper,
-    //     .vmm = null,
-    //     .heap = null,
-    // };
-    // lib.scheduler.queue(thread3_proc);
+    lib.scheduler.queue(thread2_proc);
+    log.info("test1", .{});
+    asm volatile ("int $0x20");
+    log.info("test3", .{});
     while (true) {}
 }
 
 fn thread2() noreturn {
-    log.info("This is thread 2", .{});
-    while (true) {}
-}
-
-fn thread3() noreturn {
-    log.info("This is thread 3", .{});
+    log.info("test2", .{});
+    asm volatile ("int $0x20");
     while (true) {}
 }
 
