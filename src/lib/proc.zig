@@ -18,7 +18,7 @@ const ProcStatus = enum {
 mapper: mem.Mapper,
 ef: cpu.Status,
 status: ProcStatus = .ready,
-wakeup: usize = 0,
+priority: u8, // 0 (lowest) - 99 (highest)
 next: ?*@This(),
 
 // pub fn create(func: fn () void) @This() {

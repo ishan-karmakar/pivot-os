@@ -4,7 +4,6 @@ const log = @import("std").log.scoped(.lapic);
 const idt = @import("kernel").drivers.idt;
 
 pub var ms_ticks: usize = undefined;
-var triggered: bool = false;
 
 pub fn calibrate() void {
     lapic.write_reg(lapic.INITIAL_COUNT_OFF, 0xFFFFFFFF);
@@ -12,4 +11,9 @@ pub fn calibrate() void {
     ms_ticks = (0xFFFFFFFF - lapic.read_reg(lapic.CUR_COUNT_OFF)) / 50;
     lapic.write_reg(lapic.INITIAL_COUNT_OFF, 0);
     log.debug("LAPIC ticks per millisecond: {}", .{ms_ticks});
+}
+
+pub fn start(interval: usize) void {
+    log.info("interval: {}", .{ms_ticks * interval});
+    lapic.write_reg(lapic.INITIAL_COUNT_OFF, ms_ticks * interval);
 }

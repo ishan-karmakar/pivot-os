@@ -1,7 +1,6 @@
 const kernel = @import("kernel");
 const Process = kernel.lib.Process;
-const DoublyLinkedList = @import("std").DoublyLinkedList;
-const PriorityQueue = @import("std").PriorityQueue;
+const AutoHashMap = @import("std").AutoHashMap;
 const Mutex = kernel.lib.Mutex;
 const mem = kernel.lib.mem;
 const smp = kernel.drivers.smp;
@@ -9,17 +8,17 @@ const cpu = kernel.drivers.cpu;
 const lapic = kernel.drivers.lapic;
 const idt = kernel.drivers.idt;
 const log = @import("std").log.scoped(.sched);
+const std = @import("std");
 
-pub const ReadyQueue = DoublyLinkedList(*Process);
+const ReadyQueue = AutoHashMap(u8, *Process);
 
 // TODO: Separate into kernel and user quantums (50ms, 25 ms)
 const QUANTUM = 50;
 pub const SCHED_VEC = 0x20;
 var idle_proc: Process = undefined;
-var ready_queue_start: ?*Process = null;
-var ready_queue_end: *Process = undefined;
-var sleeping_queue_start: ?*Process = null;
-var sleeping_queue_end: *Process = undefined;
+// var ready_queue_start: ?*Process = null;
+// var ready_queue_end: *Process = undefined;
+var ready_queue = ReadyQueue.init(mem.kheap.allocator());
 var lock: Mutex = .{};
 
 pub fn init() void {
@@ -28,7 +27,8 @@ pub fn init() void {
     kproc.* = .{
         .ef = undefined,
         .mapper = mem.kmapper,
-        .next = kproc,
+        .next = null,
+        .priority = 99,
         .status = .running,
     };
     smp.cpu_info(null).cur_proc = kproc;
@@ -36,15 +36,14 @@ pub fn init() void {
 
 pub fn queue(proc: *Process) void {
     proc.status = .ready;
+    const cpu_info = smp.cpu_info(null);
     lock.lock();
-    if (ready_queue_start == null) {
-        ready_queue_start = proc;
-        ready_queue_end = proc;
-    } else {
-        ready_queue_end.next = proc;
-        ready_queue_end = proc;
-    }
+    proc.next = ready_queue.get(proc.priority);
+    ready_queue.put(proc.priority, proc) catch @panic("Failed to add to to ready queue");
     lock.unlock();
+    if (cpu_info.cur_proc == null or proc.priority > cpu_info.cur_proc.?.priority) {
+        asm volatile ("int $0x20");
+    }
 
     // const node = mem.kheap.allocator().create(ReadyQueue.Node) catch @panic("OOM");
     // node.* = .{ .data = proc };
@@ -62,46 +61,40 @@ pub fn queue(proc: *Process) void {
     // If all threads are running a process, we don't do anything - they will preempt eventually
 }
 
-pub fn sleep(ms: usize) void {
-    const proc = smp.cpu_info(null).cur_proc.?;
-    proc.status = .sleeping;
-    proc.wakeup = ms;
-    if (sleeping_queue_start == null) {
-        sleeping_queue_start = proc;
-        sleeping_queue_end = proc;
-    } else {
-        sleeping_queue_end.next = proc;
-        sleeping_queue_end = proc;
-    }
+fn compare_proc(_: void, a: *Process, b: *Process) std.math.Order {
+    return std.math.order(a.priority, b.priority);
 }
 
-pub fn unblock_proc(proc: *Process) void {
-    if (ready_queue_start == null) {
-        ready_queue_start = proc;
-        ready_queue_end = proc;
-        asm volatile ("int $0x20");
-    } else {
-        ready_queue_end.next = proc;
-        ready_queue_end = proc;
-    }
-}
+// pub fn sleep(ms: usize) void {
+//     const proc = smp.cpu_info(null).cur_proc.?;
+//     proc.status = .sleeping;
+//     proc.wakeup = ms;
+//     if (sleeping_queue_start == null) {
+//         sleeping_queue_start = proc;
+//         sleeping_queue_end = proc;
+//     } else {
+//         sleeping_queue_end.next = proc;
+//         sleeping_queue_end = proc;
+//     }
+// }
+
+// pub fn unblock_proc(proc: *Process) void {
+//     if (ready_queue_start == null) {
+//         ready_queue_start = proc;
+//         ready_queue_end = proc;
+//         asm volatile ("int $0x20");
+//     } else {
+//         ready_queue_end.next = proc;
+//         ready_queue_end = proc;
+//     }
+// }
 
 export fn sched_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
-    const cpu_info = smp.cpu_info(null);
     if (@atomicLoad(bool, &lock.locked, .acquire)) return status;
-    lock.lock();
-    defer lock.unlock();
-    if (ready_queue_start) |proc| {
-        if (cpu_info.cur_proc) |c| {
-            c.ef = status.*;
-            ready_queue_end.next = c;
-            ready_queue_end = c;
-        }
-        ready_queue_start = proc.next;
-        cpu_info.cur_proc = proc;
-        cpu.set_cr3(mem.phys(@intFromPtr(proc.mapper.pml4)));
-        return &proc.ef;
-    } else return status;
+    // log.info("sched_handler", .{});
+    log.info("sched_handler", .{});
+    lapic.eoi();
+    return status;
     // lapic.eoi();
     // const cpu_info = smp.cpu_info(null);
     // // Check for wakeups
