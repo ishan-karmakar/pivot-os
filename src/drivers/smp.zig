@@ -9,9 +9,9 @@ const log = std.log.scoped(.smp);
 pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1 };
 
 pub const CPU = struct {
-    id: usize,
+    id: u32,
     ready: bool,
-    cur_proc: *Process = undefined,
+    cur_proc: ?*Process = null,
     delete_proc: ?*Process = null,
     timeslice: usize = 0,
 };
@@ -21,7 +21,7 @@ pub fn init() void {
         const info = SMP_REQUEST.response.?.cpus()[i];
         const _info = mem.kheap.allocator().create(CPU) catch @panic("OOM");
         _info.* = CPU{
-            .id = i,
+            .id = @truncate(i),
             .ready = false,
         };
         info.extra_argument = @intFromPtr(_info);

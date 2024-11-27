@@ -15,6 +15,8 @@ const EOI_OFF = 0xB0;
 pub const INITIAL_COUNT_OFF = 0x380;
 pub const CONFIG_OFF = 0x3E0;
 pub const CUR_COUNT_OFF = 0x390;
+pub const ICRLO = 0x300;
+pub const ICRHI = 0x310;
 
 pub fn bsp_init() void {
     var msr = cpu.rdmsr(MSR) | (1 << 11);
