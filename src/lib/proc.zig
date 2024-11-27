@@ -8,7 +8,6 @@ const PROC_HEAP_SIZE = 0x1000;
 
 const ProcStatus = enum {
     ready,
-    running,
     sleeping,
     dead,
 };
@@ -16,10 +15,13 @@ const ProcStatus = enum {
 // If these are null, then we use kheap instead
 // mapper is not a pointer because we actually access mapper in kernel address space
 mapper: mem.Mapper,
+vmm: ?mem.VMM,
 ef: cpu.Status,
 status: ProcStatus = .ready,
-priority: u8, // 0 (lowest) - 99 (highest)
-next: ?*@This(),
+save_ef: bool = true,
+priority: u8,
+stack: ?[]u8,
+next: ?*@This() = null,
 
 // pub fn create(func: fn () void) @This() {
 //     const pml4 = mem.virt(mem.pmm.frame());

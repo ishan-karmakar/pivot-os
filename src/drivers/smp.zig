@@ -11,7 +11,9 @@ pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1 };
 pub const CPU = struct {
     id: usize,
     ready: bool,
-    cur_proc: ?*Process = null,
+    cur_proc: *Process = undefined,
+    delete_proc: ?*Process = null,
+    timeslice: usize = 0,
 };
 
 pub fn init() void {
@@ -38,4 +40,8 @@ pub fn init() void {
 pub fn cpu_info(idx: ?usize) *CPU {
     if (idx) |i| return @ptrFromInt(SMP_REQUEST.response.?.cpus_ptr[i].extra_argument);
     return @ptrFromInt(cpu.get_kgs());
+}
+
+pub inline fn cpu_count() usize {
+    return SMP_REQUEST.response.?.cpu_count;
 }

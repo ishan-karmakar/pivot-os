@@ -30,15 +30,29 @@ export fn _start() noreturn {
     drivers.timers.pit.init();
     drivers.lapic.bsp_init();
     drivers.timers.lapic.calibrate();
-    drivers.timers.lapic.start(1);
-    // drivers.smp.init();
-    // lib.scheduler.init();
+    drivers.smp.init();
+    lib.scheduler.init();
+    drivers.timers.lapic.start(5);
+    const proc = lib.mem.kheap.allocator().create(lib.Process) catch @panic("OOM");
+    const stack = lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM");
+    proc.* = .{
+        .mapper = lib.mem.kmapper,
+        .priority = 100,
+        .vmm = null,
+        .stack = stack,
+        .ef = .{ .iret_status = .{
+            .cs = 0x8,
+            .ss = 0x10,
+            .rip = @intFromPtr(&kmain),
+            .rsp = @intFromPtr(stack.ptr) + 0x1000,
+        } },
+    };
+    lib.scheduler.queue(proc);
     while (true) {}
 }
 
-fn thread2() noreturn {
-    log.info("test2", .{});
-    asm volatile ("int $0x20");
+fn kmain() noreturn {
+    log.info("Entered main kernel thread", .{});
     while (true) {}
 }
 

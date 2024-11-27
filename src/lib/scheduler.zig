@@ -14,128 +14,125 @@ const ReadyQueue = AutoHashMap(u8, *Process);
 
 // TODO: Separate into kernel and user quantums (50ms, 25 ms)
 const QUANTUM = 50;
-pub const SCHED_VEC = 0x20;
+pub const SCHED_VEC = 0x30;
+var ready_queue: ?*Process = null;
+var ready_queue_end: ?*Process = null; // End of MAX priority processes in queue
 var idle_proc: Process = undefined;
-// var ready_queue_start: ?*Process = null;
-// var ready_queue_end: *Process = undefined;
-var ready_queue = ReadyQueue.init(mem.kheap.allocator());
-var lock: Mutex = .{};
+pub var lock: Mutex = .{};
 
 pub fn init() void {
-    idt.set_ent(SCHED_VEC, idt.create_irq(SCHED_VEC, "sched_handler"));
+    // FIXME: Idle proc should have no extra rules or edge cases. Change to simply add to ready queue w/ lowest priority
+
     const kproc = mem.kheap.allocator().create(Process) catch @panic("OOM");
     kproc.* = .{
         .ef = undefined,
         .mapper = mem.kmapper,
-        .next = null,
-        .priority = 99,
-        .status = .running,
+        .priority = 100,
+        .vmm = null,
+        .stack = null,
     };
+
+    const stack = mem.kheap.allocator().alloc(u8, 1024) catch @panic("OOM");
+    idle_proc = .{
+        .ef = .{ .iret_status = .{
+            .cs = 0x8,
+            .ss = 0x10,
+            .rip = @intFromPtr(&idle),
+            .rsp = @intFromPtr(stack.ptr) + 1024,
+        } },
+        .stack = stack,
+        .save_ef = false,
+        .priority = 0,
+        .vmm = null,
+        .mapper = mem.kmapper,
+    };
+    idt.set_ent(SCHED_VEC, idt.create_irq(SCHED_VEC, "schedule"));
+    for (0..smp.cpu_count()) |i| smp.cpu_info(i).cur_proc = &idle_proc;
     smp.cpu_info(null).cur_proc = kproc;
 }
 
 pub fn queue(proc: *Process) void {
-    proc.status = .ready;
-    const cpu_info = smp.cpu_info(null);
     lock.lock();
-    proc.next = ready_queue.get(proc.priority);
-    ready_queue.put(proc.priority, proc) catch @panic("Failed to add to to ready queue");
+    add_to_queue(proc);
     lock.unlock();
-    if (cpu_info.cur_proc == null or proc.priority > cpu_info.cur_proc.?.priority) {
-        asm volatile ("int $0x20");
+}
+
+fn add_to_queue(proc: *Process) void {
+    if (ready_queue) |rq| {
+        if (proc.priority == rq.priority) {
+            ready_queue_end.?.next = proc;
+            ready_queue_end = proc;
+        } else {
+            var prev = ready_queue_end.?;
+            while (prev.next != null and prev.next.?.priority >= proc.priority) prev = prev.next.?;
+            proc.next = prev.next;
+            prev.next = proc;
+        }
+    } else {
+        proc.next = null;
+        ready_queue = proc;
+        ready_queue_end = proc;
     }
-
-    // const node = mem.kheap.allocator().create(ReadyQueue.Node) catch @panic("OOM");
-    // node.* = .{ .data = proc };
-    // lock.lock();
-    // ready_queue.append(node);
-    // lock.unlock();
-    // for (0..smp.SMP_REQUEST.response.?.cpu_count) |i| {
-    //     if (smp.cpu_info(i).cur_proc == null) {
-    //         const id = smp.SMP_REQUEST.response.?.cpus_ptr[i].lapic_id;
-    //         lapic.write_reg(0x310, id << 24);
-    //         lapic.write_reg(0x300, 0x20);
-    //         break;
-    //     }
-    // }
-    // If all threads are running a process, we don't do anything - they will preempt eventually
 }
 
-fn compare_proc(_: void, a: *Process, b: *Process) std.math.Order {
-    return std.math.order(a.priority, b.priority);
+fn load_proc(proc: *Process, cpu_info: *smp.CPU) *const cpu.Status {
+    cpu_info.cur_proc = proc;
+    cpu_info.timeslice = 0;
+    cpu.set_cr3(mem.phys(@intFromPtr(proc.mapper.pml4)));
+    return &proc.ef;
 }
 
-// pub fn sleep(ms: usize) void {
-//     const proc = smp.cpu_info(null).cur_proc.?;
-//     proc.status = .sleeping;
-//     proc.wakeup = ms;
-//     if (sleeping_queue_start == null) {
-//         sleeping_queue_start = proc;
-//         sleeping_queue_end = proc;
-//     } else {
-//         sleeping_queue_end.next = proc;
-//         sleeping_queue_end = proc;
-//     }
-// }
-
-// pub fn unblock_proc(proc: *Process) void {
-//     if (ready_queue_start == null) {
-//         ready_queue_start = proc;
-//         ready_queue_end = proc;
-//         asm volatile ("int $0x20");
-//     } else {
-//         ready_queue_end.next = proc;
-//         ready_queue_end = proc;
-//     }
-// }
-
-export fn sched_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
-    if (@atomicLoad(bool, &lock.locked, .acquire)) return status;
-    // log.info("sched_handler", .{});
-    log.info("sched_handler", .{});
-    lapic.eoi();
-    return status;
-    // lapic.eoi();
-    // const cpu_info = smp.cpu_info(null);
-    // // Check for wakeups
-
-    // lock.lock();
-    // defer lock.unlock();
-    // if (cpu_info.cur_proc) |c| {
-    //     if (c.status == .dead) {
-    //         // Cleanup
-    //         cpu_info.cur_proc = null;
-    //         if (ready_queue.first == null) {
-    //             // Load idle proc
-    //         }
-    //     } else if (c.status == .sleep) {
-    //         c.ef = status.*;
-    //         // Add to wakeup queue
-    //         cpu_info.cur_proc = null;
-    //         if (ready_queue.first == null) {
-    //             // Load idle proc
-    //         }
-    //     }
-    // }
-
-    // if (ready_queue.popFirst()) |node| {
-    //     if (cpu_info.cur_proc) |c| {
-    //         // Save proc
-    //         c.ef = status.*;
-    //         const old_node = mem.kheap.allocator().create(ReadyQueue.Node) catch @panic("OOM");
-    //         old_node.* = .{ .data = c };
-    //         ready_queue.append(old_node);
-    //     }
-    //     cpu_info.cur_proc = node.data;
-    //     mem.kheap.allocator().destroy(node);
-    //     cpu.set_cr3(mem.phys(@intFromPtr(cpu_info.cur_proc.?.mapper.pml4)));
-    //     lapic.write_reg(lapic.INITIAL_COUNT_OFF, QUANTUM * kernel.drivers.timers.lapic.ms_ticks);
-    //     return &node.data.ef;
-    // } else if (cpu_info.cur_proc != null) {
-    //     lapic.write_reg(lapic.INITIAL_COUNT_OFF, QUANTUM * kernel.drivers.timers.lapic.ms_ticks);
-    // }
+fn check_rq(cpu_info: *smp.CPU, status: *const cpu.Status) ?*const cpu.Status {
+    if (ready_queue) |rq| {
+        if (rq.priority < cpu_info.cur_proc.priority or (rq.priority == cpu_info.cur_proc.priority and @atomicLoad(usize, &cpu_info.timeslice, .unordered) < QUANTUM)) return null;
+        ready_queue = rq.next;
+        if (cpu_info.cur_proc.save_ef) cpu_info.cur_proc.ef = status.*;
+        add_to_queue(cpu_info.cur_proc);
+        return load_proc(rq, cpu_info);
+    }
+    return null;
 }
 
-fn idle_thread() void {
+fn check_delete_proc(cpu_info: *smp.CPU) ?*const cpu.Status {
+    if (cpu_info.delete_proc) |dp| {
+        cpu_info.delete_proc = null;
+        const alloc = mem.kheap.allocator();
+        if (dp.stack) |stack| alloc.free(stack);
+        alloc.destroy(dp);
+    }
+    if (cpu_info.cur_proc.status == .dead) {
+        cpu_info.delete_proc = cpu_info.cur_proc;
+        if (ready_queue) |rq| {
+            ready_queue = rq.next;
+            return load_proc(rq, cpu_info);
+        } else return load_proc(&idle_proc, cpu_info);
+    }
+    return null;
+}
+
+pub export fn schedule(status: *const cpu.Status, vec: usize) *const cpu.Status {
+    const cpu_info = smp.cpu_info(null);
+    if (vec == kernel.drivers.timers.lapic.TIMER_VEC) _ = @atomicRmw(usize, &cpu_info.timeslice, .Add, 1, .monotonic);
+    if (@cmpxchgStrong(bool, &lock.locked, false, true, .acquire, .monotonic) == true) return status;
+    defer lock.unlock();
+    if (vec == kernel.drivers.timers.lapic.TIMER_VEC) {
+        if (check_rq(cpu_info, status)) |s| return s;
+        return status;
+    } else {
+        // If manually called, some event happened
+        if (check_delete_proc(cpu_info)) |s| return s;
+        if (check_rq(cpu_info, status)) |s| return s;
+        return load_proc(&idle_proc, cpu_info);
+    }
+}
+
+pub inline fn yield() void {
+    asm volatile ("int %[vec]"
+        :
+        : [vec] "i" (SCHED_VEC),
+    );
+}
+
+fn idle() noreturn {
     while (true) {}
 }
