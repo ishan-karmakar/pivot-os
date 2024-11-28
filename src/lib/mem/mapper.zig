@@ -49,7 +49,8 @@ pub fn map(self: *@This(), phys: usize, virt: usize, flags: u64) void {
         }
         break :block next_table(&p2_tbl[p2_ent]);
     };
-    p1_tbl[p1_ent] = phys | flags | 1;
+    const ent = phys | flags | 1;
+    if (ent != p1_tbl[p1_ent]) p1_tbl[p1_ent] = ent;
 }
 
 pub fn translate(self: *@This(), virt: usize) ?usize {

@@ -27,11 +27,12 @@ export fn _start() noreturn {
     drivers.gdt.init_dyn();
     drivers.pic.init();
     asm volatile ("sti");
-    drivers.timers.pit.init();
-    drivers.lapic.bsp_init();
-    drivers.timers.lapic.calibrate();
-    drivers.smp.init();
-    lib.scheduler.init();
+    drivers.acpi.init_tables();
+    drivers.timers.hpet.init();
+    // drivers.lapic.bsp_init();
+    // drivers.timers.lapic.calibrate();
+    // drivers.smp.init();
+    // lib.scheduler.init();
     // drivers.timers.lapic.start(5);
     // const proc = lib.mem.kheap.allocator().create(lib.Process) catch @panic("OOM");
     // const stack = lib.mem.kheap.allocator().alloc(u8, 0x1000) catch @panic("OOM");
