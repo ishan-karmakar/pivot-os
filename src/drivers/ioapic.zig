@@ -20,7 +20,6 @@ var addr: ?usize = null;
 var madt: *const uacpi.acpi_madt = undefined; // Just caching MADT here
 
 pub fn init() void {
-    pic.disable();
     var out_table: uacpi.uacpi_table = undefined;
     if (uacpi.uacpi_table_find_by_signature("APIC", &out_table) != uacpi.UACPI_STATUS_OK) {
         @panic("uACPI error finding MADT");
@@ -42,7 +41,7 @@ pub fn init() void {
     log.info("Initialized I/O APIC", .{});
 }
 
-pub fn set(vec: u8, _irq: u8, dest: u8, flags: u64) void {
+pub fn set(vec: u8, _irq: u5, dest: u8, flags: u64) void {
     var irq = _irq;
     var ent: RedirectionEntry = @bitCast(flags);
     ent.vec = vec;
@@ -59,7 +58,7 @@ pub fn set(vec: u8, _irq: u8, dest: u8, flags: u64) void {
     log.debug("Setting IRQ {} to IDT entry {}", .{ irq, vec });
 }
 
-pub fn mask(_irq: u8, m: bool) void {
+pub fn mask(_irq: u5, m: bool) void {
     const irq = if (find_so(_irq)) |i| @as(u8, @intCast(i.gsi)) else _irq;
     var ent = read_red(irq);
     ent.mask = m;

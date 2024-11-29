@@ -25,10 +25,14 @@ export fn _start() noreturn {
     lib.mem.init();
     drivers.term.init();
     drivers.gdt.init_dyn();
-    drivers.pic.init();
-    asm volatile ("sti");
     drivers.acpi.init_tables();
+    drivers.ioapic.init();
+    asm volatile ("sti");
     drivers.timers.hpet.init();
+    log.info("Sleeping", .{});
+    drivers.timers.hpet.nsleep(1_000_000_000);
+    log.info("Done sleeping", .{});
+    // drivers.timers.hpet.init();
     // drivers.lapic.bsp_init();
     // drivers.timers.lapic.calibrate();
     // drivers.smp.init();

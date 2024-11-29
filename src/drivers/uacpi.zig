@@ -152,8 +152,8 @@ export fn uacpi_kernel_free(_ptr: ?*anyopaque, size: uacpi.uacpi_size) void {
 }
 
 export fn uacpi_kernel_map(_addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) ?*anyopaque {
-    var start = (math.divFloor(usize, _addr, 0x1000) catch unreachable) * 0x1000;
-    const end = (math.divFloor(usize, _addr + size, 0x1000) catch unreachable) * 0x1000;
+    var start = @divFloor(_addr, 0x1000) * 0x1000;
+    const end = @divFloor(_addr + size, 0x1000) * 0x1000;
     while (start <= end) {
         mem.kmapper.map(start, start, 0b10);
         start += 0x1000;
