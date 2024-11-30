@@ -11,6 +11,7 @@ pub const VTable = struct {
     eoi: *const fn (irq: u5) void,
 };
 
+// FIXME: I don't know what I'm trying to do, just initialize from most preferred to least, and stop after first succeeds
 const avail_controllers = [_]*const VTable{
     &pic.vtable,
     &ioapic.vtable,
@@ -32,4 +33,19 @@ pub fn init() void {
     } else {
         log.warn("No active interrupt controller", .{});
     }
+}
+
+/// We are relying on the assumption that mask is only called after set, and mask won't be called if set fails
+pub fn mask(irq: u5, m: bool) void {
+    return controller.?.mask(irq, m);
+}
+
+pub fn set(vec: u8, irq: u5, flags: u64) bool {
+    if (controller) |c| return c.set(vec, irq, flags);
+    @panic("No active interrupt controller");
+}
+
+/// We are relying on the assumption that eoi is only called after set, and eoi won't be called if set fails
+pub fn eoi(irq: u5) void {
+    return controller.?.eoi(irq);
 }

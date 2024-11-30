@@ -15,6 +15,7 @@ pub const vtable: VTable = .{
     .set = set,
     .mask = mask,
     .eoi = eoi,
+    .disable = disable,
 };
 
 fn init() bool {
@@ -31,9 +32,8 @@ fn init() bool {
     serial.out(PIC1_DATA, @as(u8, 1));
     serial.out(PIC2_DATA, @as(u8, 1));
 
-    // Disable (mask all ints)
-    serial.out(PIC1_DATA, @as(u8, 0xFF));
-    serial.out(PIC2_DATA, @as(u8, 0xFF));
+    // Masking all ints
+    disable();
 
     return true;
 }
@@ -54,6 +54,11 @@ fn mask(_irq: u5, m: bool) void {
     } else {
         serial.out(port, serial.in(port, u8) & ~(@as(u8, 1) << @intCast(irq)));
     }
+}
+
+fn disable() void {
+    serial.out(PIC1_DATA, @as(u8, 0xFF));
+    serial.out(PIC2_DATA, @as(u8, 0xFF));
 }
 
 fn get_port(irq: *u5) u16 {

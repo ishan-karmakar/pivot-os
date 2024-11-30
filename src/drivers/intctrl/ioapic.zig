@@ -24,6 +24,7 @@ pub const vtable: VTable = .{
     .mask = mask,
     .set = set,
     .eoi = eoi,
+    .disable = disable,
 };
 
 var addr: usize = undefined;
@@ -71,6 +72,9 @@ fn mask(_irq: u5, m: bool) void {
 fn eoi(_: u5) void {
     lapic.eoi();
 }
+
+// FIXME: Write actual disable code
+fn disable() void {}
 
 fn write_red(_irq: u8, ent: RedirectionEntry) void {
     const irq = _irq * 2 + 0x10;
