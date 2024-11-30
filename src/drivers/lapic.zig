@@ -33,8 +33,8 @@ pub fn bsp_init() void {
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(0, "spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
-    write_reg(LVT_OFF, timers.lapic.TIMER_VEC | 0x20000);
-    write_reg(CONFIG_OFF, 1);
+    // write_reg(LVT_OFF, timers.lapic.TIMER_VEC | 0x20000);
+    // write_reg(CONFIG_OFF, 1);
     log.info("Initialized Local APIC", .{});
 }
 
@@ -43,8 +43,8 @@ pub fn ap_init() void {
     if (addr == null) msr |= (1 << 10);
     cpu.wrmsr(MSR, msr);
     write_reg(SPURIOUS_OFF, (1 << 8) | SPURIOUS_VEC);
-    write_reg(LVT_OFF, timers.lapic.TIMER_VEC | 0x20000);
-    write_reg(CONFIG_OFF, 1);
+    // write_reg(LVT_OFF, timers.lapic.TIMER_VEC | 0x20000);
+    // write_reg(CONFIG_OFF, 1);
 }
 
 pub inline fn eoi() void {

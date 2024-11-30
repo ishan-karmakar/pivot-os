@@ -4,7 +4,6 @@ const mem = @import("kernel").lib.mem;
 const timers = @import("kernel").drivers.timers;
 const idt = @import("kernel").drivers.idt;
 const cpu = @import("kernel").drivers.cpu;
-const ioapic = @import("kernel").drivers.ioapic;
 const pci = @import("kernel").drivers.pci;
 const math = @import("std").math;
 const log = @import("std").log.scoped(.uacpi);
@@ -21,7 +20,6 @@ var handler_data: [ACPI_MAX_HANDLERS]UACPI_CTX = .{.{ null, null }} ** 3;
 export fn uacpi_kernel_initialize(lvl: uacpi.uacpi_init_level) uacpi.uacpi_status {
     switch (lvl) {
         uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED => {
-            ioapic.init();
             idt.set_ent(0x30, idt.create_irq(0, "acpi_handler"));
             idt.set_ent(0x31, idt.create_irq(1, "acpi_handler"));
             idt.set_ent(0x32, idt.create_irq(2, "acpi_handler"));
@@ -181,15 +179,19 @@ export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_hand
 }
 
 export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, handler: uacpi.uacpi_interrupt_handler, ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+    _ = irq;
+    _ = handler;
+    _ = ctx;
     log.info("uacpi_kernel_install_interrupt_handler", .{});
-    for (0.., &handler_data) |i, *d| {
-        if (d[0] == null) {
-            d.* = .{ handler, ctx };
-            ioapic.set(@intCast(0x30 + i), @intCast(irq), 0, 0);
-            ioapic.mask(@intCast(irq), false);
-            return uacpi.UACPI_STATUS_OK;
-        }
-    }
+    // for (0.., &handler_data) |i, *d| {
+    //     if (d[0] == null) {
+    //         d.* = .{ handler, ctx };
+    //         @panic("test");
+    //         // ioapic.set(@intCast(0x30 + i), @intCast(irq), 0, 0);
+    //         // ioapic.mask(@intCast(irq), false);
+    //         // return uacpi.UACPI_STATUS_OK;
+    //     }
+    // }
     @panic("Ran out of interrupt handlers for uACPI");
 }
 

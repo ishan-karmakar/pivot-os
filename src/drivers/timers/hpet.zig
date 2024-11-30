@@ -73,14 +73,12 @@ pub fn init() void {
     const hpet_tbl: *const uacpi.acpi_hpet = @ptrCast(tbl.unnamed_0.hdr);
     registers = @ptrFromInt(hpet_tbl.address.address);
     map_hpet();
-    registers.gcfg.enable_cnf = true;
     idt.set_ent(HPET_VEC, idt.create_irq(HPET_VEC, "hpet_timer_handler"));
     for (0..32) |i| {
         const irq: u5 = @truncate(i);
         if ((registers.timer_config_cap(0).int_route_cap & (@as(u32, 1) << irq)) == 0) continue;
         registers.timer_config_cap(0).int_route_cnf = irq;
         ioapic.set(HPET_VEC, irq, 0, 0);
-        ioapic.mask(irq, false);
         break;
     }
     log.info("Initialized HPET timer (ticks occur every {} femtoseconds)", .{registers.gcap_id.counter_clk_period});
@@ -106,10 +104,11 @@ pub inline fn time() usize {
 /// Start HPET timer in nonperiodic mode
 /// If interval < COUNTER_CLK_PERIOD, interval = COUNTER_CLK_PERIOD
 fn start(ns: usize) void {
-    asm volatile ("sti");
+    registers.gcfg.enable_cnf = false;
+    ioapic.mask(2, false);
     registers.timer_config_cap(0).int_enb_cnf = true;
-    log.info("{}", .{registers.timer_config_cap(0).int_route_cnf});
     registers.timer_comparator_val(0).* = registers.counter + (ns * 1_000_000 / registers.gcap_id.counter_clk_period);
+    registers.gcfg.enable_cnf = true;
 }
 
 fn start_periodic(fs: usize) void {
@@ -126,13 +125,14 @@ fn start_periodic(fs: usize) void {
 
 pub fn nsleep(ns: usize) void {
     start(ns);
-    // while (!triggered) {
-    //     // asm volatile ("pause");
-    // }
+    while (!triggered) {
+        log.info("{}, {}", .{ registers.counter, registers.timer_comparator_val(0).* });
+        //     // asm volatile ("pause");
+    }
 }
 
 export fn hpet_timer_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
     log.info("hpet_timer_handler", .{});
-    triggered = true;
+    // triggered = true;
     return status;
 }
