@@ -29,6 +29,7 @@ export fn _start() noreturn {
     drivers.acpi.init_tables();
     drivers.lapic.bsp_init();
     drivers.intctrl.init();
+    drivers.timers.init();
     while (true) {}
 }
 
