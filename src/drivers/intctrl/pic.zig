@@ -1,7 +1,8 @@
+const kernel = @import("kernel");
 const log = @import("std").log.scoped(.pic);
-const serial = @import("kernel").drivers.serial;
-const VTable = @import("kernel").drivers.intctrl.VTable;
-const acpi = @import("kernel").drivers.acpi;
+const serial = kernel.drivers.serial;
+const VTable = kernel.drivers.intctrl.VTable;
+const acpi = kernel.drivers.acpi;
 
 const PIC1 = 0x20;
 const PIC2 = 0xA0;
@@ -15,7 +16,6 @@ pub const vtable: VTable = .{
     .set = set,
     .mask = mask,
     .eoi = eoi,
-    .disable = disable,
 };
 
 fn init() bool {
@@ -56,7 +56,7 @@ fn mask(_irq: u5, m: bool) void {
     }
 }
 
-fn disable() void {
+pub fn disable() void {
     serial.out(PIC1_DATA, @as(u8, 0xFF));
     serial.out(PIC2_DATA, @as(u8, 0xFF));
 }

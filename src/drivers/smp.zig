@@ -1,9 +1,9 @@
+const kernel = @import("kernel");
 const limine = @import("limine");
 const std = @import("std");
-const mem = @import("kernel").lib.mem;
-const cpu = @import("kernel").drivers.cpu;
-const Process = @import("kernel").lib.Process;
-const kernel = @import("kernel");
+const mem = kernel.lib.mem;
+const cpu = kernel.drivers.cpu;
+const Process = kernel.lib.Process;
 const log = std.log.scoped(.smp);
 
 pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1 };

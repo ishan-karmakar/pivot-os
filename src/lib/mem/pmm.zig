@@ -1,7 +1,8 @@
+const kernel = @import("kernel");
 const limine = @import("limine");
 const log = @import("std").log.scoped(.pmm);
-const mem = @import("kernel").lib.mem;
-const Mutex = @import("kernel").lib.Mutex;
+const mem = kernel.lib.mem;
+const Mutex = kernel.lib.Mutex;
 
 const FreeRegion = struct {
     const Self = @This();

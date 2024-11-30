@@ -1,9 +1,10 @@
+const kernel = @import("kernel");
 const log = @import("std").log.scoped(.hpet);
 const uacpi = @import("uacpi");
-const mem = @import("kernel").lib.mem;
-const cpu = @import("kernel").drivers.cpu;
-const ioapic = @import("kernel").drivers.ioapic;
-const idt = @import("kernel").drivers.idt;
+const mem = kernel.lib.mem;
+const cpu = kernel.drivers.cpu;
+const ioapic = kernel.drivers.ioapic;
+const idt = kernel.drivers.idt;
 
 const GeneralCapabilitiesID = packed struct {
     rev_id: u8,

@@ -3,11 +3,12 @@
 /// Uses an efficient bitmap under the hood to save space
 const std = @import("std");
 const Tuple = std.meta.Tuple;
+const kernel = @import("kernel");
 const log = std.log.scoped(.vmm);
 const math = std.math;
 const Allocator = std.mem.Allocator;
-const mem = @import("kernel").lib.mem;
-const Mutex = @import("kernel").lib.Mutex;
+const mem = kernel.lib.mem;
+const Mutex = kernel.lib.Mutex;
 const Self = @This();
 const Block = struct {
     depth: usize,

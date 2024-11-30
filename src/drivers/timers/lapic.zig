@@ -1,10 +1,11 @@
-const lapic = @import("kernel").drivers.lapic;
-const timers = @import("kernel").drivers.timers;
+const kernel = @import("kernel");
+const lapic = kernel.drivers.lapic;
+const timers = kernel.drivers.timers;
 const log = @import("std").log.scoped(.lapic);
-const idt = @import("kernel").drivers.idt;
-const cpu = @import("kernel").drivers.cpu;
-const scheduler = @import("kernel").lib.scheduler;
-const smp = @import("kernel").drivers.smp;
+const idt = kernel.drivers.idt;
+const cpu = kernel.drivers.cpu;
+const scheduler = kernel.lib.scheduler;
+const smp = kernel.drivers.smp;
 
 pub var ms_ticks: usize = undefined;
 pub var interval: usize = undefined;

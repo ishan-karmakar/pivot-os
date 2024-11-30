@@ -1,6 +1,7 @@
+const kernel = @import("kernel");
 const log = @import("std").log.scoped(.gdt);
-const mem = @import("kernel").lib.mem;
-const smp = @import("kernel").drivers.smp;
+const mem = kernel.lib.mem;
+const smp = kernel.drivers.smp;
 
 const Entry = packed struct {
     limit0: u16 = 0xFFFF,

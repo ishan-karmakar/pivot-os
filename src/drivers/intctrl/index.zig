@@ -11,10 +11,9 @@ pub const VTable = struct {
     eoi: *const fn (irq: u5) void,
 };
 
-// FIXME: I don't know what I'm trying to do, just initialize from most preferred to least, and stop after first succeeds
 const avail_controllers = [_]*const VTable{
-    &pic.vtable,
     &ioapic.vtable,
+    &pic.vtable,
 };
 
 var controller: ?*const VTable = null;
@@ -24,14 +23,10 @@ pub fn init() void {
         if (c.init()) {
             log.debug("{s} completed initialization", .{c.name});
             controller = c;
+            break;
         } else {
             log.warn("{s} failed initialization", .{c.name});
         }
-    }
-    if (controller) |c| {
-        log.info("Active interrupt controller: {s}", .{c.name});
-    } else {
-        log.warn("No active interrupt controller", .{});
     }
 }
 

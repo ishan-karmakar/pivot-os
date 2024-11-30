@@ -1,8 +1,9 @@
-const intctrl = @import("kernel").drivers.intctrl;
-const idt = @import("kernel").drivers.idt;
-const cpu = @import("kernel").drivers.cpu;
-const timers = @import("kernel").drivers.timers;
-const serial = @import("kernel").drivers.serial;
+const kernel = @import("kernel");
+const intctrl = kernel.drivers.intctrl;
+const idt = kernel.drivers.idt;
+const cpu = kernel.drivers.cpu;
+const timers = kernel.drivers.timers;
+const serial = kernel.drivers.serial;
 const log = @import("std").log.scoped(.pit);
 
 const CMD_REG = 0x43;

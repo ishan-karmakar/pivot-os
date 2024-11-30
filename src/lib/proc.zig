@@ -1,5 +1,6 @@
-const mem = @import("kernel").lib.mem;
-const cpu = @import("kernel").drivers.cpu;
+const kernel = @import("kernel");
+const mem = kernel.lib.mem;
+const cpu = kernel.drivers.cpu;
 const FixedBufferAllocator = @import("std").heap.FixedBufferAllocator;
 const Allocator = @import("std").mem.Allocator;
 

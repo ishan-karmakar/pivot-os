@@ -1,8 +1,10 @@
-const VTable = @import("kernel").drivers.intctrl.VTable;
+const kernel = @import("kernel");
+const VTable = kernel.drivers.intctrl.VTable;
+const pic = kernel.drivers.intctrl.pic;
 const uacpi = @import("uacpi");
-const lapic = @import("kernel").drivers.lapic;
-const acpi = @import("kernel").drivers.acpi;
-const mem = @import("kernel").lib.mem;
+const lapic = kernel.drivers.lapic;
+const acpi = kernel.drivers.acpi;
+const mem = kernel.lib.mem;
 const log = @import("std").log.scoped(.ioapic);
 
 const RedirectionEntry = packed struct {
@@ -24,13 +26,12 @@ pub const vtable: VTable = .{
     .mask = mask,
     .set = set,
     .eoi = eoi,
-    .disable = disable,
 };
 
 var addr: usize = undefined;
 
 fn init() bool {
-    // PIC already disabled in its initialization
+    pic.disable();
     if (acpi.madt.ioapics.items.len == 0) {
         log.debug("No I/O APICs installed", .{});
         return false;
@@ -72,9 +73,6 @@ fn mask(_irq: u5, m: bool) void {
 fn eoi(_: u5) void {
     lapic.eoi();
 }
-
-// FIXME: Write actual disable code
-fn disable() void {}
 
 fn write_red(_irq: u8, ent: RedirectionEntry) void {
     const irq = _irq * 2 + 0x10;

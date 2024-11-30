@@ -1,8 +1,9 @@
+const kernel = @import("kernel");
 const log = @import("std").log.scoped(.mapper);
-const mem = @import("kernel").lib.mem;
+const mem = kernel.lib.mem;
 const math = @import("std").math;
+const Mutex = kernel.lib.Mutex;
 pub const Table = *[512]u64;
-const Mutex = @import("kernel").lib.Mutex;
 
 const HP_SIZE = 0x20000;
 const SIGN_MASK: usize = 0x000ffffffffff00;

@@ -1,6 +1,6 @@
+const kernel = @import("kernel");
 const std = @import("std");
-const drivers = @import("kernel").drivers;
-const Mutex = @import("kernel").lib.Mutex;
+const drivers = kernel.drivers;
 
 const Writer = std.io.GenericWriter(void, anyerror, kernelWrite);
 const writer = Writer{ .context = {} };

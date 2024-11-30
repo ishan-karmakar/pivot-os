@@ -1,9 +1,10 @@
+const kernel = @import("kernel");
 const log = @import("std").log.scoped(.lapic);
-const cpu = @import("kernel").drivers.cpu;
-const mem = @import("kernel").lib.mem;
-const idt = @import("kernel").drivers.idt;
-const timers = @import("kernel").drivers.timers;
-const scheduler = @import("kernel").lib.scheduler;
+const cpu = kernel.drivers.cpu;
+const mem = kernel.lib.mem;
+const idt = kernel.drivers.idt;
+const timers = kernel.drivers.timers;
+const scheduler = kernel.lib.scheduler;
 
 const MSR = 0x1B;
 const SPURIOUS_VEC = 0xFF;
@@ -33,8 +34,6 @@ pub fn bsp_init() void {
 
     idt.set_ent(SPURIOUS_VEC, idt.create_irq(0, "spurious_handler"));
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
-    // write_reg(LVT_OFF, timers.lapic.TIMER_VEC | 0x20000);
-    // write_reg(CONFIG_OFF, 1);
     log.info("Initialized Local APIC", .{});
 }
 
