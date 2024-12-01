@@ -53,6 +53,8 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        "limine.conf",
+        "linker.ld",
         // For example...
         //"LICENSE",
         //"README.md",

@@ -4,7 +4,7 @@ const ArrayList = @import("std").ArrayList;
 const acpi = kernel.drivers.acpi;
 const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
-const VTable = kernel.drivers.timers.VTable;
+const timers = kernel.drivers.timers;
 const intctrl = kernel.drivers.intctrl;
 const idt = kernel.drivers.idt;
 
@@ -66,23 +66,28 @@ const Comparator = packed struct {
     }
 };
 
-pub const vtable: VTable = .{
+pub const vtable: timers.VTable = .{
+    .capabilities = timers.CAPABILITIES_COUNTER | timers.CAPABILITIES_IRQ,
     .init = init,
     .time = time,
-    .set_oneshot = set_oneshot,
-    .set_periodic = set_periodic,
+    // .set_oneshot = set_oneshot,
     .sleep = sleep,
 };
 
 var initialized: bool = false;
-var registers: *volatile Registers = undefined;
+var registers: *Registers = undefined;
 
 fn init() bool {
     if (initialized) return true;
     const tbl = acpi.hpet orelse return false;
-    kernel.drivers.timers.pit.disable();
     registers = @ptrFromInt(tbl.address.address);
     map_hpet();
+    // TODO: Debug why standard mapping doesn't work with -enable-kvm
+    if (!registers.gcap_id.leg_rt_cap) {
+        log.debug("Legacy replacement mapping not supported", .{});
+        return false;
+    }
+    registers.gcfg.leg_rt_cnf = true;
     initialized = true;
     log.info("HPET timer initialized", .{});
     return true;
@@ -106,62 +111,37 @@ fn time() usize {
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }
 
-fn sleep(ns: usize) void {
+fn start_oneshot(ns: usize, info: *HandlerInfo) u8 {
     const comparator = registers.get_comparator(0);
-    const irq = comparator.get_first_irq();
     const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
-    var info = HandlerInfo{ .irq = irq };
-    const vec = idt.allocate(timer_handler, &info) orelse @panic("Out of interrupt handlers");
-    intctrl.set(vec, irq, 0);
+    const vec = idt.allocate_vec(0x20, timer_handler, info) orelse @panic("Out of interrupt handlers");
+    intctrl.set(vec, 0, 0);
     registers.gcfg.enable_cnf = false;
-    comparator.config_cap.int_route_cnf = irq;
+    // comparator.config_cap.int_route_cnf = irq;
     comparator.config_cap.int_enb_cnf = true;
     comparator.comparator = registers.counter + delta;
     registers.gcfg.enable_cnf = true;
-    intctrl.mask(irq, false);
-    while (!info.triggered) asm volatile ("pause");
-    intctrl.mask(irq, true);
+    info.irq = 0;
+    return vec;
+}
+
+fn sleep(ns: usize) void {
+    var info = HandlerInfo{};
+    const vec = start_oneshot(ns, &info);
+    intctrl.mask(info.irq, false);
+    // Volatile to make sure that compiler keeps checking memory location
+    // Atomic to make sure that interrupt doesn't cut through load
+    while (!@atomicLoad(bool, @as(*volatile bool, &info.triggered), .unordered)) asm volatile ("pause");
+    intctrl.mask(info.irq, true);
     idt.free_vecs(vec, vec);
-}
-
-/// Start HPET timer in nonperiodic mode
-/// If interval < COUNTER_CLK_PERIOD, interval = COUNTER_CLK_PERIOD
-fn start(ns: usize) void {
-    registers.gcfg.enable_cnf = false;
-    intctrl.mask(registers.timer_config_cap(0).int_route_cnf, false);
-    registers.timer_config_cap(0).int_enb_cnf = true;
-    registers.timer_comparator_val(0).* = registers.counter + (ns * 1_000_000 / registers.gcap_id.counter_clk_period);
-    registers.gcfg.enable_cnf = true;
-}
-
-fn set_oneshot(_: usize, _: *const fn () void) bool {
-    registers.gcfg.enable_cnf = false;
-    @panic("set_oneshot unimplemented");
-}
-
-fn set_periodic(_: usize, _: *const fn () void) bool {
-    @panic("set_periodic unimplemented");
-}
-
-fn start_periodic(fs: usize) void {
-    for (0..registers.gcap_id.num_tim_cap) |i| {
-        if (!registers.timer_config_cap(i).per_int_cap) continue;
-        registers.timer_config_cap(i).type_cnf = true;
-        registers.timer_config_cap(i).val_set_cnf = true;
-        registers.timer_comparator_val(i).* = registers.counter + fs;
-        registers.timer_comparator_val(i).* = fs;
-        return;
-    }
-    log.warn("Failed to find HPET comparator that supports periodic mode", .{});
 }
 
 const HandlerInfo = struct {
     triggered: bool = false,
-    irq: u5,
+    irq: u5 = 0,
 };
+
 fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    // log.info("hpet_timer_handler, {}, {}", .{ registers.counter, registers.get_comparator(0).comparator });
-    log.info("hpet_timer_handler", .{});
     const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
     info.triggered = true;
     intctrl.eoi(info.irq);

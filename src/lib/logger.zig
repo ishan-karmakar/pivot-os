@@ -14,7 +14,7 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.EnumLiteral)
 fn kernelWrite(_: void, bytes: []const u8) !usize {
     // lock.lock();
     // defer lock.unlock();
-    // _ = try drivers.qemu.write(bytes);
+    _ = try drivers.term.write(bytes);
     // return drivers.term.write(bytes);
     return drivers.qemu.write(bytes);
 }

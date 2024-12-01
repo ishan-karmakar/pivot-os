@@ -4,12 +4,14 @@ pub const hpet = @import("hpet.zig");
 pub const tsc = @import("tsc.zig");
 const cpu = @import("kernel").drivers.cpu;
 
+pub const CAPABILITIES_IRQ = 0b1;
+pub const CAPABILITIES_COUNTER = 0b10;
 pub const VTable = struct {
+    capabilities: u2 = 0,
     init: *const fn () bool,
     time: *const fn () usize, // All timers should be able to get time, some will be more efficient than others
     sleep: *const fn (ns: usize) void, // All timers should be able to sleep
-    set_oneshot: ?*const fn (ns: usize, callback: *const fn () void) bool,
-    set_periodic: ?*const fn (ns: usize, callback: *const fn () void) bool,
+    // set_oneshot: ?*const fn (ns: usize, callback: *const fn () void, ctx: ?*anyopaque) void,
 };
 
 pub var ticks: usize = 0;
@@ -31,6 +33,8 @@ pub fn init() void {
 fn init_gtime_source() void {
     if (tsc.vtable.init()) {
         gtime_source = &tsc.vtable;
+    } else if (hpet.vtable.init()) {
+        gtime_source = &hpet.vtable;
     }
 }
 

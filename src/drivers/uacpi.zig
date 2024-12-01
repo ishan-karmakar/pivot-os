@@ -15,7 +15,7 @@ const intctrl = kernel.drivers.intctrl;
 
 const UACPI_CTX = std.meta.Tuple(&.{ uacpi.uacpi_interrupt_handler, uacpi.uacpi_handle });
 
-var RSDP_REQUEST: limine.RsdpRequest = .{};
+export var RSDP_REQUEST: limine.RsdpRequest = .{};
 const ACPI_MAX_HANDLERS = 3;
 var handler_data: [ACPI_MAX_HANDLERS]UACPI_CTX = .{.{ null, null }} ** 3;
 

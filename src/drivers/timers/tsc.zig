@@ -1,31 +1,37 @@
 const kernel = @import("kernel");
 const VTable = kernel.drivers.timers.VTable;
 const hpet = kernel.drivers.timers.hpet;
+const cpu = kernel.drivers.cpu;
+const log = @import("std").log.scoped(.tsc);
 
 pub const vtable: VTable = .{
     .init = init,
-    .time = time,
     .sleep = sleep,
-    .set_periodic = null,
-    .set_oneshot = null,
+    .time = time,
 };
 
-var ticks_per_ns: usize = undefined;
+var ticks_per_ns: f64 = undefined;
+const CALIBRATION_NS = 10_000_000; // 10 ms
 
 fn init() bool {
     var cal_timer: *const VTable = undefined;
     if (hpet.vtable.init()) {
         cal_timer = &hpet.vtable;
     } else return false;
-    // TODO: Check for invariant TSC
-    // const before = raw_time();
-    cal_timer.sleep(1000000000); // 50 ms
-    // const after = raw_time();
-    // ticks_per_ns = (after - before) / 50000000;
+    const cpuid = cpu.cpuid(0x80000007, 0);
+    if (cpuid.edx & (1 << 8) == 0) {
+        log.debug("Invariant TSC not supported", .{});
+        return false;
+    }
+    const before = rdtsc();
+    cal_timer.sleep(CALIBRATION_NS); // 10 ms
+    const after = rdtsc();
+    ticks_per_ns = @as(f64, @floatFromInt(after - before)) / CALIBRATION_NS;
+    log.info("Initialized TSC", .{});
     return true;
 }
 
-fn raw_time() usize {
+fn rdtsc() usize {
     var upper: u32 = undefined;
     var lower: u32 = undefined;
     asm volatile ("rdtsc"
@@ -36,9 +42,10 @@ fn raw_time() usize {
 }
 
 fn time() usize {
-    @panic("tsc time() unimplemented");
+    return @intFromFloat(@as(f64, @floatFromInt(rdtsc())) / ticks_per_ns);
 }
 
-fn sleep(_: usize) void {
-    @panic("tsc sleep() unimplemented");
+fn sleep(ns: usize) void {
+    const start = time();
+    while (time() < start + ns) asm volatile ("pause");
 }

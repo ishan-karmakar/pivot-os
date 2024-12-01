@@ -43,7 +43,7 @@ fn init() bool {
     // TODO: Do we alert PMM to reserve address? Does the limine memory map overlap with LAPIC / IOAPIC?
     addr = @intCast(ioapic.address);
     mem.kmapper.map(addr, addr, (@as(u64, 1) << 63) | 0b10);
-
+    log.info("Initialized I/O APIC", .{});
     return true;
 }
 
