@@ -3,6 +3,7 @@ const log = @import("std").log.scoped(.pic);
 const serial = kernel.drivers.serial;
 const VTable = kernel.drivers.intctrl.VTable;
 const acpi = kernel.drivers.acpi;
+const idt = kernel.drivers.idt;
 
 const PIC1 = 0x20;
 const PIC2 = 0xA0;
@@ -11,18 +12,21 @@ const PIC2_DATA = PIC2 + 1;
 const PIC_EOI = 0x20;
 
 pub const vtable: VTable = .{
-    .name = "8259 PIC",
     .init = init,
     .set = set,
     .mask = mask,
     .eoi = eoi,
 };
 
+var initialized = false;
+
 fn init() bool {
+    if (initialized) return true;
     if (acpi.madt.table.flags & 1 == 0) {
         log.debug("Dual 8259 Legacy PICs not installed", .{});
         return false;
     }
+    idt.reserve_vecs(0x20, 0x30);
     serial.out(PIC1, @as(u8, 0x10 | 0x1));
     serial.out(PIC2, @as(u8, 0x10 | 0x1));
     serial.out(PIC1_DATA, @as(u8, 0x20));
@@ -35,11 +39,13 @@ fn init() bool {
     // Masking all ints
     disable();
 
+    initialized = true;
+    log.info("Initialized 8259 PIC", .{});
     return true;
 }
 
-fn set(vec: u8, irq: u5, _: u64) bool {
-    return vec == @as(u32, @intCast(irq)) + 0x20;
+fn set(vec: u8, irq: u5, _: u64) void {
+    if (vec != @as(u32, @intCast(irq)) + 0x20) @panic("vector != (irq + 0x20)");
 }
 
 fn eoi(irq: u5) void {

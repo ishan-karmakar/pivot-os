@@ -32,7 +32,8 @@ pub fn bsp_init() void {
     log.debug("Using {s}", .{if (addr == null) "x2APIC" else "xAPIC"});
     cpu.wrmsr(MSR, msr);
 
-    idt.set_ent(SPURIOUS_VEC, idt.create_irq(0, "spurious_handler"));
+    // No need for custom spurious handler because as long as we reserve it, the handler is valid and will do nothing
+    idt.reserve_vecs(SPURIOUS_VEC, SPURIOUS_VEC);
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
     log.info("Initialized Local APIC", .{});
 }
@@ -60,8 +61,4 @@ pub fn read_reg(off: u32) u64 {
     if (addr) |a| {
         return @intCast(@as(*const u32, @ptrFromInt(a + off)).*);
     } else return cpu.rdmsr((off >> 4) + 0x800);
-}
-
-export fn spurious_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
-    return status;
 }

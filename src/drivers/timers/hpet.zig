@@ -1,7 +1,7 @@
 const kernel = @import("kernel");
 const log = @import("std").log.scoped(.hpet);
 const ArrayList = @import("std").ArrayList;
-const uacpi = @import("uacpi");
+const acpi = kernel.drivers.acpi;
 const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const VTable = kernel.drivers.timers.VTable;
@@ -59,6 +59,11 @@ const Comparator = packed struct {
     config_cap: TimerConfigurationCapability,
     comparator: u64,
     fsb_int_route: u64,
+
+    pub fn get_first_irq(self: @This()) u5 {
+        for (0..32) |i| if ((self.config_cap.int_route_cap & (@as(u32, 1) << @intCast(i))) > 0) return @intCast(i);
+        @panic("No IRQ capable for comparator");
+    }
 };
 
 pub const vtable: VTable = .{
@@ -71,20 +76,13 @@ pub const vtable: VTable = .{
 
 var initialized: bool = false;
 var registers: *volatile Registers = undefined;
-const HPET_VEC = 0x20;
 
 fn init() bool {
     if (initialized) return true;
-    var tbl: uacpi.uacpi_table = undefined;
-    if (uacpi.uacpi_table_find_by_signature("HPET", &tbl) != uacpi.UACPI_STATUS_OK) {
-        log.debug("HPET table does not exist", .{});
-        return false;
-    }
-
-    const hpet_tbl: *const uacpi.acpi_hpet = @ptrCast(tbl.unnamed_0.hdr);
-    registers = @ptrFromInt(hpet_tbl.address.address);
+    const tbl = acpi.hpet orelse return false;
+    kernel.drivers.timers.pit.disable();
+    registers = @ptrFromInt(tbl.address.address);
     map_hpet();
-    idt.set_ent(HPET_VEC, idt.create_irq(HPET_VEC, "hpet_timer_handler"));
     initialized = true;
     log.info("HPET timer initialized", .{});
     return true;
@@ -97,18 +95,33 @@ fn map_hpet() void {
     var comparator_page_start = @divFloor(comparator_start, 0x1000) * 0x1000;
     const comparator_page_end = @divFloor(comparator_end, 0x1000) * 0x1000;
     while (comparator_page_start <= comparator_page_end) {
-        mem.kmapper.map(comparator_page_start, comparator_page_start, 0b11);
+        mem.kmapper.map(comparator_page_start, comparator_page_start, 0b10);
         comparator_page_start += 0x1000;
     }
 }
 
 /// Returns the HPET counter value in nanoseconds
 fn time() usize {
+    // TODO: Cache counter_clk_period
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }
 
-fn sleep(_: usize) void {
-    @panic("Sleep unimplemented");
+fn sleep(ns: usize) void {
+    const comparator = registers.get_comparator(0);
+    const irq = comparator.get_first_irq();
+    const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
+    var info = HandlerInfo{ .irq = irq };
+    const vec = idt.allocate(timer_handler, &info) orelse @panic("Out of interrupt handlers");
+    intctrl.set(vec, irq, 0);
+    registers.gcfg.enable_cnf = false;
+    comparator.config_cap.int_route_cnf = irq;
+    comparator.config_cap.int_enb_cnf = true;
+    comparator.comparator = registers.counter + delta;
+    registers.gcfg.enable_cnf = true;
+    intctrl.mask(irq, false);
+    while (!info.triggered) asm volatile ("pause");
+    intctrl.mask(irq, true);
+    idt.free_vecs(vec, vec);
 }
 
 /// Start HPET timer in nonperiodic mode
@@ -142,8 +155,15 @@ fn start_periodic(fs: usize) void {
     log.warn("Failed to find HPET comparator that supports periodic mode", .{});
 }
 
-export fn hpet_timer_handler(status: *const cpu.Status, _: usize) *const cpu.Status {
+const HandlerInfo = struct {
+    triggered: bool = false,
+    irq: u5,
+};
+fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+    // log.info("hpet_timer_handler, {}, {}", .{ registers.counter, registers.get_comparator(0).comparator });
     log.info("hpet_timer_handler", .{});
-    // triggered = true;
+    const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
+    info.triggered = true;
+    intctrl.eoi(info.irq);
     return status;
 }

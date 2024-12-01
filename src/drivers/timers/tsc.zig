@@ -18,10 +18,10 @@ fn init() bool {
         cal_timer = &hpet.vtable;
     } else return false;
     // TODO: Check for invariant TSC
-    const before = raw_time();
-    cal_timer.sleep(50000000); // 50 ms
-    const after = raw_time();
-    ticks_per_ns = (after - before) / 50000000;
+    // const before = raw_time();
+    cal_timer.sleep(1000000000); // 50 ms
+    // const after = raw_time();
+    // ticks_per_ns = (after - before) / 50000000;
     return true;
 }
 

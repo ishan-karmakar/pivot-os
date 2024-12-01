@@ -11,6 +11,7 @@ const log = @import("std").log.scoped(.uacpi);
 const Mutex = kernel.lib.Mutex;
 const limine = @import("limine");
 const std = @import("std");
+const intctrl = kernel.drivers.intctrl;
 
 const UACPI_CTX = std.meta.Tuple(&.{ uacpi.uacpi_interrupt_handler, uacpi.uacpi_handle });
 
@@ -18,13 +19,14 @@ var RSDP_REQUEST: limine.RsdpRequest = .{};
 const ACPI_MAX_HANDLERS = 3;
 var handler_data: [ACPI_MAX_HANDLERS]UACPI_CTX = .{.{ null, null }} ** 3;
 
+const HandlerInfo = struct {
+    ctx: uacpi.uacpi_handle,
+    handler: uacpi.uacpi_interrupt_handler,
+    vec: u8,
+};
+
 export fn uacpi_kernel_initialize(lvl: uacpi.uacpi_init_level) uacpi.uacpi_status {
     switch (lvl) {
-        uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED => {
-            idt.set_ent(0x30, idt.create_irq(0, "acpi_handler"));
-            idt.set_ent(0x31, idt.create_irq(1, "acpi_handler"));
-            idt.set_ent(0x32, idt.create_irq(2, "acpi_handler"));
-        },
         uacpi.UACPI_INIT_LEVEL_NAMESPACE_LOADED => {
             pci.init();
         },
@@ -180,20 +182,24 @@ export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_hand
 }
 
 export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, handler: uacpi.uacpi_interrupt_handler, ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
-    _ = irq;
-    _ = handler;
-    _ = ctx;
-    log.info("uacpi_kernel_install_interrupt_handler", .{});
-    // for (0.., &handler_data) |i, *d| {
-    //     if (d[0] == null) {
-    //         d.* = .{ handler, ctx };
-    //         @panic("test");
     //         // ioapic.set(@intCast(0x30 + i), @intCast(irq), 0, 0);
     //         // ioapic.mask(@intCast(irq), false);
     //         // return uacpi.UACPI_STATUS_OK;
     //     }
     // }
+    const info = mem.kheap.allocator().create(HandlerInfo) catch @panic("OOM");
+    info.ctx = ctx;
+    info.handler = handler;
+    info.vec = idt.allocate_vec(@truncate(irq + 0x20), uacpi_irq_handler, info) orelse @panic("Out of interrupt handlers");
+    intctrl.set(info.vec, @truncate(irq), 0);
+    intctrl.mask(@truncate(irq), false);
     @panic("Ran out of interrupt handlers for uACPI");
+}
+
+fn uacpi_irq_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+    const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
+    if (info.handler.?(info.ctx) != uacpi.UACPI_INTERRUPT_HANDLED) @panic("uacpi interrupt not handled");
+    return status;
 }
 
 export fn uacpi_kernel_create_event() uacpi.uacpi_handle {

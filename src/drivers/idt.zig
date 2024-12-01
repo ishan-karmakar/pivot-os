@@ -31,8 +31,15 @@ pub var table: [256]Entry = .{.{
     .flags = 0,
 }} ** 256;
 
+const Handler = *const fn (?*anyopaque, *const cpu.Status) *const cpu.Status;
+const HandlerInfo = struct {
+    handler: ?Handler = null,
+    ctx: ?*anyopaque = null,
+    reserved: bool = false,
+};
+var handlers: [256 - 0x20]HandlerInfo = .{.{}} ** (256 - 0x20);
+
 pub fn init() void {
-    // TODO: Find a better way or new model for interrupts
     set_ent(0, create_exception_isr(0, false, "exception_handler"));
     set_ent(1, create_exception_isr(1, false, "exception_handler"));
     set_ent(2, create_exception_isr(2, false, "exception_handler"));
@@ -63,12 +70,15 @@ pub fn init() void {
     set_ent(29, create_exception_isr(29, true, "exception_handler"));
     set_ent(30, create_exception_isr(30, true, "exception_handler"));
 
+    inline for (0x20..256) |vec| set_ent(@truncate(vec), create_irq(vec - 0x20));
+    reserve_vecs(0x80, 0x80); // Syscall int number
+
     idtr.addr = @intFromPtr(&table);
     lidt();
     log.info("Loaded interrupt descriptor table", .{});
 }
 
-pub fn set_ent(vec: u8, comptime handler: ISR) void {
+fn set_ent(vec: u8, comptime handler: ISR) void {
     const ent = &table[vec];
     const ptr = @intFromPtr(&handler);
     ent.off0 = @truncate(ptr);
@@ -82,6 +92,46 @@ pub fn lidt() void {
         :
         : [idtr] "r" (&idtr),
     );
+}
+
+pub fn allocate(handler: Handler, ctx: ?*anyopaque) ?u8 {
+    for (32.., &handlers) |i, *h| {
+        if (h.reserved) continue;
+        h.handler = handler;
+        h.ctx = ctx;
+        h.reserved = true;
+        return @intCast(i);
+    }
+    return null;
+}
+
+pub fn allocate_vec(_vec: u8, handler: Handler, ctx: ?*anyopaque) ?u8 {
+    if (_vec < 32) return null;
+    const vec = _vec - 32;
+    if (handlers[vec].reserved) return allocate(handler, ctx);
+    handlers[vec].reserved = true;
+    handlers[vec].handler = handler;
+    handlers[vec].ctx = ctx;
+    return _vec;
+}
+
+/// Reserves IRQs in the range [start, end)
+pub fn reserve_vecs(start: usize, end: usize) void {
+    if (start < 32) return;
+    for (start - 32..end - 32) |i| handlers[i].reserved = true;
+}
+
+pub fn free_vecs(start: usize, end: usize) void {
+    if (start < 32) return;
+    for (start - 32..end - 32) |i| {
+        handlers[i].reserved = false;
+        handlers[i].handler = null;
+    }
+}
+
+export fn irq_handler(status: *const cpu.Status, irq: usize) *const cpu.Status {
+    if (handlers[irq].handler) |h| return h(handlers[irq].ctx, status);
+    return status;
 }
 
 export fn exception_handler(int_num: usize, ec: usize, status: *const cpu.IRETStatus) noreturn {
@@ -125,7 +175,7 @@ fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_
     }.handler;
 }
 
-pub fn create_irq(comptime int_num: usize, comptime handler_name: []const u8) ISR {
+pub fn create_irq(comptime int_num: usize) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
             asm volatile ("cli");
@@ -148,11 +198,7 @@ pub fn create_irq(comptime int_num: usize, comptime handler_name: []const u8) IS
                 \\
                 \\mov %%rsp, %%rdi
                 \\mov %[int_num], %%rsi
-                :
-                : [int_num] "i" (int_num),
-            );
-            asm volatile ("call " ++ handler_name);
-            asm volatile (
+                \\call irq_handler
                 \\mov %%rax, %%rsp
                 \\pop %%r15
                 \\pop %%r14
@@ -169,9 +215,11 @@ pub fn create_irq(comptime int_num: usize, comptime handler_name: []const u8) IS
                 \\pop %%rcx
                 \\pop %%rbx
                 \\pop %%rax
+                \\iretq
+                :
+                : [int_num] "i" (int_num),
             );
             // TODO: Handle CR3 change
-            asm volatile ("iretq");
         }
     }.handler;
 }

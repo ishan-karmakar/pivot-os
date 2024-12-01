@@ -5,6 +5,7 @@ const uacpi = @import("uacpi");
 const lapic = kernel.drivers.lapic;
 const acpi = kernel.drivers.acpi;
 const mem = kernel.lib.mem;
+const idt = kernel.drivers.idt;
 const log = @import("std").log.scoped(.ioapic);
 
 const RedirectionEntry = packed struct {
@@ -21,7 +22,6 @@ const RedirectionEntry = packed struct {
 };
 
 pub const vtable: VTable = .{
-    .name = "I/O APIC",
     .init = init,
     .mask = mask,
     .set = set,
@@ -31,7 +31,6 @@ pub const vtable: VTable = .{
 var addr: usize = undefined;
 
 fn init() bool {
-    pic.disable();
     if (acpi.madt.ioapics.items.len == 0) {
         log.debug("No I/O APICs installed", .{});
         return false;
@@ -39,6 +38,7 @@ fn init() bool {
         log.debug("Number of I/O APICs > 1, unimplemented", .{});
         return false;
     }
+    if (pic.vtable.init()) idt.free_vecs(0x20, 0x30);
     const ioapic = acpi.madt.ioapics.items[0];
     // TODO: Do we alert PMM to reserve address? Does the limine memory map overlap with LAPIC / IOAPIC?
     addr = @intCast(ioapic.address);
@@ -47,7 +47,7 @@ fn init() bool {
     return true;
 }
 
-fn set(vec: u8, _irq: u5, flags: u64) bool {
+fn set(vec: u8, _irq: u5, flags: u64) void {
     var irq = _irq;
     var ent: RedirectionEntry = @bitCast(flags);
     ent.vec = vec;
@@ -58,9 +58,8 @@ fn set(vec: u8, _irq: u5, flags: u64) bool {
         ent.pin_polarity = @intFromBool(so.flags & 2 > 0);
         ent.trigger_mode = @intFromBool(so.flags & 8 > 0);
     }
-
+    log.debug("Redirection entry {} -> {}", .{ irq, vec });
     write_red(irq, ent);
-    return true;
 }
 
 fn mask(_irq: u5, m: bool) void {
