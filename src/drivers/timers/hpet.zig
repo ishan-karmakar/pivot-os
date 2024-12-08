@@ -74,23 +74,25 @@ pub const vtable: timers.VTable = .{
     .sleep = sleep,
 };
 
-var initialized: bool = false;
+var initialized: ?bool = null;
 var registers: *Registers = undefined;
 
 fn init() bool {
-    if (initialized) return true;
-    const tbl = acpi.hpet orelse return false;
-    registers = @ptrFromInt(tbl.address.address);
-    map_hpet();
-    // TODO: Debug why standard mapping doesn't work with -enable-kvm
-    if (!registers.gcap_id.leg_rt_cap) {
-        log.debug("Legacy replacement mapping not supported", .{});
-        return false;
-    }
-    registers.gcfg.leg_rt_cnf = true;
-    initialized = true;
-    log.info("HPET timer initialized", .{});
-    return true;
+    return false;
+    // defer initialized = initialized orelse false;
+    // if (initialized) |i| return i;
+    // const tbl = acpi.hpet orelse return false;
+    // registers = @ptrFromInt(tbl.address.address);
+    // map_hpet();
+    // // TODO: Debug why standard mapping doesn't work with -enable-kvm
+    // if (!registers.gcap_id.leg_rt_cap) {
+    //     log.debug("Legacy replacement mapping not supported", .{});
+    //     return false;
+    // }
+    // registers.gcfg.leg_rt_cnf = true;
+    // initialized = true;
+    // log.info("HPET timer initialized", .{});
+    // return true;
 }
 
 fn map_hpet() void {

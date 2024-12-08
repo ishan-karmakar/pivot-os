@@ -1,22 +1,33 @@
 const kernel = @import("kernel");
-const VTable = kernel.drivers.timers.VTable;
+const timers = kernel.drivers.timers;
 const hpet = kernel.drivers.timers.hpet;
+const pit = kernel.drivers.timers.pit;
 const cpu = kernel.drivers.cpu;
 const log = @import("std").log.scoped(.tsc);
 
-pub const vtable: VTable = .{
+pub const vtable: timers.VTable = .{
+    .capabilities = timers.CAPABILITIES_COUNTER,
     .init = init,
     .sleep = sleep,
     .time = time,
 };
 
 var ticks_per_ns: f64 = undefined;
-const CALIBRATION_NS = 10_000_000; // 10 ms
+const CALIBRATION_NS = 1000_000_000; // 10 ms
+var initialized: ?bool = null;
 
 fn init() bool {
-    var cal_timer: *const VTable = undefined;
+    defer initialized = initialized orelse false;
+    if (initialized) |i| return i;
+    const freqs = cpu.cpuid(0x15, 0);
+    if (freqs.ebx != 0 and freqs.ecx != 0) {
+        @panic("Handle frequency calculation from CPUID");
+    }
+    var cal_timer: *const timers.VTable = undefined;
     if (hpet.vtable.init()) {
         cal_timer = &hpet.vtable;
+    } else if (pit.vtable.init()) {
+        cal_timer = &pit.vtable;
     } else return false;
     const cpuid = cpu.cpuid(0x80000007, 0);
     if (cpuid.edx & (1 << 8) == 0) {
@@ -28,6 +39,7 @@ fn init() bool {
     const after = rdtsc();
     ticks_per_ns = @as(f64, @floatFromInt(after - before)) / CALIBRATION_NS;
     log.info("Initialized TSC", .{});
+    initialized = true;
     return true;
 }
 

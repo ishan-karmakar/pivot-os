@@ -9,7 +9,7 @@ pub const CAPABILITIES_COUNTER = 0b10;
 pub const VTable = struct {
     capabilities: u2 = 0,
     init: *const fn () bool,
-    time: *const fn () usize, // All timers should be able to get time, some will be more efficient than others
+    time: ?*const fn () usize,
     sleep: *const fn (ns: usize) void, // All timers should be able to sleep
     // set_oneshot: ?*const fn (ns: usize, callback: *const fn () void, ctx: ?*anyopaque) void,
 };

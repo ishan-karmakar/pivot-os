@@ -18,10 +18,7 @@ pub const vtable: VTable = .{
     .eoi = eoi,
 };
 
-var initialized = false;
-
 fn init() bool {
-    if (initialized) return true;
     if (acpi.madt.table.flags & 1 == 0) {
         log.debug("Dual 8259 Legacy PICs not installed", .{});
         return false;
@@ -39,7 +36,6 @@ fn init() bool {
     // Masking all ints
     disable();
 
-    initialized = true;
     log.info("Initialized 8259 PIC", .{});
     return true;
 }
@@ -62,7 +58,7 @@ fn mask(_irq: u5, m: bool) void {
     }
 }
 
-pub fn disable() void {
+fn disable() void {
     serial.out(PIC1_DATA, @as(u8, 0xFF));
     serial.out(PIC2_DATA, @as(u8, 0xFF));
 }

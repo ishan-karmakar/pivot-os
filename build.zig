@@ -33,7 +33,7 @@ const QEMU_ARGS = .{
     "-no-shutdown",
     "-enable-kvm",
     "-cpu",
-    "host,+invtsc",
+    "host,+tsc,+invtsc",
     "-bios",
     "OVMF.fd",
 };

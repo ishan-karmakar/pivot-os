@@ -115,6 +115,11 @@ pub fn allocate_vec(_vec: u8, handler: Handler, ctx: ?*anyopaque) ?u8 {
     return _vec;
 }
 
+pub fn set_ctx(vec: u8, ctx: ?*anyopaque) void {
+    if (vec < 32) return;
+    handlers[vec - 32].ctx = ctx;
+}
+
 /// Reserves IRQs in the range [start, end)
 pub fn reserve_vecs(start: usize, end: usize) void {
     if (start < 32) return;
