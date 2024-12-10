@@ -41,15 +41,16 @@ fn raw_sleep(ticks: u16) void {
     intctrl.mask(IRQ, false);
     while (!@atomicLoad(bool, @as(*volatile bool, &triggered), .unordered)) asm volatile ("pause");
     intctrl.mask(IRQ, true);
+    log.info("end of sleep", .{});
 }
 
 pub fn sleep(ns: usize) void {
     // Simple cross multiplying to get number of ticks
     // ns / 1 second = ? ticks / hz
     const ticks = @max(1, ns * HZ / 1_000_000_000);
-    const overflows = @divFloor(ticks, math.maxInt(u16));
-    const remainder = ticks % math.maxInt(u16);
-    for (0..overflows) |_| raw_sleep(math.maxInt(u16));
+    const overflows = @divFloor(ticks, 0xFF);
+    const remainder = ticks % 0xFF;
+    for (0..overflows) |_| raw_sleep(0xFF);
     raw_sleep(@intCast(remainder));
     // const d = ms * MS_TICKS;
     // serial.out(DATA_REG, @as(u8, @truncate(d)));

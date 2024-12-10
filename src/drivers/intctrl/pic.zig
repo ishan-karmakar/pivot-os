@@ -24,6 +24,7 @@ fn init() bool {
         return false;
     }
     idt.reserve_vecs(0x20, 0x30);
+    disable();
     serial.out(PIC1, @as(u8, 0x10 | 0x1));
     serial.out(PIC2, @as(u8, 0x10 | 0x1));
     serial.out(PIC1_DATA, @as(u8, 0x20));
@@ -32,9 +33,6 @@ fn init() bool {
     serial.out(PIC2_DATA, @as(u8, 2));
     serial.out(PIC1_DATA, @as(u8, 1));
     serial.out(PIC2_DATA, @as(u8, 1));
-
-    // Masking all ints
-    disable();
 
     log.info("Initialized 8259 PIC", .{});
     return true;

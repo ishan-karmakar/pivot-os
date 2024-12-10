@@ -36,6 +36,7 @@ fn init() bool {
     }
     const before = rdtsc();
     cal_timer.sleep(CALIBRATION_NS); // 10 ms
+    cal_timer.sleep(CALIBRATION_NS);
     const after = rdtsc();
     ticks_per_ns = @as(f64, @floatFromInt(after - before)) / CALIBRATION_NS;
     log.info("Initialized TSC", .{});

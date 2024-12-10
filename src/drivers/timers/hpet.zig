@@ -78,21 +78,21 @@ var initialized: ?bool = null;
 var registers: *Registers = undefined;
 
 fn init() bool {
-    return false;
-    // defer initialized = initialized orelse false;
-    // if (initialized) |i| return i;
-    // const tbl = acpi.hpet orelse return false;
-    // registers = @ptrFromInt(tbl.address.address);
-    // map_hpet();
-    // // TODO: Debug why standard mapping doesn't work with -enable-kvm
-    // if (!registers.gcap_id.leg_rt_cap) {
-    //     log.debug("Legacy replacement mapping not supported", .{});
-    //     return false;
-    // }
-    // registers.gcfg.leg_rt_cnf = true;
-    // initialized = true;
-    // log.info("HPET timer initialized", .{});
-    // return true;
+    // return false;
+    defer initialized = initialized orelse false;
+    if (initialized) |i| return i;
+    const tbl = acpi.hpet orelse return false;
+    registers = @ptrFromInt(tbl.address.address);
+    map_hpet();
+    // TODO: Debug why standard mapping doesn't work with -enable-kvm
+    if (!registers.gcap_id.leg_rt_cap) {
+        log.debug("Legacy replacement mapping not supported", .{});
+        return false;
+    }
+    registers.gcfg.leg_rt_cnf = true;
+    initialized = true;
+    log.info("HPET timer initialized", .{});
+    return true;
 }
 
 fn map_hpet() void {
@@ -135,7 +135,7 @@ fn sleep(ns: usize) void {
     // Atomic to make sure that interrupt doesn't cut through load
     while (!@atomicLoad(bool, @as(*volatile bool, &info.triggered), .unordered)) asm volatile ("pause");
     intctrl.mask(info.irq, true);
-    idt.free_vecs(vec, vec);
+    idt.free_vec(vec);
 }
 
 const HandlerInfo = struct {
@@ -144,6 +144,7 @@ const HandlerInfo = struct {
 };
 
 fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+    log.info("hpet timer handler", .{});
     const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
     info.triggered = true;
     intctrl.eoi(info.irq);

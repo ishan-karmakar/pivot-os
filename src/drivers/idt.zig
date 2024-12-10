@@ -126,6 +126,10 @@ pub fn reserve_vecs(start: usize, end: usize) void {
     for (start - 32..end - 32) |i| handlers[i].reserved = true;
 }
 
+pub inline fn free_vec(vec: usize) void {
+    free_vecs(vec, vec + 1);
+}
+
 pub fn free_vecs(start: usize, end: usize) void {
     if (start < 32) return;
     for (start - 32..end - 32) |i| {
@@ -167,9 +171,10 @@ fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_
         fn handler() callconv(.Naked) void {
             if (comptime ec) {
                 asm volatile ("pop %%rsi");
-            }
+            } else asm volatile ("xor %%rsi, %%rsi");
 
             asm volatile (
+                \\cli
                 \\mov %[int_num], %%rdi
                 \\mov %%rsp, %%rdx
                 :
@@ -183,8 +188,8 @@ fn create_exception_isr(comptime int_num: usize, comptime ec: bool, comptime fn_
 pub fn create_irq(comptime int_num: usize) ISR {
     return struct {
         fn handler() callconv(.Naked) void {
-            asm volatile ("cli");
             asm volatile (
+                \\cli
                 \\push %%rax
                 \\push %%rbx
                 \\push %%rcx
