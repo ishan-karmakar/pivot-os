@@ -1,5 +1,6 @@
 const kernel = @import("kernel");
 const std = @import("std");
+const config = @import("config");
 
 const Writer = std.io.GenericWriter(void, anyerror, kernelWrite);
 const writer = Writer{ .context = {} };
@@ -11,6 +12,6 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.EnumLiteral)
 }
 
 fn kernelWrite(_: void, bytes: []const u8) !usize {
-    _ = bytes;
+    if (config.qemu) return kernel.drivers.qemu.write(bytes);
     return 0;
 }

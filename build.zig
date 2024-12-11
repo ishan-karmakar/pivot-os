@@ -97,8 +97,8 @@ fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize:
     const run_step = b.step("run", "Run with QEMU emulator");
     run_step.dependOn(&qemu.step);
 
-    run_step.dependOn(&b.addInstallArtifact(kernel, .{ .dest_sub_path = "pivot-os-qemu" }).step);
-    run_step.dependOn(&b.addInstallBinFile(iso_out, "os-qemu.iso").step);
+    run_step.dependOn(&b.addInstallArtifact(kernel, .{ .dest_sub_path = "qemu/pivot-os" }).step);
+    run_step.dependOn(&b.addInstallBinFile(iso_out, "qemu/os.iso").step);
 }
 
 fn getXorrisoStep(b: *std.Build, dir: std.Build.LazyPath) std.Build.LazyPath {
@@ -138,11 +138,13 @@ fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
         .linkage = .static,
     });
     kernel.want_lto = false;
+    kernel.setLinkerScript(b.path("linker.ld"));
+    kernel.addCSourceFiles(flantermCSourceFileOptions);
 
     kernel.root_module.addImport("config", options.createModule());
     kernel.root_module.addImport("limine", limineZigModule);
     kernel.root_module.addImport("flanterm", flantermModule);
-    kernel.addCSourceFiles(flantermCSourceFileOptions);
+    kernel.root_module.addImport("kernel", &kernel.root_module);
     return kernel;
 }
 
