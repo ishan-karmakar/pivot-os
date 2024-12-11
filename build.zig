@@ -2,11 +2,11 @@ const std = @import("std");
 const Step = std.Build.Step;
 const Options = Step.Options;
 
-const CPU_FEATURES_ADD = std.Target.x86.featureSet(.{
+const CPU_FEATURES_ADD = std.Target.x86.featureSet(&.{
     .soft_float,
 });
 
-const CPU_FEATURES_SUB = std.Target.x86.featureSet(.{
+const CPU_FEATURES_SUB = std.Target.x86.featureSet(&.{
     .mmx,
     .sse,
     .sse2,
@@ -22,7 +22,44 @@ const CPU_FEATURES_QUERY = std.Target.Query{
     .cpu_features_sub = CPU_FEATURES_SUB,
 };
 
-var limineModule: *std.Build.Module = undefined;
+const ISO_COPY: [1][]const u8 = .{"limine.conf"};
+
+const XORRISO_ARGS = .{
+    "xorriso",
+    "-as",
+    "mkisofs",
+    "-b",
+    "limine-bios-cd.bin",
+    "-no-emul-boot",
+    "-boot-load-size",
+    "4",
+    "-boot-info-table",
+    "--efi-boot",
+    "limine-uefi-cd.bin",
+    "-efi-boot-part",
+    "--efi-boot-image",
+    "--protective-msdos-label",
+};
+
+const QEMU_ARGS = .{
+    "qemu-system-x86_64",
+    "-m",
+    "128M",
+    "-smp",
+    "2",
+    "-serial",
+    "stdio",
+    "-no-reboot",
+    "-no-shutdown",
+    "-enable-kvm",
+    "-cpu",
+    "host,+tsc,+invtsc",
+    "-bios",
+    "OVMF.fd",
+};
+
+var limineZigModule: *std.Build.Module = undefined;
+var limineBinDep: *std.Build.Dependency = undefined;
 var flantermModule: *std.Build.Module = undefined;
 var flantermCSourceFileOptions: std.Build.Module.AddCSourceFilesOptions = undefined;
 
@@ -31,9 +68,65 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     initFlanterm(b, target, optimize);
     initLimine(b);
+
+    createNoQEMUPipeline(b, target, optimize);
+    createQEMUPipeline(b, target, optimize);
 }
 
-fn createNoQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {}
+fn createNoQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+    const options = b.addOptions();
+    options.addOption(bool, "qemu", false);
+    const kernel = getKernelStep(b, target, optimize, options); // Options implicitly added as dependency
+    const iso_dir = getISODirStep(b, kernel); // Implicitly add kernel as dependency
+    const iso_out = getXorrisoStep(b, iso_dir.getDirectory()); // Implictly added iso_dir as dependency
+
+    b.getInstallStep().dependOn(&b.addInstallArtifact(kernel, .{}).step);
+    b.getInstallStep().dependOn(&b.addInstallBinFile(iso_out, "os.iso").step);
+}
+
+fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+    const options = b.addOptions();
+    options.addOption(bool, "qemu", true);
+    const kernel = getKernelStep(b, target, optimize, options);
+    const iso_dir = getISODirStep(b, kernel);
+    const iso_out = getXorrisoStep(b, iso_dir.getDirectory());
+
+    const qemu = b.addSystemCommand(&QEMU_ARGS);
+    qemu.addArg("-cdrom");
+    qemu.addFileArg(iso_out);
+    const run_step = b.step("run", "Run with QEMU emulator");
+    run_step.dependOn(&qemu.step);
+
+    run_step.dependOn(&b.addInstallArtifact(kernel, .{ .dest_sub_path = "pivot-os-qemu" }).step);
+    run_step.dependOn(&b.addInstallBinFile(iso_out, "os-qemu.iso").step);
+}
+
+fn getXorrisoStep(b: *std.Build, dir: std.Build.LazyPath) std.Build.LazyPath {
+    const xorriso = b.addSystemCommand(&XORRISO_ARGS);
+    xorriso.addDirectoryArg(dir);
+    xorriso.addArg("-o");
+    return xorriso.addOutputFileArg("os.iso");
+}
+
+fn getISODirStep(b: *std.Build, kernel: *Step.Compile) *Step.WriteFile {
+    const wf = b.addWriteFiles();
+    _ = wf.addCopyDirectory(
+        limineBinDep.path(""),
+        "",
+        .{ .include_extensions = &.{
+            "sys",
+            "bin",
+        } },
+    );
+    _ = wf.addCopyDirectory(
+        limineBinDep.path(""),
+        "EFI/BOOT",
+        .{ .include_extensions = &.{"EFI"} },
+    );
+    _ = wf.addCopyFile(kernel.getEmittedBin(), "pivot-os");
+    for (ISO_COPY) |f| _ = wf.addCopyFile(b.path(f), f);
+    return wf;
+}
 
 fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, options: *Options) *Step.Compile {
     const kernel = b.addExecutable(.{
@@ -47,9 +140,10 @@ fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     kernel.want_lto = false;
 
     kernel.root_module.addImport("config", options.createModule());
-    kernel.root_module.addImport("limine", limineModule);
+    kernel.root_module.addImport("limine", limineZigModule);
     kernel.root_module.addImport("flanterm", flantermModule);
     kernel.addCSourceFiles(flantermCSourceFileOptions);
+    return kernel;
 }
 
 fn initFlanterm(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
@@ -63,14 +157,14 @@ fn initFlanterm(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
     flantermModule = translateC.createModule();
     flantermCSourceFileOptions = .{
         .root = flanterm.path(""),
-        .files = .{ "flanterm.c", "backends/fb.c" },
-        .flags = .{"-DFLANTERM_FB_DISABLE_BUMP_ALLOC"},
+        .files = &.{ "flanterm.c", "backends/fb.c" },
+        .flags = &.{"-DFLANTERM_FB_DISABLE_BUMP_ALLOC"},
     };
 }
 
 fn initLimine(b: *std.Build) void {
-    const limine = b.dependency("limine_zig", .{});
-    limineModule = limine.module("limine");
+    limineZigModule = b.dependency("limine_zig", .{}).module("limine");
+    limineBinDep = b.dependency("limine_bin", .{});
 }
 
 // const ISO_OUT = "os.iso";
