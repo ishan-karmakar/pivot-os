@@ -88,7 +88,7 @@ fn set_ent(vec: u8, comptime handler: ISR) void {
     ent.flags = 0x8E;
 }
 
-fn get_handler(vec: u8) *HandlerInfo {
+pub fn get_handler(vec: u8) *HandlerInfo {
     if (vec < 0x20) @panic("Cannot get exception handler");
     return &handlerTable[vec - 0x20];
 }

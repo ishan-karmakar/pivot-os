@@ -1,4 +1,6 @@
 const kernel = @import("kernel");
+const smp = kernel.drivers.smp;
+const mem = kernel.lib.mem;
 const log = @import("std").log.scoped(.gdt);
 
 const Entry = packed struct {
@@ -42,7 +44,22 @@ pub fn initEarly() void {
     log.info("Loaded static GDT", .{});
 }
 
-// initStage2
+pub fn initLate() void {
+    if (smp.SMP_REQUEST.response == null) @panic("Limine SMP request is null");
+    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.?.cpu_count * 2) catch @panic("OOM");
+    for (0..3) |i| buf[i] = static_gdt[i];
+    buf[3] = .{
+        .access = 0b11111011,
+        .flags = 0b10,
+    };
+    buf[4] = .{
+        .access = 0b11110011,
+        .flags = 0,
+    };
+    gdtr.size = @intCast(buf.len * @sizeOf(Entry) - 1);
+    gdtr.addr = @intFromPtr(buf.ptr);
+    lgdt();
+}
 
 pub fn lgdt() void {
     asm volatile ("lgdt (%[gdtr])"

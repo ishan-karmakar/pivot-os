@@ -23,6 +23,10 @@ export fn _start() noreturn {
     drivers.idt.init();
     lib.mem.init();
     drivers.term.init();
+    drivers.gdt.initLate();
+    drivers.acpi.init_tables();
+    drivers.lapic.bsp_init();
+    _ = drivers.ioapic.init();
     while (true) {}
 }
 
