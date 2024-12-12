@@ -19,6 +19,10 @@ export fn _start() noreturn {
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
+    drivers.gdt.initEarly();
+    drivers.idt.init();
+    lib.mem.init();
+    drivers.term.init();
     while (true) {}
 }
 
