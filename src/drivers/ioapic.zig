@@ -31,7 +31,7 @@ pub fn init() bool {
         return false;
     }
     if (pic.init()) {
-        for (0x20..0x30) |i| idt.get_handler(@intCast(i)).reserved = false;
+        for (0x20..0x30) |i| idt.vec2handler(@intCast(i)).reserved = false;
     }
     const ioapic = acpi.madt.ioapics.items[0];
     // TODO: Do we alert PMM to reserve address? Does the limine memory map overlap with LAPIC / IOAPIC?
@@ -47,7 +47,6 @@ pub fn set(vec: u8, _irq: u5, flags: u64) void {
     ent.vec = vec;
     ent.mask = true;
     if (find_so(irq)) |so| {
-        log.debug("Found interrupt source override for IRQ {} -> {}", .{ irq, so.gsi });
         irq = @intCast(so.gsi);
         ent.pin_polarity = @intFromBool(so.flags & 2 > 0);
         ent.trigger_mode = @intFromBool(so.flags & 8 > 0);
@@ -94,6 +93,9 @@ fn read_reg(off: u32) u32 {
 }
 
 fn find_so(irq: u8) ?*const uacpi.acpi_madt_interrupt_source_override {
-    for (acpi.madt.isos.items) |so| if (so.source == irq) return so;
+    for (acpi.madt.isos.items) |so| if (so.source == irq) {
+        log.debug("Found interrupt source override for IRQ {} -> {}", .{ irq, so.gsi });
+        return so;
+    };
     return null;
 }

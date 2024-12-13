@@ -4,6 +4,7 @@ pub const term = @import("term.zig");
 pub const acpi = @import("acpi/index.zig");
 pub const ioapic = @import("ioapic.zig");
 pub const pic = @import("pic.zig");
+pub const timers = @import("timers/index.zig");
 
 // CPU stuff
 pub const gdt = @import("gdt.zig");

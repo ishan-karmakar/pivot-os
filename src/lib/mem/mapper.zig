@@ -16,9 +16,7 @@ pub fn create(tbl: usize) @This() {
     return .{ .pml4 = @ptrFromInt(tbl) };
 }
 
-// TODO: Handle hp_works when flags are different/conflicting
 pub fn map(self: *@This(), phys: usize, virt: usize, flags: u64) void {
-    log.debug("Mapping 0x{x} (virt) -> 0x{x} (phys)", .{ virt, phys });
     const p4_ent = (virt >> 39) & 0x1FF;
     const p3_ent = (virt >> 30) & 0x1FF;
     const p2_ent = (virt >> 21) & 0x1FF;

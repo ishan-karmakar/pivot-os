@@ -27,6 +27,9 @@ export fn _start() noreturn {
     drivers.acpi.init_tables();
     drivers.lapic.bsp_init();
     _ = drivers.ioapic.init();
+    _ = drivers.timers.pit.init();
+    asm volatile ("sti");
+    drivers.timers.pit.sleep(50 * 1_000_000);
     while (true) {}
 }
 

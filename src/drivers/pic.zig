@@ -15,7 +15,7 @@ pub fn init() bool {
         log.debug("Dual 8259 Legacy PICs not installed", .{});
         return false;
     }
-    for (0x20..0x30) |i| idt.get_handler(i).reserved = true;
+    for (0x20..0x30) |i| idt.vec2handler(@intCast(i)).reserved = true;
     disable();
     serial.out(PIC1, @as(u8, 0x10 | 0x1));
     serial.out(PIC2, @as(u8, 0x10 | 0x1));

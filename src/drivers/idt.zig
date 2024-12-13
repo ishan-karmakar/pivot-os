@@ -32,13 +32,12 @@ var rawTable: [256]Entry = .{.{
     .flags = 0,
 }} ** 256;
 
-const Handler = *const fn (?*anyopaque, *const cpu.Status) *const cpu.Status;
-const HandlerInfo = struct {
-    handler: ?Handler = null,
+pub const HandlerData = struct {
+    handler: ?*const fn (?*anyopaque, *const cpu.Status) *const cpu.Status = null,
     ctx: ?*anyopaque = null,
     reserved: bool = false,
 };
-var handlerTable: [256 - 0x20]HandlerInfo = .{.{}} ** (256 - 0x20);
+var handlerTable: [256 - 0x20]HandlerData = .{.{}} ** (256 - 0x20);
 
 pub fn init() void {
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
@@ -72,7 +71,7 @@ pub fn init() void {
     set_ent(30, create_exc_isr(30, true, "exception_handler"));
 
     inline for (0x20..256) |vec| set_ent(@intCast(vec), create_irq(vec));
-    get_handler(0x80).reserved = true; // Syscall int number
+    vec2handler(0x80).reserved = true; // Syscall int number
 
     idtr.addr = @intFromPtr(&rawTable);
     lidt();
@@ -88,9 +87,27 @@ fn set_ent(vec: u8, comptime handler: ISR) void {
     ent.flags = 0x8E;
 }
 
-pub fn get_handler(vec: u8) *HandlerInfo {
+pub fn vec2handler(vec: u8) *HandlerData {
     if (vec < 0x20) @panic("Cannot get exception handler");
     return &handlerTable[vec - 0x20];
+}
+
+pub inline fn handler2vec(h: *const HandlerData) u8 {
+    return @intCast((@intFromPtr(h) - @intFromPtr(&handlerTable[0])) / @sizeOf(HandlerData) + 0x20);
+}
+
+pub fn allocate_handler(pref: ?u8) *HandlerData {
+    if (pref) |p| {
+        const handler = vec2handler(p);
+        if (!handler.reserved) return handler;
+    }
+    for (&handlerTable) |*h| {
+        if (!h.reserved) {
+            h.reserved = true;
+            return h;
+        }
+    }
+    @panic("Out of interrupt handlers!!!");
 }
 
 fn create_exc_isr(comptime num: usize, comptime ec: bool, comptime fn_name: []const u8) ISR {
@@ -170,7 +187,7 @@ fn log_status(status: *const cpu.IRETStatus) void {
 }
 
 export fn irq_handler(status: *const cpu.Status, vec: usize) *const cpu.Status {
-    const handler = get_handler(@intCast(vec));
+    const handler = vec2handler(@intCast(vec));
     if (handler.handler) |h| return h(handler.ctx, status);
     return status;
 }

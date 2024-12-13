@@ -25,11 +25,11 @@ pub fn bsp_init() void {
     } else if (cpuid.ecx & (1 << 21) == 0) {
         msr |= (1 << 10);
     } else @panic("Neither x2APIC nor xAPIC is set in CPUID");
-    log.debug("Using {s}", .{if (addr == null) "x2APIC" else "xAPIC"});
     cpu.wrmsr(MSR, msr);
 
-    kernel.drivers.idt.get_handler(SPURIOUS_VEC).reserved = true;
+    kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    log.info("Initialized {s}", .{if (addr == null) "x2APIC" else "xAPIC"});
 }
 
 pub inline fn eoi() void {

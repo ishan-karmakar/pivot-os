@@ -13,8 +13,6 @@ const std = @import("std");
 const UACPI_CTX = std.meta.Tuple(&.{ uacpi.uacpi_interrupt_handler, uacpi.uacpi_handle });
 
 export var RSDP_REQUEST: limine.RsdpRequest = .{};
-const ACPI_MAX_HANDLERS = 3;
-var handler_data: [ACPI_MAX_HANDLERS]UACPI_CTX = .{.{ null, null }} ** 3;
 
 const HandlerInfo = struct {
     ctx: uacpi.uacpi_handle,
