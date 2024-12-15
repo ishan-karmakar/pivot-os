@@ -53,15 +53,18 @@ const QEMU_ARGS = .{
     "-no-shutdown",
     "-enable-kvm",
     "-cpu",
-    "host,+tsc,+invtsc",
+    "Penryn",
     "-bios",
     "OVMF.fd",
 };
 
 var limineZigModule: *std.Build.Module = undefined;
 var limineBinDep: *std.Build.Dependency = undefined;
+var limineBuildExeStep: *Step = undefined;
+
 var flantermModule: *std.Build.Module = undefined;
 var flantermCSourceFileOptions: std.Build.Module.AddCSourceFilesOptions = undefined;
+
 var uacpiModule: *std.Build.Module = undefined;
 var uacpiCSourceFileOptions: std.Build.Module.AddCSourceFilesOptions = undefined;
 var uacpiIncludePath: std.Build.LazyPath = undefined;
@@ -83,9 +86,11 @@ fn createNoQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimiz
     const kernel = getKernelStep(b, target, optimize, options); // Options implicitly added as dependency
     const iso_dir = getISODirStep(b, kernel); // Implicitly add kernel as dependency
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory()); // Implictly added iso_dir as dependency
+    const install_iso = b.addInstallBinFile(iso_out, "os.iso");
+    install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
 
     b.getInstallStep().dependOn(&b.addInstallArtifact(kernel, .{}).step);
-    b.getInstallStep().dependOn(&b.addInstallBinFile(iso_out, "os.iso").step);
+    b.getInstallStep().dependOn(&install_iso.step);
 }
 
 fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
@@ -94,15 +99,25 @@ fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize:
     const kernel = getKernelStep(b, target, optimize, options);
     const iso_dir = getISODirStep(b, kernel);
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory());
+    const install_iso = b.addInstallBinFile(iso_out, "qemu/os.iso");
+    install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
 
     const qemu = b.addSystemCommand(&QEMU_ARGS);
+    qemu.step.dependOn(&install_iso.step);
     qemu.addArg("-cdrom");
     qemu.addFileArg(iso_out);
     const run_step = b.step("run", "Run with QEMU emulator");
     run_step.dependOn(&qemu.step);
-
     run_step.dependOn(&b.addInstallArtifact(kernel, .{ .dest_sub_path = "qemu/pivot-os" }).step);
-    run_step.dependOn(&b.addInstallBinFile(iso_out, "qemu/os.iso").step);
+}
+
+fn getLimineBiosStep(b: *std.Build, iso: std.Build.LazyPath) *Step {
+    const step = b.addSystemCommand(&.{"sh"});
+    step.step.dependOn(limineBuildExeStep);
+    step.addFileArg(limineBinDep.path("limine"));
+    step.addArg("bios-install");
+    step.addFileArg(iso);
+    return &step.step;
 }
 
 fn getXorrisoStep(b: *std.Build, dir: std.Build.LazyPath) std.Build.LazyPath {
@@ -164,7 +179,7 @@ fn initUACPI(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.buil
         .root_source_file = b.path("src/drivers/uacpi.h"),
     });
     uacpiIncludePath = uacpi.path("include");
-    translateC.addIncludeDir(uacpiIncludePath.getPath(b));
+    translateC.addIncludeDir(uacpiIncludePath.getPath(b)); // This is a hack. Specifically states that should only be called during make phase
     uacpiModule = translateC.createModule();
     uacpiCSourceFileOptions = .{
         .root = uacpi.path("source"),
@@ -212,4 +227,32 @@ fn initFlanterm(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
 fn initLimine(b: *std.Build) void {
     limineZigModule = b.dependency("limine_zig", .{}).module("limine");
     limineBinDep = b.dependency("limine_bin", .{});
+
+    const buildLimineExe = b.addSystemCommand(&.{"make"});
+    buildLimineExe.setCwd(limineBinDep.path(""));
+    limineBuildExeStep = &buildLimineExe.step;
+}
+
+const ChmodExe = struct {
+    path: std.Build.LazyPath,
+    step: Step,
+
+    pub fn create(b: *std.Build, path: std.Build.LazyPath) *@This() {
+        const s = b.allocator.create(@This()) catch @panic("OOM");
+        s.* = .{
+            .path = path,
+            .step = Step.init(.{
+                .id = .custom,
+                .owner = b,
+                .name = "chmod",
+                .makeFn = make,
+            }),
+        };
+    }
+};
+
+fn make(step: *Step, prog_node: std.Progress.Node) !void {
+    const parent: *ChmodExe = @fieldParentPtr("step", step);
+    const path = parent.path.getPath2(step.owner, step);
+    const file = std.fs.openFileAbsolute(path, .{}) catch @panic("Could not open file");
 }
