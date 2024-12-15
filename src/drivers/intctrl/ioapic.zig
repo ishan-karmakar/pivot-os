@@ -1,5 +1,6 @@
 const kernel = @import("kernel");
-const pic = kernel.drivers.pic;
+const VTable = kernel.drivers.intctrl.VTable;
+const pic = kernel.drivers.intctrl.pic;
 const uacpi = @import("uacpi");
 const lapic = kernel.drivers.lapic;
 const acpi = kernel.drivers.acpi;
@@ -20,9 +21,16 @@ const RedirectionEntry = packed struct {
     dest: u8,
 };
 
+pub const vtable: VTable = .{
+    .init = init,
+    .mask = mask,
+    .set = set,
+    .eoi = eoi,
+};
+
 var addr: usize = undefined;
 
-pub fn init() bool {
+fn init() bool {
     if (acpi.madt.ioapics.items.len == 0) {
         log.debug("No I/O APICs installed", .{});
         return false;
@@ -30,8 +38,8 @@ pub fn init() bool {
         log.debug("Number of I/O APICs > 1, unimplemented", .{});
         return false;
     }
-    if (pic.init()) {
-        for (0x20..0x30) |i| idt.vec2handler(@intCast(i)).reserved = false;
+    if (pic.vtable.init()) {
+        for (0x20..0x30) |v| idt.vec2handler(@intCast(v)).reserved = false;
     }
     const ioapic = acpi.madt.ioapics.items[0];
     // TODO: Do we alert PMM to reserve address? Does the limine memory map overlap with LAPIC / IOAPIC?
@@ -41,12 +49,13 @@ pub fn init() bool {
     return true;
 }
 
-pub fn set(vec: u8, _irq: u5, flags: u64) void {
+fn set(vec: u8, _irq: u5, flags: u64) void {
     var irq = _irq;
     var ent: RedirectionEntry = @bitCast(flags);
     ent.vec = vec;
     ent.mask = true;
     if (find_so(irq)) |so| {
+        log.debug("Found interrupt source override for IRQ {} -> {}", .{ irq, so.gsi });
         irq = @intCast(so.gsi);
         ent.pin_polarity = @intFromBool(so.flags & 2 > 0);
         ent.trigger_mode = @intFromBool(so.flags & 8 > 0);
@@ -55,14 +64,14 @@ pub fn set(vec: u8, _irq: u5, flags: u64) void {
     write_red(irq, ent);
 }
 
-pub fn mask(_irq: u5, m: bool) void {
+fn mask(_irq: u5, m: bool) void {
     const irq = if (find_so(_irq)) |i| @as(u8, @intCast(i.gsi)) else _irq;
     var ent = read_red(irq);
     ent.mask = m;
     write_red(irq, ent);
 }
 
-pub fn eoi(_: u5) void {
+fn eoi(_: u5) void {
     lapic.eoi();
 }
 
@@ -93,9 +102,6 @@ fn read_reg(off: u32) u32 {
 }
 
 fn find_so(irq: u8) ?*const uacpi.acpi_madt_interrupt_source_override {
-    for (acpi.madt.isos.items) |so| if (so.source == irq) {
-        log.debug("Found interrupt source override for IRQ {} -> {}", .{ irq, so.gsi });
-        return so;
-    };
+    for (acpi.madt.isos.items) |so| if (so.source == irq) return so;
     return null;
 }

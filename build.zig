@@ -53,9 +53,7 @@ const QEMU_ARGS = .{
     "-no-shutdown",
     "-enable-kvm",
     "-cpu",
-    "Penryn",
-    "-bios",
-    "OVMF.fd",
+    "host",
 };
 
 var limineZigModule: *std.Build.Module = undefined;
@@ -112,10 +110,9 @@ fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize:
 }
 
 fn getLimineBiosStep(b: *std.Build, iso: std.Build.LazyPath) *Step {
-    const step = b.addSystemCommand(&.{"sh"});
+    const step = b.addSystemCommand(&.{ "./limine", "bios-install" });
     step.step.dependOn(limineBuildExeStep);
-    step.addFileArg(limineBinDep.path("limine"));
-    step.addArg("bios-install");
+    step.setCwd(limineBinDep.path(""));
     step.addFileArg(iso);
     return &step.step;
 }
@@ -155,6 +152,7 @@ fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
         .optimize = optimize,
         .code_model = .kernel,
         .linkage = .static,
+        .strip = true,
     });
     kernel.want_lto = false;
     kernel.setLinkerScript(b.path("linker.ld"));
@@ -233,26 +231,26 @@ fn initLimine(b: *std.Build) void {
     limineBuildExeStep = &buildLimineExe.step;
 }
 
-const ChmodExe = struct {
-    path: std.Build.LazyPath,
-    step: Step,
+// const ChmodExe = struct {
+//     path: std.Build.LazyPath,
+//     step: Step,
 
-    pub fn create(b: *std.Build, path: std.Build.LazyPath) *@This() {
-        const s = b.allocator.create(@This()) catch @panic("OOM");
-        s.* = .{
-            .path = path,
-            .step = Step.init(.{
-                .id = .custom,
-                .owner = b,
-                .name = "chmod",
-                .makeFn = make,
-            }),
-        };
-    }
-};
+//     pub fn create(b: *std.Build, path: std.Build.LazyPath) *@This() {
+//         const s = b.allocator.create(@This()) catch @panic("OOM");
+//         s.* = .{
+//             .path = path,
+//             .step = Step.init(.{
+//                 .id = .custom,
+//                 .owner = b,
+//                 .name = "chmod",
+//                 .makeFn = make,
+//             }),
+//         };
+//     }
+// };
 
-fn make(step: *Step, prog_node: std.Progress.Node) !void {
-    const parent: *ChmodExe = @fieldParentPtr("step", step);
-    const path = parent.path.getPath2(step.owner, step);
-    const file = std.fs.openFileAbsolute(path, .{}) catch @panic("Could not open file");
-}
+// fn make(step: *Step, prog_node: std.Progress.Node) !void {
+//     const parent: *ChmodExe = @fieldParentPtr("step", step);
+//     const path = parent.path.getPath2(step.owner, step);
+//     const file = std.fs.openFileAbsolute(path, .{}) catch @panic("Could not open file");
+// }

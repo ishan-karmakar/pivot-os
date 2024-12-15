@@ -2,9 +2,8 @@ pub const qemu = @import("qemu.zig");
 pub const serial = @import("serial.zig");
 pub const term = @import("term.zig");
 pub const acpi = @import("acpi/index.zig");
-pub const ioapic = @import("ioapic.zig");
-pub const pic = @import("pic.zig");
 pub const timers = @import("timers/index.zig");
+pub const intctrl = @import("intctrl/index.zig");
 
 // CPU stuff
 pub const gdt = @import("gdt.zig");

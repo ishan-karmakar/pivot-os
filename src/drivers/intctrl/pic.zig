@@ -1,6 +1,7 @@
 const kernel = @import("kernel");
 const log = @import("std").log.scoped(.pic);
 const serial = kernel.drivers.serial;
+const VTable = kernel.drivers.intctrl.VTable;
 const acpi = kernel.drivers.acpi;
 const idt = kernel.drivers.idt;
 
@@ -10,12 +11,19 @@ const PIC1_DATA = PIC1 + 1;
 const PIC2_DATA = PIC2 + 1;
 const PIC_EOI = 0x20;
 
-pub fn init() bool {
+pub const vtable: VTable = .{
+    .init = init,
+    .set = set,
+    .mask = mask,
+    .eoi = eoi,
+};
+
+fn init() bool {
     if (acpi.madt.table.flags & 1 == 0) {
         log.debug("Dual 8259 Legacy PICs not installed", .{});
         return false;
     }
-    for (0x20..0x30) |i| idt.vec2handler(@intCast(i)).reserved = true;
+    for (0x20..0x30) |v| idt.vec2handler(@intCast(v)).reserved = true;
     disable();
     serial.out(PIC1, @as(u8, 0x10 | 0x1));
     serial.out(PIC2, @as(u8, 0x10 | 0x1));
