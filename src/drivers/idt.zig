@@ -99,7 +99,10 @@ pub inline fn handler2vec(h: *const HandlerData) u8 {
 pub fn allocate_handler(pref: ?u8) *HandlerData {
     if (pref) |p| {
         const handler = vec2handler(p);
-        if (!handler.reserved) return handler;
+        if (!handler.reserved) {
+            handler.reserved = true;
+            return handler;
+        }
     }
     for (&handlerTable) |*h| {
         if (!h.reserved) {

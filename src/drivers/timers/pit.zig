@@ -1,4 +1,5 @@
 const kernel = @import("kernel");
+const timers = kernel.drivers.timers;
 const intctrl = kernel.drivers.intctrl;
 const idt = kernel.drivers.idt;
 const cpu = kernel.drivers.cpu;
@@ -12,10 +13,16 @@ const VEC = 0x20;
 const IRQ = 0;
 const HZ = 1193182;
 
+pub const vtable = timers.VTable{
+    .init = init,
+    .time = null,
+    .sleep = sleep,
+};
+
 var handler: *idt.HandlerData = undefined;
 var initialized: bool = false;
 
-pub fn init() bool {
+fn init() bool {
     if (initialized) return true;
     initialized = true;
     handler = idt.allocate_handler(VEC);
@@ -37,7 +44,7 @@ fn raw_sleep(ticks: u16) void {
     intctrl.mask(IRQ, true);
 }
 
-pub fn sleep(ns: usize) void {
+fn sleep(ns: usize) void {
     // Simple cross multiplying to get number of ticks
     // ns / 1 second = ? ticks / hz
     const ticks = @max(1, ns * HZ / 1_000_000_000);

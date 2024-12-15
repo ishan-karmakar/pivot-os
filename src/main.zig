@@ -28,7 +28,7 @@ export fn _start() noreturn {
     drivers.lapic.bsp_init();
     drivers.intctrl.init();
     asm volatile ("sti");
-    _ = drivers.timers.pit.init();
+    drivers.timers.init();
     while (true) {}
 }
 

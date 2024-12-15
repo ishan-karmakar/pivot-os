@@ -53,7 +53,7 @@ const QEMU_ARGS = .{
     "-no-shutdown",
     "-enable-kvm",
     "-cpu",
-    "host",
+    "host,+invtsc",
 };
 
 var limineZigModule: *std.Build.Module = undefined;
