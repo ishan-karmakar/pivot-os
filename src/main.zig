@@ -29,11 +29,6 @@ export fn _start() noreturn {
     drivers.intctrl.init();
     asm volatile ("sti");
     drivers.timers.init();
-    drivers.timers.hpet.vtable.sleep(1_000_000_000);
-    log.info("Sleep end", .{});
-    // log.info("Sleep start", .{});
-    // drivers.timers.hpet.vtable.sleep(1000_000_000);
-    // log.info("Sleep end", .{});
     while (true) {}
 }
 

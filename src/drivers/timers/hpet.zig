@@ -179,7 +179,6 @@ const HandlerInfo = struct {
 };
 
 fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    log.info("interrupt", .{});
     const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
     info.triggered = true;
     intctrl.controller.eoi(0);
