@@ -47,6 +47,7 @@ fn map(vec: u8, irq: usize) !usize {
 
     if (reserved & (@as(u16, 1) << @intCast(irq)) != 0) return error.IRQUsed;
     reserved |= @as(u16, 1) << @intCast(irq);
+    mask(irq, true);
 
     return irq;
 }

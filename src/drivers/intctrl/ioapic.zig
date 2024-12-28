@@ -100,7 +100,7 @@ fn map(vec: u8, _irq: usize) !usize {
         .pin_polarity = 0,
         .remote_irr = 0,
         .trigger_mode = 0,
-        .mask = false,
+        .mask = true,
         .rsv = 0,
         .dest = 0, // TODO: map should take in destination
     };
@@ -134,8 +134,7 @@ fn find_so(irq: usize) ?*const uacpi.acpi_madt_interrupt_source_override {
     return null;
 }
 
-fn mask(_irq: usize, m: bool) void {
-    const irq: usize = if (find_so(_irq)) |i| @intCast(i.gsi) else _irq;
+fn mask(irq: usize, m: bool) void {
     for (ioapics.items) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             var ent = ioapic.read_red(irq);

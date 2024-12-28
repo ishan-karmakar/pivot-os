@@ -144,31 +144,34 @@ fn start_oneshot(ns: usize, info: *HandlerInfo) *idt.HandlerData {
 
 fn sleep(ns: usize) void {
     var info = HandlerInfo{};
-    const handler = idt.allocate_handler(null);
-    handler.ctx = &info;
-    handler.handler = timer_handler;
-    intctrl.set(idt.handler2vec(handler), 0, 0);
     const comp: *Comparator = get_free_comparator(false) orelse @panic("Out of free comparators");
     const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
-    var irq: ?u5 = null;
+    var irq: ?usize = null;
+    var handler: *idt.HandlerData = undefined;
     for (0..32) |i| {
         if (comp.is_irq_supported(@intCast(i))) {
-            irq = intctrl.allocate_irq(@intCast(i));
+            handler = idt.allocate_handler(@intCast(i + 0x20));
+            // FIXME: Panic if vector actually given is not appropriate for 8259 PIC
+            const ret = intctrl.controller.map(idt.handler2vec(handler), i);
+            if (ret == error.IRQUsed) {
+                handler.reserved = false;
+                continue;
+            }
+
+            irq = ret catch @panic("Error mapping HPET comparator IRQ");
+            handler.handler = timer_handler;
+            handler.ctx = &info;
         }
     }
-    intctrl.set(idt.handler2vec(handler), irq orelse @panic("No IRQ found"), 0);
+    if (irq == null) @panic("No suitable IRQ found for HPET comparator");
     registers.gcfg.enable_cnf = false;
     comp.config_cap.int_enb_cnf = true;
     comp.comparator = registers.counter + delta;
     registers.gcfg.enable_cnf = true;
-    intctrl.mask(0, false);
-    // const handler = start_oneshot(ns, &info);
-    // intctrl.mask(0, false);
-    // Volatile to make sure that compiler keeps checking memory location
-    // Atomic to make sure that interrupt doesn't cut through load
-    // while (!@atomicLoad(bool, @as(*volatile bool, &info.triggered), .unordered)) asm volatile ("pause");
-    // intctrl.mask(0, true);
-    // handler.reserved = false;
+    intctrl.controller.mask(irq.?, false);
+    while (!@atomicLoad(bool, @as(*volatile bool, &info.triggered), .unordered)) asm volatile ("pause");
+    intctrl.controller.unmap(irq.?);
+    handler.reserved = false;
 }
 
 const HandlerInfo = struct {
@@ -179,6 +182,6 @@ fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status 
     log.info("interrupt", .{});
     const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
     info.triggered = true;
-    intctrl.eoi(0);
+    intctrl.controller.eoi(0);
     return status;
 }
