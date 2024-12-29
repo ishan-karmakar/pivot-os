@@ -1,5 +1,6 @@
 pub const pit = @import("pit.zig");
 // pub const lapic = @import("lapic.zig");
+pub const acpi = @import("acpi.zig");
 pub const hpet = @import("hpet.zig");
 pub const tsc = @import("tsc.zig");
 const cpu = @import("kernel").drivers.cpu;
@@ -31,12 +32,12 @@ pub fn init() void {
 }
 
 fn init_gtime_source() void {
+    _ = acpi.vtable.init();
     // if (tsc.vtable.init()) {
     //     gtime_source = &tsc.vtable;
     // } else if (hpet.vtable.init()) {
     //     gtime_source = &hpet.vtable;
     // }
-    _ = hpet.vtable.init();
 }
 
 fn init_gtimer() void {}

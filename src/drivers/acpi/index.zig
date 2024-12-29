@@ -5,6 +5,7 @@ const std = @import("std");
 
 pub var madt: MADT = undefined;
 pub var hpet: ?*const uacpi.acpi_hpet = null;
+pub var fadt: ?*const uacpi.acpi_fadt = null;
 
 pub fn init_tables() void {
     if (uacpi.uacpi_initialize(0) != uacpi.UACPI_STATUS_OK) {
@@ -12,6 +13,7 @@ pub fn init_tables() void {
     }
     madt = MADT.create(get_table(uacpi.acpi_madt, "APIC") orelse @panic("Could not find MADT"));
     hpet = get_table(uacpi.acpi_hpet, "HPET");
+    fadt = get_table(uacpi.acpi_fadt, "FACP");
     log.info("Initialized ACPI tables", .{});
 }
 
