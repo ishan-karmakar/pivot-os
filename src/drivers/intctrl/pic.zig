@@ -1,4 +1,5 @@
 const kernel = @import("kernel");
+const uacpi = @import("uacpi");
 const log = @import("std").log.scoped(.pic);
 const intctrl = kernel.drivers.intctrl;
 const acpi = kernel.drivers.acpi;
@@ -21,7 +22,11 @@ pub const vtable = intctrl.VTable{
 var reserved: u16 = 0;
 
 fn init() bool {
-    if (acpi.madt.table.flags & 1 == 0) {
+    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse {
+        log.debug("MADT not found", .{});
+        return false;
+    };
+    if (madt.flags & 1 == 0) {
         log.debug("Dual 8259 Legacy PICs not installed", .{});
         return false;
     }

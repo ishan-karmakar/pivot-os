@@ -3,41 +3,41 @@ pub const pit = @import("pit.zig");
 pub const acpi = @import("acpi.zig");
 pub const hpet = @import("hpet.zig");
 pub const tsc = @import("tsc.zig");
-const cpu = @import("kernel").drivers.cpu;
+const kernel = @import("kernel");
+const std = @import("std");
 
-pub const CAPABILITIES_IRQ = 0b1;
-pub const CAPABILITIES_COUNTER = 0b10;
 pub const VTable = struct {
+    /// nanoseconds between each tick
+    min_interval: f64,
+    /// Maximum nanoseconds timer can natively sleep
+    max_interval: usize,
     init: *const fn () bool,
     time: ?*const fn () usize,
-    sleep: *const fn (ns: usize) void, // All timers should be able to sleep
-    // set_oneshot: ?*const fn (ns: usize, callback: *const fn () void, ctx: ?*anyopaque) void,
+    sleep: *const fn (ns: usize) bool,
 };
+
+const TIMERS = [_]*const VTable{
+    &pit.vtable,
+    &hpet.vtable,
+    &tsc.vtable,
+};
+
+var usable_timers: std.ArrayList(*const VTable) = undefined;
 
 pub var ticks: usize = 0;
 var gtime_source: ?*const VTable = null;
 var gtimer: ?*const VTable = null;
 
-pub inline fn time() usize {
-    return 0;
-    // return @atomicLoad(usize, &ticks, .unordered);
-}
-
 pub fn init() void {
-    // Two categories: global time source and actual timer (with IRQ on threshold)
-    // Timer: LAPIC -> HPET -> PIT
-    // Global time sources: TSC -> HPET -> ACPI -> Any timer with periodic IRQs
-    init_gtime_source();
-    init_gtimer();
+    usable_timers = std.ArrayList(*const VTable).init(kernel.lib.mem.kheap.allocator());
+
+    for (TIMERS) |timer| {
+        if (timer.init()) usable_timers.append(timer) catch @panic("OOM");
+    }
+
+    // std.mem.sort(*const VTable, usable_timers.items, {}, timer_comparator);
 }
 
-fn init_gtime_source() void {
-    _ = acpi.vtable.init();
-    // if (tsc.vtable.init()) {
-    //     gtime_source = &tsc.vtable;
-    // } else if (hpet.vtable.init()) {
-    //     gtime_source = &hpet.vtable;
-    // }
+fn timer_comparator(_: void, lhs: *const VTable, rhs: *const VTable) bool {
+    return (lhs.max_interval - lhs.min_interval) < (rhs.max_interval - rhs.max_interval);
 }
-
-fn init_gtimer() void {}

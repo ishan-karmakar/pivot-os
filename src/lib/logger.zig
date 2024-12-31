@@ -3,7 +3,7 @@ const std = @import("std");
 const config = @import("config");
 
 const Writer = std.io.GenericWriter(void, anyerror, kernelWrite);
-const writer = Writer{ .context = {} };
+pub const writer = Writer{ .context = {} };
 
 pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.EnumLiteral), comptime format: []const u8, args: anytype) void {
     const levelText = comptime level.asText();

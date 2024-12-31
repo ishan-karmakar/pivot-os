@@ -47,6 +47,8 @@ const QEMU_ARGS = .{
     "128M",
     "-smp",
     "2",
+    "-machine",
+    "q35",
     "-serial",
     "stdio",
     "-no-reboot",
@@ -54,6 +56,8 @@ const QEMU_ARGS = .{
     "-enable-kvm",
     "-cpu",
     "host,+invtsc",
+    "-nic",
+    "none",
 };
 
 var limineZigModule: *std.Build.Module = undefined;
@@ -230,27 +234,3 @@ fn initLimine(b: *std.Build) void {
     buildLimineExe.setCwd(limineBinDep.path(""));
     limineBuildExeStep = &buildLimineExe.step;
 }
-
-// const ChmodExe = struct {
-//     path: std.Build.LazyPath,
-//     step: Step,
-
-//     pub fn create(b: *std.Build, path: std.Build.LazyPath) *@This() {
-//         const s = b.allocator.create(@This()) catch @panic("OOM");
-//         s.* = .{
-//             .path = path,
-//             .step = Step.init(.{
-//                 .id = .custom,
-//                 .owner = b,
-//                 .name = "chmod",
-//                 .makeFn = make,
-//             }),
-//         };
-//     }
-// };
-
-// fn make(step: *Step, prog_node: std.Progress.Node) !void {
-//     const parent: *ChmodExe = @fieldParentPtr("step", step);
-//     const path = parent.path.getPath2(step.owner, step);
-//     const file = std.fs.openFileAbsolute(path, .{}) catch @panic("Could not open file");
-// }

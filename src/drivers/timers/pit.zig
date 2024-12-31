@@ -10,9 +10,11 @@ const log = @import("std").log.scoped(.pit);
 const CMD_REG = 0x43;
 const DATA_REG = 0x40;
 const IRQ = 0;
-const HZ = 1193182;
+const HZ: comptime_float = 1193182;
 
 pub const vtable = timers.VTable{
+    .min_interval = 1e9 / HZ,
+    .max_interval = @intFromFloat((1e9 / HZ) * 0xFFFF),
     .init = init,
     .time = null,
     .sleep = sleep,
@@ -25,7 +27,7 @@ fn init() bool {
     if (initialized) return true;
     initialized = true;
     log.info("Initialized PIT", .{});
-    sleep(1_000_000); // Sleep for 1 ms so no more interrupts fire
+    _ = sleep(1_000_000); // Sleep for 1 ms so no more interrupts fire
     return true;
 }
 
@@ -39,7 +41,8 @@ fn raw_sleep(handler: *idt.HandlerData, ticks: u16) void {
     intctrl.controller.mask(irq, true);
 }
 
-fn sleep(ns: usize) void {
+fn sleep(ns: usize) bool {
+    if (ns > vtable.max_interval) return false;
     const handler = idt.allocate_handler(IRQ + 0x20);
     // FIXME: Check vector for 8259 PIC
     handler.handler = timer_handler;
@@ -49,7 +52,7 @@ fn sleep(ns: usize) void {
     serial.out(CMD_REG, @as(u8, 0x30)); // 0x30, 0x34
     // Simple cross multiplying to get number of ticks
     // ns / 1 second = ? ticks / hz
-    const ticks = @max(1, ns * HZ / 1_000_000_000);
+    const ticks: usize = @intFromFloat(@as(f64, @floatFromInt(ns)) / vtable.min_interval);
     const overflows = @divFloor(ticks, 0xFFFF);
     const remainder = ticks % 0xFFFF;
     for (0..overflows) |_| raw_sleep(handler, 0xFFFF);
@@ -57,6 +60,7 @@ fn sleep(ns: usize) void {
     raw_sleep(handler, @intCast(remainder));
     handler.reserved = false;
     intctrl.controller.unmap(irq);
+    return true;
 }
 
 fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {

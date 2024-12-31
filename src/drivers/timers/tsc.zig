@@ -3,16 +3,18 @@ const timers = kernel.drivers.timers;
 const hpet = kernel.drivers.timers.hpet;
 const pit = kernel.drivers.timers.pit;
 const cpu = kernel.drivers.cpu;
+const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
 
-pub const vtable: timers.VTable = .{
+pub var vtable: timers.VTable = .{
+    .min_interval = 0,
+    .max_interval = 0,
     .init = init,
     .sleep = sleep,
     .time = time,
 };
 
-var ticks_per_ns: f64 = undefined;
-const CALIBRATION_NS = 10_000_000; // 10 ms
+const CALIBRATION_NS = 5_000_000; // 5 ms
 var initialized: ?bool = null;
 
 fn init() bool {
@@ -34,12 +36,21 @@ fn init() bool {
         return false;
     }
     const before = rdtsc();
-    cal_timer.sleep(CALIBRATION_NS); // 10 ms
+    _ = cal_timer.sleep(CALIBRATION_NS);
     const after = rdtsc();
-    ticks_per_ns = @as(f64, @floatFromInt(after - before)) / CALIBRATION_NS;
+    vtable.min_interval = CALIBRATION_NS / @as(f64, @floatFromInt(after - before));
+    update_max_interval();
     log.info("Initialized TSC", .{});
     initialized = true;
     return true;
+}
+
+fn update_max_interval() void {
+    vtable.max_interval = std.math.maxInt(usize) - rdtsc();
+    if (vtable.min_interval < 1) {
+        const tmp: f64 = @floatFromInt(vtable.max_interval);
+        vtable.max_interval = @intFromFloat(tmp * vtable.min_interval);
+    }
 }
 
 fn rdtsc() usize {
@@ -53,10 +64,16 @@ fn rdtsc() usize {
 }
 
 fn time() usize {
-    return @intFromFloat(@as(f64, @floatFromInt(rdtsc())) / ticks_per_ns);
+    return 0;
 }
 
-fn sleep(ns: usize) void {
-    const start = time();
-    while (time() < start + ns) asm volatile ("pause");
+fn sleep(ns: usize) bool {
+    _ = ns;
+    // update_max_interval();
+    // if (ns > vtable.max_interval) return false;
+
+    // const ticks = ns / vtable.min_interval;
+    // const end = rdtsc() + ticks;
+    // while (rdtsc() < end) asm volatile ("pause");
+    return true;
 }

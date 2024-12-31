@@ -4,6 +4,7 @@ pub const term = @import("term.zig");
 pub const acpi = @import("acpi/index.zig");
 pub const timers = @import("timers/index.zig");
 pub const intctrl = @import("intctrl/index.zig");
+pub const pci = @import("pci.zig");
 
 // CPU stuff
 pub const gdt = @import("gdt.zig");

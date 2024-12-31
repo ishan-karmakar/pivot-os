@@ -72,21 +72,34 @@ const IOAPIC = struct {
     }
 };
 
-var ioapics: std.ArrayList(IOAPIC) = undefined;
+var ioapics: []IOAPIC = undefined;
+var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 
-// TODO: Combine this ioapics and MADT ioapics together
 fn init() bool {
-    if (acpi.madt.ioapics.items.len == 0) {
-        log.debug("No I/O APICs installed", .{});
+    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse {
+        log.debug("No MADT found", .{});
+        return false;
+    };
+
+    var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
+    var ioapic_arr = std.ArrayList(IOAPIC).init(kernel.lib.mem.kheap.allocator());
+    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(IOAPIC.create(ioapic)) catch @panic("OOM");
+
+    if (ioapic_arr.items.len == 0) {
+        log.debug("No I/O APICs found", .{});
         return false;
     }
+
+    var iso_iter = acpi.Iterator(uacpi.acpi_madt_interrupt_source_override).create(uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE, &madt.hdr, @sizeOf(uacpi.acpi_madt));
+    var iso_arr = std.ArrayList(*const uacpi.acpi_madt_interrupt_source_override).init(kernel.lib.mem.kheap.allocator());
+    while (iso_iter.next()) |iso| iso_arr.append(iso) catch @panic("OOM");
+
+    ioapics = ioapic_arr.toOwnedSlice() catch @panic("OOM");
+    isos = iso_arr.toOwnedSlice() catch @panic("OOM");
 
     if (intctrl.pic.vtable.init()) {
         for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = false;
     }
-
-    ioapics = std.ArrayList(IOAPIC).initCapacity(kernel.lib.mem.kheap.allocator(), acpi.madt.ioapics.items.len) catch @panic("OOM");
-    for (acpi.madt.ioapics.items) |ioapic| ioapics.appendAssumeCapacity(IOAPIC.create(ioapic));
     return true;
 }
 
@@ -111,7 +124,7 @@ fn map(vec: u8, _irq: usize) !usize {
         ent.trigger_mode = @intFromBool(so.flags & 8 > 0);
     }
     log.debug("Redirection entry {} -> {}", .{ irq, vec });
-    for (ioapics.items) |ioapic| {
+    for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             if (@as(u64, @bitCast(ioapic.read_red(irq))) != 0) return error.IRQUsed;
             ioapic.write_red(irq, ent);
@@ -122,7 +135,7 @@ fn map(vec: u8, _irq: usize) !usize {
 }
 
 fn unmap(irq: usize) void {
-    for (ioapics.items) |ioapic| {
+    for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             ioapic.write_red(irq, @bitCast(@as(u64, 0)));
         }
@@ -130,12 +143,12 @@ fn unmap(irq: usize) void {
 }
 
 fn find_so(irq: usize) ?*const uacpi.acpi_madt_interrupt_source_override {
-    for (acpi.madt.isos.items) |so| if (so.source == irq) return so;
+    for (isos) |so| if (so.source == irq) return so;
     return null;
 }
 
 fn mask(irq: usize, m: bool) void {
-    for (ioapics.items) |ioapic| {
+    for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             var ent = ioapic.read_red(irq);
             ent.mask = m;

@@ -1,5 +1,7 @@
 const kernel = @import("kernel");
-const log = @import("std").log.scoped(.hpet);
+const std = @import("std");
+const uacpi = @import("uacpi");
+const log = std.log.scoped(.hpet);
 const acpi = kernel.drivers.acpi;
 const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
@@ -64,26 +66,43 @@ const Comparator = packed struct {
     }
 };
 
-pub const vtable: timers.VTable = .{
+pub var vtable: timers.VTable = .{
+    .min_interval = 0,
+    .max_interval = 0,
     .init = init,
     .time = time,
     .sleep = sleep,
 };
 
 var initialized: ?bool = null;
-var registers: *Registers = undefined;
+var registers: *volatile Registers = undefined;
+
+// FIXME: Explore FSB interrupts
 
 fn init() bool {
-    // return false;
     defer initialized = initialized orelse false;
     if (initialized) |i| return i;
-    const tbl = acpi.hpet orelse return false;
-    registers = @ptrFromInt(tbl.address.address);
+    const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
+        log.debug("HPET not found", .{});
+        return false;
+    };
+    registers = @ptrFromInt(hpet.address.address);
     map_hpet();
+    vtable.min_interval = @as(f64, @floatFromInt(registers.gcap_id.counter_clk_period)) / 1e6;
+    update_max_interval();
+
     initialized = true;
-    _ = timers.pit.vtable.init();
-    log.info("HPET timer initialized", .{});
+    log.info("{}", .{registers.gcap_id.counter_clk_period});
+    log.info("HPET timer initialized, {}, {}", .{ vtable.min_interval, vtable.max_interval });
     return true;
+}
+
+fn update_max_interval() void {
+    vtable.max_interval = std.math.maxInt(usize) - registers.counter;
+    if (vtable.min_interval < 1) {
+        const tmp: f64 = @floatFromInt(vtable.max_interval);
+        vtable.max_interval = @intFromFloat(tmp * vtable.min_interval);
+    }
 }
 
 fn map_hpet() void {
@@ -119,30 +138,9 @@ fn get_free_comparator(periodic: bool) ?*Comparator {
     return null;
 }
 
-fn start_oneshot(ns: usize, info: *HandlerInfo) *idt.HandlerData {
-    _ = ns;
-    _ = info;
-    // const comparator = get_free_comparator(false);
-    // const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
-    const handler = idt.allocate_handler(null);
-    // handler.ctx = info;
-    // handler.handler = timer_handler;
-    // intctrl.set(idt.handler2vec(handler), )
-
-    // const comparator = registers.get_comparator(0);
-    // const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
-    // const handler = idt.allocate_handler(0x20);
-    // handler.ctx = info;
-    // handler.handler = timer_handler;
-    // intctrl.set(idt.handler2vec(handler), 0, 0);
-    // registers.gcfg.enable_cnf = false;
-    // comparator.config_cap.int_enb_cnf = true;
-    // comparator.comparator = registers.counter + delta;
-    // registers.gcfg.enable_cnf = true;
-    return handler;
-}
-
-fn sleep(ns: usize) void {
+fn sleep(ns: usize) bool {
+    update_max_interval();
+    if (ns > vtable.max_interval) return false;
     var info = HandlerInfo{};
     const comp: *Comparator = get_free_comparator(false) orelse @panic("Out of free comparators");
     const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
@@ -172,6 +170,8 @@ fn sleep(ns: usize) void {
     while (!@atomicLoad(bool, @as(*volatile bool, &info.triggered), .unordered)) asm volatile ("pause");
     intctrl.controller.unmap(irq.?);
     handler.reserved = false;
+    comp.config_cap.int_enb_cnf = false;
+    return true;
 }
 
 const HandlerInfo = struct {

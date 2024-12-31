@@ -28,12 +28,16 @@ export fn _start() noreturn {
     drivers.lapic.bsp_init();
     drivers.intctrl.init();
     asm volatile ("sti");
-    drivers.timers.init();
+    // drivers.timers.init();
+    drivers.pci.init();
     while (true) {}
 }
 
-pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     std.log.err("{s}", .{msg});
+    if (stacktrace) |st| {
+        st.format("", .{}, lib.logger.writer) catch std.log.err("Error printing stacktrace");
+    }
     asm volatile (
         \\cli
         \\hlt
