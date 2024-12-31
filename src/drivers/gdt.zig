@@ -38,15 +38,28 @@ var gdtr = GDTR{
     .size = static_gdt.len * @sizeOf(Entry) - 1,
 };
 
-pub fn initEarly() void {
+pub var StaticTask = kernel.Task{
+    .name = "Static GDT",
+    .init = init_static,
+    .dependencies = &.{},
+};
+
+var DynamicTaskDeps = [_]*kernel.Task{&mem.KHeapTask};
+pub var DynamicTask = kernel.Task{
+    .name = "Dynamic GDT",
+    .init = init_dynamic,
+    .dependencies = &DynamicTaskDeps,
+};
+
+fn init_static() bool {
     gdtr.addr = @intFromPtr(&static_gdt);
     lgdt();
-    log.info("Loaded static GDT", .{});
+    return true;
 }
 
-pub fn initLate() void {
-    if (smp.SMP_REQUEST.response == null) @panic("Limine SMP request is null");
-    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.?.cpu_count * 2) catch @panic("OOM");
+fn init_dynamic() bool {
+    if (smp.SMP_REQUEST.response == null) return false;
+    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.?.cpu_count * 2) catch return false;
     for (0..3) |i| buf[i] = static_gdt[i];
     buf[3] = .{
         .access = 0b11111011,
@@ -59,6 +72,7 @@ pub fn initLate() void {
     gdtr.size = @intCast(buf.len * @sizeOf(Entry) - 1);
     gdtr.addr = @intFromPtr(buf.ptr);
     lgdt();
+    return true;
 }
 
 pub fn lgdt() void {

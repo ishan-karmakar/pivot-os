@@ -1,3 +1,4 @@
+const kernel = @import("kernel");
 pub const pmm = @import("pmm.zig");
 pub const Mapper = @import("mapper.zig");
 pub const VMM = @import("vmm.zig");
@@ -19,24 +20,37 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
 
 const KHEAP_SIZE = 0x1000 * 256;
 
-pub fn init() void {
-    if (HHDM_REQUEST.response == null) {
-        @panic("Limine HHDM response is null");
-    }
-    if (PAGING_REQUEST.response == null or PAGING_REQUEST.response.?.mode != PAGING_REQUEST.mode) {
-        @panic("Limine paging response is either null or not set to our preferred mode");
-    }
-    if (MMAP_REQUEST.response == null) {
-        @panic("Limine memory map response is null");
-    }
+// IDT isn't strictly necessary, but we would like to get paging errors instead of a triple fault
+var PMMTaskDeps = [_]*kernel.Task{&kernel.drivers.idt.Task};
+pub var PMMTask = kernel.Task{
+    .name = "Physical Memory Manager",
+    .init = pmm_init,
+    .dependencies = &PMMTaskDeps,
+};
 
-    const free_mem = pmm_init();
-    mapper_init();
-    vmm_init(free_mem);
-    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, KHEAP_SIZE) catch @panic("OOM"));
-}
+var KMapperTaskDeps = [_]*kernel.Task{&PMMTask};
+pub var KMapperTask = kernel.Task{
+    .name = "Kernel Mapper",
+    .init = mapper_init,
+    .dependencies = &KMapperTaskDeps,
+};
 
-fn pmm_init() usize {
+var KVMMTaskDeps = [_]*kernel.Task{ &PMMTask, &KMapperTask };
+pub var KVMMTask = kernel.Task{
+    .name = "Kernel Virtual Memory Manager",
+    .init = vmm_init,
+    .dependencies = &KVMMTaskDeps,
+};
+
+var KHeapTaskDeps = [_]*kernel.Task{&KVMMTask};
+pub var KHeapTask = kernel.Task{
+    .name = "Kernel Heap",
+    .init = kheap_init,
+    .dependencies = &KHeapTaskDeps,
+};
+
+fn pmm_init() bool {
+    if (MMAP_REQUEST.response == null or HHDM_REQUEST.response == null) return false;
     var free_mem: usize = 0;
     for (MMAP_REQUEST.response.?.entries()) |ent| {
         log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
@@ -45,21 +59,28 @@ fn pmm_init() usize {
             pmm.add_region(ent.base, @divFloor(ent.length, 0x1000));
         }
     }
-    log.info("Found 0x{x} bytes of usable memory", .{free_mem});
-    return free_mem;
+    log.debug("Found 0x{x} bytes of usable memory", .{free_mem});
+    return true;
 }
 
-fn mapper_init() void {
+fn mapper_init() bool {
+    if (PAGING_REQUEST.response == null or PAGING_REQUEST.response.?.mode != PAGING_REQUEST.mode) return false;
     kmapper = Mapper.create(virt(asm volatile ("mov %%cr3, %[result]"
         : [result] "=r" (-> usize),
     ) & 0xfffffffffffffffe));
+    return true;
 }
 
-fn vmm_init(free_mem: usize) void {
+fn vmm_init() bool {
     const mmap = MMAP_REQUEST.response.?.entries();
     const last = mmap[mmap.len - 1];
-    // FIXME: I don't think we need ALL of free memory for kernel VMM, maybe constant limit
-    kvmm = VMM.create(virt(0) + last.base + last.length, free_mem, 0b10 | (1 << 63), &kmapper);
+    kvmm = VMM.create(virt(0) + last.base + last.length, KHEAP_SIZE, 0b10 | (1 << 63), &kmapper);
+    return true;
+}
+
+fn kheap_init() bool {
+    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, KHEAP_SIZE) catch return false);
+    return true;
 }
 
 /// Converts physical address to virtual address

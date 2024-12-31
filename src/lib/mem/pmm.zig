@@ -28,6 +28,18 @@ pub fn add_region(start: usize, num_pages: usize) void {
     head_region = region;
 }
 
+/// Returns total amount of free space
+/// Runs in O(N), so should rarely be used
+pub fn get_free_size() usize {
+    var cur = head_region;
+    var size = 0;
+    while (cur != null) {
+        size += cur.?.num_pages * 0x1000;
+        cur = cur.?.next;
+    }
+    return size;
+}
+
 /// Reserve a frame from physical memory
 /// The PHYSICAL address is returned
 /// Runs in O(1) time

@@ -7,11 +7,23 @@ const uacpi = @import("uacpi");
 const std = @import("std");
 
 pub const vtable = intctrl.VTable{
-    .init = init,
     .map = map,
     .unmap = unmap,
     .mask = mask,
     .eoi = eoi,
+};
+
+var TaskDeps = [_]*kernel.Task{
+    &kernel.lib.mem.KHeapTask,
+    &kernel.lib.mem.KMapperTask,
+    &kernel.drivers.acpi.TablesTask,
+    &kernel.drivers.lapic.Task,
+    &kernel.drivers.term.Task,
+};
+pub var Task = kernel.Task{
+    .name = "I/O APIC",
+    .init = init,
+    .dependencies = &TaskDeps,
 };
 
 const RedirectionEntry = packed struct {
@@ -76,30 +88,21 @@ var ioapics: []IOAPIC = undefined;
 var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 
 fn init() bool {
-    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse {
-        log.debug("No MADT found", .{});
-        return false;
-    };
+    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return false;
 
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
     var ioapic_arr = std.ArrayList(IOAPIC).init(kernel.lib.mem.kheap.allocator());
-    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(IOAPIC.create(ioapic)) catch @panic("OOM");
+    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(IOAPIC.create(ioapic)) catch return false;
 
-    if (ioapic_arr.items.len == 0) {
-        log.debug("No I/O APICs found", .{});
-        return false;
-    }
+    if (ioapic_arr.items.len == 0) return false;
 
     var iso_iter = acpi.Iterator(uacpi.acpi_madt_interrupt_source_override).create(uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE, &madt.hdr, @sizeOf(uacpi.acpi_madt));
     var iso_arr = std.ArrayList(*const uacpi.acpi_madt_interrupt_source_override).init(kernel.lib.mem.kheap.allocator());
-    while (iso_iter.next()) |iso| iso_arr.append(iso) catch @panic("OOM");
+    while (iso_iter.next()) |iso| iso_arr.append(iso) catch return false;
 
-    ioapics = ioapic_arr.toOwnedSlice() catch @panic("OOM");
-    isos = iso_arr.toOwnedSlice() catch @panic("OOM");
+    ioapics = ioapic_arr.toOwnedSlice() catch return false;
+    isos = iso_arr.toOwnedSlice() catch return false;
 
-    if (intctrl.pic.vtable.init()) {
-        for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = false;
-    }
     return true;
 }
 

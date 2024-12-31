@@ -1,16 +1,24 @@
 const limine = @import("limine");
 const flanterm = @import("flanterm");
-const mem = @import("kernel").lib.mem;
+const kernel = @import("kernel");
+const mem = kernel.lib.mem;
 const log = @import("std").log.scoped(.term);
 const ArrayList = @import("std").ArrayList;
 const std = @import("std");
 export var FB_REQUEST: limine.FramebufferRequest = .{};
 
-var terms = ArrayList([*c]flanterm.struct_flanterm_context).init(undefined);
+var terms: []*flanterm.struct_flanterm_context = &.{};
 
-pub fn init() void {
-    const framebuffers = (FB_REQUEST.response orelse @panic("Limine FB request is null"));
-    terms = ArrayList([*c]flanterm.struct_flanterm_context).init(mem.kheap.allocator());
+var TaskDeps = [_]*kernel.Task{&mem.KHeapTask};
+pub var Task = kernel.Task{
+    .name = "Framebuffer",
+    .init = init,
+    .dependencies = &TaskDeps,
+};
+
+fn init() bool {
+    const framebuffers = (FB_REQUEST.response orelse return false);
+    var term_arr = ArrayList(*flanterm.struct_flanterm_context).init(mem.kheap.allocator());
     for (0..framebuffers.framebuffer_count) |i| {
         const fb = framebuffers.framebuffers_ptr[i];
         const ctx = flanterm.flanterm_fb_init(
@@ -41,14 +49,15 @@ pub fn init() void {
             0,
             0,
         );
-        terms.append(ctx) catch @panic("Error adding terminal context");
+        term_arr.append(ctx) catch return false;
     }
-    log.info("Initialized terminals", .{});
+    terms = term_arr.toOwnedSlice() catch return false;
+    return true;
 }
 
 pub fn write(bytes: []const u8) !usize {
-    if (terms.items.len == 0) return 0;
-    for (terms.items) |t| flanterm.flanterm_write(t, bytes.ptr, bytes.len);
+    if (terms.len == 0) return 0;
+    for (terms) |t| flanterm.flanterm_write(t, bytes.ptr, bytes.len);
     return bytes.len;
 }
 

@@ -5,7 +5,6 @@ const kernel = @import("kernel");
 const mem = kernel.lib.mem;
 
 pub const VTable = struct {
-    init: *const fn () bool,
     map: *const fn (vec: u8, irq: usize) error{ IRQUsed, OutOfIRQs, InvalidIRQ }!usize,
     unmap: *const fn (irq: usize) void,
     mask: *const fn (irq: usize, m: bool) void,
@@ -14,10 +13,23 @@ pub const VTable = struct {
 
 pub var controller: *const VTable = undefined;
 
-pub fn init() void {
-    if (ioapic.vtable.init()) {
+var TaskDeps = [_]*kernel.Task{
+    &kernel.drivers.term.Task,
+    &ioapic.Task,
+    &pic.Task,
+};
+pub var Task = kernel.Task{
+    .name = "Interrupt Controller",
+    .init = init,
+    .dependencies = &TaskDeps,
+    .partial_deps = true,
+};
+
+fn init() bool {
+    if (ioapic.Task.ret.?) {
         controller = &ioapic.vtable;
-    } else if (pic.vtable.init()) {
+    } else if (pic.Task.ret.?) {
         controller = &pic.vtable;
-    }
+    } else return false;
+    return true;
 }

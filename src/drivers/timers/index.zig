@@ -29,11 +29,11 @@ var gtime_source: ?*const VTable = null;
 var gtimer: ?*const VTable = null;
 
 pub fn init() void {
-    usable_timers = std.ArrayList(*const VTable).init(kernel.lib.mem.kheap.allocator());
+    // usable_timers = std.ArrayList(*const VTable).init(kernel.lib.mem.kheap.allocator());
 
-    for (TIMERS) |timer| {
-        if (timer.init()) usable_timers.append(timer) catch @panic("OOM");
-    }
+    // for (TIMERS) |timer| {
+    //     if (timer.init()) usable_timers.append(timer) catch @panic("OOM");
+    // }
 
     // std.mem.sort(*const VTable, usable_timers.items, {}, timer_comparator);
 }

@@ -12,38 +12,46 @@ const PIC2_DATA = PIC2 + 1;
 const PIC_EOI = 0x20;
 
 pub const vtable = intctrl.VTable{
-    .init = init,
     .map = map,
     .unmap = unmap,
     .mask = mask,
     .eoi = eoi,
 };
 
+var TaskDeps = [_]*kernel.Task{
+    &kernel.drivers.term.Task,
+    &intctrl.ioapic.Task,
+    &kernel.drivers.idt.Task,
+    &kernel.drivers.acpi.TablesTask,
+};
+pub var Task = kernel.Task{
+    .name = "8259 PIC",
+    .init = init,
+    .dependencies = &TaskDeps,
+    .partial_deps = true,
+};
+
 var reserved: u16 = 0;
 
 fn init() bool {
-    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse {
-        log.debug("MADT not found", .{});
-        return false;
-    };
-    if (madt.flags & 1 == 0) {
-        log.debug("Dual 8259 Legacy PICs not installed", .{});
-        return false;
-    }
-
-    for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = true;
+    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return false;
+    if (madt.flags & 1 == 0) return false;
 
     disable();
-    serial.out(PIC1, @as(u8, 0x10 | 1));
-    serial.out(PIC2, @as(u8, 0x10 | 1));
-    serial.out(PIC1_DATA, @as(u8, 0x20));
-    serial.out(PIC2_DATA, @as(u8, 0x20 + 8));
-    serial.out(PIC1_DATA, @as(u8, 4));
-    serial.out(PIC2_DATA, @as(u8, 2));
-    serial.out(PIC1_DATA, @as(u8, 1));
-    serial.out(PIC2_DATA, @as(u8, 1));
 
-    log.info("Initialized 8259 PIC", .{});
+    if (intctrl.ioapic.Task.ret.? == false) {
+        for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = true;
+
+        serial.out(PIC1, @as(u8, 0x10 | 1));
+        serial.out(PIC2, @as(u8, 0x10 | 1));
+        serial.out(PIC1_DATA, @as(u8, 0x20));
+        serial.out(PIC2_DATA, @as(u8, 0x20 + 8));
+        serial.out(PIC1_DATA, @as(u8, 4));
+        serial.out(PIC2_DATA, @as(u8, 2));
+        serial.out(PIC1_DATA, @as(u8, 1));
+        serial.out(PIC2_DATA, @as(u8, 1));
+    }
+
     return true;
 }
 

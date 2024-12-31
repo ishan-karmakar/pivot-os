@@ -165,9 +165,7 @@ export fn uacpi_kernel_map(_addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size)
     return @ptrFromInt(_addr);
 }
 
-export fn uacpi_kernel_unmap(addr: ?*anyopaque, size: uacpi.uacpi_size) void {
-    log.debug("uacpi_kernel_unmap: 0x{x}, {}", .{ @intFromPtr(addr.?), size });
-}
+export fn uacpi_kernel_unmap(_: ?*anyopaque, _: uacpi.uacpi_size) void {}
 
 export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_status {
     const req = RSDP_REQUEST.response orelse @panic("Limine RSDP request is null");

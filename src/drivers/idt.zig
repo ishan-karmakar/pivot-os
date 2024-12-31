@@ -37,9 +37,17 @@ pub const HandlerData = struct {
     ctx: ?*anyopaque = null,
     reserved: bool = false,
 };
+
 var handlerTable: [256 - 0x20]HandlerData = .{.{}} ** (256 - 0x20);
 
-pub fn init() void {
+var TaskDeps = [_]*kernel.Task{&kernel.drivers.gdt.StaticTask};
+pub var Task = kernel.Task{
+    .name = "IDT",
+    .init = init,
+    .dependencies = &TaskDeps,
+};
+
+fn init() bool {
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
     set_ent(1, create_exc_isr(1, false, "exception_handler"));
     set_ent(2, create_exc_isr(2, false, "exception_handler"));
@@ -75,7 +83,7 @@ pub fn init() void {
 
     idtr.addr = @intFromPtr(&rawTable);
     lidt();
-    log.info("Loaded interrupt descriptor table", .{});
+    return true;
 }
 
 fn set_ent(vec: u8, comptime handler: ISR) void {

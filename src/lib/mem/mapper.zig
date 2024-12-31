@@ -12,7 +12,6 @@ pml4: Table,
 // mutex: Mutex = Mutex{},
 
 pub fn create(tbl: usize) @This() {
-    log.debug("Creating mapper with PML4 at 0x{x}", .{tbl});
     return .{ .pml4 = @ptrFromInt(tbl) };
 }
 

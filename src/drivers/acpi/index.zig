@@ -1,12 +1,21 @@
 const uacpi = @import("uacpi");
 const log = @import("std").log.scoped(.acpi);
 const std = @import("std");
+const kernel = @import("kernel");
 
-pub fn init_tables() void {
-    if (uacpi.uacpi_initialize(0) != uacpi.UACPI_STATUS_OK) {
-        @panic("uacpi_initialize failed");
-    }
-    log.info("Initialized ACPI tables", .{});
+var TablesTaskDeps = [_]*kernel.Task{
+    &kernel.lib.mem.KHeapTask,
+    &kernel.lib.mem.KMapperTask,
+    &kernel.drivers.term.Task,
+};
+pub var TablesTask = kernel.Task{
+    .name = "ACPI Tables",
+    .init = init_tables,
+    .dependencies = &TablesTaskDeps,
+};
+
+fn init_tables() bool {
+    return uacpi.uacpi_initialize(0) == uacpi.UACPI_STATUS_OK;
 }
 
 pub fn get_table(T: type, sig: [*c]const u8) ?*const T {

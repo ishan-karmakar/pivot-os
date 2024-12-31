@@ -19,7 +19,18 @@ var addr: usize = undefined;
 pub var read_reg: *const fn (off: u32) u64 = undefined;
 pub var write_reg: *const fn (off: u32, val: u64) void = undefined;
 
-pub fn bsp_init() void {
+var TaskDeps = [_]*kernel.Task{
+    &kernel.drivers.idt.Task,
+    &kernel.lib.mem.KMapperTask,
+    &kernel.drivers.term.Task,
+};
+pub var Task = kernel.Task{
+    .name = "Local APIC",
+    .init = bsp_init,
+    .dependencies = &TaskDeps,
+};
+
+pub fn bsp_init() bool {
     var msr = cpu.rdmsr(MSR) | (1 << 11);
 
     const cpuid = cpu.cpuid(1, 0);
@@ -34,14 +45,13 @@ pub fn bsp_init() void {
         read_reg = xapic_read_reg;
         write_reg = xapic_write_reg;
         log.debug("Found xAPIC", .{});
-    } else @panic("Neither x2APIC nor xAPIC is set in CPUID");
+    } else return false;
     cpu.wrmsr(MSR, msr);
     write_reg(TPR_OFF, 0);
 
     kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
-
-    log.info("Initialized Local APIC", .{});
+    return true;
 }
 
 pub inline fn eoi() void {
