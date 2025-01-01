@@ -9,11 +9,12 @@ export var FB_REQUEST: limine.FramebufferRequest = .{};
 
 var terms: []*flanterm.struct_flanterm_context = &.{};
 
-var TaskDeps = [_]*kernel.Task{&mem.KHeapTask};
 pub var Task = kernel.Task{
     .name = "Framebuffer",
     .init = init,
-    .dependencies = &TaskDeps,
+    .dependencies = &.{
+        .{ .task = &mem.KHeapTask },
+    },
 };
 
 fn init() bool {

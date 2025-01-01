@@ -18,17 +18,14 @@ pub const vtable = intctrl.VTable{
     .eoi = eoi,
 };
 
-var TaskDeps = [_]*kernel.Task{
-    &kernel.drivers.term.Task,
-    &intctrl.ioapic.Task,
-    &kernel.drivers.idt.Task,
-    &kernel.drivers.acpi.TablesTask,
-};
 pub var Task = kernel.Task{
     .name = "8259 PIC",
     .init = init,
-    .dependencies = &TaskDeps,
-    .partial_deps = true,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.idt.Task },
+        .{ .task = &kernel.drivers.acpi.TablesTask },
+        .{ .task = &intctrl.ioapic.Task, .accept_failure = true },
+    },
 };
 
 var reserved: u16 = 0;

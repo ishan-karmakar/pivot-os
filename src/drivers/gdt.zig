@@ -44,11 +44,12 @@ pub var StaticTask = kernel.Task{
     .dependencies = &.{},
 };
 
-var DynamicTaskDeps = [_]*kernel.Task{&mem.KHeapTask};
 pub var DynamicTask = kernel.Task{
     .name = "Dynamic GDT",
     .init = init_dynamic,
-    .dependencies = &DynamicTaskDeps,
+    .dependencies = &.{
+        .{ .task = &mem.KHeapTask },
+    },
 };
 
 fn init_static() bool {

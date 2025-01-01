@@ -1,43 +1,48 @@
 pub const pit = @import("pit.zig");
-// pub const lapic = @import("lapic.zig");
 pub const acpi = @import("acpi.zig");
 pub const hpet = @import("hpet.zig");
 pub const tsc = @import("tsc.zig");
+pub const lapic = @import("lapic.zig");
 const kernel = @import("kernel");
 const std = @import("std");
 
-pub const VTable = struct {
-    /// nanoseconds between each tick
-    min_interval: f64,
-    /// Maximum nanoseconds timer can natively sleep
-    max_interval: usize,
-    init: *const fn () bool,
-    time: ?*const fn () usize,
-    sleep: *const fn (ns: usize) bool,
+pub const GTSVTable = struct {
+    time: *const fn () usize,
+    deinit: *const fn () void,
 };
 
-const TIMERS = [_]*const VTable{
-    &pit.vtable,
-    &hpet.vtable,
-    &tsc.vtable,
+pub const TimerVTable = struct {
+    // TODO: set oneshot and set periodic
+    deinit: *const fn () void,
 };
 
-var usable_timers: std.ArrayList(*const VTable) = undefined;
+pub var Task = kernel.Task{
+    .name = "Timers",
+    .init = null,
+    .dependencies = &.{
+        .{ .task = &pit.Task, .accept_failure = true },
+        .{ .task = &hpet.Task, .accept_failure = true },
+        .{ .task = &lapic.Task, .accept_failure = true },
+        .{ .task = &tsc.Task, .accept_failure = true },
+    },
+};
 
-pub var ticks: usize = 0;
-var gtime_source: ?*const VTable = null;
-var gtimer: ?*const VTable = null;
+var gts: ?*const GTSVTable = null;
+var timer: ?*const TimerVTable = null;
 
-pub fn init() void {
-    // usable_timers = std.ArrayList(*const VTable).init(kernel.lib.mem.kheap.allocator());
-
-    // for (TIMERS) |timer| {
-    //     if (timer.init()) usable_timers.append(timer) catch @panic("OOM");
-    // }
-
-    // std.mem.sort(*const VTable, usable_timers.items, {}, timer_comparator);
+pub fn sleep(ns: usize) void {
+    // FIXME: Either GTS or timer for sleep
+    const t = gts orelse @panic("No global time source available");
+    const start = t.time();
+    while (t.time() < (start + ns)) asm volatile ("pause");
 }
 
-fn timer_comparator(_: void, lhs: *const VTable, rhs: *const VTable) bool {
-    return (lhs.max_interval - lhs.min_interval) < (rhs.max_interval - rhs.max_interval);
+pub fn set_timer(t: *const TimerVTable) void {
+    if (timer) |org| org.deinit();
+    timer = t;
+}
+
+pub fn set_gts(t: *const GTSVTable) void {
+    if (gts) |org| org.deinit();
+    gts = t;
 }

@@ -13,29 +13,31 @@ pub const std_options = .{
     .log_level = .debug,
 };
 
+pub const TaskDep = struct {
+    task: *Task,
+    accept_failure: bool = false,
+};
+
 pub const Task = struct {
     /// Human readable name of task
     name: []const u8,
     /// Initialize function that returns true for success, false for failure
-    init: *const fn () bool,
-    dependencies: []*@This(),
+    init: ?*const fn () bool,
+    dependencies: []const TaskDep,
     ret: ?bool = null,
-    /// True if task does not NEED dependencies to be successfully initialized.
-    /// If this is `true`, `init` is responsible for handling dependencies that failed initialization
-    partial_deps: bool = false,
 
     pub fn run(self: *@This()) void {
         if (self.ret != null) return;
 
         for (self.dependencies) |dep| {
-            dep.run();
-            if (!dep.ret.? and !self.partial_deps) {
-                log.err("Task \"{s}\" depends on task \"{s}\" (failed init)", .{ self.name, dep.name });
+            dep.task.run();
+            if (!dep.task.ret.? and !dep.accept_failure) {
+                log.err("Task \"{s}\" depends on task \"{s}\" (failed init)", .{ self.name, dep.task.name });
                 @panic("Panicking...");
             }
         }
 
-        self.ret = self.init();
+        self.ret = if (self.init) |init| init() else true;
         if (self.ret.?) {
             log.info("Task \"{s}\" completed initialization", .{self.name});
         } else {
@@ -50,7 +52,8 @@ export fn _start() noreturn {
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
-    drivers.intctrl.Task.run();
+    drivers.term.Task.run();
+    drivers.timers.Task.run();
     while (true) {}
 }
 

@@ -13,16 +13,13 @@ pub const VTable = struct {
 
 pub var controller: *const VTable = undefined;
 
-var TaskDeps = [_]*kernel.Task{
-    &kernel.drivers.term.Task,
-    &ioapic.Task,
-    &pic.Task,
-};
 pub var Task = kernel.Task{
     .name = "Interrupt Controller",
     .init = init,
-    .dependencies = &TaskDeps,
-    .partial_deps = true,
+    .dependencies = &.{
+        .{ .task = &pic.Task, .accept_failure = true },
+        .{ .task = &ioapic.Task, .accept_failure = true },
+    },
 };
 
 fn init() bool {
@@ -31,5 +28,6 @@ fn init() bool {
     } else if (pic.Task.ret.?) {
         controller = &pic.vtable;
     } else return false;
+    asm volatile ("sti");
     return true;
 }

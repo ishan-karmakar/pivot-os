@@ -61,50 +61,76 @@ const Comparator = packed struct {
     comparator: u64,
     fsb_int_route: u64,
 
-    pub inline fn is_irq_supported(self: @This(), irq: u5) bool {
-        return (self.config_cap.int_route_cap & (@as(u32, 1) << irq)) != 0;
+    pub inline fn is_irq_supported(self: @This(), _irq: u5) bool {
+        return (self.config_cap.int_route_cap & (@as(u32, 1) << _irq)) != 0;
     }
 };
 
-pub var vtable: timers.VTable = .{
-    .min_interval = 0,
-    .max_interval = 0,
-    .init = init,
+pub var gts_vtable: timers.GTSVTable = .{
     .time = time,
-    .sleep = sleep,
+    .deinit = gts_deinit,
 };
 
-var initialized: ?bool = null;
+pub var tim_vtable: timers.TimerVTable = .{
+    .deinit = timer_deinit,
+};
+
 var registers: *volatile Registers = undefined;
 
-// FIXME: Explore FSB interrupts
+pub var Task = kernel.Task{
+    .name = "HPET Timer",
+    .init = init,
+    .dependencies = &.{
+        .{ .task = &mem.KMapperTask },
+    },
+};
 
+var handler: *idt.HandlerData = undefined;
+var irq: usize = undefined;
+var comp: *Comparator = undefined;
+
+// FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them)
 fn init() bool {
-    defer initialized = initialized orelse false;
-    if (initialized) |i| return i;
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
         log.debug("HPET not found", .{});
         return false;
     };
     registers = @ptrFromInt(hpet.address.address);
     map_hpet();
-    vtable.min_interval = @as(f64, @floatFromInt(registers.gcap_id.counter_clk_period)) / 1e6;
-    update_max_interval();
 
-    initialized = true;
-    log.info("{}", .{registers.gcap_id.counter_clk_period});
-    log.info("HPET timer initialized, {}, {}", .{ vtable.min_interval, vtable.max_interval });
-    return true;
-}
+    registers.gcfg.enable_cnf = true;
 
-fn update_max_interval() void {
-    vtable.max_interval = std.math.maxInt(usize) - registers.counter;
-    if (vtable.min_interval < 1) {
-        const tmp: f64 = @floatFromInt(vtable.max_interval);
-        vtable.max_interval = @intFromFloat(tmp * vtable.min_interval);
+    timers.set_timer(&tim_vtable);
+    timers.set_gts(&gts_vtable);
+
+    for (0..(registers.gcap_id.num_tim_cap + 1)) |c| {
+        comp = registers.get_comparator(c);
+        // TODO: As far as I know, HPET is required to support at least one periodic comparator
+        if (!comp.config_cap.per_int_cap) continue;
+
+        for (0..32) |i| {
+            if (comp.is_irq_supported(@intCast(i))) {
+                handler = idt.allocate_handler(@intCast(i + 0x20));
+                irq = intctrl.controller.map(idt.handler2vec(handler), i) catch {
+                    handler.reserved = false;
+                    continue;
+                };
+                return true;
+            }
+        }
     }
+    log.debug("Unable to configure comparator", .{});
+    return false;
 }
 
+fn timer_deinit() void {
+    handler.reserved = false;
+    intctrl.controller.unmap(irq);
+}
+
+fn gts_deinit() void {}
+
+// TODO: Only map main area and specific comparator we are using
 fn map_hpet() void {
     mem.kmapper.map(@intFromPtr(registers), @intFromPtr(registers), 0b10);
     const comparator_start = @intFromPtr(registers.get_comparator(0));
@@ -121,57 +147,6 @@ fn map_hpet() void {
 fn time() usize {
     // TODO: Cache counter_clk_period
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
-}
-
-fn get_free_comparator(periodic: bool) ?*Comparator {
-    const num_comp = registers.gcap_id.num_tim_cap + 1;
-    for (0..num_comp) |i| {
-        const comp = registers.get_comparator(i);
-        if (!comp.config_cap.int_enb_cnf) {
-            if (periodic) {
-                if (comp.config_cap.per_int_cap) return comp;
-            } else {
-                return comp;
-            }
-        }
-    }
-    return null;
-}
-
-fn sleep(ns: usize) bool {
-    update_max_interval();
-    if (ns > vtable.max_interval) return false;
-    var info = HandlerInfo{};
-    const comp: *Comparator = get_free_comparator(false) orelse @panic("Out of free comparators");
-    const delta = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
-    var irq: ?usize = null;
-    var handler: *idt.HandlerData = undefined;
-    for (0..32) |i| {
-        if (comp.is_irq_supported(@intCast(i))) {
-            handler = idt.allocate_handler(@intCast(i + 0x20));
-            // FIXME: Panic if vector actually given is not appropriate for 8259 PIC
-            const ret = intctrl.controller.map(idt.handler2vec(handler), i);
-            if (ret == error.IRQUsed) {
-                handler.reserved = false;
-                continue;
-            }
-
-            irq = ret catch @panic("Error mapping HPET comparator IRQ");
-            handler.handler = timer_handler;
-            handler.ctx = &info;
-        }
-    }
-    if (irq == null) @panic("No suitable IRQ found for HPET comparator");
-    registers.gcfg.enable_cnf = false;
-    comp.config_cap.int_enb_cnf = true;
-    comp.comparator = registers.counter + delta;
-    registers.gcfg.enable_cnf = true;
-    intctrl.controller.mask(irq.?, false);
-    while (!@atomicLoad(bool, @as(*volatile bool, &info.triggered), .unordered)) asm volatile ("pause");
-    intctrl.controller.unmap(irq.?);
-    handler.reserved = false;
-    comp.config_cap.int_enb_cnf = false;
-    return true;
 }
 
 const HandlerInfo = struct {

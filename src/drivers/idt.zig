@@ -40,11 +40,12 @@ pub const HandlerData = struct {
 
 var handlerTable: [256 - 0x20]HandlerData = .{.{}} ** (256 - 0x20);
 
-var TaskDeps = [_]*kernel.Task{&kernel.drivers.gdt.StaticTask};
 pub var Task = kernel.Task{
     .name = "IDT",
     .init = init,
-    .dependencies = &TaskDeps,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.gdt.StaticTask },
+    },
 };
 
 fn init() bool {

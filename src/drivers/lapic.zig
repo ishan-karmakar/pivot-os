@@ -19,15 +19,13 @@ var addr: usize = undefined;
 pub var read_reg: *const fn (off: u32) u64 = undefined;
 pub var write_reg: *const fn (off: u32, val: u64) void = undefined;
 
-var TaskDeps = [_]*kernel.Task{
-    &kernel.drivers.idt.Task,
-    &kernel.lib.mem.KMapperTask,
-    &kernel.drivers.term.Task,
-};
 pub var Task = kernel.Task{
     .name = "Local APIC",
     .init = bsp_init,
-    .dependencies = &TaskDeps,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.idt.Task },
+        .{ .task = &kernel.lib.mem.KMapperTask },
+    },
 };
 
 pub fn bsp_init() bool {

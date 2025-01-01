@@ -21,32 +21,37 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
 const KHEAP_SIZE = 0x1000 * 256;
 
 // IDT isn't strictly necessary, but we would like to get paging errors instead of a triple fault
-var PMMTaskDeps = [_]*kernel.Task{&kernel.drivers.idt.Task};
 pub var PMMTask = kernel.Task{
     .name = "Physical Memory Manager",
     .init = pmm_init,
-    .dependencies = &PMMTaskDeps,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.idt.Task },
+    },
 };
 
-var KMapperTaskDeps = [_]*kernel.Task{&PMMTask};
 pub var KMapperTask = kernel.Task{
     .name = "Kernel Mapper",
     .init = mapper_init,
-    .dependencies = &KMapperTaskDeps,
+    .dependencies = &.{
+        .{ .task = &PMMTask },
+    },
 };
 
-var KVMMTaskDeps = [_]*kernel.Task{ &PMMTask, &KMapperTask };
 pub var KVMMTask = kernel.Task{
     .name = "Kernel Virtual Memory Manager",
     .init = vmm_init,
-    .dependencies = &KVMMTaskDeps,
+    .dependencies = &.{
+        .{ .task = &PMMTask },
+        .{ .task = &KMapperTask },
+    },
 };
 
-var KHeapTaskDeps = [_]*kernel.Task{&KVMMTask};
 pub var KHeapTask = kernel.Task{
     .name = "Kernel Heap",
     .init = kheap_init,
-    .dependencies = &KHeapTaskDeps,
+    .dependencies = &.{
+        .{ .task = &KVMMTask },
+    },
 };
 
 fn pmm_init() bool {

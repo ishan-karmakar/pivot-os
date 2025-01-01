@@ -10,56 +10,49 @@ const log = @import("std").log.scoped(.pit);
 const CMD_REG = 0x43;
 const DATA_REG = 0x40;
 const IRQ = 0;
-const HZ: comptime_float = 1193182;
+const HZ = 1193182;
 
-pub const vtable = timers.VTable{
-    .min_interval = 1e9 / HZ,
-    .max_interval = @intFromFloat((1e9 / HZ) * 0xFFFF),
-    .init = init,
-    .time = null,
-    .sleep = sleep,
+pub const vtable = timers.TimerVTable{
+    .deinit = deinit,
 };
 
-var initialized: bool = false;
+pub var Task = kernel.Task{
+    .name = "PIT",
+    .init = init,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.idt.Task },
+        .{ .task = &kernel.drivers.intctrl.Task },
+    },
+};
+
 var irq: usize = undefined;
+var handler: *idt.HandlerData = undefined;
 
 fn init() bool {
-    if (initialized) return true;
-    initialized = true;
-    log.info("Initialized PIT", .{});
+    handler = idt.allocate_handler(IRQ + 0x20);
+    handler.handler = timer_handler;
+    irq = intctrl.controller.map(idt.handler2vec(handler), IRQ) catch return false;
     _ = sleep(1_000_000); // Sleep for 1 ms so no more interrupts fire
+    timers.set_timer(&vtable);
     return true;
 }
 
-fn raw_sleep(handler: *idt.HandlerData, ticks: u16) void {
+fn deinit() void {
+    intctrl.controller.unmap(irq);
+    handler.reserved = false;
+}
+
+fn sleep(ns: usize) bool {
+    // Command for oneshot
+    const ticks = (ns * HZ) / 1_000_000_000;
     var triggered = false;
     handler.ctx = &triggered;
+    serial.out(CMD_REG, @as(u8, 0x30)); // 0x30, 0x34
     serial.out(DATA_REG, @as(u8, @truncate(ticks)));
     serial.out(DATA_REG, @as(u8, @truncate(ticks >> 8)));
     intctrl.controller.mask(irq, false);
     while (!@atomicLoad(bool, @as(*volatile bool, &triggered), .unordered)) asm volatile ("pause");
     intctrl.controller.mask(irq, true);
-}
-
-fn sleep(ns: usize) bool {
-    if (ns > vtable.max_interval) return false;
-    const handler = idt.allocate_handler(IRQ + 0x20);
-    // FIXME: Check vector for 8259 PIC
-    handler.handler = timer_handler;
-    irq = intctrl.controller.map(idt.handler2vec(handler), IRQ) catch @panic("Could not map PIT IRQ");
-
-    // Command for oneshot
-    serial.out(CMD_REG, @as(u8, 0x30)); // 0x30, 0x34
-    // Simple cross multiplying to get number of ticks
-    // ns / 1 second = ? ticks / hz
-    const ticks: usize = @intFromFloat(@as(f64, @floatFromInt(ns)) / vtable.min_interval);
-    const overflows = @divFloor(ticks, 0xFFFF);
-    const remainder = ticks % 0xFFFF;
-    for (0..overflows) |_| raw_sleep(handler, 0xFFFF);
-    // FIXME: Panic if vector actually chosen is not suitable for 8259 PIC
-    raw_sleep(handler, @intCast(remainder));
-    handler.reserved = false;
-    intctrl.controller.unmap(irq);
     return true;
 }
 

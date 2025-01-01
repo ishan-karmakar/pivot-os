@@ -13,17 +13,15 @@ pub const vtable = intctrl.VTable{
     .eoi = eoi,
 };
 
-var TaskDeps = [_]*kernel.Task{
-    &kernel.lib.mem.KHeapTask,
-    &kernel.lib.mem.KMapperTask,
-    &kernel.drivers.acpi.TablesTask,
-    &kernel.drivers.lapic.Task,
-    &kernel.drivers.term.Task,
-};
 pub var Task = kernel.Task{
     .name = "I/O APIC",
     .init = init,
-    .dependencies = &TaskDeps,
+    .dependencies = &.{
+        .{ .task = &kernel.lib.mem.KHeapTask },
+        .{ .task = &kernel.lib.mem.KMapperTask },
+        .{ .task = &kernel.drivers.acpi.TablesTask },
+        .{ .task = &kernel.drivers.lapic.Task, .accept_failure = true },
+    },
 };
 
 const RedirectionEntry = packed struct {
@@ -88,6 +86,8 @@ var ioapics: []IOAPIC = undefined;
 var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 
 fn init() bool {
+    // Assuming that is LAPIC failed then IOAPIC cannot work
+    if (!lapic.Task.ret.?) return false;
     const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return false;
 
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));

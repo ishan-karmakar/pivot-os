@@ -6,12 +6,11 @@ const kernel = @import("kernel");
 var TablesTaskDeps = [_]*kernel.Task{
     &kernel.lib.mem.KHeapTask,
     &kernel.lib.mem.KMapperTask,
-    &kernel.drivers.term.Task,
 };
 pub var TablesTask = kernel.Task{
     .name = "ACPI Tables",
     .init = init_tables,
-    .dependencies = &TablesTaskDeps,
+    .dependencies = &.{},
 };
 
 fn init_tables() bool {
