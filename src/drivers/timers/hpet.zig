@@ -72,6 +72,7 @@ pub var gts_vtable: timers.GTSVTable = .{
 };
 
 pub var tim_vtable: timers.TimerVTable = .{
+    .callback = callback,
     .deinit = timer_deinit,
 };
 
@@ -85,11 +86,17 @@ pub var Task = kernel.Task{
     },
 };
 
-var handler: *idt.HandlerData = undefined;
-var irq: usize = undefined;
+const THandlerCtx = struct {
+    callback: timers.CallbackFn,
+    irq: usize,
+};
+
+var thandler_ctx: THandlerCtx = undefined;
+var idt_handler: *idt.HandlerData = undefined;
 var comp: *Comparator = undefined;
 
 // FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them)
+// TODO: Multiple comparators (for scheduling on different CPUs, periodic not necessary)
 fn init() bool {
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
         log.debug("HPET not found", .{});
@@ -110,11 +117,12 @@ fn init() bool {
 
         for (0..32) |i| {
             if (comp.is_irq_supported(@intCast(i))) {
-                handler = idt.allocate_handler(@intCast(i + 0x20));
-                irq = intctrl.controller.map(idt.handler2vec(handler), i) catch {
-                    handler.reserved = false;
+                idt_handler = idt.allocate_handler(@intCast(i + 0x20));
+                thandler_ctx.irq = intctrl.controller.map(idt.handler2vec(idt_handler), i) catch {
+                    idt_handler.reserved = false;
                     continue;
                 };
+                comp.config_cap.int_route_cnf = @intCast(i);
                 return true;
             }
         }
@@ -124,8 +132,8 @@ fn init() bool {
 }
 
 fn timer_deinit() void {
-    handler.reserved = false;
-    intctrl.controller.unmap(irq);
+    idt_handler.reserved = false;
+    intctrl.controller.unmap(thandler_ctx.irq);
 }
 
 fn gts_deinit() void {}
@@ -143,19 +151,23 @@ fn map_hpet() void {
     }
 }
 
+fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
+    const ticks = ns / registers.gcap_id.counter_clk_period * 1_000_000;
+    thandler_ctx.callback = handler;
+    idt_handler.ctx = ctx;
+
+    comp.comparator = registers.counter + ticks;
+    comp.config_cap.int_enb_cnf = true;
+}
+
 /// Returns the HPET counter value in nanoseconds
 fn time() usize {
     // TODO: Cache counter_clk_period
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }
 
-const HandlerInfo = struct {
-    triggered: bool = false,
-};
-
 fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
-    info.triggered = true;
-    intctrl.controller.eoi(0);
-    return status;
+    const ret = thandler_ctx.callback(ctx, status);
+    intctrl.controller.eoi(thandler_ctx.irq);
+    return ret;
 }

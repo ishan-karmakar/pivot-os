@@ -4,6 +4,7 @@ pub const hpet = @import("hpet.zig");
 pub const tsc = @import("tsc.zig");
 pub const lapic = @import("lapic.zig");
 const kernel = @import("kernel");
+const cpu = kernel.drivers.cpu;
 const std = @import("std");
 
 pub const GTSVTable = struct {
@@ -11,8 +12,9 @@ pub const GTSVTable = struct {
     deinit: *const fn () void,
 };
 
+pub const CallbackFn = *const fn (?*anyopaque, *const cpu.Status) *const cpu.Status;
 pub const TimerVTable = struct {
-    // TODO: set oneshot and set periodic
+    callback: *const fn (ns: usize, ctx: ?*anyopaque, handler: CallbackFn) void,
     deinit: *const fn () void,
 };
 
@@ -23,7 +25,7 @@ pub var Task = kernel.Task{
         .{ .task = &pit.Task, .accept_failure = true },
         .{ .task = &hpet.Task, .accept_failure = true },
         .{ .task = &lapic.Task, .accept_failure = true },
-        .{ .task = &tsc.Task, .accept_failure = true },
+        // .{ .task = &tsc.Task, .accept_failure = true },
     },
 };
 

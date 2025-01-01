@@ -14,6 +14,7 @@ const HZ = 1193182;
 
 pub const vtable = timers.TimerVTable{
     .deinit = deinit,
+    .callback = callback,
 };
 
 pub var Task = kernel.Task{
@@ -25,39 +26,51 @@ pub var Task = kernel.Task{
     },
 };
 
-var irq: usize = undefined;
-var handler: *idt.HandlerData = undefined;
+const THandlerCtx = struct {
+    callback: timers.CallbackFn,
+    irq: usize,
+};
+var thandler_ctx: THandlerCtx = undefined;
+var idt_handler: *idt.HandlerData = undefined;
 
 fn init() bool {
-    handler = idt.allocate_handler(IRQ + 0x20);
-    handler.handler = timer_handler;
-    irq = intctrl.controller.map(idt.handler2vec(handler), IRQ) catch return false;
-    _ = sleep(1_000_000); // Sleep for 1 ms so no more interrupts fire
+    idt_handler = idt.allocate_handler(IRQ + 0x20);
+    thandler_ctx.irq = intctrl.controller.map(idt.handler2vec(idt_handler), IRQ) catch {
+        idt_handler.reserved = false;
+        return false;
+    };
+    idt_handler.handler = timer_handler;
+
+    var triggered: bool = false;
+    callback(1_000_000, &triggered, disable_pit_callback);
+    while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
     timers.set_timer(&vtable);
     return true;
 }
 
-fn deinit() void {
-    intctrl.controller.unmap(irq);
-    handler.reserved = false;
+fn disable_pit_callback(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+    @as(*bool, @alignCast(@ptrCast(ctx))).* = true;
+    return status;
 }
 
-fn sleep(ns: usize) bool {
-    // Command for oneshot
+fn deinit() void {
+    intctrl.controller.unmap(thandler_ctx.irq);
+    idt_handler.reserved = false;
+}
+
+fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
     const ticks = (ns * HZ) / 1_000_000_000;
-    var triggered = false;
-    handler.ctx = &triggered;
-    serial.out(CMD_REG, @as(u8, 0x30)); // 0x30, 0x34
+    thandler_ctx.callback = handler;
+    idt_handler.ctx = ctx;
+    serial.out(CMD_REG, @as(u8, 0x30));
     serial.out(DATA_REG, @as(u8, @truncate(ticks)));
     serial.out(DATA_REG, @as(u8, @truncate(ticks >> 8)));
-    intctrl.controller.mask(irq, false);
-    while (!@atomicLoad(bool, @as(*volatile bool, &triggered), .unordered)) asm volatile ("pause");
-    intctrl.controller.mask(irq, true);
-    return true;
+    intctrl.controller.mask(thandler_ctx.irq, false);
 }
 
-fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    @as(*bool, @alignCast(@ptrCast(ctx))).* = true;
-    intctrl.controller.eoi(irq);
-    return status;
+fn timer_handler(callback_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+    const ret = thandler_ctx.callback(callback_ctx, status);
+    // No need to mask because we are only doing oneshot ints
+    intctrl.controller.eoi(thandler_ctx.irq);
+    return ret;
 }

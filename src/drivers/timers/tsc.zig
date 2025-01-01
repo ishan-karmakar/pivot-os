@@ -11,7 +11,7 @@ pub var vtable: timers.GTSVTable = .{
     .deinit = deinit,
 };
 
-const CALIBRATION_NS = 5_000_000; // 5 ms
+const CALIBRATION_NS = 1_000_000; // 5 ms
 
 pub var Task = kernel.Task{
     .name = "TSC",
@@ -35,7 +35,8 @@ fn init() bool {
     const before = rdtsc();
     _ = timers.sleep(CALIBRATION_NS);
     const after = rdtsc();
-    ticks_per_ns = @as(f64, @floatFromInt(after - before)) / CALIBRATION_NS;
+    ticks_per_ns = @floatFromInt(after - before);
+    ticks_per_ns /= CALIBRATION_NS;
     timers.set_gts(&vtable);
     return true;
 }

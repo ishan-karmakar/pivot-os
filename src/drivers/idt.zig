@@ -200,6 +200,7 @@ fn log_status(status: *const cpu.IRETStatus) void {
 
 export fn irq_handler(status: *const cpu.Status, vec: usize) *const cpu.Status {
     const handler = vec2handler(@intCast(vec));
+    if (!handler.reserved) return status;
     if (handler.handler) |h| return h(handler.ctx, status);
     return status;
 }
