@@ -6,7 +6,7 @@ const cpu = kernel.drivers.cpu;
 const Process = kernel.lib.Process;
 const log = std.log.scoped(.smp);
 
-pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1 };
+pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1, .revision = 3 };
 
 pub const CPU = struct {
     id: u32,
@@ -17,7 +17,8 @@ pub const CPU = struct {
 };
 
 pub fn init() void {
-    for (0..SMP_REQUEST.response.?.cpu_count) |i| {
+    const response = SMP_REQUEST.response orelse return false;
+    for (0..response.cpu_count) |i| {
         const info = SMP_REQUEST.response.?.cpus()[i];
         const _info = mem.kheap.allocator().create(CPU) catch @panic("OOM");
         _info.* = CPU{

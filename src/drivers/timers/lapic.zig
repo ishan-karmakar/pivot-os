@@ -45,8 +45,6 @@ fn init() bool {
     ticks_per_ns = @floatFromInt(ticks_elapsed);
     ticks_per_ns /= CALIBRATION_NS;
 
-    lapic.write_reg();
-
     return true;
 }
 

@@ -22,7 +22,7 @@ const CPU_FEATURES_QUERY = std.Target.Query{
     .cpu_features_sub = CPU_FEATURES_SUB,
 };
 
-const ISO_COPY: [1][]const u8 = .{"limine.conf"};
+const ISO_COPY = [_][]const u8{ "limine.conf", "unifont.sfn" };
 
 const XORRISO_ARGS = .{
     "xorriso",
@@ -64,17 +64,18 @@ var limineZigModule: *std.Build.Module = undefined;
 var limineBinDep: *std.Build.Dependency = undefined;
 var limineBuildExeStep: *Step = undefined;
 
-var flantermModule: *std.Build.Module = undefined;
-var flantermCSourceFileOptions: std.Build.Module.AddCSourceFilesOptions = undefined;
-
 var uacpiModule: *std.Build.Module = undefined;
 var uacpiCSourceFileOptions: std.Build.Module.AddCSourceFilesOptions = undefined;
 var uacpiIncludePath: std.Build.LazyPath = undefined;
 
+var ssfnModule: *std.Build.Module = undefined;
+var ssfnCSourceFile: std.Build.Module.CSourceFile = undefined;
+var ssfnIncludePath: std.Build.LazyPath = undefined;
+
 pub fn build(b: *std.Build) void {
     const target = b.resolveTargetQuery(CPU_FEATURES_QUERY);
     const optimize = b.standardOptimizeOption(.{});
-    initFlanterm(b, target, optimize);
+    initSSFN(b, target, optimize);
     initUACPI(b, target, optimize);
     initLimine(b);
 
@@ -156,20 +157,34 @@ fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
         .optimize = optimize,
         .code_model = .kernel,
         .linkage = .static,
-        .strip = true,
+        .strip = false,
     });
     kernel.want_lto = false;
     kernel.setLinkerScript(b.path("linker.ld"));
-    kernel.addCSourceFiles(flantermCSourceFileOptions);
     kernel.addCSourceFiles(uacpiCSourceFileOptions);
+    kernel.addCSourceFile(ssfnCSourceFile);
     kernel.addIncludePath(uacpiIncludePath);
+    kernel.addIncludePath(ssfnIncludePath);
 
     kernel.root_module.addImport("config", options.createModule());
     kernel.root_module.addImport("limine", limineZigModule);
-    kernel.root_module.addImport("flanterm", flantermModule);
+    kernel.root_module.addImport("ssfn", ssfnModule);
     kernel.root_module.addImport("uacpi", uacpiModule);
     kernel.root_module.addImport("kernel", &kernel.root_module);
     return kernel;
+}
+
+fn initSSFN(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+    const dep = b.dependency("ssfn", .{});
+    ssfnCSourceFile = .{ .file = b.path("src/ssfn.c") };
+    const translateC = b.addTranslateC(.{
+        .link_libc = false,
+        .optimize = optimize,
+        .target = target,
+        .root_source_file = dep.path("ssfn.h"),
+    });
+    ssfnModule = translateC.createModule();
+    ssfnIncludePath = dep.path("");
 }
 
 fn initUACPI(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
@@ -178,7 +193,7 @@ fn initUACPI(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.buil
         .link_libc = false,
         .optimize = optimize,
         .target = target,
-        .root_source_file = b.path("src/drivers/uacpi.h"),
+        .root_source_file = b.path("src/uacpi.h"),
     });
     uacpiIncludePath = uacpi.path("include");
     translateC.addIncludeDir(uacpiIncludePath.getPath(b)); // This is a hack. Specifically states that should only be called during make phase
@@ -207,22 +222,6 @@ fn initUACPI(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.buil
             "utilities.c",
         },
         .flags = &.{"-DUACPI_SIZED_FREES"},
-    };
-}
-
-fn initFlanterm(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
-    const flanterm = b.dependency("flanterm", .{});
-    const translateC = b.addTranslateC(.{
-        .link_libc = false,
-        .optimize = optimize,
-        .target = target,
-        .root_source_file = flanterm.path("backends/fb.h"),
-    });
-    flantermModule = translateC.createModule();
-    flantermCSourceFileOptions = .{
-        .root = flanterm.path(""),
-        .files = &.{ "flanterm.c", "backends/fb.c" },
-        .flags = &.{"-DFLANTERM_FB_DISABLE_BUMP_ALLOC"},
     };
 }
 

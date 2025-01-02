@@ -27,17 +27,17 @@
             .url = "https://github.com/48cf/limine-zig/archive/7b29b6e6f6d35052f01ed3831085a39aae131705.zip",
             .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
         },
-        .flanterm = .{
-            .url = "https://github.com/mintsuki/flanterm/archive/a6f6edd6631c01caab932a59dce97bbd5f0c72c8.zip",
-            .hash = "122065d2b7025de49d0df77f5ca5cdfff8aefde9e94eb3aac3f821b06d5a02244313",
+        .limine_bin = .{
+            .url = "https://github.com/limine-bootloader/limine/archive/refs/heads/v8.x-binary.zip",
+            .hash = "1220533e700e69d712c0a656739b83a5aa50c1ad1ee7b05781ca1ee97e28457d0807",
         },
         .uacpi = .{
             .url = "https://github.com/UltraOS/uACPI/archive/98784e2b8536588a2536c9ef07e359e1da38bef1.zip",
             .hash = "1220cce634b142e1637cceb24b7964f3ae685178d93798ebc4e4f9797fc6067d5c3e",
         },
-        .limine_bin = .{
-            .url = "https://github.com/limine-bootloader/limine/archive/refs/heads/v8.x-binary.zip",
-            .hash = "1220533e700e69d712c0a656739b83a5aa50c1ad1ee7b05781ca1ee97e28457d0807",
+        .ssfn = .{
+            .url = "https://gitlab.com/bztsrc/scalable-font2/-/archive/master/scalable-font2-master.zip",
+            .hash = "12209dbc0764e4897893864030f9fcc26f6202c271d601d208568c858a12b9ffb237",
         },
     },
 

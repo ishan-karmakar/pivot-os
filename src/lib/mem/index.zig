@@ -11,9 +11,10 @@ pub var kmapper: Mapper = undefined;
 pub var kvmm: VMM = undefined;
 pub var kheap: FixedBufferAllocator = undefined;
 
-export var MMAP_REQUEST: limine.MemoryMapRequest = .{};
-export var HHDM_REQUEST: limine.HhdmRequest = .{};
+export var MMAP_REQUEST: limine.MemoryMapRequest = .{ .revision = 3 };
+export var HHDM_REQUEST: limine.HhdmRequest = .{ .revision = 3 };
 export var PAGING_REQUEST: limine.PagingModeRequest = .{
+    .revision = 3,
     .mode = .four_level,
     .flags = 0,
 };

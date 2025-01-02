@@ -52,8 +52,8 @@ export fn _start() noreturn {
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
-    drivers.term.Task.run();
-    drivers.timers.Task.run();
+    drivers.fb.Task.run();
+    // drivers.timers.Task.run();
     while (true) {}
 }
 

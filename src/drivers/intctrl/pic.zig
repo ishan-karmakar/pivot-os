@@ -34,7 +34,7 @@ fn init() bool {
     const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return false;
     if (madt.flags & 1 == 0) return false;
 
-    disable();
+    // Limine already masks PIC IRQs
 
     if (intctrl.ioapic.Task.ret.? == false) {
         for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = true;

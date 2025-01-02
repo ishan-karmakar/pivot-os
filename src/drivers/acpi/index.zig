@@ -3,14 +3,13 @@ const log = @import("std").log.scoped(.acpi);
 const std = @import("std");
 const kernel = @import("kernel");
 
-var TablesTaskDeps = [_]*kernel.Task{
-    &kernel.lib.mem.KHeapTask,
-    &kernel.lib.mem.KMapperTask,
-};
 pub var TablesTask = kernel.Task{
     .name = "ACPI Tables",
     .init = init_tables,
-    .dependencies = &.{},
+    .dependencies = &.{
+        .{ .task = &kernel.lib.mem.KHeapTask },
+        .{ .task = &kernel.lib.mem.KMapperTask },
+    },
 };
 
 fn init_tables() bool {
