@@ -22,7 +22,7 @@ const CPU_FEATURES_QUERY = std.Target.Query{
     .cpu_features_sub = CPU_FEATURES_SUB,
 };
 
-const ISO_COPY = [_][]const u8{ "limine.conf", "unifont.sfn" };
+const ISO_COPY = [_][]const u8{ "limine.conf", "unifont.sfn.gz" };
 
 const XORRISO_ARGS = .{
     "xorriso",

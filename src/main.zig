@@ -46,13 +46,18 @@ pub const Task = struct {
     }
 };
 
-export var LIMINE_BASE_REVISION: limine.BaseRevision = .{ .revision = 3 };
+export var LIMINE_BASE_REVISION = limine.BaseRevision{ .revision = 3 };
+
+// 128 KiB stack
+export var STACK_SIZE_REQUEST = limine.StackSizeRequest{ .revision = 3, .stack_size = 0x20000 };
 
 export fn _start() noreturn {
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
+    if (STACK_SIZE_REQUEST.response == null) @panic("Limine failed to respond to stack size request");
     drivers.fb.Task.run();
+    drivers.fb.write("testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest");
     // drivers.timers.Task.run();
     while (true) {}
 }

@@ -19,7 +19,7 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .flags = 0,
 };
 
-const KHEAP_SIZE = 0x1000 * 256;
+const KHEAP_SIZE = 0x1000 * 512;
 
 // IDT isn't strictly necessary, but we would like to get paging errors instead of a triple fault
 pub var PMMTask = kernel.Task{
