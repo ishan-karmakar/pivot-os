@@ -20,16 +20,6 @@ const HandlerInfo = struct {
     vec: u8,
 };
 
-export fn uacpi_kernel_initialize(lvl: uacpi.uacpi_init_level) uacpi.uacpi_status {
-    switch (lvl) {
-        uacpi.UACPI_INIT_LEVEL_NAMESPACE_LOADED => {},
-        else => {},
-    }
-    return uacpi.UACPI_STATUS_OK;
-}
-
-export fn uacpi_kernel_deinitialize() void {}
-
 export fn uacpi_kernel_raw_memory_read(addr: uacpi.uacpi_phys_addr, bw: uacpi.uacpi_u8, out: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {
     out.* = switch (bw) {
         1 => @intCast(@as(*const u8, @ptrFromInt(addr)).*),

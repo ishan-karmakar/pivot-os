@@ -24,7 +24,6 @@ pub var Task = kernel.Task{
     .dependencies = &.{
         .{ .task = &kernel.drivers.idt.Task },
         .{ .task = &kernel.drivers.acpi.TablesTask },
-        .{ .task = &intctrl.ioapic.Task, .accept_failure = true },
     },
 };
 
@@ -35,19 +34,16 @@ fn init() bool {
     if (madt.flags & 1 == 0) return false;
 
     // Limine already masks PIC IRQs
+    for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = true;
 
-    if (intctrl.ioapic.Task.ret.? == false) {
-        for (0x20..0x30) |v| kernel.drivers.idt.vec2handler(@intCast(v)).reserved = true;
-
-        serial.out(PIC1, @as(u8, 0x10 | 1));
-        serial.out(PIC2, @as(u8, 0x10 | 1));
-        serial.out(PIC1_DATA, @as(u8, 0x20));
-        serial.out(PIC2_DATA, @as(u8, 0x20 + 8));
-        serial.out(PIC1_DATA, @as(u8, 4));
-        serial.out(PIC2_DATA, @as(u8, 2));
-        serial.out(PIC1_DATA, @as(u8, 1));
-        serial.out(PIC2_DATA, @as(u8, 1));
-    }
+    serial.out(PIC1, @as(u8, 0x10 | 1));
+    serial.out(PIC2, @as(u8, 0x10 | 1));
+    serial.out(PIC1_DATA, @as(u8, 0x20));
+    serial.out(PIC2_DATA, @as(u8, 0x20 + 8));
+    serial.out(PIC1_DATA, @as(u8, 4));
+    serial.out(PIC2_DATA, @as(u8, 2));
+    serial.out(PIC1_DATA, @as(u8, 1));
+    serial.out(PIC2_DATA, @as(u8, 1));
 
     return true;
 }

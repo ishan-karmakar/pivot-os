@@ -17,7 +17,6 @@ pub var Task = kernel.Task{
     .name = "Interrupt Controller",
     .init = init,
     .dependencies = &.{
-        .{ .task = &pic.Task, .accept_failure = true },
         .{ .task = &ioapic.Task, .accept_failure = true },
     },
 };
@@ -25,9 +24,12 @@ pub var Task = kernel.Task{
 fn init() bool {
     if (ioapic.Task.ret.?) {
         controller = &ioapic.vtable;
-    } else if (pic.Task.ret.?) {
-        controller = &pic.vtable;
-    } else return false;
+    } else {
+        pic.Task.run();
+        if (pic.Task.ret.?) {
+            controller = &pic.vtable;
+        } else return false;
+    }
     asm volatile ("sti");
     return true;
 }

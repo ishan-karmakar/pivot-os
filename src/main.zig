@@ -53,7 +53,7 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
-    drivers.acpi.TablesTask.run();
+    drivers.intctrl.Task.run();
     // drivers.timers.Task.run();
     while (true) {}
 }
