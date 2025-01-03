@@ -13,5 +13,6 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.EnumLiteral)
 
 fn kernelWrite(_: void, bytes: []const u8) !usize {
     if (config.qemu) kernel.drivers.qemu.write(bytes);
+    kernel.drivers.fb.write(bytes);
     return bytes.len;
 }

@@ -48,26 +48,18 @@ pub const Task = struct {
 
 export var LIMINE_BASE_REVISION = limine.BaseRevision{ .revision = 3 };
 
-// 128 KiB stack
-export var STACK_SIZE_REQUEST = limine.StackSizeRequest{ .revision = 3, .stack_size = 0x20000 };
-
 export fn _start() noreturn {
     if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
-    if (STACK_SIZE_REQUEST.response == null) @panic("Limine failed to respond to stack size request");
     drivers.fb.Task.run();
-    drivers.fb.write("testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest");
+    drivers.acpi.TablesTask.run();
     // drivers.timers.Task.run();
     while (true) {}
 }
 
-pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     std.log.err("{s}", .{msg});
-    // TODO: Untested
-    if (stacktrace) |st| {
-        st.format("", .{}, lib.logger.writer) catch std.log.err("Error printing stacktrace");
-    }
     asm volatile (
         \\cli
         \\hlt
