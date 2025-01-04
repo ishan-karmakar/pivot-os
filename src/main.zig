@@ -13,35 +13,42 @@ pub const std_options = .{
     .log_level = .debug,
 };
 
-pub const TaskDep = struct {
-    task: *Task,
-    accept_failure: bool = false,
-};
-
 pub const Task = struct {
+    pub const Dep = struct {
+        task: *Task,
+        accept_failure: bool = false,
+    };
+    pub const Ret = enum {
+        success,
+        failed,
+        skipped,
+    };
+
     /// Human readable name of task
     name: []const u8,
     /// Initialize function that returns true for success, false for failure
-    init: ?*const fn () bool,
-    dependencies: []const TaskDep,
-    ret: ?bool = null,
+    init: *const fn () Ret,
+    dependencies: []const Dep,
+    ret: ?Ret = null,
 
     pub fn run(self: *@This()) void {
         if (self.ret != null) return;
 
         for (self.dependencies) |dep| {
             dep.task.run();
-            if (!dep.task.ret.? and !dep.accept_failure) {
+            if (dep.task.ret.? == .failed and !dep.accept_failure) {
                 log.err("Task \"{s}\" depends on task \"{s}\" (failed init)", .{ self.name, dep.task.name });
                 @panic("Panicking...");
             }
         }
 
-        self.ret = if (self.init) |init| init() else true;
-        if (self.ret.?) {
-            log.info("Task \"{s}\" completed initialization", .{self.name});
-        } else {
-            log.warn("Task \"{s}\" failed initialization", .{self.name});
+        const ret = self.ret orelse self.init();
+        self.ret = ret;
+
+        switch (ret) {
+            .success => log.info("Task \"{s}\" successfully initialized", .{self.name}),
+            .skipped => log.info("Task \"{s}\" skipped initialization", .{self.name}),
+            .failed => log.info("Task \"{s}\" failed initialization", .{self.name}),
         }
     }
 };
@@ -53,8 +60,7 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
-    drivers.intctrl.Task.run();
-    // drivers.timers.Task.run();
+    drivers.timers.Task.run();
     while (true) {}
 }
 

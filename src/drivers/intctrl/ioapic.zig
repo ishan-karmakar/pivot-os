@@ -6,9 +6,10 @@ const log = @import("std").log.scoped(.ioapic);
 const uacpi = @import("uacpi");
 const std = @import("std");
 
-pub const vtable = intctrl.VTable{
+pub var vtable = intctrl.VTable{
     .map = map,
     .unmap = unmap,
+    .pref_vec = pref_vec,
     .mask = mask,
     .eoi = eoi,
 };
@@ -20,7 +21,8 @@ pub var Task = kernel.Task{
         .{ .task = &kernel.lib.mem.KHeapTask },
         .{ .task = &kernel.lib.mem.KMapperTask },
         .{ .task = &kernel.drivers.acpi.TablesTask },
-        .{ .task = &kernel.drivers.lapic.Task, .accept_failure = true },
+        // Assuming that if LAPIC failed then IOAPIC cannot work
+        .{ .task = &kernel.drivers.lapic.Task },
     },
 };
 
@@ -85,28 +87,27 @@ const IOAPIC = struct {
 var ioapics: []IOAPIC = undefined;
 var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 
-fn init() bool {
-    // Assuming that is LAPIC failed then IOAPIC cannot work
-    if (!lapic.Task.ret.?) return false;
-    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return false;
+fn init() kernel.Task.Ret {
+    if (intctrl.controller != null) return .skipped;
+    const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return .failed;
 
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
     var ioapic_arr = std.ArrayList(IOAPIC).init(kernel.lib.mem.kheap.allocator());
-    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(IOAPIC.create(ioapic)) catch return false;
+    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(IOAPIC.create(ioapic)) catch return .failed;
 
-    if (ioapic_arr.items.len == 0) return false;
+    if (ioapic_arr.items.len == 0) return .failed;
 
     var iso_iter = acpi.Iterator(uacpi.acpi_madt_interrupt_source_override).create(uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE, &madt.hdr, @sizeOf(uacpi.acpi_madt));
     var iso_arr = std.ArrayList(*const uacpi.acpi_madt_interrupt_source_override).init(kernel.lib.mem.kheap.allocator());
-    while (iso_iter.next()) |iso| iso_arr.append(iso) catch return false;
+    while (iso_iter.next()) |iso| iso_arr.append(iso) catch return .failed;
 
-    ioapics = ioapic_arr.toOwnedSlice() catch return false;
-    isos = iso_arr.toOwnedSlice() catch return false;
-
-    return true;
+    ioapics = ioapic_arr.toOwnedSlice() catch return .failed;
+    isos = iso_arr.toOwnedSlice() catch return .failed;
+    intctrl.controller = &vtable;
+    return .success;
 }
 
-fn map(vec: u8, _irq: usize) !usize {
+fn map(_: *const intctrl.VTable, vec: u8, _irq: usize) !usize {
     var irq = _irq;
     var ent = RedirectionEntry{
         .vec = vec,
@@ -137,7 +138,7 @@ fn map(vec: u8, _irq: usize) !usize {
     return error.OutOfIRQs;
 }
 
-fn unmap(irq: usize) void {
+fn unmap(_: *const intctrl.VTable, irq: usize) void {
     for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             ioapic.write_red(irq, @bitCast(@as(u64, 0)));
@@ -150,7 +151,7 @@ fn find_so(irq: usize) ?*const uacpi.acpi_madt_interrupt_source_override {
     return null;
 }
 
-fn mask(irq: usize, m: bool) void {
+fn mask(_: *const intctrl.VTable, irq: usize, m: bool) void {
     for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             var ent = ioapic.read_red(irq);
@@ -160,6 +161,10 @@ fn mask(irq: usize, m: bool) void {
     }
 }
 
-fn eoi(_: usize) void {
+fn pref_vec(_: *const intctrl.VTable, _: usize) ?u8 {
+    return null;
+}
+
+fn eoi(_: *const intctrl.VTable, _: usize) void {
     lapic.eoi();
 }

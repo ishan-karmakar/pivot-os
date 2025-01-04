@@ -66,14 +66,9 @@ const Comparator = packed struct {
     }
 };
 
-pub var gts_vtable: timers.GTSVTable = .{
-    .time = time,
-    .deinit = gts_deinit,
-};
-
-pub var tim_vtable: timers.TimerVTable = .{
+pub const vtable: timers.VTable = .{
     .callback = callback,
-    .deinit = timer_deinit,
+    .time = time,
 };
 
 var registers: *volatile Registers = undefined;
@@ -83,6 +78,9 @@ pub var Task = kernel.Task{
     .init = init,
     .dependencies = &.{
         .{ .task = &mem.KMapperTask },
+        .{ .task = &kernel.drivers.idt.Task },
+        .{ .task = &kernel.drivers.acpi.TablesTask },
+        .{ .task = &kernel.drivers.intctrl.Task },
     },
 };
 
@@ -97,18 +95,19 @@ var comp: *Comparator = undefined;
 
 // FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them)
 // TODO: Multiple comparators (for scheduling on different CPUs, periodic not necessary)
-fn init() bool {
+fn init() kernel.Task.Ret {
+    if (timers.timer != null and timers.gts != null) return .skipped;
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
         log.debug("HPET not found", .{});
-        return false;
+        return .failed;
     };
     registers = @ptrFromInt(hpet.address.address);
     map_hpet();
 
     registers.gcfg.enable_cnf = true;
 
-    timers.set_timer(&tim_vtable);
-    timers.set_gts(&gts_vtable);
+    timers.timer = timers.timer orelse &vtable;
+    timers.gts = timers.gts orelse &vtable;
 
     for (0..(registers.gcap_id.num_tim_cap + 1)) |c| {
         comp = registers.get_comparator(c);
@@ -117,26 +116,19 @@ fn init() bool {
 
         for (0..32) |i| {
             if (comp.is_irq_supported(@intCast(i))) {
-                idt_handler = idt.allocate_handler(@intCast(i + 0x20));
-                thandler_ctx.irq = intctrl.controller.map(idt.handler2vec(idt_handler), i) catch {
+                idt_handler = idt.allocate_handler(intctrl.pref_vec(i));
+                thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), i) catch {
                     idt_handler.reserved = false;
                     continue;
                 };
                 comp.config_cap.int_route_cnf = @intCast(i);
-                return true;
+                return .success;
             }
         }
     }
     log.debug("Unable to configure comparator", .{});
-    return false;
+    return .failed;
 }
-
-fn timer_deinit() void {
-    idt_handler.reserved = false;
-    intctrl.controller.unmap(thandler_ctx.irq);
-}
-
-fn gts_deinit() void {}
 
 // TODO: Only map main area and specific comparator we are using
 fn map_hpet() void {
@@ -151,7 +143,7 @@ fn map_hpet() void {
     }
 }
 
-fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
+fn callback(_: *timers.VTable, ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
     const ticks = ns / registers.gcap_id.counter_clk_period * 1_000_000;
     thandler_ctx.callback = handler;
     idt_handler.ctx = ctx;
@@ -161,7 +153,7 @@ fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
 }
 
 /// Returns the HPET counter value in nanoseconds
-fn time() usize {
+fn time(_: *timers.VTable) usize {
     // TODO: Cache counter_clk_period
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }

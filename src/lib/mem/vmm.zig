@@ -10,6 +10,7 @@ const Allocator = std.mem.Allocator;
 const mem = kernel.lib.mem;
 const Mutex = kernel.lib.Mutex;
 const Self = @This();
+
 const Block = struct {
     depth: usize,
     col: usize,

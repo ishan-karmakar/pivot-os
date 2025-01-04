@@ -25,7 +25,7 @@ pub var Task = kernel.Task{
     },
 };
 
-pub fn bsp_init() bool {
+pub fn bsp_init() kernel.Task.Ret {
     var msr = cpu.rdmsr(MSR) | (1 << 11);
 
     const cpuid = cpu.cpuid(1, 0);
@@ -40,13 +40,13 @@ pub fn bsp_init() bool {
         read_reg = xapic_read_reg;
         write_reg = xapic_write_reg;
         log.debug("Found xAPIC", .{});
-    } else return false;
+    } else return .failed;
     cpu.wrmsr(MSR, msr);
     write_reg(TPR_OFF, 0);
 
     kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
-    return true;
+    return .success;
 }
 
 pub inline fn eoi() void {

@@ -10,8 +10,8 @@ pub var Task = kernel.Task{
     .dependencies = &.{},
 };
 
-fn init() bool {
-    return MODULE_REQUEST.response != null;
+fn init() kernel.Task.Ret {
+    return if (MODULE_REQUEST.response != null) .success else .failed;
 }
 
 pub fn get_module(cmdline: []const u8) usize {

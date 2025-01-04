@@ -11,8 +11,8 @@ pub var kmapper: Mapper = undefined;
 pub var kvmm: VMM = undefined;
 pub var kheap: FixedBufferAllocator = undefined;
 
-export var MMAP_REQUEST: limine.MemoryMapRequest = .{ .revision = 3 };
-export var HHDM_REQUEST: limine.HhdmRequest = .{ .revision = 3 };
+pub export var MMAP_REQUEST: limine.MemoryMapRequest = .{ .revision = 3 };
+pub export var HHDM_REQUEST: limine.HhdmRequest = .{ .revision = 3 };
 export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .revision = 3,
     .mode = .four_level,
@@ -21,20 +21,11 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
 
 const KHEAP_SIZE = 0x1000 * 512;
 
-// IDT isn't strictly necessary, but we would like to get paging errors instead of a triple fault
-pub var PMMTask = kernel.Task{
-    .name = "Physical Memory Manager",
-    .init = pmm_init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
-    },
-};
-
 pub var KMapperTask = kernel.Task{
     .name = "Kernel Mapper",
     .init = mapper_init,
     .dependencies = &.{
-        .{ .task = &PMMTask },
+        .{ .task = &pmm.Task },
     },
 };
 
@@ -42,7 +33,7 @@ pub var KVMMTask = kernel.Task{
     .name = "Kernel Virtual Memory Manager",
     .init = vmm_init,
     .dependencies = &.{
-        .{ .task = &PMMTask },
+        .{ .task = &pmm.Task },
         .{ .task = &KMapperTask },
     },
 };
@@ -55,38 +46,24 @@ pub var KHeapTask = kernel.Task{
     },
 };
 
-fn pmm_init() bool {
-    if (MMAP_REQUEST.response == null or HHDM_REQUEST.response == null) return false;
-    var free_mem: usize = 0;
-    for (MMAP_REQUEST.response.?.entries()) |ent| {
-        log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
-        if (ent.kind == .usable) {
-            free_mem += ent.length;
-            pmm.add_region(ent.base, @divFloor(ent.length, 0x1000));
-        }
-    }
-    log.debug("Found 0x{x} bytes of usable memory", .{free_mem});
-    return true;
-}
-
-fn mapper_init() bool {
-    if (PAGING_REQUEST.response == null or PAGING_REQUEST.response.?.mode != PAGING_REQUEST.mode) return false;
+fn mapper_init() kernel.Task.Ret {
+    if (PAGING_REQUEST.response == null or PAGING_REQUEST.response.?.mode != PAGING_REQUEST.mode) return .failed;
     kmapper = Mapper.create(virt(asm volatile ("mov %%cr3, %[result]"
         : [result] "=r" (-> usize),
     ) & 0xfffffffffffffffe));
-    return true;
+    return .success;
 }
 
-fn vmm_init() bool {
+fn vmm_init() kernel.Task.Ret {
     const mmap = MMAP_REQUEST.response.?.entries();
     const last = mmap[mmap.len - 1];
     kvmm = VMM.create(virt(0) + last.base + last.length, KHEAP_SIZE, 0b10 | (1 << 63), &kmapper);
-    return true;
+    return .success;
 }
 
-fn kheap_init() bool {
-    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, KHEAP_SIZE) catch return false);
-    return true;
+fn kheap_init() kernel.Task.Ret {
+    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, KHEAP_SIZE) catch return .failed);
+    return .success;
 }
 
 /// Converts physical address to virtual address

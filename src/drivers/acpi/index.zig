@@ -12,8 +12,8 @@ pub var TablesTask = kernel.Task{
     },
 };
 
-fn init_tables() bool {
-    return uacpi.uacpi_initialize(0) == uacpi.UACPI_STATUS_OK;
+fn init_tables() kernel.Task.Ret {
+    return if (uacpi.uacpi_initialize(0) == uacpi.UACPI_STATUS_OK) .success else .failed;
 }
 
 pub fn get_table(T: type, sig: [*c]const u8) ?*const T {

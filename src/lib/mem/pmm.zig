@@ -15,8 +15,29 @@ const FreeRegion = struct {
     }
 };
 
+// IDT isn't strictly necessary, but we would like to get paging errors instead of a triple fault
+pub var Task = kernel.Task{
+    .name = "Physical Memory Manager",
+    .init = init,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.idt.Task },
+    },
+};
+
 var mutex = Mutex{};
 var head_region: ?*FreeRegion = null;
+
+fn init() kernel.Task.Ret {
+    if (mem.HHDM_REQUEST.response == null) return .failed;
+    const response = mem.MMAP_REQUEST.response orelse return .failed;
+    for (response.entries()) |ent| {
+        log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
+        if (ent.kind == .usable) {
+            add_region(ent.base, ent.length / 0x1000);
+        }
+    }
+    return .success;
+}
 
 /// Adds region (start and number of pages) to free regions linked list
 pub fn add_region(start: usize, num_pages: usize) void {

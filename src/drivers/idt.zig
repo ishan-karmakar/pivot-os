@@ -48,7 +48,7 @@ pub var Task = kernel.Task{
     },
 };
 
-fn init() bool {
+fn init() kernel.Task.Ret {
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
     set_ent(1, create_exc_isr(1, false, "exception_handler"));
     set_ent(2, create_exc_isr(2, false, "exception_handler"));
@@ -80,11 +80,10 @@ fn init() bool {
     set_ent(30, create_exc_isr(30, true, "exception_handler"));
 
     inline for (0x20..256) |vec| set_ent(@intCast(vec), create_irq(vec));
-    vec2handler(0x80).reserved = true; // Syscall int number
 
     idtr.addr = @intFromPtr(&rawTable);
     lidt();
-    return true;
+    return .success;
 }
 
 fn set_ent(vec: u8, comptime handler: ISR) void {

@@ -12,9 +12,9 @@ const DATA_REG = 0x40;
 const IRQ = 0;
 const HZ = 1193182;
 
-pub const vtable = timers.TimerVTable{
-    .deinit = deinit,
+pub const vtable = timers.VTable{
     .callback = callback,
+    .time = null,
 };
 
 pub var Task = kernel.Task{
@@ -33,19 +33,20 @@ const THandlerCtx = struct {
 var thandler_ctx: THandlerCtx = undefined;
 var idt_handler: *idt.HandlerData = undefined;
 
-fn init() bool {
-    idt_handler = idt.allocate_handler(IRQ + 0x20);
-    thandler_ctx.irq = intctrl.controller.map(idt.handler2vec(idt_handler), IRQ) catch {
+fn init() kernel.Task.Ret {
+    if (timers.timer != null) return .skipped;
+    idt_handler = idt.allocate_handler(intctrl.pref_vec(IRQ));
+    thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), IRQ) catch {
         idt_handler.reserved = false;
-        return false;
+        return .failed;
     };
     idt_handler.handler = timer_handler;
 
     var triggered: bool = false;
-    callback(1_000_000, &triggered, disable_pit_callback);
+    callback(&vtable, 1_000_000, &triggered, disable_pit_callback);
     while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
-    timers.set_timer(&vtable);
-    return true;
+    timers.timer = &vtable;
+    return .success;
 }
 
 fn disable_pit_callback(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
@@ -53,24 +54,19 @@ fn disable_pit_callback(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.
     return status;
 }
 
-fn deinit() void {
-    intctrl.controller.unmap(thandler_ctx.irq);
-    idt_handler.reserved = false;
-}
-
-fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
+fn callback(_: *timers.VTable, ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
     const ticks = (ns * HZ) / 1_000_000_000;
     thandler_ctx.callback = handler;
     idt_handler.ctx = ctx;
     serial.out(CMD_REG, @as(u8, 0x30));
     serial.out(DATA_REG, @as(u8, @truncate(ticks)));
     serial.out(DATA_REG, @as(u8, @truncate(ticks >> 8)));
-    intctrl.controller.mask(thandler_ctx.irq, false);
+    intctrl.controller().mask(thandler_ctx.irq, false);
 }
 
 fn timer_handler(callback_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
     const ret = thandler_ctx.callback(callback_ctx, status);
     // No need to mask because we are only doing oneshot ints
-    intctrl.controller.eoi(thandler_ctx.irq);
+    intctrl.controller().eoi(thandler_ctx.irq);
     return ret;
 }

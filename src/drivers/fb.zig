@@ -15,8 +15,9 @@ pub var Task = kernel.Task{
 
 export var FB_REQUEST = limine.FramebufferRequest{ .revision = 3 };
 
-pub fn init() bool {
-    const response = FB_REQUEST.response orelse return false;
+pub fn init() kernel.Task.Ret {
+    const response = FB_REQUEST.response orelse return .failed;
+    // FIXME: Multiple framebuffers
     const fb = response.framebuffers()[0];
     const font = kernel.drivers.modules.get_module("font");
 
@@ -29,7 +30,7 @@ pub fn init() bool {
     ssfn.ssfn_dst.w = @intCast(fb.width);
     ssfn.ssfn_dst.p = @intCast(fb.pitch);
     ssfn.ssfn_dst.ptr = fb.address;
-    return true;
+    return .success;
 }
 
 pub fn write(bytes: []const u8) void {

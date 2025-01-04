@@ -7,44 +7,36 @@ const kernel = @import("kernel");
 const cpu = kernel.drivers.cpu;
 const std = @import("std");
 
-pub const GTSVTable = struct {
-    time: *const fn () usize,
-    deinit: *const fn () void,
-};
-
 pub const CallbackFn = *const fn (?*anyopaque, *const cpu.Status) *const cpu.Status;
-pub const TimerVTable = struct {
-    callback: *const fn (ns: usize, ctx: ?*anyopaque, handler: CallbackFn) void,
-    deinit: *const fn () void,
+pub const VTable = struct {
+    callback: ?*const fn (self: *@This(), ns: usize, ctx: ?*anyopaque, handler: CallbackFn) void,
+    time: ?*const fn (self: *@This()) usize,
 };
 
 pub var Task = kernel.Task{
     .name = "Timers",
-    .init = null,
+    .init = init,
     .dependencies = &.{
-        .{ .task = &pit.Task, .accept_failure = true },
-        .{ .task = &hpet.Task, .accept_failure = true },
-        .{ .task = &lapic.Task, .accept_failure = true },
         // .{ .task = &tsc.Task, .accept_failure = true },
+        // .{ .task = &lapic.Task, .accept_failure = true },
+        .{ .task = &hpet.Task, .accept_failure = true },
+        .{ .task = &pit.Task, .accept_failure = true },
     },
 };
 
-var gts: ?*const GTSVTable = null;
-var timer: ?*const TimerVTable = null;
+pub var gts: ?*const VTable = null;
+pub var timer: ?*const VTable = null;
+
+fn init() kernel.Task.Ret {
+    if (timer == null) return .failed;
+    // FIXME: If no GTS, use timer instead
+    return .success;
+}
 
 pub fn sleep(ns: usize) void {
     // FIXME: Either GTS or timer for sleep
     const t = gts orelse @panic("No global time source available");
-    const start = t.time();
-    while (t.time() < (start + ns)) asm volatile ("pause");
-}
-
-pub fn set_timer(t: *const TimerVTable) void {
-    if (timer) |org| org.deinit();
-    timer = t;
-}
-
-pub fn set_gts(t: *const GTSVTable) void {
-    if (gts) |org| org.deinit();
-    gts = t;
+    const time = t.time orelse @panic("GTS doesn't support time()");
+    const start = time();
+    while (time() < (start + ns)) asm volatile ("pause");
 }

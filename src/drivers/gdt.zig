@@ -52,15 +52,15 @@ pub var DynamicTask = kernel.Task{
     },
 };
 
-fn init_static() bool {
+fn init_static() kernel.Task.Ret {
     gdtr.addr = @intFromPtr(&static_gdt);
     lgdt();
-    return true;
+    return .success;
 }
 
-fn init_dynamic() bool {
-    if (smp.SMP_REQUEST.response == null) return false;
-    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.?.cpu_count * 2) catch return false;
+fn init_dynamic() kernel.Task.Ret {
+    if (smp.SMP_REQUEST.response == null) return .failed;
+    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.?.cpu_count * 2) catch return .failed;
     for (0..3) |i| buf[i] = static_gdt[i];
     buf[3] = .{
         .access = 0b11111011,
@@ -73,7 +73,7 @@ fn init_dynamic() bool {
     gdtr.size = @intCast(buf.len * @sizeOf(Entry) - 1);
     gdtr.addr = @intFromPtr(buf.ptr);
     lgdt();
-    return true;
+    return .success;
 }
 
 pub fn lgdt() void {
