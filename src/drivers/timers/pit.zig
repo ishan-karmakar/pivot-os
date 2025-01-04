@@ -43,7 +43,7 @@ fn init() kernel.Task.Ret {
     idt_handler.handler = timer_handler;
 
     var triggered: bool = false;
-    callback(&vtable, 1_000_000, &triggered, disable_pit_callback);
+    callback(1_000_000, &triggered, disable_pit_callback);
     while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
     timers.timer = &vtable;
     return .success;
@@ -54,19 +54,19 @@ fn disable_pit_callback(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.
     return status;
 }
 
-fn callback(_: *timers.VTable, ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
+fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
     const ticks = (ns * HZ) / 1_000_000_000;
     thandler_ctx.callback = handler;
     idt_handler.ctx = ctx;
     serial.out(CMD_REG, @as(u8, 0x30));
     serial.out(DATA_REG, @as(u8, @truncate(ticks)));
     serial.out(DATA_REG, @as(u8, @truncate(ticks >> 8)));
-    intctrl.controller().mask(thandler_ctx.irq, false);
+    intctrl.mask(thandler_ctx.irq, false);
 }
 
 fn timer_handler(callback_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
     const ret = thandler_ctx.callback(callback_ctx, status);
     // No need to mask because we are only doing oneshot ints
-    intctrl.controller().eoi(thandler_ctx.irq);
+    intctrl.eoi(thandler_ctx.irq);
     return ret;
 }

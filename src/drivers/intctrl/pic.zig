@@ -50,25 +50,25 @@ fn init() kernel.Task.Ret {
     return .failed;
 }
 
-fn map(self: *const intctrl.VTable, vec: u8, irq: usize) !usize {
+fn map(vec: u8, irq: usize) !usize {
     if (vec != (irq + 0x20) or irq >= 16) return error.InvalidIRQ;
 
     if (reserved & (@as(u16, 1) << @intCast(irq)) != 0) return error.IRQUsed;
     reserved |= @as(u16, 1) << @intCast(irq);
-    mask(self, irq, true);
+    mask(irq, true);
 
     return irq;
 }
 
-fn unmap(_: *const intctrl.VTable, irq: usize) void {
+fn unmap(irq: usize) void {
     reserved &= ~(@as(u16, 1) << @intCast(irq));
 }
 
-fn eoi(_: *const intctrl.VTable, irq: usize) void {
+fn eoi(irq: usize) void {
     serial.out(if (irq < 8) PIC1 else PIC2, @as(u8, PIC_EOI));
 }
 
-fn mask(_: *const intctrl.VTable, _irq: usize, m: bool) void {
+fn mask(_irq: usize, m: bool) void {
     var irq = _irq;
     const port = get_port(&irq);
     if (m) {
@@ -78,7 +78,7 @@ fn mask(_: *const intctrl.VTable, _irq: usize, m: bool) void {
     }
 }
 
-fn pref_vec(_: *const intctrl.VTable, irq: usize) ?u8 {
+fn pref_vec(irq: usize) ?u8 {
     return @intCast(irq + 0x20);
 }
 

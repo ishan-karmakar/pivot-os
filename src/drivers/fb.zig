@@ -34,7 +34,7 @@ pub fn init() kernel.Task.Ret {
 }
 
 pub fn write(bytes: []const u8) void {
-    if (!(Task.ret orelse return)) return;
+    if ((Task.ret orelse return) != .success) return;
     for (bytes) |b| {
         if (ssfn.ssfn_putc(@intCast(b)) != ssfn.SSFN_OK) @panic("ssfn_putc failed");
     }

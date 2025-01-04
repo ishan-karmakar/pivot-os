@@ -6,9 +6,9 @@ const cpu = kernel.drivers.cpu;
 const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
 
-pub var vtable: timers.GTSVTable = .{
+pub var vtable: timers.VTable = .{
     .time = time,
-    .deinit = deinit,
+    .callback = null,
 };
 
 const CALIBRATION_NS = 1_000_000; // 5 ms
@@ -16,13 +16,15 @@ const CALIBRATION_NS = 1_000_000; // 5 ms
 pub var Task = kernel.Task{
     .name = "TSC",
     .init = init,
-    // We don't depend on any timers here because TSC task runs after other timers in timers/index.zig. Probably not the most clear but it works :/
-    .dependencies = &.{},
+    .dependencies = &.{
+        .{ .task = &timers.TimerTask },
+    },
 };
 
 var ticks_per_ns: f64 = undefined;
 
-fn init() bool {
+fn init() kernel.Task.Ret {
+    if (timers.gts != null) return .skipped;
     const freqs = cpu.cpuid(0x15, 0);
     if (freqs.ebx != 0 and freqs.ecx != 0) {
         @panic("Handle frequency calculation from CPUID");
@@ -30,15 +32,15 @@ fn init() bool {
     const cpuid = cpu.cpuid(0x80000007, 0);
     if (cpuid.edx & (1 << 8) == 0) {
         log.debug("Invariant TSC not supported", .{});
-        return false;
+        return .failed;
     }
     const before = rdtsc();
     _ = timers.sleep(CALIBRATION_NS);
     const after = rdtsc();
     ticks_per_ns = @floatFromInt(after - before);
     ticks_per_ns /= CALIBRATION_NS;
-    timers.set_gts(&vtable);
-    return true;
+    timers.gts = &vtable;
+    return .success;
 }
 
 fn deinit() void {}

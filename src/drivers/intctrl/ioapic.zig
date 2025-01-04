@@ -21,8 +21,7 @@ pub var Task = kernel.Task{
         .{ .task = &kernel.lib.mem.KHeapTask },
         .{ .task = &kernel.lib.mem.KMapperTask },
         .{ .task = &kernel.drivers.acpi.TablesTask },
-        // Assuming that if LAPIC failed then IOAPIC cannot work
-        .{ .task = &kernel.drivers.lapic.Task },
+        .{ .task = &kernel.drivers.lapic.Task, .accept_failure = true },
     },
 };
 
@@ -89,6 +88,8 @@ var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 
 fn init() kernel.Task.Ret {
     if (intctrl.controller != null) return .skipped;
+    // Assuming that if LAPIC failed then IOAPIC cannot work
+    if (lapic.Task.ret.? != .success) return .skipped;
     const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return .failed;
 
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
@@ -107,7 +108,7 @@ fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn map(_: *const intctrl.VTable, vec: u8, _irq: usize) !usize {
+fn map(vec: u8, _irq: usize) !usize {
     var irq = _irq;
     var ent = RedirectionEntry{
         .vec = vec,
@@ -138,7 +139,7 @@ fn map(_: *const intctrl.VTable, vec: u8, _irq: usize) !usize {
     return error.OutOfIRQs;
 }
 
-fn unmap(_: *const intctrl.VTable, irq: usize) void {
+fn unmap(irq: usize) void {
     for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             ioapic.write_red(irq, @bitCast(@as(u64, 0)));
@@ -151,7 +152,7 @@ fn find_so(irq: usize) ?*const uacpi.acpi_madt_interrupt_source_override {
     return null;
 }
 
-fn mask(_: *const intctrl.VTable, irq: usize, m: bool) void {
+fn mask(irq: usize, m: bool) void {
     for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             var ent = ioapic.read_red(irq);
@@ -161,10 +162,10 @@ fn mask(_: *const intctrl.VTable, irq: usize, m: bool) void {
     }
 }
 
-fn pref_vec(_: *const intctrl.VTable, _: usize) ?u8 {
+fn pref_vec(_: usize) ?u8 {
     return null;
 }
 
-fn eoi(_: *const intctrl.VTable, _: usize) void {
+fn eoi(_: usize) void {
     lapic.eoi();
 }

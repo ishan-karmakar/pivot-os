@@ -27,7 +27,7 @@ pub const Task = struct {
     /// Human readable name of task
     name: []const u8,
     /// Initialize function that returns true for success, false for failure
-    init: *const fn () Ret,
+    init: ?*const fn () Ret,
     dependencies: []const Dep,
     ret: ?Ret = null,
 
@@ -42,13 +42,13 @@ pub const Task = struct {
             }
         }
 
-        const ret = self.ret orelse self.init();
+        const ret = self.ret orelse if (self.init) |init| init() else .success;
         self.ret = ret;
 
         switch (ret) {
             .success => log.info("Task \"{s}\" successfully initialized", .{self.name}),
-            .skipped => log.info("Task \"{s}\" skipped initialization", .{self.name}),
-            .failed => log.info("Task \"{s}\" failed initialization", .{self.name}),
+            .skipped => log.debug("Task \"{s}\" skipped initialization", .{self.name}),
+            .failed => log.err("Task \"{s}\" failed initialization", .{self.name}),
         }
     }
 };
@@ -60,7 +60,7 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
-    drivers.timers.Task.run();
+    drivers.timers.GlobalTimeTask.run();
     while (true) {}
 }
 
