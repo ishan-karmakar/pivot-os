@@ -13,47 +13,58 @@ pub const VTable = struct {
     time: ?*const fn () usize,
 };
 
-pub var GlobalTimeTask = kernel.Task{
-    .name = "Global Time",
-    .init = null,
+pub var NoCalibrationTask = kernel.Task{
+    .name = "No Calibration Timers",
+    .init = no_cal_init,
     .dependencies = &.{
-        .{ .task = &tsc.Task, .accept_failure = true },
-        .{ .task = &hpet.GlobalTimeTask, .accept_failure = true },
+        .{ .task = &hpet.Task, .accept_failure = true },
+        .{ .task = &pit.Task, .accept_failure = true },
     },
 };
 
-pub var TimerTask = kernel.Task{
-    .name = "Timers",
-    .init = timers_init,
+var CalibrationTask = kernel.Task{
+    .name = "Calibration Timers",
+    .init = null,
     .dependencies = &.{
-        .{ .task = &hpet.TimerTask, .accept_failure = true },
-        .{ .task = &pit.Task, .accept_failure = true },
+        .{ .task = &tsc.Task, .accept_failure = true },
+        .{ .task = &lapic.Task, .accept_failure = true },
+    },
+};
+
+pub var Task = kernel.Task{
+    .name = "Global Time + Timers",
+    .init = null,
+    .dependencies = &.{
+        .{ .task = &NoCalibrationTask },
+        .{ .task = &CalibrationTask },
     },
 };
 
 pub var gts: ?*const VTable = null;
 pub var timer: ?*const VTable = null;
+var no_cal_timer: ?*const VTable = null;
+var no_cal_gts: ?*const VTable = null;
 
-fn timers_init() kernel.Task.Ret {
-    if (timer == null) return .failed;
-    // FIXME: If no GTS, use timer instead
+fn no_cal_init() kernel.Task.Ret {
+    no_cal_gts = gts;
+    no_cal_timer = timer;
+    timer = null;
+    gts = null;
     return .success;
 }
 
 pub fn sleep(ns: usize) void {
-    // const t = gts orelse @panic("No global time source available");
-    // const time = t.time orelse @panic("GTS doesn't support time()");
-    // const start = time();
-    // while (time() < (start + ns)) asm volatile ("pause");
-    if (gts) |vtable| {
+    const _gts = gts orelse no_cal_gts;
+    const _timer = timer orelse no_cal_timer;
+    if (_gts) |vtable| {
         const t = vtable.time.?;
         const start = t();
         while (t() < (start + ns)) asm volatile ("pause");
-    } else if (timer) |vtable| {
+    } else if (_timer) |vtable| {
         var triggered = false;
         vtable.callback.?(ns, &triggered, sleep_callback);
         while (!@atomicLoad(bool, @as(*const volatile bool, &triggered), .unordered)) asm volatile ("pause");
-    }
+    } else @panic("No timer found");
 }
 
 fn sleep_callback(ctx: ?*anyopaque, status: *const kernel.drivers.cpu.Status) *const kernel.drivers.cpu.Status {

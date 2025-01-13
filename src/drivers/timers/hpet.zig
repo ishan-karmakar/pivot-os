@@ -73,30 +73,12 @@ pub const vtable: timers.VTable = .{
 
 var registers: *volatile Registers = undefined;
 
-var CommonTask = kernel.Task{
-    .name = "HPET Common",
-    .init = common_init,
+pub var Task = kernel.Task{
+    .name = "HPET",
+    .init = init,
     .dependencies = &.{
-        .{ .task = &mem.KMapperTask },
-        .{ .task = &kernel.drivers.acpi.TablesTask },
-    },
-};
-
-pub var TimerTask = kernel.Task{
-    .name = "HPET Timer",
-    .init = timer_init,
-    .dependencies = &.{
-        .{ .task = &CommonTask, .accept_failure = true },
         .{ .task = &kernel.drivers.idt.Task },
         .{ .task = &kernel.drivers.intctrl.Task },
-    },
-};
-
-pub var GlobalTimeTask = kernel.Task{
-    .name = "HPET Global Time",
-    .init = gt_init,
-    .dependencies = &.{
-        .{ .task = &CommonTask, .accept_failure = true },
     },
 };
 
@@ -106,8 +88,9 @@ var handler: *idt.HandlerData = undefined;
 var comp: *Comparator = undefined;
 
 // FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them)
+// FIXME: Use standard mapping if leg ret doesn't exist
 // TODO: Multiple comparators (for scheduling on different CPUs, periodic not necessary)
-fn common_init() kernel.Task.Ret {
+fn init() kernel.Task.Ret {
     if (timers.timer != null and timers.gts != null) return .skipped;
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
         log.debug("HPET not found", .{});
@@ -115,33 +98,19 @@ fn common_init() kernel.Task.Ret {
     };
     registers = @ptrFromInt(hpet.address.address);
     map_hpet();
+    registers.gcfg.enable_cnf = true;
 
-    return .success;
-}
-
-fn timer_init() kernel.Task.Ret {
-    if (CommonTask.ret.? != .success) return .skipped;
-    if (timers.timer != null) return .skipped;
     if (!registers.gcap_id.leg_rt_cap) return .failed;
     registers.gcfg.leg_rt_cnf = true;
     comp = registers.get_comparator(0);
-    log.info("{}", .{comp});
     handler = idt.allocate_handler(intctrl.pref_vec(0));
     irq = intctrl.map(idt.handler2vec(handler), 0) catch {
         handler.reserved = false;
         return .failed;
     };
     handler.handler = timer_handler;
-    timers.timer = &vtable;
-    registers.gcfg.enable_cnf = true;
-    return .success;
-}
-
-fn gt_init() kernel.Task.Ret {
-    if (CommonTask.ret.? != .success) return .skipped;
-    if (timers.gts != null) return .skipped;
-    registers.gcfg.enable_cnf = true;
-    timers.gts = &vtable;
+    timers.timer = timers.timer orelse &vtable;
+    timers.gts = timers.gts orelse &vtable;
     return .success;
 }
 
@@ -166,9 +135,8 @@ fn timer_callback(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void
     registers.gcfg.enable_cnf = false;
     comp.comparator = registers.counter + ticks;
     comp.config_cap.int_enb_cnf = true;
-    comp.config_cap.int_route_cnf = 2;
-    asm volatile ("sti");
     registers.gcfg.enable_cnf = true;
+    intctrl.mask(irq, false);
 }
 
 /// Returns the HPET counter value in nanoseconds
@@ -178,7 +146,6 @@ fn time() usize {
 }
 
 fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    log.info("test", .{});
     const ret = callback(ctx, status);
     intctrl.eoi(irq);
     return ret;

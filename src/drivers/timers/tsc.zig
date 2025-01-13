@@ -11,39 +11,38 @@ pub var vtable: timers.VTable = .{
     .callback = null,
 };
 
-const CALIBRATION_NS = 1_000_000; // 5 ms
+const CALIBRATION_NS = 1_000_000; // 1 ms
 
 pub var Task = kernel.Task{
     .name = "TSC",
     .init = init,
     .dependencies = &.{
-        .{ .task = &timers.TimerTask },
+        .{ .task = &timers.NoCalibrationTask },
     },
 };
 
-var ticks_per_ns: f64 = undefined;
+pub var hertz: usize = undefined;
 
 fn init() kernel.Task.Ret {
     if (timers.gts != null) return .skipped;
-    const freqs = cpu.cpuid(0x15, 0);
-    if (freqs.ebx != 0 and freqs.ecx != 0) {
-        @panic("Handle frequency calculation from CPUID");
-    }
     const cpuid = cpu.cpuid(0x80000007, 0);
     if (cpuid.edx & (1 << 8) == 0) {
         log.debug("Invariant TSC not supported", .{});
         return .failed;
     }
+    const freqs = cpu.cpuid(0x15, 0);
+    if (freqs.ebx != 0 and freqs.ecx != 0) {
+        hertz = freqs.ecx * (freqs.ebx / freqs.eax);
+        timers.gts = &vtable;
+        return .success;
+    }
     const before = rdtsc();
-    _ = timers.sleep(CALIBRATION_NS);
+    timers.sleep(CALIBRATION_NS);
     const after = rdtsc();
-    ticks_per_ns = @floatFromInt(after - before);
-    ticks_per_ns /= CALIBRATION_NS;
+    hertz = (after - before) * (1_000_000_000 / CALIBRATION_NS);
     timers.gts = &vtable;
     return .success;
 }
-
-fn deinit() void {}
 
 fn rdtsc() usize {
     // TODO: rdtscp? mfence + lfence? https://stackoverflow.com/questions/27693145/rdtscp-versus-rdtsc-cpuid
@@ -57,6 +56,5 @@ fn rdtsc() usize {
 }
 
 fn time() usize {
-    // Just multiplying by arbitary number (1000) to hopefully move the decimals into the integer part before converting
-    return rdtsc() / @as(usize, @intFromFloat(ticks_per_ns * 1_000)) * 1_000;
+    return rdtsc() * 1_000_000_000 / hertz;
 }

@@ -60,8 +60,8 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
-    drivers.timers.GlobalTimeTask.run();
-    while (true) {}
+    drivers.timers.Task.run();
+    while (true) asm volatile ("hlt");
 }
 
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {

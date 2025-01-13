@@ -4,10 +4,10 @@ const timers = kernel.drivers.timers;
 const idt = kernel.drivers.idt;
 const cpu = kernel.drivers.cpu;
 const std = @import("std");
-const log = std.log.scoped(.lapic);
+const log = std.log.scoped(.lapic_timer);
 
-pub const vtable = timers.TimerVTable{
-    .callback = callback,
+pub var vtable = timers.TimerVTable{
+    .callback = null,
     .deinit = deinit,
 };
 
@@ -16,43 +16,45 @@ pub var Task = kernel.Task{
     .init = init,
     .dependencies = &.{
         .{ .task = &lapic.Task, .accept_failure = true },
+        .{ .task = &timers.tsc.Task, .accept_failure = true },
     },
 };
 
 const INITIAL_COUNT_OFF = 0x380;
 const CONFIG_OFF = 0x3E0;
 const CUR_COUNT_OFF = 0x390;
+const TIMER_OFF = 0x320;
 
 const CALIBRATION_NS = 1_000_000; // 1 ms
 
 var handler: timers.CallbackFn = undefined;
 var idt_handler: *idt.HandlerData = undefined;
-var ticks_per_ns: f64 = undefined;
 
-fn init() bool {
-    if (!lapic.Task.ret.?) return false;
+fn init() kernel.Task.Ret {
+    if (lapic.Task.ret != .success) return .failed;
 
-    idt_handler = idt.allocate_handler(null);
-    idt_handler.handler = timer_handler;
+    const tsc_deadline = cpu.cpuid(0x1, 0).ecx & (1 << 24);
+    if (tsc_deadline > 0 and timers.tsc.Task.ret == .success) {
+        // We are actually able to use TSC Deadline
+        log.debug("Using TSC deadine mode", .{});
+        vtable.callback = tsc_deadline_callback;
+    }
 
-    lapic.write_reg(CONFIG_OFF, 0b10); // Divide by 8
-    lapic.write_reg(INITIAL_COUNT_OFF, std.math.maxInt(u32));
-    timers.sleep(CALIBRATION_NS);
+    log.debug("Using normal oneshot mode", .{});
+    vtable.callback = oneshot_callback;
+    // Calibrate timer
 
-    const cur_ticks = lapic.read_reg(CUR_COUNT_OFF);
-    lapic.write_reg(INITIAL_COUNT_OFF, 0);
-    const ticks_elapsed = std.math.maxInt(u32) - cur_ticks;
-    ticks_per_ns = @floatFromInt(ticks_elapsed);
-    ticks_per_ns /= CALIBRATION_NS;
-
-    return true;
+    return .success;
 }
 
-fn callback(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void {
-    _handler = handler;
-    idt_handler.ctx = ctx;
+fn tsc_deadline_callback(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void {
+    const ticks = (ns * timers.tsc.hertz) / 1_000_000_000;
+}
 
-    lapic.write_reg(INITIAL_COUNT_OFF, @intFromFloat(ns * ticks_per_ns));
+fn oneshot_callback(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void {
+    _ = ns;
+    _ = ctx;
+    _ = _handler;
 }
 
 fn deinit() void {}

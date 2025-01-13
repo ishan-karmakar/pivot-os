@@ -1,3 +1,5 @@
+const kernel = @import("kernel");
+
 pub const CPUIDResult = struct {
     eax: u32,
     ebx: u32,

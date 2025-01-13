@@ -8,7 +8,6 @@ const SPURIOUS_VEC = 0xFF;
 const TPR_OFF = 0x80;
 const EOI_OFF = 0xB0;
 const SPURIOUS_OFF = 0xF0;
-const LVT_OFF = 0x320;
 const ICRLO = 0x300;
 const ICRHI = 0x310;
 

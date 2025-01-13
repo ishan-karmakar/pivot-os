@@ -31,7 +31,7 @@ fn init() kernel.Task.Ret {
     if (mem.HHDM_REQUEST.response == null) return .failed;
     const response = mem.MMAP_REQUEST.response orelse return .failed;
     for (response.entries()) |ent| {
-        log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
+        // log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
         if (ent.kind == .usable) {
             add_region(ent.base, ent.length / 0x1000);
         }
