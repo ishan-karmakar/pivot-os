@@ -64,6 +64,12 @@ export fn _start() noreturn {
     while (true) asm volatile ("hlt");
 }
 
+// FIXME: Remove when done testing timers stuff
+fn test_handler(_: ?*anyopaque, status: *const drivers.cpu.Status) *const drivers.cpu.Status {
+    log.info("Test", .{});
+    return status;
+}
+
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     std.log.err("{s}", .{msg});
     asm volatile (
