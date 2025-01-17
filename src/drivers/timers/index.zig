@@ -18,6 +18,7 @@ pub var NoCalibrationTask = kernel.Task{
     .init = no_cal_init,
     .dependencies = &.{
         .{ .task = &hpet.Task, .accept_failure = true },
+        .{ .task = &acpi.Task, .accept_failure = true },
         .{ .task = &pit.Task, .accept_failure = true },
     },
 };
@@ -45,7 +46,6 @@ pub var timer: ?*const VTable = null;
 var no_cal_timer: ?*const VTable = null;
 var no_cal_gts: ?*const VTable = null;
 
-// TODO: ACPI Timer
 // TODO: RTC timer
 
 fn no_cal_init() kernel.Task.Ret {

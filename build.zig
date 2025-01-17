@@ -49,6 +49,8 @@ const QEMU_ARGS = .{
     "2",
     "-machine",
     "q35",
+    "-bios",
+    "OVMF.fd",
     "-serial",
     "stdio",
     "-no-reboot",
