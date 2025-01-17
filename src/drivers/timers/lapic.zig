@@ -40,7 +40,6 @@ var hertz: usize = undefined;
 
 fn init() kernel.Task.Ret {
     if (timers.timer != null) return .skipped;
-    if (lapic.Task.ret != .success) return .failed;
 
     const tsc_deadline = cpu.cpuid(0x1, 0).ecx & (1 << 24);
     if (tsc_deadline > 0 and timers.tsc.Task.ret == .success) {

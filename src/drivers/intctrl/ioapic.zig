@@ -88,8 +88,6 @@ var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 
 fn init() kernel.Task.Ret {
     if (intctrl.controller != null) return .skipped;
-    // Assuming that if LAPIC failed then IOAPIC cannot work
-    if (lapic.Task.ret.? != .success) return .skipped;
     const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return .failed;
 
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
