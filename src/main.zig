@@ -5,23 +5,20 @@ const limine = @import("limine");
 const log = std.log.scoped(.main);
 const config = @import("config");
 
-// TODO: Support options for logging for each service
-// Ex. Only log PMM but not VMM, etc.
-
 pub const std_options = .{
     .logFn = lib.logger.logger,
     .log_level = .debug,
 };
 
 pub const Task = struct {
-    pub const Dep = struct {
-        task: *Task,
-        accept_failure: bool = false,
-    };
     pub const Ret = enum {
         success,
         failed,
         skipped,
+    };
+    pub const Dep = struct {
+        task: *Task,
+        accept_failure: bool = false,
     };
 
     /// Human readable name of task
@@ -36,9 +33,10 @@ pub const Task = struct {
 
         for (self.dependencies) |dep| {
             dep.task.run();
-            if (dep.task.ret.? == .failed and !dep.accept_failure) {
-                log.err("Task \"{s}\" depends on task \"{s}\" (failed init)", .{ self.name, dep.task.name });
-                @panic("Panicking...");
+            if (dep.task.ret.? != .success and !dep.accept_failure) {
+                log.warn("Task \"{s}\" depends on task \"{s}\" (failed/skipped init)", .{ self.name, dep.task.name });
+                self.ret = .skipped;
+                break;
             }
         }
 
@@ -47,7 +45,7 @@ pub const Task = struct {
 
         switch (ret) {
             .success => log.info("Task \"{s}\" successfully initialized", .{self.name}),
-            .skipped => log.debug("Task \"{s}\" skipped initialization", .{self.name}),
+            .skipped => log.info("Task \"{s}\" skipped initialization", .{self.name}),
             .failed => log.err("Task \"{s}\" failed initialization", .{self.name}),
         }
     }
@@ -60,7 +58,9 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
+    if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
     drivers.timers.Task.run();
+    if (drivers.timers.Task.ret.? != .success) @panic("Timers failed to initialize");
     while (true) asm volatile ("hlt");
 }
 

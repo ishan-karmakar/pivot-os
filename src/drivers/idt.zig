@@ -184,7 +184,6 @@ fn create_irq(comptime vec: usize) ISR {
                 :
                 : [vec] "i" (vec),
             );
-            // TODO: Handle CR3 change
         }
     }.handler;
 }

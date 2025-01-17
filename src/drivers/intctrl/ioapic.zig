@@ -21,7 +21,7 @@ pub var Task = kernel.Task{
         .{ .task = &kernel.lib.mem.KHeapTask },
         .{ .task = &kernel.lib.mem.KMapperTask },
         .{ .task = &kernel.drivers.acpi.TablesTask },
-        .{ .task = &kernel.drivers.lapic.Task, .accept_failure = true },
+        .{ .task = &kernel.drivers.lapic.Task },
     },
 };
 

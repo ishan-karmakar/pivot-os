@@ -17,7 +17,7 @@ export var FB_REQUEST = limine.FramebufferRequest{ .revision = 3 };
 
 pub fn init() kernel.Task.Ret {
     const response = FB_REQUEST.response orelse return .failed;
-    // FIXME: Multiple framebuffers
+    // TODO: Multiple framebuffers
     const fb = response.framebuffers()[0];
     const font = kernel.drivers.modules.get_module("font");
 

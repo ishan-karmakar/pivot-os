@@ -17,15 +17,12 @@ const Block = struct {
     bsize: usize,
 };
 
-// FIXME: Actually think about all these divCeil catch unreachables
-
 bitmap: []u8,
 start: usize,
 internal_blocks: usize,
 max_bsize: usize,
 mapper: *mem.Mapper,
 flags: u64,
-// mutex: Mutex = Mutex{},
 
 pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     const sizes = calc_split(size);
@@ -64,7 +61,6 @@ pub fn allocator(self: *Self) Allocator {
     };
 }
 
-// TODO: Haven't tested if this actually works yet
 fn rsv_extra(self: *Self, block: Block, size: usize) void {
     const start = block.col * block.bsize;
     const end = start + block.bsize;

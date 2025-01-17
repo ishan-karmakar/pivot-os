@@ -16,7 +16,7 @@ pub var Task = kernel.Task{
     .name = "Local APIC Timer",
     .init = init,
     .dependencies = &.{
-        .{ .task = &lapic.Task, .accept_failure = true },
+        .{ .task = &lapic.Task },
         .{ .task = &timers.tsc.Task, .accept_failure = true },
     },
 };

@@ -87,7 +87,7 @@ var irq: usize = undefined;
 var handler: *idt.HandlerData = undefined;
 var comp: *Comparator = undefined;
 
-// FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them)
+// FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them, but my physical machine does)
 // FIXME: Use standard mapping if leg ret doesn't exist
 // TODO: Multiple comparators (for scheduling on different CPUs, periodic not necessary)
 fn init() kernel.Task.Ret {
@@ -103,6 +103,7 @@ fn init() kernel.Task.Ret {
     if (!registers.gcap_id.leg_rt_cap) return .failed;
     registers.gcfg.leg_rt_cnf = true;
     comp = registers.get_comparator(0);
+    log.debug("Supports FSB interrupts: {}", .{comp.config_cap.fsb_int_del_cap});
     handler = idt.allocate_handler(intctrl.pref_vec(0));
     irq = intctrl.map(idt.handler2vec(handler), 0) catch {
         handler.reserved = false;
@@ -141,7 +142,6 @@ fn timer_callback(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void
 
 /// Returns the HPET counter value in nanoseconds
 fn time() usize {
-    // TODO: Cache counter_clk_period
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }
 
