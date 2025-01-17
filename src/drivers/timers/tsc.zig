@@ -44,7 +44,7 @@ fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn rdtsc() usize {
+pub fn rdtsc() usize {
     // TODO: rdtscp? mfence + lfence? https://stackoverflow.com/questions/27693145/rdtscp-versus-rdtsc-cpuid
     var upper: u32 = undefined;
     var lower: u32 = undefined;
