@@ -246,8 +246,8 @@ export fn uacpi_kernel_wait_for_event(_: uacpi.uacpi_handle, _: uacpi.uacpi_u16)
     @panic("uacpi_kernel_wait_for_event unimplemented");
 }
 
-// TODO: Handle timeout
 export fn uacpi_kernel_acquire_mutex(handle: uacpi.uacpi_handle, _: uacpi.uacpi_u16) uacpi.uacpi_bool {
+    // This function is run before any timers are initialized, so there is no point in handling timeout
     const mutex: *Mutex = @ptrCast(handle);
     mutex.lock();
     return true;

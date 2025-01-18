@@ -46,8 +46,6 @@ pub var timer: ?*const VTable = null;
 var no_cal_timer: ?*const VTable = null;
 var no_cal_gts: ?*const VTable = null;
 
-// TODO: RTC timer
-
 fn no_cal_init() kernel.Task.Ret {
     no_cal_gts = gts;
     no_cal_timer = timer;

@@ -2,7 +2,6 @@ const kernel = @import("kernel");
 const timers = kernel.drivers.timers;
 const serial = kernel.drivers.serial;
 const std = @import("std");
-const log = std.log.scoped(.acpi);
 const uacpi = @import("uacpi");
 
 pub var Task = kernel.Task{
@@ -30,10 +29,10 @@ fn init() kernel.Task.Ret {
     if (uacpi.uacpi_kernel_get_rsdp(@ptrCast(&rsdp_addr)) != uacpi.UACPI_STATUS_OK) return .failed;
     const rsdp: *uacpi.acpi_rsdp = @ptrFromInt(rsdp_addr);
     address = fadt.x_pm_tmr_blk.address;
-    if (rsdp.revision == 2 and address != 0) {
-        log.info("Using x_PM_TMR_BLK", .{});
-    } else if (fadt.pm_tmr_blk != 0) {
-        address = @intCast(fadt.pm_tmr_blk);
+    if (!(rsdp.revision == 2 and address != 0)) {
+        if (fadt.pm_tmr_blk != 0) {
+            address = @intCast(fadt.pm_tmr_blk);
+        } else return .failed;
     }
     timers.gts = &vtable;
     return .success;
