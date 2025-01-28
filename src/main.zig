@@ -59,15 +59,11 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
-    drivers.timers.Task.run();
-    if (drivers.timers.Task.ret.? != .success) @panic("Timers failed to initialize");
+    drivers.pci.Task.run();
+    if (drivers.pci.Task.ret.? != .success) @panic("PCI failed to initialize");
+    // drivers.timers.Task.run();
+    // if (drivers.timers.Task.ret.? != .success) @panic("Timers failed to initialize");
     while (true) asm volatile ("hlt");
-}
-
-// FIXME: Remove when done testing timers stuff
-fn test_handler(_: ?*anyopaque, status: *const drivers.cpu.Status) *const drivers.cpu.Status {
-    log.info("Test", .{});
-    return status;
 }
 
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {

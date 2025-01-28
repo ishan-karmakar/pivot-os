@@ -9,15 +9,25 @@ const CONFIG_ADDR = 0xCF8;
 const CONFIG_DATA = 0xCFC;
 const PCIE_CONFIG_SPACE_PAGES: comptime_int = ((255 << 20) | (31 << 15) | (7 << 12) + 0x1000) / 0x1000;
 
+pub var Task = kernel.Task{
+    .name = "PCI(e)",
+    .init = init,
+    .dependencies = &.{
+        .{ .task = &kernel.lib.mem.KMapperTask },
+        .{ .task = &kernel.drivers.acpi.TablesTask },
+    },
+};
+
 pub var read_reg: *const fn (segment: u16, bus: u8, device: u5, func: u3, off: u8) u32 = undefined;
 pub var write_reg: *const fn (segment: u16, bus: u8, device: u5, func: u3, off: u8, val: u32) void = undefined;
 var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
 
-pub fn init() void {
+fn init() kernel.Task.Ret {
     const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
     if (pcie_table) |tbl| {
         init_pcie(tbl);
     } else init_legacy();
+    return .success;
 }
 
 fn init_legacy() void {
