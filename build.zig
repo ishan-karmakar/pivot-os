@@ -23,6 +23,8 @@ const CPU_FEATURES_QUERY = std.Target.Query{
 };
 
 const ISO_COPY = [_][]const u8{ "limine.conf", "u_vga16.sfn" };
+const MODULES_DIR = "src/modules";
+const ISO_MODULES_DIR = "kmod";
 
 const XORRISO_ARGS = .{
     "xorriso",
@@ -47,17 +49,12 @@ const QEMU_ARGS = .{
     "128M",
     "-smp",
     "2",
-    "-machine",
-    "q35",
     "-bios",
     "OVMF.fd",
     "-serial",
     "stdio",
     "-no-reboot",
     "-no-shutdown",
-    "-enable-kvm",
-    "-cpu",
-    "host,+invtsc",
     "-nic",
     "none",
 };
@@ -90,6 +87,7 @@ fn createNoQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimiz
     options.addOption(bool, "qemu", false);
     const kernel = getKernelStep(b, target, optimize, options); // Options implicitly added as dependency
     const iso_dir = getISODirStep(b, kernel); // Implicitly add kernel as dependency
+    getModulesStep(b, iso_dir, target, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory()); // Implictly added iso_dir as dependency
     const install_iso = b.addInstallBinFile(iso_out, "os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
@@ -103,6 +101,7 @@ fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize:
     options.addOption(bool, "qemu", true);
     const kernel = getKernelStep(b, target, optimize, options);
     const iso_dir = getISODirStep(b, kernel);
+    getModulesStep(b, iso_dir, target, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory());
     const install_iso = b.addInstallBinFile(iso_out, "qemu/os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
@@ -234,4 +233,21 @@ fn initLimine(b: *std.Build) void {
     const buildLimineExe = b.addSystemCommand(&.{"make"});
     buildLimineExe.setCwd(limineBinDep.path(""));
     limineBuildExeStep = &buildLimineExe.step;
+}
+
+fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !void {
+    const mod_root = try std.fs.cwd().openDir(MODULES_DIR, .{ .iterate = true });
+    var iter = mod_root.iterate();
+    while (try iter.next()) |entry| {
+        const mainFile = b.pathJoin(&.{ MODULES_DIR, entry.name, "main.zig" });
+        const exe = b.addExecutable(.{
+            .name = try b.allocator.dupe(u8, entry.name),
+            .root_source_file = b.path(mainFile),
+            .target = target,
+            .optimize = optimize,
+            .strip = true,
+        });
+        exe.root_module.addImport("module", &exe.root_module);
+        _ = iso_dir.addCopyFile(exe.getEmittedBin(), b.pathJoin(&.{ ISO_MODULES_DIR, entry.name }));
+    }
 }

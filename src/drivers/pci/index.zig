@@ -4,16 +4,15 @@ const std = @import("std");
 const log = std.log.scoped(.pci);
 const acpi = kernel.drivers.acpi;
 const serial = kernel.drivers.serial;
-pub const ahci = @import("ahci.zig");
 
 const CONFIG_ADDR = 0xCF8;
 const CONFIG_DATA = 0xCFC;
 const PCIE_CONFIG_SPACE_PAGES: comptime_int = ((255 << 20) | (31 << 15) | (7 << 12) + 0x1000) / 0x1000;
 
 pub const Codes = struct {
-    class_code: ?u8,
-    subclass_code: ?u8,
-    prog_if: ?u8,
+    class_code: ?u8 = null,
+    subclass_code: ?u8 = null,
+    prog_if: ?u8 = null,
 
     fn matches(self: @This(), cc: u8, sc: u8, prog_if: u8) bool {
         if (self.class_code == null) return true;
@@ -31,9 +30,7 @@ pub const VTable = struct {
     init: *const fn (u16, u8, u5, u3) void,
 };
 
-const drivers = [_]*const VTable{
-    &ahci.vtable,
-};
+const drivers = [_]*const VTable{};
 
 pub var Task = kernel.Task{
     .name = "PCI(e)",
@@ -98,7 +95,7 @@ fn check_function(segment: u16, bus: u8, device: u5, func: u3) bool {
     const subclass_code: u8 = @truncate(codes_raw >> 16);
     const prog_if: u8 = @truncate(codes_raw >> 8);
     log.info(
-        "Found function at S: {}, B: {}, D: {}, F: {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{})",
+        "Found function at S: {}, B: {}, D: {}, F: {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
             segment,
             bus,
