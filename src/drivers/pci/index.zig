@@ -4,10 +4,36 @@ const std = @import("std");
 const log = std.log.scoped(.pci);
 const acpi = kernel.drivers.acpi;
 const serial = kernel.drivers.serial;
+pub const ahci = @import("ahci.zig");
 
 const CONFIG_ADDR = 0xCF8;
 const CONFIG_DATA = 0xCFC;
 const PCIE_CONFIG_SPACE_PAGES: comptime_int = ((255 << 20) | (31 << 15) | (7 << 12) + 0x1000) / 0x1000;
+
+pub const Codes = struct {
+    class_code: ?u8,
+    subclass_code: ?u8,
+    prog_if: ?u8,
+
+    fn matches(self: @This(), cc: u8, sc: u8, prog_if: u8) bool {
+        if (self.class_code == null) return true;
+        if (self.class_code.? != cc) return false;
+        if (self.subclass_code == null) return true;
+        if (self.subclass_code.? != sc) return true;
+        if (self.prog_if == null) return true;
+        if (self.prog_if.? != prog_if) return false;
+        return true;
+    }
+};
+
+pub const VTable = struct {
+    target_codes: []const Codes,
+    init: *const fn (u16, u8, u5, u3) void,
+};
+
+const drivers = [_]*const VTable{
+    &ahci.vtable,
+};
 
 pub var Task = kernel.Task{
     .name = "PCI(e)",
@@ -67,7 +93,10 @@ fn check_device(segment: u16, bus: u8, device: u5) void {
 fn check_function(segment: u16, bus: u8, device: u5, func: u3) bool {
     const vendor_dev = read_reg(segment, bus, device, func, 0);
     if (vendor_dev == 0xFFFFFFFF) return false;
-    const codes = read_reg(segment, bus, device, func, 0x8);
+    const codes_raw = read_reg(segment, bus, device, func, 0x8);
+    const class_code: u8 = @truncate(codes_raw >> 24);
+    const subclass_code: u8 = @truncate(codes_raw >> 16);
+    const prog_if: u8 = @truncate(codes_raw >> 8);
     log.info(
         "Found function at S: {}, B: {}, D: {}, F: {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{})",
         .{
@@ -77,11 +106,19 @@ fn check_function(segment: u16, bus: u8, device: u5, func: u3) bool {
             func,
             vendor_dev & 0xFFFF,
             (vendor_dev >> 16) & 0xFFFF,
-            (codes >> 24) & 0xFF,
-            (codes >> 16) & 0xFF,
-            (codes >> 8) & 0xFF,
+            class_code,
+            subclass_code,
+            prog_if,
         },
     );
+    for (drivers) |driver| {
+        for (driver.target_codes) |code| {
+            if (code.matches(class_code, subclass_code, prog_if)) {
+                driver.init(segment, bus, device, func);
+                break;
+            }
+        }
+    }
     return true;
 }
 
