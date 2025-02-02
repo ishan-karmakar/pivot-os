@@ -29,7 +29,7 @@
         },
         .limine_bin = .{
             .url = "https://github.com/limine-bootloader/limine/archive/refs/heads/v8.x-binary.zip",
-            .hash = "1220533e700e69d712c0a656739b83a5aa50c1ad1ee7b05781ca1ee97e28457d0807",
+            .hash = "1220412bffeb555ae2aa1a6b18b204adf3cabbcf6c94505d513d851d9884c3a4a7e0",
         },
         .uacpi = .{
             .url = "https://github.com/UltraOS/uACPI/archive/98784e2b8536588a2536c9ef07e359e1da38bef1.zip",
@@ -37,7 +37,7 @@
         },
         .ssfn = .{
             .url = "https://gitlab.com/bztsrc/scalable-font2/-/archive/master/scalable-font2-master.zip",
-            .hash = "12209dbc0764e4897893864030f9fcc26f6202c271d601d208568c858a12b9ffb237",
+            .hash = "12205db540d97128b8a29e0009be207992354eb02fe2ee7baa4401ca5f8d7336abad",
         },
     },
 
