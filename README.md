@@ -1,7 +1,7 @@
 # PivotOS
 The PivotOS technical report is linked [here](https://drive.google.com/file/d/1kxixXEWUIjfGBtqEL4NTH-5zH13HSeFE/view?usp=sharing)
 
-PivotOS is a hobby operating system I developed to learn more about systems programming. The main branch is written in C++ and Assembly, but new work is being implemented in the [Zig Rewrite](../../tree/zig-rewrite) branch.
+PivotOS is a hobby operating system I developed to learn more about systems programming. The main branch is written in C++ and Assembly, but new work is being implemented in the [Zig Rewrite](../../tree/zig) branch.
 
 # Building
 PivotOS supports Clang, and can be built with Meson:
