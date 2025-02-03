@@ -235,7 +235,7 @@ fn initLimine(b: *std.Build) void {
     limineBuildExeStep = &buildLimineExe.step;
 }
 
-fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !void {
+fn getModulesStep(b: *std.Build, parentStep: *Step, iso_dir: *std.Build.Step.WriteFile, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !void {
     const mod_root = try std.fs.cwd().openDir(MODULES_DIR, .{ .iterate = true });
     var iter = mod_root.iterate();
     while (try iter.next()) |entry| {
@@ -249,5 +249,6 @@ fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, target: std
         });
         exe.root_module.addImport("module", &exe.root_module);
         _ = iso_dir.addCopyFile(exe.getEmittedBin(), b.pathJoin(&.{ ISO_MODULES_DIR, entry.name }));
+        parentStep.dependOn(&b.addInstallArtifact(exe, .{ .dest_sub_path = b.pathJoin(&.{ "modules", exe.name }) }).step);
     }
 }
