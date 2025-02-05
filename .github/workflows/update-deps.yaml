@@ -29,9 +29,9 @@ jobs:
                         /repos/$REPO/commits?per_page=1 | \
                  jq '.[0]')
           out=$(zig fetch --save=limine_zig $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha'))
-          if [[ $out != *"up-to-date"* ]]; then
-            echo Updated limine-zig to [latest commit]($(echo $json | jq -r '.html_url')) >> ${{ runner.temp }}/pr-body.txt
-          fi
+          # if [[ $out != *"up-to-date"* ]]; then
+          #   echo Updated limine-zig to [latest commit]($(echo $json | jq -r '.html_url')) >> ${{ runner.temp }}/pr-body.txt
+          # fi
       - name: Update uACPI
         run: |
           REPO=uACPI/uACPI
@@ -40,9 +40,9 @@ jobs:
                         /repos/$REPO/commits?per_page=1 | \
                  jq '.[0]')
           out=$(zig fetch --save=limine_zig $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha'))
-          if [[ $out != *"up-to-date"* ]]; then
-            echo Updated limine-zig to [latest commit]($(echo $json | jq -r '.html_url')) >> ${{ runner.temp }}/pr-body.txt
-          fi
+          # if [[ $out != *"up-to-date"* ]]; then
+          #   echo Updated limine-zig to [latest commit]($(echo $json | jq -r '.html_url')) >> ${{ runner.temp }}/pr-body.txt
+          # fi
       - name: Check PR Body
         uses: andstor/file-existence-action@v3
         id: check-pr
