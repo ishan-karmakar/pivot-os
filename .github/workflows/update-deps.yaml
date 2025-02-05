@@ -50,6 +50,8 @@ jobs:
           files: "${{ runner.temp }}/pr-body.txt"
           ignore_case: false
           follow_symbolic_links: false
+      - name: Print PR body
+        run: cat ${{ runner.temp }}/pr-body.txt
       # - name: Create PR
       #   if: steps.check-pr.outputs.files_exists == 'true'
       #   uses: peter-evans/create-pull-request@v7
