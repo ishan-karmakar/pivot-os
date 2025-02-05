@@ -28,10 +28,10 @@ jobs:
                   /repos/48cf/limine-zig/commits?per_page=1 | \
                 jq -r '.[0].sha')
           echo $hash
-          # out=$(zig fetch --save=limine_zig https://api.github.com/48cf/limine-zig/zipball/$hash)
-          # if [[ $out != *"up-to-date"* ]]; then
-          #   printf "PR_DESC=Updated limine-zig to commit hash $hash\n${{ env.PR_DESC }}" >> $GITHUB_ENV
-          # fi
+          out=$(zig fetch --save=limine_zig https://api.github.com/repos/48cf/limine-zig/zipball/$hash)
+          if [[ $out != *"up-to-date"* ]]; then
+            printf "PR_DESC=Updated limine-zig to commit hash $hash\n${{ env.PR_DESC }}" >> $GITHUB_ENV
+          fi
       - name: Create PR
         if: ${{ env.PR_DESC != '' }}
         uses: peter-evans/create-pull-request@v7
