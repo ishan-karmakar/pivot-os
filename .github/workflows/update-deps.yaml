@@ -33,7 +33,7 @@ jobs:
             echo Updated limine-zig to commit hash $hash >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Create PR
-        if: ${{ env.PR_DESC != '' }}
+        if: ${{ hashFiles('${{ runner.temp }}/pr-body.txt') != '' }}
         uses: peter-evans/create-pull-request@v7
         with:
           title: "[bot] Update dependencies"
