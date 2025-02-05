@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
-      - name: Initialize PR Description
-        run: echo "PR_DESC<<EOF" >> $GITHUB_ENV
       - name: Update Limine Binaries
         run: |
           json=$(gh api -H "Accept: application/vnd.github+json" \
@@ -21,7 +19,7 @@ jobs:
             jq '.[] | select(.name|endswith("-binary"))')
           out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo Updated limine binaries to $(echo $json | jq -r '.name') >> $GITHUB_ENV
+            echo Updated limine binaries to $(echo $json | jq -r '.name') >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Update limine-zig
         run: |
@@ -32,14 +30,14 @@ jobs:
           echo $hash
           out=$(zig fetch --save=limine_zig https://api.github.com/repos/48cf/limine-zig/zipball/$hash)
           if [[ $out != *"up-to-date"* ]]; then
-            echo Updated limine-zig to commit hash $hash >> $GITHUB_ENV
+            echo Updated limine-zig to commit hash $hash >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Create PR
         if: ${{ env.PR_DESC != '' }}
         uses: peter-evans/create-pull-request@v7
         with:
           title: "[bot] Update dependencies"
-          body: ${{ env.PR_DESC }}
+          body-path: ${{ runner.temp }}/pr-body.txt
           commit-message: "[bot] Update dependencies"
           branch: update-deps
           delete-branch: true
