@@ -7,11 +7,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check Limine Binary
+      - name: Get Limine Binary
         uses: actions/github-script@v7
+        id: limine-binary
         with:
+          result-encoding: string
           script: |
-            let latestTags = await github.rest.repos.listTags({ owner: "limine-bootloader", repo: "limine", per_page: 2 })
-            if (latestTags.status != 200) process.exit(1);
-            let binaryTag = latestTags.data.find(e => e.name.endsWith('-binary'))
-            console.log(binaryTag)
+            let latestTags = await github.rest.repos.listTags({ owner: "limine-bootloader", repo: "limine", per_page: 4 })
+            return latestTags.data.find(e => e.name.endsWith('-binary')).zipball_url
+      - name: Add Limine to Zig Dependencies
+        run: zig fetch --save=limine_bin ${{steps.limine-binary.outputs.result}}
