@@ -24,19 +24,19 @@
     // internet connectivity.
     .dependencies = .{
         .limine_zig = .{
-            .url = "https://github.com/48cf/limine-zig/archive/7b29b6e6f6d35052f01ed3831085a39aae131705.zip",
+            .url = "https://api.github.com/repos/48cf/limine-zig/zipball/7b29b6e6f6d35052f01ed3831085a39aae131705",
             .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
         },
         .limine_bin = .{
-            .url = "https://github.com/limine-bootloader/limine/archive/refs/heads/v8.x-binary.zip",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v8.7.0-binary",
             .hash = "1220412bffeb555ae2aa1a6b18b204adf3cabbcf6c94505d513d851d9884c3a4a7e0",
         },
         .uacpi = .{
-            .url = "https://github.com/UltraOS/uACPI/archive/98784e2b8536588a2536c9ef07e359e1da38bef1.zip",
-            .hash = "1220cce634b142e1637cceb24b7964f3ae685178d93798ebc4e4f9797fc6067d5c3e",
+            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/757dcece1a9f1c069355b23f7feaf21656728f94",
+            .hash = "12200468fb671c04225f04d87e0fe1131e49ccd153e870be6e858dc80e39cb4e18df",
         },
         .ssfn = .{
-            .url = "https://gitlab.com/bztsrc/scalable-font2/-/archive/master/scalable-font2-master.zip",
+            .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=76658c2064d985e5d4cde400d4975dcf96a533cc",
             .hash = "12205db540d97128b8a29e0009be207992354eb02fe2ee7baa4401ca5f8d7336abad",
         },
     },
