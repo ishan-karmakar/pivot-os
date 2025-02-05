@@ -1,5 +1,4 @@
 name: Build PivotOS
-run-name: Build PivotOS
 on: [push]
 jobs:
   build:
