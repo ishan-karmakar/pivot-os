@@ -12,9 +12,14 @@ jobs:
       - uses: mlugg/setup-zig@v1
       - name: Update Limine Binary
         run: |
-          out=$(zig fetch --save=limine_bin $( \
-            gh api -H "Accept: application/vnd.github+json" \
+          json=$(gh api -H "Accept: application/vnd.github+json" \
                    -H "X-GitHub-Api-Version: 2022-11-28" \
                    /repos/limine-bootloader/limine/tags?per_page=2 | \
-            jq -r '.[] | select(.name|endswith("-binary")) | .zipball_url'))
-          echo $out
+            jq '.[] | select(.name|endswith("-binary")))
+          out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url'))
+          if [[ $out != *"up-to-date"* ]]; then
+            echo "PR_DESC=Updated limine binaries to $(echo $json | jq -r '.name')\n${{ env.PR_DESC }}" >> $GITHUB_ENV
+          fi
+      - name: Create PR
+        run: |
+          echo ${{ env.PR_DESC }}
