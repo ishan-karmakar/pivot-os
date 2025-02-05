@@ -18,8 +18,8 @@ jobs:
             jq '.[] | select(.name|endswith("-binary"))')
           out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo "PR_DESC=Updated limine binaries to $(echo $json | jq -r '.name')\n${{ env.PR_DESC }}" >> $GITHUB_ENV
+            echo "PR_DESC=${{ env.PR_DESC }}\nUpdated limine binaries to $(echo $json | jq -r '.name')" >> $GITHUB_ENV
           fi
       - name: Create PR
-        run: |
-          printf "${{ env.PR_DESC }}"
+        if: ${{ env.PR_DESC != '' }}
+        uses: peter-evans/create-pull-request@v7
