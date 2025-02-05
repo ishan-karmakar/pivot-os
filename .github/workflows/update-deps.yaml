@@ -68,4 +68,5 @@ jobs:
           body-path: ${{ runner.temp }}/pr-body.txt
           commit-message: "[bot] Update dependencies"
           branch: update-deps
+          token: ${{ secrets.PR_TOKEN }}
           delete-branch: true
