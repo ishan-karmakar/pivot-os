@@ -13,13 +13,14 @@ jobs:
       - uses: mlugg/setup-zig@v1
       - name: Update Limine Binaries
         run: |
+          REPO=limine-bootloader/limine
           json=$(gh api -H "Accept: application/vnd.github+json" \
                    -H "X-GitHub-Api-Version: 2022-11-28" \
-                   /repos/limine-bootloader/limine/tags?per_page=2 | \
+                   /repos/$REPO/tags?per_page=2 | \
             jq '.[] | select(.name|endswith("-binary"))')
           out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo Updated limine binaries to $(echo $json | jq -r '.name') >> ${{ runner.temp }}/pr-body.txt
+            echo "Updated limine binaries to [latest tag]($GITHUB_SERVER_URL/$REPO/commit/$(echo $json | jq -r '.commit.sha'))" >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Update limine-zig
         run: |
