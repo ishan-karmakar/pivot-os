@@ -8,22 +8,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
-      - name: Get Original Checksum
-        id: org-checksum
-        run: md5sum build.zig.zon | head -c 32
-      - name: Get Limine Binary
+      - name: Get Limine Binary Zip
         uses: actions/github-script@v7
         id: limine-binary
         with:
           result-encoding: string
           script: |
-            let latestTags = await github.rest.repos.listTags({ owner: "limine-bootloader", repo: "limine", per_page: 4 })
-            return latestTags.data.find(e => e.name.endsWith('-binary')).zipball_url
-      - name: Add Limine to Zig Dependencies
-        run: zig fetch --save=limine_bin ${{steps.limine-binary.outputs.result}}
-      - name: Compare Checksums
-        run: |
-          new_checksum=`md5sum build.zig.zon | head -c 32`
-          if [[ "$new_checksum" != "${{steps.org-checksum.outputs.stdout}}" ]]; then
-            echo "Need to create PR"
-          fi
+            const latestTags = await github.rest.repos.listTags({ owner: "limine-bootloader", repo: "limine", per_page: 4 })
+            const url = latestTags.data.find(e => e.name.endsWith('-binary')).zipball_url
+            const execSync = require('child-process').execSync;
+            const output = execSync('zig fetch --save=limine_bin');
+            console.log(output)
