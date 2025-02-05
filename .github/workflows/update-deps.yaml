@@ -19,6 +19,7 @@ jobs:
             jq '.[] | select(.name|endswith("-binary"))')
           out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url'))
           if [[ $out != *"up-to-date"* ]]; then
+            :
             # echo Updated limine binaries to $(echo $json | jq -r '.name') >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Update limine-zig
@@ -30,6 +31,7 @@ jobs:
           echo $hash
           out=$(zig fetch --save=limine_zig https://api.github.com/repos/48cf/limine-zig/zipball/$hash)
           if [[ $out != *"up-to-date"* ]]; then
+            :
             # echo Updated limine-zig to commit hash $hash >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Check PR Body
