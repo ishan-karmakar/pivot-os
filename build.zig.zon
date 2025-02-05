@@ -28,7 +28,7 @@
             .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
         },
         .limine_bin = .{
-            .url = "https://github.com/limine-bootloader/limine/archive/refs/heads/v8.x-binary.zip",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v8.7.0-binary",
             .hash = "1220412bffeb555ae2aa1a6b18b204adf3cabbcf6c94505d513d851d9884c3a4a7e0",
         },
         .uacpi = .{
