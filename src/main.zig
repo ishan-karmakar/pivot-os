@@ -60,36 +60,9 @@ export fn _start() noreturn {
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
     drivers.modules.Task.run();
-    handle_elf(drivers.modules.get_module("kmod-ide"));
+    if (drivers.modules.Task.ret.? != .success) @panic("Modules failed to initialize");
+    drivers.elf.load(drivers.modules.get_module("kmod-ide")) catch @panic("Error loading ELF file");
     while (true) asm volatile ("hlt");
-}
-
-const ELFHeader = extern struct {
-    ident: [4]u8,
-    bit: u8,
-    endian: u8,
-    hdr_version: u8,
-    abi: u8,
-    rsv: u64,
-    type: u16,
-    iset: u16,
-    elf_version: u32,
-    pentry_off: u64,
-    phdr_offset: u64,
-    shdr_offset: u64,
-    flags: u32,
-    hdr_size: u16,
-    ent_size_phdr: u16,
-    num_ent_phdr: u16,
-    ent_size_shdr: u16,
-    num_ent_shdr: u16,
-    sec_idx_hdr_string: u16,
-};
-
-fn handle_elf(addr: usize) void {
-    const elf: *const ELFHeader = @ptrFromInt(addr);
-    if (!std.mem.eql(u8, &elf.ident, &.{ 0x7F, 'E', 'L', 'F' })) return;
-    log.info("ELF is valid", .{});
 }
 
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {

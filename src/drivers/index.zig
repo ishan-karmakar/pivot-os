@@ -6,6 +6,7 @@ pub const intctrl = @import("intctrl/index.zig");
 pub const pci = @import("pci/index.zig");
 pub const fb = @import("fb.zig");
 pub const modules = @import("modules.zig");
+pub const elf = @import("elf.zig");
 
 // CPU stuff
 pub const gdt = @import("gdt.zig");
