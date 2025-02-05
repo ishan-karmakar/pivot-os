@@ -24,6 +24,7 @@ jobs:
         if: ${{ env.PR_DESC != '' }}
         uses: peter-evans/create-pull-request@v7
         with:
+          title: "[bot] Update dependencies"
           body: ${{ env.PR_DESC }}
           commit-message: "[bot] Update dependencies"
           branch: update-deps
