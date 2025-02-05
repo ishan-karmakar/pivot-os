@@ -22,4 +22,4 @@ jobs:
           fi
       - name: Create PR
         run: |
-          echo ${{ env.PR_DESC }}
+          printf "${{ env.PR_DESC }}"
