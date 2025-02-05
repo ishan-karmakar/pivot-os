@@ -8,14 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
-      - name: Get Limine Binary Zip
-        uses: actions/github-script@v7
-        id: limine-binary
-        with:
-          result-encoding: string
-          script: |
-            const latestTags = await github.rest.repos.listTags({ owner: "limine-bootloader", repo: "limine", per_page: 4 })
-            const url = latestTags.data.find(e => e.name.endsWith('-binary')).zipball_url
-            const execSync = require('child-process').execSync;
-            const output = execSync('zig fetch --save=limine_bin');
-            console.log(output)
+      - name: Update Limine Binary
+        run: |
+          out=$(zig fetch --save=limine_bin $( \
+            gh api -H "Accept: application/vnd.github+json" \
+                   -H "X-GitHub-Api-Version: 2022-11-28" \
+                   /repos/limine-bootloader/limine/tags?per_page=2 | \
+            jq -r '.[] | select(.name|endswith("-binary")) | .zipball_url'))
+          echo $out
