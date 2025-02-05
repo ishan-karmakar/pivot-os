@@ -20,7 +20,7 @@ jobs:
             jq '.[] | select(.name|endswith("-binary"))')
           out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated limine binaries to [latest tag]($GITHUB_SERVER_URL/$REPO/commit/$(echo $json | jq -r '.commit.sha'))" >> ${{ runner.temp }}/pr-body.txt
+            echo "Updated $REPO to [latest tag]($GITHUB_SERVER_URL/$REPO/commit/$(echo $json | jq -r '.commit.sha'))" >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Update limine-zig
         run: |
@@ -31,7 +31,7 @@ jobs:
                  jq '.[0]')
           out=$(zig fetch --save=limine_zig $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated limine-zig to [latest commit]($(echo $json | jq -r '.html_url'))" >> ${{ runner.temp }}/pr-body.txt
+            echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.html_url'))" >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Update uACPI
         run: |
@@ -42,15 +42,16 @@ jobs:
                  jq '.[0]')
           out=$(zig fetch --save=uacpi $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated limine-zig to [latest commit]($(echo $json | jq -r '.html_url'))" >> ${{ runner.temp }}/pr-body.txt
+            echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.html_url'))" >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Update SSFN
         run: |
-          REPO=18860409 # bztsrc/scalable-font2 project id
-          json=$(curl --url https://gitlab.com/api/v4/projects/$REPO/repository/commits | jq -r '.[0]')
-          out=$(zig fetch --save=ssfn https://gitlab.com/api/v4/projects/$REPO/repository/archive.zip?sha=$(echo $json | jq -r '.id'))
+          REPO=bztsrc/scalable-font2
+          PROJECT_ID=18860409 # bztsrc/scalable-font2 project id
+          json=$(curl --url https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/commits | jq -r '.[0]')
+          out=$(zig fetch --save=ssfn https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/archive.zip?sha=$(echo $json | jq -r '.id'))
           if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated SSFN to [latest commit]($(echo $json | jq -r '.web_url'))" >> ${{ runner.temp }}/pr-body.txt
+            echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.web_url'))" >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Check PR Body
         uses: andstor/file-existence-action@v3
