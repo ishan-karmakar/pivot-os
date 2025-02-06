@@ -35,7 +35,7 @@ pub fn bsp_init() kernel.Task.Ret {
         log.debug("Found x2APIC", .{});
     } else if (cpuid.edx & (1 << 9) > 0) {
         addr = msr & ~@as(u64, 0xFFF);
-        kernel.lib.mem.kmapper.map(addr, addr, (1 << 63) | 0b10);
+        kernel.lib.mem.kmapper.map(addr, addr, (1 << 63) | 0b11);
         read_reg = xapic_read_reg;
         write_reg = xapic_write_reg;
         log.debug("Found xAPIC", .{});

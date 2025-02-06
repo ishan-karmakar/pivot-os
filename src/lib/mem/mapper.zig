@@ -36,7 +36,7 @@ pub fn map(self: *@This(), phys: usize, virt: usize, flags: u64) void {
                 for (0..512) |i| {
                     table[i] = ((ent & SIGN_MASK) + i * 0x1000) | (ent & ~(SIGN_MASK | (1 << 7)));
                 }
-                p2_tbl[p2_ent] = frm | 0b11 | (1 << 63);
+                p2_tbl[p2_ent] = frm | 0b11;
                 break :block table;
             }
         } else if (hp_works) {
@@ -47,7 +47,7 @@ pub fn map(self: *@This(), phys: usize, virt: usize, flags: u64) void {
         }
         break :block next_table(&p2_tbl[p2_ent]);
     };
-    const ent = phys | flags | 1;
+    const ent = phys | flags;
     if (ent != p1_tbl[p1_ent]) p1_tbl[p1_ent] = ent;
 }
 
@@ -73,7 +73,7 @@ fn next_table(entry: *u64) Table {
         return @ptrFromInt(mem.virt(entry.* & SIGN_MASK));
     } else {
         const frm = mem.pmm.frame();
-        entry.* = frm | 0b11 | (1 << 63); // Writable, present, no execute
+        entry.* = frm | 0b11;
         const table: Table = @ptrFromInt(mem.virt(frm));
         @memset(table, 0);
         return table;

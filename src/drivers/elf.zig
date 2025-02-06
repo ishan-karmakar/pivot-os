@@ -74,21 +74,30 @@ pub fn load(addr: usize) !void {
         if (phdr.type == 1) {
             if (phdr.p_align != 0x1000) @panic("p_align != 0x1000");
 
-            var flags: usize = 0;
-            if (phdr.flags & 0x1 == 0) flags |= (1 << 63);
-
+            // If the flags are set to non writable we still of course want to write the data to it
+            // First we map with a known flags, present + writable, then set remap with flags after
+            // Not the most efficient but gets the job done
             const num_pages = try std.math.divCeil(usize, phdr.p_memsz, 0x1000);
             const vaddr_page = (phdr.p_vaddr / 0x1000) * 0x1000;
             for (0..num_pages) |i| {
-                log.info("Mapping 0x{x}", .{vaddr_page + i * 0x1000});
-                mem.kmapper.map(mem.pmm.frame(), vaddr_page + i * 0x1000, 0);
+                mem.kmapper.map(mem.pmm.frame(), vaddr_page + i * 0x1000, 0b11);
             }
 
             // TODO: Make more efficient, only need to zero last part of memory (total - filesz)
             @memset(@as([*]u8, @ptrFromInt(phdr.p_vaddr))[0..phdr.p_memsz], 0);
             @memcpy(@as([*]u8, @ptrFromInt(phdr.p_vaddr))[0..phdr.p_filesz], @as([*]u8, @ptrFromInt(addr + phdr.p_offset))[0..phdr.p_filesz]);
+
+            var flags: usize = 0;
+            if (phdr.flags & 0x1 == 0) flags |= (1 << 63);
+            if (phdr.flags & 0x2 > 0) flags |= (1 << 1);
+            if (phdr.flags & 0x4 > 0) flags |= 0b1; // If not readable we are treating as essentially not present
+            for (0..num_pages) |i| {
+                mem.kmapper.map(mem.pmm.frame(), vaddr_page + i * 0x1000, flags);
+            }
         }
 
         phdr = @ptrFromInt(@intFromPtr(phdr) + elf.ent_size_phdr);
     }
+    const func: *const fn () noreturn = @ptrFromInt(elf.pentry_off);
+    func();
 }

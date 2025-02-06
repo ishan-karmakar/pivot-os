@@ -142,7 +142,7 @@ export fn uacpi_kernel_map(_addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size)
     var start = @divFloor(_addr, 0x1000) * 0x1000;
     const end = @divFloor(_addr + size, 0x1000) * 0x1000;
     while (start <= end) {
-        mem.kmapper.map(start, start, 0b10);
+        mem.kmapper.map(start, start, 0b11);
         start += 0x1000;
     }
     return @ptrFromInt(_addr);
