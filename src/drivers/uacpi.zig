@@ -20,50 +20,6 @@ const HandlerInfo = struct {
     vec: u8,
 };
 
-export fn uacpi_kernel_raw_memory_read(addr: uacpi.uacpi_phys_addr, bw: uacpi.uacpi_u8, out: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {
-    out.* = switch (bw) {
-        1 => @intCast(@as(*const u8, @ptrFromInt(addr)).*),
-        2 => @intCast(@as(*const u16, @ptrFromInt(addr)).*),
-        4 => @intCast(@as(*const u32, @ptrFromInt(addr)).*),
-        8 => @as(*const u64, @ptrFromInt(addr)).*,
-        else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
-    };
-    @panic("uacpi_kernel_raw_memory_read is unimplemented");
-}
-
-export fn uacpi_kernel_raw_memory_write(addr: uacpi.uacpi_phys_addr, bw: uacpi.uacpi_u8, val: uacpi.uacpi_u64) uacpi.uacpi_status {
-    switch (bw) {
-        1 => @as(*u8, @ptrFromInt(addr)).* = @truncate(val),
-        2 => @as(*u16, @ptrFromInt(addr)).* = @truncate(val),
-        4 => @as(*u32, @ptrFromInt(addr)).* = @truncate(val),
-        8 => @as(*u64, @ptrFromInt(addr)).* = val,
-        else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
-    }
-    @panic("uacpi_kernel_raw_memory_write is unimplemented");
-}
-
-export fn uacpi_kernel_raw_io_read(_addr: uacpi.uacpi_io_addr, bw: uacpi.uacpi_u8, out: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {
-    const addr: u16 = @intCast(_addr);
-    out.* = switch (bw) {
-        1 => serial.in(addr, u8),
-        2 => serial.in(addr, u16),
-        4 => serial.in(addr, u32),
-        else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
-    };
-    return uacpi.UACPI_STATUS_OK;
-}
-
-export fn uacpi_kernel_raw_io_write(_addr: uacpi.uacpi_io_addr, bw: uacpi.uacpi_u8, val: uacpi.uacpi_u64) uacpi.uacpi_status {
-    const addr: u16 = @intCast(_addr);
-    switch (bw) {
-        1 => serial.out(addr, @as(u8, @truncate(val))),
-        2 => serial.out(addr, @as(u16, @truncate(val))),
-        4 => serial.out(addr, @as(u32, @truncate(val))),
-        else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
-    }
-    return uacpi.UACPI_STATUS_OK;
-}
-
 export fn uacpi_kernel_io_map(addr: uacpi.uacpi_io_addr, _: uacpi.uacpi_size, out: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
     out.* = @ptrFromInt(addr);
     return uacpi.UACPI_STATUS_OK;
@@ -71,44 +27,88 @@ export fn uacpi_kernel_io_map(addr: uacpi.uacpi_io_addr, _: uacpi.uacpi_size, ou
 
 export fn uacpi_kernel_io_unmap(_: uacpi.uacpi_handle) void {}
 
-export fn uacpi_kernel_io_read(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, bw: uacpi.uacpi_u8, val: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {
-    return uacpi_kernel_raw_io_read(@intFromPtr(handle) + off, bw, val);
+export fn uacpi_kernel_io_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, out: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
+    out.* = serial.in(@intCast(@intFromPtr(handle.?) + off), u8);
+    return uacpi.UACPI_STATUS_OK;
 }
 
-export fn uacpi_kernel_io_write(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, bw: uacpi.uacpi_u8, val: uacpi.uacpi_u64) uacpi.uacpi_status {
-    return uacpi_kernel_raw_io_write(@intFromPtr(handle) + off, bw, val);
+export fn uacpi_kernel_io_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, out: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
+    out.* = serial.in(@intCast(@intFromPtr(handle.?) + off), u16);
+    return uacpi.UACPI_STATUS_OK;
 }
 
-export fn uacpi_kernel_pci_read(addr: [*c]uacpi.uacpi_pci_address, off: uacpi.uacpi_size, bw: uacpi.uacpi_u8, val: [*c]uacpi.uacpi_u64) uacpi.uacpi_status {
-    _ = addr;
+export fn uacpi_kernel_io_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, out: [*c]uacpi.uacpi_u32) uacpi.uacpi_status {
+    out.* = serial.in(@intCast(@intFromPtr(handle.?) + off), u32);
+    return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_io_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u8) uacpi.uacpi_status {
+    serial.out(@intCast(@intFromPtr(handle.?) + off), val);
+    return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_io_write16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u16) uacpi.uacpi_status {
+    serial.out(@intCast(@intFromPtr(handle.?) + off), val);
+    return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_io_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u32) uacpi.uacpi_status {
+    serial.out(@intCast(@intFromPtr(handle.?) + off), val);
+    return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_pci_device_open(addr: uacpi.uacpi_pci_address, out: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+    const alloced_addr = mem.kheap.allocator().create(uacpi.uacpi_pci_address) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
+    alloced_addr.* = addr;
+    out.* = alloced_addr;
+    return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_pci_device_close(handle: uacpi.uacpi_handle) void {
+    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    mem.kheap.allocator().destroy(addr);
+}
+
+export fn uacpi_kernel_pci_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
+    _ = handle;
     _ = off;
-    _ = bw;
     _ = val;
-    @panic("uacpi_kernel_pci_read");
-    // if (addr.*.segment != 0) @panic("uacpi_kernel_pci_read segment != 0");
-    // val.* = switch (bw) {
-    //     1 => @intCast(pci.read(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), u8)),
-    //     2 => @intCast(pci.read(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), u16)),
-    //     4 => @intCast(pci.read(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), u32)),
-    //     else => @panic("uacpi_kernel_pci_read received invalid byte width"),
-    // };
-    // return uacpi.UACPI_STATUS_OK;
+    @panic("uacpi_kernel_pci_read8");
 }
 
-export fn uacpi_kernel_pci_write(addr: [*c]uacpi.uacpi_pci_address, off: uacpi.uacpi_size, bw: uacpi.uacpi_u8, val: uacpi.uacpi_u64) uacpi.uacpi_status {
-    _ = addr;
+export fn uacpi_kernel_pci_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
+    _ = handle;
     _ = off;
-    _ = bw;
     _ = val;
-    @panic("uacpi_kernel_pci_write");
-    // if (addr.*.segment != 0) @panic("uacpi_kernel_pci_write segment != 0");
-    // switch (bw) {
-    //     1 => pci.write(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), @as(u8, @intCast(val))),
-    //     2 => pci.write(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), @as(u16, @intCast(val))),
-    //     4 => pci.write(addr.*.bus, addr.*.device, addr.*.function, @intCast(off), @as(u32, @intCast(val))),
-    //     else => @panic("uacpi_kernel_pci_write received invalid byte width"),
-    // }
-    // return uacpi.UACPI_STATUS_OK;
+    @panic("uacpi_kernel_pci_read16");
+}
+
+export fn uacpi_kernel_pci_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u32) uacpi.uacpi_status {
+    _ = handle;
+    _ = off;
+    _ = val;
+    @panic("uacpi_kernel_pci_read32");
+}
+
+export fn uacpi_kernel_pci_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u8) uacpi.uacpi_status {
+    _ = handle;
+    _ = off;
+    _ = val;
+    @panic("uacpi_kernel_write8");
+}
+
+export fn uacpi_kernel_pci_write16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u16) uacpi.uacpi_status {
+    _ = handle;
+    _ = off;
+    _ = val;
+    @panic("uacpi_kernel_write16");
+}
+
+export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u32) uacpi.uacpi_status {
+    _ = handle;
+    _ = off;
+    _ = val;
+    @panic("uacpi_kernel_write32");
 }
 
 export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacpi.uacpi_work_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
@@ -131,13 +131,6 @@ export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
     const ptr = mem.kheap.allocator().alignedAlloc(u8, 8, size) catch @panic("OOM");
     return @ptrCast(ptr.ptr);
-}
-
-export fn uacpi_kernel_calloc(count: uacpi.uacpi_size, size: uacpi.uacpi_size) ?*anyopaque {
-    // We are just using a alignment of 8 here as a constant. Ideally, we should test what the minimum needed is.
-    const a = mem.kheap.allocator().alignedAlloc(u8, 8, count * size) catch @panic("OOM");
-    for (a) |*b| b.* = 0;
-    return @ptrCast(a.ptr);
 }
 
 export fn uacpi_kernel_free(_ptr: ?*anyopaque, size: uacpi.uacpi_size) void {
@@ -213,6 +206,10 @@ export fn uacpi_kernel_signal_event(_: uacpi.uacpi_handle) void {
 export fn uacpi_kernel_unlock_spinlock(handle: uacpi.uacpi_handle, _: uacpi.uacpi_cpu_flags) void {
     uacpi_kernel_release_mutex(handle);
     asm volatile ("sti");
+}
+
+export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
+    @panic("uacpi_kernel_get_nanoseconds_since_boot");
 }
 
 export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
