@@ -59,6 +59,8 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
+    lib.scheduler.Task.run();
+    if (lib.scheduler.Task.ret.? != .success) @panic("Scheduler failed to initialize");
     while (true) asm volatile ("hlt");
 }
 
