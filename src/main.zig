@@ -59,9 +59,6 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
-    drivers.elf.Task.run();
-    if (drivers.elf.Task.ret.? != .success) @panic("Modules failed to initialize");
-    drivers.elf.load(drivers.modules.get_module("kmod-ide")) catch @panic("Error loading ELF file");
     while (true) asm volatile ("hlt");
 }
 

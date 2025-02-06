@@ -77,7 +77,7 @@ pub fn load(addr: usize) !void {
             // If the flags are set to non writable we still of course want to write the data to it
             // First we map with a known flags, present + writable, then set remap with flags after
             // Not the most efficient but gets the job done
-            const num_pages = try std.math.divCeil(usize, phdr.p_memsz, 0x1000);
+            const num_pages = try std.math.divCeil(usize, phdr.p_vaddr % 0x1000 + phdr.p_memsz, 0x1000);
             const vaddr_page = (phdr.p_vaddr / 0x1000) * 0x1000;
             for (0..num_pages) |i| {
                 mem.kmapper.map(mem.pmm.frame(), vaddr_page + i * 0x1000, 0b11);
