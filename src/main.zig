@@ -68,7 +68,7 @@ export fn _start() noreturn {
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     std.log.err("{s}", .{msg});
     asm volatile (
-        \\cli
+        \\cliee
         \\hlt
     );
     unreachable;
