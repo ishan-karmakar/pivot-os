@@ -49,6 +49,15 @@ const ELFSectionHeader = extern struct {
     sh_entsize: u64,
 };
 
+pub var Task = kernel.Task{
+    .name = "ELF Loader",
+    .init = null,
+    .dependencies = &.{
+        .{ .task = &mem.KMapperTask },
+        .{ .task = &kernel.drivers.modules.Task },
+    },
+};
+
 pub fn load(addr: usize) !void {
     const elf: *const ELFHeader = @ptrFromInt(addr);
     if (!std.mem.eql(u8, &elf.ident, &.{ 0x7F, 'E', 'L', 'F' })) return;
@@ -68,10 +77,16 @@ pub fn load(addr: usize) !void {
             var flags: usize = 0;
             if (phdr.flags & 0x1 == 0) flags |= (1 << 63);
 
-            // const num_pages = try std.math.divCeil(usize, phdr.p_memsz, 0x1000);
-            // for (0..num_pages) |i| {
-            //     mem.kmapper.map(mem.pmm.frame(), phdr.p_vaddr + i * 0x1000, 0);
-            // }
+            const num_pages = try std.math.divCeil(usize, phdr.p_memsz, 0x1000);
+            const vaddr_page = (phdr.p_vaddr / 0x1000) * 0x1000;
+            for (0..num_pages) |i| {
+                log.info("Mapping 0x{x}", .{vaddr_page + i * 0x1000});
+                mem.kmapper.map(mem.pmm.frame(), vaddr_page + i * 0x1000, 0);
+            }
+
+            // TODO: Make more efficient, only need to zero last part of memory (total - filesz)
+            @memset(@as([*]u8, @ptrFromInt(phdr.p_vaddr))[0..phdr.p_memsz], 0);
+            @memcpy(@as([*]u8, @ptrFromInt(phdr.p_vaddr))[0..phdr.p_filesz], @as([*]u8, @ptrFromInt(addr + phdr.p_offset))[0..phdr.p_filesz]);
         }
 
         phdr = @ptrFromInt(@intFromPtr(phdr) + elf.ent_size_phdr);
