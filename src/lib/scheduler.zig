@@ -23,7 +23,6 @@ pub const Thread = struct {
     priority: u8,
     ef: cpu.Status,
     mapper: mem.Mapper,
-    stack: ?[]u8,
     status: enum {
         ready,
         sleeping,
@@ -40,6 +39,8 @@ var lock = std.atomic.Value(bool).init(false);
 var global_queue: ThreadPriorityQueue = undefined;
 var delete_proc: ?*Thread = null;
 
+var idle_thread: Thread = undefined;
+
 fn init() kernel.Task.Ret {
     sched_vec = idt.allocate_handler(null);
     sched_vec.handler = schedule;
@@ -48,11 +49,22 @@ fn init() kernel.Task.Ret {
     const kproc = Thread{
         .ef = undefined,
         .mapper = mem.kmapper,
-        .stack = null,
         .priority = 100,
     };
+    const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
+    idle_thread = .{
+        .priority = 0,
+        .status = .ready,
+        .mapper = mem.kmapper,
+        .ef = .{ .iret_status = .{
+            .cs = 0x8,
+            .ss = 0x10,
+            .rip = @intFromPtr(&idle_func),
+            .rsp = @intFromPtr(stack.ptr) + 0x1000,
+        } },
+    };
+
     smp.cpu_info(null).cur_proc = enqueue(kproc);
-    kernel.drivers.timers.callback(50_000_000, null, schedule) catch return .failed;
     return .success;
 }
 
@@ -118,7 +130,6 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
 
     if (delete_proc) |dp| {
         delete_proc = null;
-        if (dp.stack) |stack| alloc.free(stack);
         alloc.destroy(dp);
     }
 
@@ -131,10 +142,15 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
         return status;
     } else if (next_thread) |nt| {
         cpu_info.cur_proc = nt;
+        cpu.set_cr3(@intFromPtr(nt.mapper.pml4));
         return &nt.ef;
     }
 
-    @panic("idle_thread not implemented");
+    return &idle_thread.ef;
+}
+
+fn idle_func() noreturn {
+    while (true) asm volatile ("hlt");
 }
 
 fn compareThreadPriorities(_: void, a: ThreadLinkedList, b: ThreadLinkedList) std.math.Order {
