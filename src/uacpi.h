@@ -1,7 +1,6 @@
 // This is a shortcut so that all the necessary include files are translated at once for Zig
 #pragma once
 #define UACPI_SIZED_FREES
-#define UACPI_DEFAULT_LOG_LEVEL UACPI_LOG_DEBUG
 #include <uacpi/acpi.h>
 #include <uacpi/context.h>
 #include <uacpi/event.h>

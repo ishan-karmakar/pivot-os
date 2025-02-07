@@ -58,8 +58,6 @@ fn init_legacy() void {
     write_reg = pci_write_reg;
 
     log.info("Initialized legacy PCI", .{});
-
-    scan_devices(0);
 }
 
 fn scan_devices(segment: u16) void {

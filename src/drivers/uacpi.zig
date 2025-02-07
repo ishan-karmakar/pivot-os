@@ -1,6 +1,7 @@
 const kernel = @import("kernel");
 const uacpi = @import("uacpi");
 const serial = kernel.drivers.serial;
+const pci = kernel.drivers.pci;
 const mem = kernel.lib.mem;
 const idt = kernel.drivers.idt;
 const cpu = kernel.drivers.cpu;
@@ -15,8 +16,8 @@ export var RSDP_REQUEST: limine.RsdpRequest = .{ .revision = 3 };
 
 const HandlerInfo = struct {
     ctx: uacpi.uacpi_handle,
-    handler: uacpi.uacpi_interrupt_handler,
-    vec: u8,
+    callback: uacpi.uacpi_interrupt_handler,
+    irq: usize,
 };
 
 export fn uacpi_kernel_io_map(addr: uacpi.uacpi_io_addr, _: uacpi.uacpi_size, out: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
@@ -69,24 +70,21 @@ export fn uacpi_kernel_pci_device_close(handle: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_pci_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
-    _ = handle;
-    _ = off;
-    _ = val;
-    @panic("uacpi_kernel_pci_read8");
+    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    val.* = @truncate(pci.read_reg(addr.segment, addr.bus, @intCast(addr.device), @intCast(addr.function), @intCast(off)));
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
-    _ = handle;
-    _ = off;
-    _ = val;
-    @panic("uacpi_kernel_pci_read16");
+    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    val.* = @truncate(pci.read_reg(addr.segment, addr.bus, @intCast(addr.device), @intCast(addr.function), @intCast(off)));
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u32) uacpi.uacpi_status {
-    _ = handle;
-    _ = off;
-    _ = val;
-    @panic("uacpi_kernel_pci_read32");
+    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    val.* = pci.read_reg(addr.segment, addr.bus, @intCast(addr.device), @intCast(addr.function), @intCast(off)) & 0xFFFFFFFF;
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u8) uacpi.uacpi_status {
@@ -110,23 +108,6 @@ export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_
     @panic("uacpi_kernel_write32");
 }
 
-export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacpi.uacpi_work_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
-    _ = wtype;
-    _ = handler;
-    _ = handle;
-    @panic("uacpi_kernel_schedule_work is unimplemented");
-    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
-}
-
-export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
-    @panic("uacpi_kernel_wait_for_work_completion is unimplemented");
-    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
-}
-
-export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    return @ptrFromInt(1);
-}
-
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
     const ptr = mem.kheap.allocator().alignedAlloc(u8, 8, size) catch @panic("OOM");
     return @ptrCast(ptr.ptr);
@@ -148,98 +129,24 @@ export fn uacpi_kernel_map(addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) 
 
 export fn uacpi_kernel_unmap(_: ?*anyopaque, _: uacpi.uacpi_size) void {}
 
-export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_status {
-    const req = RSDP_REQUEST.response orelse @panic("Limine RSDP request is null");
-    out.* = @intFromPtr(req.address);
+export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, callback: uacpi.uacpi_interrupt_handler, _ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+    const handler = idt.allocate_handler(null);
+    const ctx = mem.kheap.allocator().create(HandlerInfo) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
+    ctx.* = .{
+        .ctx = _ctx,
+        .callback = callback,
+        .irq = @intCast(irq),
+    };
+    handler.ctx = ctx;
+    handler.handler = uacpi_handler;
+    ctx.irq = kernel.drivers.intctrl.map(idt.handler2vec(handler), ctx.irq) catch return uacpi.UACPI_STATUS_INTERNAL_ERROR;
+    kernel.drivers.intctrl.mask(ctx.irq, false);
     return uacpi.UACPI_STATUS_OK;
-}
-
-export fn uacpi_kernel_get_ticks() uacpi.uacpi_u64 {
-    @panic("uacpi_kernel_get_ticks unimplemented");
 }
 
 export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_handler, _: uacpi.uacpi_handle) uacpi.uacpi_status {
     @panic("uacpi_kernel_uninstall_interrupt_handler unimplemented");
     // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
-}
-
-export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, handler: uacpi.uacpi_interrupt_handler, ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
-    _ = irq;
-    _ = handler;
-    _ = ctx;
-    @panic("uacpi_kernel_install_interrupt_handler");
-    // const info = mem.kheap.allocator().create(HandlerInfo) catch @panic("OOM");
-    // info.ctx = ctx;
-    // info.handler = handler;
-    // info.vec = idt.allocate_vec(@truncate(irq + 0x20), uacpi_irq_handler, info) orelse @panic("Out of interrupt handlers");
-    // intctrl.set(info.vec, @truncate(irq), 0);
-    // intctrl.mask(@truncate(irq), false);
-    // @panic("Ran out of interrupt handlers for uACPI");
-}
-
-fn uacpi_irq_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    const info: *HandlerInfo = @alignCast(@ptrCast(ctx));
-    if (info.handler.?(info.ctx) != uacpi.UACPI_INTERRUPT_HANDLED) @panic("uacpi interrupt not handled");
-    return status;
-}
-
-export fn uacpi_kernel_create_event() uacpi.uacpi_handle {
-    @panic("uacpi_kernel_create_event");
-    // return @ptrCast(mem.kheap.allocator().create(bool) catch @panic("OOM"));
-}
-
-export fn uacpi_kernel_create_spinlock() uacpi.uacpi_handle {
-    return uacpi_kernel_create_mutex();
-}
-
-export fn uacpi_kernel_lock_spinlock(handle: uacpi.uacpi_handle) uacpi.uacpi_cpu_flags {
-    asm volatile ("cli");
-    _ = uacpi_kernel_acquire_mutex(handle, 0xFFFF);
-    return 0;
-}
-
-export fn uacpi_kernel_signal_event(_: uacpi.uacpi_handle) void {
-    @panic("uacpi_kernel_signal_event unimplemented");
-}
-
-export fn uacpi_kernel_unlock_spinlock(handle: uacpi.uacpi_handle, _: uacpi.uacpi_cpu_flags) void {
-    uacpi_kernel_release_mutex(handle);
-    asm volatile ("sti");
-}
-
-export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
-    @panic("uacpi_kernel_get_nanoseconds_since_boot");
-}
-
-export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
-    _ = ms;
-    @panic("uacpi_kernel_sleep unimplemented");
-    // timers.sleep(ms);
-}
-
-export fn uacpi_kernel_stall(_: uacpi.uacpi_u8) void {
-    uacpi_kernel_sleep(1);
-}
-
-export fn uacpi_kernel_reset_event(_: uacpi.uacpi_handle) void {
-    @panic("uacpi_kernel_reset_event unimplemented");
-}
-
-export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware_request) uacpi.uacpi_status {
-    switch (request.*.type) {
-        uacpi.UACPI_FIRMWARE_REQUEST_TYPE_BREAKPOINT => log.warn("Ignoring AML breakpoint - CTX: 0x{?}", .{request.*.unnamed_0.breakpoint.ctx}),
-        uacpi.UACPI_FIRMWARE_REQUEST_TYPE_FATAL => log.err("Fatal firmware error - type: {}, code: {}, arg: {}", .{
-            request.*.unnamed_0.fatal.type,
-            request.*.unnamed_0.fatal.code,
-            request.*.unnamed_0.fatal.arg,
-        }),
-        else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
-    }
-    return uacpi.UACPI_STATUS_OK;
-}
-
-export fn uacpi_kernel_wait_for_event(_: uacpi.uacpi_handle, _: uacpi.uacpi_u16) uacpi.uacpi_bool {
-    @panic("uacpi_kernel_wait_for_event unimplemented");
 }
 
 export fn uacpi_kernel_create_mutex() uacpi.uacpi_handle {
@@ -274,6 +181,104 @@ export fn uacpi_kernel_free_mutex(handle: uacpi.uacpi_handle) void {
     mem.kheap.allocator().destroy(mutex);
 }
 
+export fn uacpi_kernel_create_spinlock() uacpi.uacpi_handle {
+    return uacpi_kernel_create_mutex();
+}
+
+export fn uacpi_kernel_lock_spinlock(handle: uacpi.uacpi_handle) uacpi.uacpi_cpu_flags {
+    asm volatile ("cli");
+    _ = uacpi_kernel_acquire_mutex(handle, 0xFFFF);
+    return 0;
+}
+
+export fn uacpi_kernel_unlock_spinlock(handle: uacpi.uacpi_handle, _: uacpi.uacpi_cpu_flags) void {
+    uacpi_kernel_release_mutex(handle);
+    asm volatile ("sti");
+}
+
+export fn uacpi_kernel_free_spinlock(handle: uacpi.uacpi_handle) void {
+    uacpi_kernel_free_mutex(handle);
+}
+
+export fn uacpi_kernel_create_event() uacpi.uacpi_handle {
+    const event = mem.kheap.allocator().create(std.atomic.Value(u8)) catch @panic("OOM");
+    event.* = std.atomic.Value(u8).init(0);
+    return @ptrCast(event);
+}
+
+export fn uacpi_kernel_signal_event(handle: uacpi.uacpi_handle) void {
+    const event: *std.atomic.Value(u8) = @ptrCast(handle);
+    _ = event.fetchAdd(1, .monotonic);
+}
+
+export fn uacpi_kernel_wait_for_event(handle: uacpi.uacpi_handle, timeout: uacpi.uacpi_u16) uacpi.uacpi_bool {
+    if (timeout != 0xFFFF) @panic("wait for event with timeout not supported");
+    const event: *std.atomic.Value(u8) = @ptrCast(handle);
+    while (event.load(.monotonic) == 0) {}
+    _ = event.fetchSub(1, .monotonic);
+    return true;
+}
+
+export fn uacpi_kernel_reset_event(handle: uacpi.uacpi_handle) void {
+    const event: *std.atomic.Value(u8) = @ptrCast(handle);
+    event.store(0, .monotonic);
+}
+
+export fn uacpi_kernel_free_event(handle: uacpi.uacpi_handle) void {
+    const event: *std.atomic.Value(u8) = @ptrCast(handle);
+    mem.kheap.allocator().destroy(event);
+}
+
+export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacpi.uacpi_work_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
+    _ = wtype;
+    _ = handler;
+    _ = handle;
+    @panic("uacpi_kernel_schedule_work is unimplemented");
+    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
+}
+
+export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
+    @panic("uacpi_kernel_wait_for_work_completion is unimplemented");
+    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
+}
+
+export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
+    return @ptrFromInt(1);
+}
+
+export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_status {
+    const req = RSDP_REQUEST.response orelse return uacpi.UACPI_STATUS_NOT_FOUND;
+    out.* = @intFromPtr(req.address);
+    return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
+    return kernel.drivers.timers.time() catch @panic("No global time source");
+}
+
+export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
+    _ = ms;
+    @panic("uacpi_kernel_sleep unimplemented");
+    // timers.sleep(ms);
+}
+
+export fn uacpi_kernel_stall(_: uacpi.uacpi_u8) void {
+    uacpi_kernel_sleep(1);
+}
+
+export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware_request) uacpi.uacpi_status {
+    switch (request.*.type) {
+        uacpi.UACPI_FIRMWARE_REQUEST_TYPE_BREAKPOINT => log.warn("Ignoring AML breakpoint - CTX: 0x{?}", .{request.*.unnamed_0.breakpoint.ctx}),
+        uacpi.UACPI_FIRMWARE_REQUEST_TYPE_FATAL => log.err("Fatal firmware error - type: {}, code: {}, arg: {}", .{
+            request.*.unnamed_0.fatal.type,
+            request.*.unnamed_0.fatal.code,
+            request.*.unnamed_0.fatal.arg,
+        }),
+        else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
+    }
+    return uacpi.UACPI_STATUS_OK;
+}
+
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {
     var str: []const u8 = std.mem.span(msg);
     str = str[0 .. str.len - 1];
@@ -286,10 +291,14 @@ export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.ua
     }
 }
 
-export fn uacpi_kernel_free_spinlock(_: uacpi.uacpi_handle) void {
-    @panic("uacpi_kernel_free_spinlock unimplemented");
-}
-
-export fn uacpi_kernel_free_event(_: uacpi.uacpi_handle) void {
-    @panic("uacpi_kernel_free_event unimplemented");
+fn uacpi_handler(_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+    const ctx: *HandlerInfo = @alignCast(@ptrCast(_ctx));
+    const ret = ctx.callback.?(ctx.ctx);
+    if (ret == uacpi.UACPI_INTERRUPT_HANDLED) {
+        log.debug("uACPI handler for irq {} was handled correctly", .{ctx.irq});
+    } else {
+        log.warn("uACPI handler for irq {} was not handled correctly", .{ctx.irq});
+    }
+    kernel.drivers.intctrl.eoi(ctx.irq);
+    return status;
 }

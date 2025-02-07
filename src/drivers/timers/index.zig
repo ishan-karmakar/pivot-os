@@ -55,6 +55,11 @@ fn no_cal_init() kernel.Task.Ret {
     return .success;
 }
 
+pub fn time() !usize {
+    const t = gts orelse (no_cal_gts orelse return error.NoGTS);
+    return t.time.?();
+}
+
 pub fn sleep(ns: usize) void {
     const _gts = gts orelse no_cal_gts;
     const _timer = timer orelse no_cal_timer;

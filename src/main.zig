@@ -45,7 +45,7 @@ pub const Task = struct {
 
         switch (ret) {
             .success => log.info("Task \"{s}\" successfully initialized", .{self.name}),
-            .skipped => log.info("Task \"{s}\" skipped initialization", .{self.name}),
+            .skipped => log.debug("Task \"{s}\" skipped initialization", .{self.name}),
             .failed => log.err("Task \"{s}\" failed initialization", .{self.name}),
         }
     }
@@ -60,7 +60,6 @@ export fn _start() noreturn {
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
     lib.scheduler.Task.run();
-    if (lib.scheduler.Task.ret.? != .success) @panic("Scheduler failed to initialize");
     while (true) asm volatile ("hlt");
 }
 

@@ -10,7 +10,7 @@ pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1, .revision = 3 };
 pub const CPU = struct {
     id: u32,
     ready: std.atomic.Value(bool),
-    timeslice: usize = 0,
+    cur_proc: ?*kernel.lib.scheduler.Thread,
 };
 
 pub var Task = kernel.Task{
@@ -39,6 +39,7 @@ pub fn init() kernel.Task.Ret {
         _info.* = CPU{
             .id = @truncate(i),
             .ready = std.atomic.Value(bool).init(false),
+            .cur_proc = null,
         };
         info.extra_argument = @intFromPtr(_info);
         if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {
