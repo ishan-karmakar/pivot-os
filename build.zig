@@ -104,7 +104,7 @@ fn createQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const iso_dir = getISODirStep(b, kernel);
     getModulesStep(b, iso_dir, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory());
-    const install_iso = b.addInstallBinFile(iso_out, "qemu/os.iso");
+    const install_iso = b.addInstallBinFile(iso_out, "os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
 
     const qemu = b.addSystemCommand(&QEMU_ARGS);
@@ -113,7 +113,7 @@ fn createQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     qemu.addFileArg(iso_out);
     const run_step = b.step("run", "Run with QEMU emulator");
     run_step.dependOn(&qemu.step);
-    run_step.dependOn(&b.addInstallArtifact(kernel, .{ .dest_sub_path = "qemu/pivot-os" }).step);
+    run_step.dependOn(&b.addInstallArtifact(kernel, .{}).step);
 }
 
 fn getLimineBiosStep(b: *std.Build, iso: std.Build.LazyPath) *Step {

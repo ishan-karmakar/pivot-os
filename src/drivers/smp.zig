@@ -10,7 +10,7 @@ pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1, .revision = 3 };
 
 pub const CPU = struct {
     id: u32,
-    ready: bool,
+    ready: std.atomic.Value(bool),
     cur_proc: ?*Process = null,
     delete_proc: ?*Process = null,
     timeslice: usize = 0,
@@ -30,7 +30,7 @@ pub fn init() void {
             cpu.set_kgs(info.extra_argument);
         } else {
             info.goto_address = kernel.ap_init;
-            while (!@atomicLoad(bool, &_info.ready, .acquire)) {}
+            while (!_info.ready.load(.acquire)) {}
         }
     }
     log.info("All application processors booted up and ready", .{});

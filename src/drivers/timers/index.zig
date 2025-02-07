@@ -63,6 +63,7 @@ pub fn sleep(ns: usize) void {
         const start = t();
         while (t() < (start + ns)) asm volatile ("pause");
     } else if (_timer) |vtable| {
+        // TODO: Consider std.atomic.Value?
         var triggered = false;
         vtable.callback.?(ns, &triggered, sleep_callback);
         while (!@atomicLoad(bool, @as(*const volatile bool, &triggered), .unordered)) asm volatile ("pause");
