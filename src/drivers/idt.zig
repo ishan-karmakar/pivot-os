@@ -48,6 +48,14 @@ pub var Task = kernel.Task{
     },
 };
 
+pub var TaskAP = kernel.Task{
+    .name = "IDT (AP)",
+    .init = init_ap,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.gdt.DynamicTaskAP },
+    },
+};
+
 fn init() kernel.Task.Ret {
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
     set_ent(1, create_exc_isr(1, false, "exception_handler"));
@@ -82,6 +90,11 @@ fn init() kernel.Task.Ret {
     inline for (0x20..256) |vec| set_ent(@intCast(vec), create_irq(vec));
 
     idtr.addr = @intFromPtr(&rawTable);
+    lidt();
+    return .success;
+}
+
+fn init_ap() kernel.Task.Ret {
     lidt();
     return .success;
 }

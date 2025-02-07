@@ -1,8 +1,8 @@
 const kernel = @import("kernel");
 const limine = @import("limine");
+const std = @import("std");
 const log = @import("std").log.scoped(.pmm);
 const mem = kernel.lib.mem;
-const Mutex = kernel.lib.Mutex;
 
 const FreeRegion = struct {
     const Self = @This();
@@ -24,7 +24,7 @@ pub var Task = kernel.Task{
     },
 };
 
-var mutex = Mutex{};
+var mutex = std.atomic.Value(bool).init(false);
 var head_region: ?*FreeRegion = null;
 
 fn init() kernel.Task.Ret {
@@ -41,8 +41,8 @@ fn init() kernel.Task.Ret {
 
 /// Adds region (start and number of pages) to free regions linked list
 pub fn add_region(start: usize, num_pages: usize) void {
-    mutex.lock();
-    defer mutex.unlock();
+    while (mutex.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    defer mutex.store(false, .release);
     var region: *FreeRegion = @ptrFromInt(mem.virt(start));
     region.num_pages = num_pages;
     region.next = head_region;
@@ -65,8 +65,8 @@ pub fn get_free_size() usize {
 /// The PHYSICAL address is returned
 /// Runs in O(1) time
 pub fn frame() usize {
-    mutex.lock();
-    defer mutex.unlock();
+    while (mutex.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    defer mutex.store(false, .release);
     const hregion: *FreeRegion = head_region orelse @panic("No region has been added yet");
     const frm = hregion.frame();
     if (hregion.num_pages == 0) {

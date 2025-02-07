@@ -70,6 +70,11 @@ pub fn sleep(ns: usize) void {
     } else @panic("No timer found");
 }
 
+pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) !void {
+    const t = timer orelse (no_cal_timer orelse return error.NoTimer);
+    t.callback.?(ns, ctx, func);
+}
+
 fn sleep_callback(ctx: ?*anyopaque, status: *const kernel.drivers.cpu.Status) *const kernel.drivers.cpu.Status {
     @as(*bool, @alignCast(@ptrCast(ctx))).* = true;
     return status;

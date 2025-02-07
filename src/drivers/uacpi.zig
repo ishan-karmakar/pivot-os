@@ -6,7 +6,6 @@ const idt = kernel.drivers.idt;
 const cpu = kernel.drivers.cpu;
 const math = @import("std").math;
 const log = @import("std").log.scoped(.uacpi);
-const Mutex = kernel.lib.Mutex;
 const limine = @import("limine");
 const std = @import("std");
 
@@ -244,16 +243,19 @@ export fn uacpi_kernel_wait_for_event(_: uacpi.uacpi_handle, _: uacpi.uacpi_u16)
 }
 
 export fn uacpi_kernel_acquire_mutex(handle: uacpi.uacpi_handle, _: uacpi.uacpi_u16) uacpi.uacpi_bool {
+    _ = handle;
     // This function is run before any timers are initialized, so there is no point in handling timeout
-    const mutex: *Mutex = @ptrCast(handle);
-    mutex.lock();
-    return true;
+    @panic("uacpi_kernel_acquire_mutex");
+    // const mutex: *Mutex = @ptrCast(handle);
+    // mutex.lock();
+    // return true;
 }
 
 export fn uacpi_kernel_create_mutex() uacpi.uacpi_handle {
-    const mutex = mem.kheap.allocator().create(Mutex) catch @panic("OOM");
-    mutex.* = Mutex{};
-    return @ptrCast(mutex);
+    @panic("uacpi_kernel_create_mutex");
+    // const mutex = mem.kheap.allocator().create(std.atomic.Value(bool)) catch @panic("OOM");
+    // mutex.* = Mutex{};
+    // return @ptrCast(mutex);
 }
 
 export fn uacpi_kernel_free_mutex(_: uacpi.uacpi_handle) void {
@@ -261,8 +263,10 @@ export fn uacpi_kernel_free_mutex(_: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_release_mutex(handle: uacpi.uacpi_handle) void {
-    const mutex: *Mutex = @ptrCast(handle);
-    mutex.unlock();
+    _ = handle;
+    @panic("uacpi_kernel_release_mutex");
+    // const mutex: *Mutex = @ptrCast(handle);
+    // mutex.unlock();
 }
 
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {
