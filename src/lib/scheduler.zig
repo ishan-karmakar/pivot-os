@@ -13,6 +13,7 @@ pub var Task = kernel.Task{
     .dependencies = &.{
         .{ .task = &kernel.lib.mem.KHeapTask },
         .{ .task = &kernel.drivers.smp.Task },
+        .{ .task = &kernel.drivers.timers.Task },
     },
 };
 
@@ -43,6 +44,7 @@ fn init() kernel.Task.Ret {
         .stack = null,
     };
     enqueue(100, kproc);
+    kernel.drivers.timers.callback(50_000_000, null, schedule) catch return .failed;
     return .success;
 }
 

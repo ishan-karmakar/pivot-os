@@ -124,7 +124,7 @@ export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
 }
 
 export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    return null; // 0
+    return @ptrFromInt(1);
 }
 
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
@@ -137,14 +137,13 @@ export fn uacpi_kernel_free(_ptr: ?*anyopaque, size: uacpi.uacpi_size) void {
     mem.kheap.allocator().free(ptr[0..size]);
 }
 
-export fn uacpi_kernel_map(_addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) ?*anyopaque {
-    var start = @divFloor(_addr, 0x1000) * 0x1000;
-    const end = @divFloor(_addr + size, 0x1000) * 0x1000;
-    while (start <= end) {
-        mem.kmapper.map(start, start, 0b11);
-        start += 0x1000;
+export fn uacpi_kernel_map(addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) ?*anyopaque {
+    const start = (addr / 0x1000) * 0x1000;
+    const num_pages = std.math.divCeil(usize, addr % 0x1000 + size, 0x1000) catch unreachable;
+    for (0..num_pages) |i| {
+        mem.kmapper.map(start + i * 0x1000, start + i * 0x1000, 0b11 | (1 << 63));
     }
-    return @ptrFromInt(_addr);
+    return @ptrFromInt(addr);
 }
 
 export fn uacpi_kernel_unmap(_: ?*anyopaque, _: uacpi.uacpi_size) void {}
@@ -185,7 +184,8 @@ fn uacpi_irq_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Sta
 }
 
 export fn uacpi_kernel_create_event() uacpi.uacpi_handle {
-    return @ptrCast(mem.kheap.allocator().create(bool) catch @panic("OOM"));
+    @panic("uacpi_kernel_create_event");
+    // return @ptrCast(mem.kheap.allocator().create(bool) catch @panic("OOM"));
 }
 
 export fn uacpi_kernel_create_spinlock() uacpi.uacpi_handle {
@@ -242,31 +242,36 @@ export fn uacpi_kernel_wait_for_event(_: uacpi.uacpi_handle, _: uacpi.uacpi_u16)
     @panic("uacpi_kernel_wait_for_event unimplemented");
 }
 
-export fn uacpi_kernel_acquire_mutex(handle: uacpi.uacpi_handle, _: uacpi.uacpi_u16) uacpi.uacpi_bool {
-    _ = handle;
-    // This function is run before any timers are initialized, so there is no point in handling timeout
-    @panic("uacpi_kernel_acquire_mutex");
-    // const mutex: *Mutex = @ptrCast(handle);
-    // mutex.lock();
-    // return true;
-}
-
 export fn uacpi_kernel_create_mutex() uacpi.uacpi_handle {
-    @panic("uacpi_kernel_create_mutex");
-    // const mutex = mem.kheap.allocator().create(std.atomic.Value(bool)) catch @panic("OOM");
-    // mutex.* = Mutex{};
-    // return @ptrCast(mutex);
+    const mutex = mem.kheap.allocator().create(std.atomic.Value(bool)) catch @panic("OOM");
+    mutex.* = std.atomic.Value(bool).init(false);
+    return @ptrCast(mutex);
 }
 
-export fn uacpi_kernel_free_mutex(_: uacpi.uacpi_handle) void {
-    @panic("uacpi_kernel_free_mutex unimplemented");
+export fn uacpi_kernel_acquire_mutex(handle: uacpi.uacpi_handle, timeout: uacpi.uacpi_u16) uacpi.uacpi_status {
+    const mutex: *std.atomic.Value(bool) = @ptrCast(handle);
+    if (timeout == 0) {
+        if (mutex.cmpxchgStrong(false, true, .acquire, .monotonic) != null) {
+            return uacpi.UACPI_STATUS_TIMEOUT;
+        } else {
+            return uacpi.UACPI_STATUS_OK;
+        }
+    } else if (timeout == 0xFFFF) {
+        while (mutex.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+        return uacpi.UACPI_STATUS_OK;
+    } else {
+        @panic("mutex with timeout not implemented");
+    }
 }
 
 export fn uacpi_kernel_release_mutex(handle: uacpi.uacpi_handle) void {
-    _ = handle;
-    @panic("uacpi_kernel_release_mutex");
-    // const mutex: *Mutex = @ptrCast(handle);
-    // mutex.unlock();
+    const mutex: *std.atomic.Value(bool) = @ptrCast(handle);
+    mutex.store(false, .release);
+}
+
+export fn uacpi_kernel_free_mutex(handle: uacpi.uacpi_handle) void {
+    const mutex: *std.atomic.Value(bool) = @ptrCast(handle);
+    mem.kheap.allocator().destroy(mutex);
 }
 
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {
