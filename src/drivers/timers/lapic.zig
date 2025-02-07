@@ -62,6 +62,7 @@ fn init() kernel.Task.Ret {
 }
 
 fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
+    log.info("callback", .{});
     const handler = idt.allocate_handler(null);
     handler.handler = timer_handler;
     const ctx = mem.kheap.allocator().create(HandlerCtx) catch @panic("OOM");

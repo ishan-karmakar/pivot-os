@@ -3,6 +3,7 @@ const idt = kernel.drivers.idt;
 const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const smp = kernel.drivers.smp;
+const timers = kernel.drivers.timers;
 const std = @import("std");
 const log = std.log.scoped(.sched);
 
@@ -53,7 +54,7 @@ fn init() kernel.Task.Ret {
     };
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
     idle_thread = .{
-        .priority = 0,
+        .priority = 100,
         .status = .ready,
         .mapper = mem.kmapper,
         .ef = .{ .iret_status = .{
@@ -65,6 +66,8 @@ fn init() kernel.Task.Ret {
     };
 
     smp.cpu_info(null).cur_proc = enqueue(kproc);
+    _ = enqueue(idle_thread);
+    timers.callback(50_000_000, null, schedule) catch return .failed;
     return .success;
 }
 
@@ -73,6 +76,7 @@ fn enqueue(thread: Thread) *Thread {
     node.data = thread;
     node.data.id = id_counter.fetchAdd(1, .monotonic);
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    defer lock.store(false, .release);
 
     for (global_queue.items) |*queue| {
         if (queue.first.?.data.priority == thread.priority) {
@@ -84,7 +88,6 @@ fn enqueue(thread: Thread) *Thread {
     queue.append(node);
     global_queue.add(queue) catch @panic("OOM");
 
-    lock.store(false, .release);
     return &node.data;
 }
 
@@ -107,7 +110,7 @@ fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
         if (global_queue.count() > 0) {
             const pq = &global_queue.items[0];
             // SCHED_RR, account for timeslice/quantum
-            if (pq.first.?.data.priority > cp.priority) {
+            if (pq.first.?.data.priority >= cp.priority) {
                 return &pq.popFirst().?.data;
             }
         }
@@ -138,15 +141,22 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
 
     if (cpu_info.cur_proc != null and next_thread != null) {
         // Preempt current process and switch to next thread
+        const cp = cpu_info.cur_proc.?;
+        log.info("Current proc is {x}, switching to {x}", .{ @intFromPtr(cp), @intFromPtr(next_thread.?) });
+        cp.ef = status.*;
+        global_queue.items[0].append(@fieldParentPtr("data", cp));
     } else if (cpu_info.cur_proc != null) {
         return status;
-    } else if (next_thread) |nt| {
+    }
+
+    if (next_thread) |nt| {
         cpu_info.cur_proc = nt;
+        timers.callback(50_000_000, null, schedule) catch @panic("No timer available");
         cpu.set_cr3(@intFromPtr(nt.mapper.pml4));
         return &nt.ef;
     }
-
-    return &idle_thread.ef;
+    @panic("idle thread not implemeneted");
+    // return &idle_thread.ef;
 }
 
 fn idle_func() noreturn {

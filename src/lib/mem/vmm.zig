@@ -253,7 +253,6 @@ fn calc_split(_size: usize) Tuple(&.{ usize, usize, usize, usize }) {
     const size = _size / 0x1000 * 0x1000;
     var free_size = size - 0x1000;
     var max_bsize = math.ceilPowerOfTwoAssert(usize, free_size);
-    log.info("max bsize: {}", .{max_bsize});
     var meta_ib = get_meta_size(max_bsize);
     while (meta_ib[1] + free_size > size) {
         free_size -= 0x1000;
