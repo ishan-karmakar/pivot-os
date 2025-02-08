@@ -75,8 +75,8 @@ pub fn sleep(ns: usize) void {
     } else @panic("No timer found");
 }
 
-pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) !void {
-    const t = timer orelse (no_cal_timer orelse return error.NoTimer);
+pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) void {
+    const t = timer orelse (no_cal_timer orelse @panic("No timer available"));
     t.callback.?(ns, ctx, func);
 }
 

@@ -65,28 +65,30 @@ fn init() kernel.Task.Ret {
         } },
     };
 
-    smp.cpu_info(null).cur_proc = enqueue(kproc);
-    _ = enqueue(idle_thread);
-    timers.callback(50_000_000, null, schedule) catch return .failed;
+    smp.cpu_info(null).cur_proc = create_thread(kproc);
+    timers.callback(50_000_000, null, schedule);
     return .success;
 }
 
-fn enqueue(thread: Thread) *Thread {
-    const node = mem.kheap.allocator().create(ThreadLinkedList.Node) catch @panic("OOM");
-    node.data = thread;
-    node.data.id = id_counter.fetchAdd(1, .monotonic);
+fn enqueue(thread: *Thread) void {
+    const node: *ThreadLinkedList.Node = @fieldParentPtr("data", thread);
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
 
     for (global_queue.items) |*queue| {
         if (queue.first.?.data.priority == thread.priority) {
             queue.append(node);
-            return &node.data;
         }
     }
     var queue = ThreadLinkedList{};
     queue.append(node);
     global_queue.add(queue) catch @panic("OOM");
+}
+
+fn create_thread(thread: Thread) *Thread {
+    const node = mem.kheap.allocator().create(ThreadLinkedList.Node) catch @panic("OOM");
+    node.data = thread;
+    node.data.id = id_counter.fetchAdd(1, .monotonic);
 
     return &node.data;
 }
@@ -151,12 +153,11 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
 
     if (next_thread) |nt| {
         cpu_info.cur_proc = nt;
-        timers.callback(50_000_000, null, schedule) catch @panic("No timer available");
-        cpu.set_cr3(@intFromPtr(nt.mapper.pml4));
+        cpu.set_cr3(mem.phys(@intFromPtr(nt.mapper.pml4)));
+        timers.callback(50_000_000, null, schedule);
         return &nt.ef;
     }
-    @panic("idle thread not implemeneted");
-    // return &idle_thread.ef;
+    return &idle_thread.ef;
 }
 
 fn idle_func() noreturn {
