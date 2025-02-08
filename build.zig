@@ -223,7 +223,10 @@ fn initUACPI(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
             "uacpi.c",
             "utilities.c",
         },
-        .flags = &.{ "-DUACPI_SIZED_FREES", "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_TRACE" },
+        .flags = &.{
+            "-DUACPI_SIZED_FREES",
+            "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_TRACE",
+        },
     };
 }
 

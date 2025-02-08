@@ -7,7 +7,7 @@ const timers = kernel.drivers.timers;
 const std = @import("std");
 const log = std.log.scoped(.sched);
 
-const QUANTUM = 50;
+const QUANTUM = 50_000_000;
 
 pub var Task = kernel.Task{
     .name = "Scheduler",
@@ -66,7 +66,7 @@ fn init() kernel.Task.Ret {
     };
 
     smp.cpu_info(null).cur_proc = create_thread(kproc);
-    timers.callback(50_000_000, null, schedule);
+    timers.callback(QUANTUM, null, schedule);
     return .success;
 }
 
@@ -83,6 +83,14 @@ fn enqueue(thread: *Thread) void {
     var queue = ThreadLinkedList{};
     queue.append(node);
     global_queue.add(queue) catch @panic("OOM");
+}
+
+fn enqueue_preempt(priority: u8) void {
+    _ = priority;
+    for (0..smp.cpu_count()) |i| {
+        const cpu_info = smp.cpu_info(i);
+        if (cpu_info.cur_proc) |_| {} else {}
+    }
 }
 
 fn create_thread(thread: Thread) *Thread {
@@ -144,7 +152,6 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
     if (cpu_info.cur_proc != null and next_thread != null) {
         // Preempt current process and switch to next thread
         const cp = cpu_info.cur_proc.?;
-        log.info("Current proc is {x}, switching to {x}", .{ @intFromPtr(cp), @intFromPtr(next_thread.?) });
         cp.ef = status.*;
         global_queue.items[0].append(@fieldParentPtr("data", cp));
     } else if (cpu_info.cur_proc != null) {
@@ -154,7 +161,7 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
     if (next_thread) |nt| {
         cpu_info.cur_proc = nt;
         cpu.set_cr3(mem.phys(@intFromPtr(nt.mapper.pml4)));
-        timers.callback(50_000_000, null, schedule);
+        timers.callback(QUANTUM, null, schedule);
         return &nt.ef;
     }
     return &idle_thread.ef;

@@ -130,7 +130,7 @@ export fn uacpi_kernel_map(addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) 
 export fn uacpi_kernel_unmap(_: ?*anyopaque, _: uacpi.uacpi_size) void {}
 
 export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, callback: uacpi.uacpi_interrupt_handler, _ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
-    const handler = idt.allocate_handler(null);
+    const handler = idt.allocate_handler(kernel.drivers.intctrl.pref_vec(@intCast(irq)));
     const ctx = mem.kheap.allocator().create(HandlerInfo) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
     ctx.* = .{
         .ctx = _ctx,
