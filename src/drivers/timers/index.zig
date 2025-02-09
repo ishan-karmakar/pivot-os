@@ -55,8 +55,8 @@ fn no_cal_init() kernel.Task.Ret {
     return .success;
 }
 
-pub fn time() !usize {
-    const t = gts orelse (no_cal_gts orelse return error.NoGTS);
+pub fn time() usize {
+    const t = gts orelse (no_cal_gts orelse @panic("No GTS available"));
     return t.time.?();
 }
 

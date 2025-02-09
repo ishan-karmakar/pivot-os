@@ -4,6 +4,7 @@ const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const smp = kernel.drivers.smp;
 const timers = kernel.drivers.timers;
+const syscalls = kernel.lib.syscalls;
 const std = @import("std");
 const log = std.log.scoped(.sched);
 
@@ -13,9 +14,10 @@ pub var Task = kernel.Task{
     .name = "Scheduler",
     .init = init,
     .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KHeapTask },
-        .{ .task = &kernel.drivers.smp.Task },
-        .{ .task = &kernel.drivers.timers.Task },
+        .{ .task = &mem.KHeapTask },
+        .{ .task = &smp.Task },
+        .{ .task = &timers.Task },
+        .{ .task = &syscalls.Task },
     },
 };
 
@@ -24,6 +26,7 @@ pub const Thread = struct {
     priority: u8,
     ef: cpu.Status,
     mapper: mem.Mapper,
+    quantum_end: usize = 0, // Absolute time of when thread should end
     status: enum {
         ready,
         sleeping,
@@ -51,6 +54,8 @@ var delete_proc: ?*Thread = null;
 var idle_thread: Thread = undefined;
 
 fn init() kernel.Task.Ret {
+    syscalls.register_syscall(syscalls.SYSCALLS.EXIT, syscall_exit);
+    syscalls.register_syscall(syscalls.SYSCALLS.SLEEP, syscall_sleep);
     sched_vec = idt.allocate_handler(null);
     sched_vec.handler = schedule;
     global_queue = ThreadPriorityQueue.init(mem.kheap.allocator(), {});
@@ -60,10 +65,12 @@ fn init() kernel.Task.Ret {
         .ef = undefined,
         .mapper = mem.kmapper,
         .priority = 100,
+        .quantum_end = timers.time() + QUANTUM,
     };
+
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
     idle_thread = .{
-        .priority = 100,
+        .priority = 0,
         .status = .ready,
         .mapper = mem.kmapper,
         .ef = .{ .iret_status = .{
@@ -93,14 +100,6 @@ fn enqueue(thread: *Thread) void {
     global_queue.add(queue) catch @panic("OOM");
 }
 
-fn enqueue_preempt(priority: u8) void {
-    _ = priority;
-    for (0..smp.cpu_count()) |i| {
-        const cpu_info = smp.cpu_info(i);
-        if (cpu_info.cur_proc) |_| {} else {}
-    }
-}
-
 fn create_thread(thread: Thread) *Thread {
     const node = mem.kheap.allocator().create(ThreadLinkedList.Node) catch @panic("OOM");
     node.data = thread;
@@ -121,21 +120,32 @@ fn check_cur_thread(cpu_info: *smp.CPU) void {
 
 // Checks if any threads are ready to be scheduled to know whether to preempt current one
 fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
+    defer {
+        if (global_queue.count() > 0 and global_queue.peek().?.len == 0) _ = global_queue.remove();
+    }
     if (cpu_info.cur_proc) |cp| {
         if (global_queue.count() > 0) {
             const pq = &global_queue.items[0];
             // SCHED_RR, account for timeslice/quantum
-            if (pq.first.?.data.priority >= cp.priority) {
+            const pq_prio = pq.first.?.data.priority;
+            if (pq_prio > cp.priority or (pq_prio == cp.priority and cp.quantum_end <= timers.time())) {
                 return &pq.popFirst().?.data;
             }
         }
     } else {
         if (global_queue.count() == 0) return null;
         const proc = global_queue.items[0].popFirst().?;
-        if (global_queue.items[0].len == 0) _ = global_queue.remove();
         return &proc.data;
     }
     return null;
+}
+
+fn check_sleep_threads() void {
+    const time = timers.time();
+    while (true) {
+        const t = sleep_queue.peek() orelse return;
+        if (t.wakeup <= time) enqueue(sleep_queue.remove().thread) else return;
+    }
 }
 
 pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
@@ -144,12 +154,14 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
 
+    check_sleep_threads();
     check_cur_thread(cpu_info);
     const next_thread = check_ready_threads(cpu_info);
 
     if (cpu_info.cur_proc != null and next_thread != null) {
         // Preempt current process and switch to next thread
         const cp = cpu_info.cur_proc.?;
+        log.info("test", .{});
         cp.ef = status.*;
         enqueue(cp);
     } else if (cpu_info.cur_proc != null) {
@@ -157,13 +169,48 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     }
 
     if (next_thread) |nt| {
+        log.info("Loading thread {x}", .{@intFromPtr(nt)});
+        nt.quantum_end = timers.time() + QUANTUM;
         cpu_info.cur_proc = nt;
         cpu.set_cr3(mem.phys(@intFromPtr(nt.mapper.pml4)));
         timers.callback(QUANTUM, null, schedule);
         return &nt.ef;
     }
 
+    // If the sleep queue is not empty, we set a callback for when the first thread will wake up
+    if (sleep_queue.peek()) |t| {
+        timers.callback(t.wakeup - timers.time(), null, schedule);
+    }
     return &idle_thread.ef;
+}
+
+fn syscall_exit(status: *cpu.Status) *const cpu.Status {
+    const cpu_info = smp.cpu_info(null);
+    while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    if (delete_proc) |dp| {
+        delete_proc = null;
+        mem.kheap.allocator().destroy(@as(*ThreadLinkedList.Node, @fieldParentPtr("data", dp)));
+    }
+    delete_proc = cpu_info.cur_proc;
+    cpu_info.cur_proc = null;
+    lock.store(false, .release);
+
+    return schedule(undefined, status);
+}
+
+fn syscall_sleep(status: *cpu.Status) *const cpu.Status {
+    const cpu_info = smp.cpu_info(null);
+    while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    const cp = cpu_info.cur_proc.?;
+    cp.ef = status.*;
+    sleep_queue.add(.{
+        .thread = cp,
+        .wakeup = timers.time() + status.rsi,
+    }) catch @panic("OOM");
+    cpu_info.cur_proc = null;
+    lock.store(false, .release);
+
+    return schedule(undefined, status);
 }
 
 fn idle_func() noreturn {

@@ -253,7 +253,7 @@ export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_stat
 }
 
 export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
-    return kernel.drivers.timers.time() catch @panic("No global time source");
+    return kernel.drivers.timers.time();
 }
 
 export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
