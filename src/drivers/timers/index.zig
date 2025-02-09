@@ -7,7 +7,7 @@ const kernel = @import("kernel");
 const cpu = kernel.drivers.cpu;
 const std = @import("std");
 
-pub const CallbackFn = *const fn (?*anyopaque, *const cpu.Status) *const cpu.Status;
+pub const CallbackFn = *const fn (?*anyopaque, *cpu.Status) *const cpu.Status;
 pub const VTable = struct {
     callback: ?*const fn (ns: usize, ctx: ?*anyopaque, handler: CallbackFn) void,
     time: ?*const fn () usize,

@@ -31,13 +31,21 @@ pub const Thread = struct {
     } = .ready,
 };
 
+const SleepThread = struct {
+    thread: *Thread,
+    wakeup: usize,
+};
+
 const ThreadLinkedList = std.DoublyLinkedList(Thread);
 const ThreadPriorityQueue = std.PriorityQueue(ThreadLinkedList, void, compareThreadPriorities);
+
+const SleepPriorityQueue = std.PriorityQueue(SleepThread, void, compareSleepThreads);
 
 var sched_vec: *idt.HandlerData = undefined;
 var id_counter = std.atomic.Value(usize).init(0);
 var lock = std.atomic.Value(bool).init(false);
 var global_queue: ThreadPriorityQueue = undefined;
+var sleep_queue: SleepPriorityQueue = undefined;
 var delete_proc: ?*Thread = null;
 
 var idle_thread: Thread = undefined;
@@ -46,6 +54,7 @@ fn init() kernel.Task.Ret {
     sched_vec = idt.allocate_handler(null);
     sched_vec.handler = schedule;
     global_queue = ThreadPriorityQueue.init(mem.kheap.allocator(), {});
+    sleep_queue = SleepPriorityQueue.init(mem.kheap.allocator(), {});
 
     const kproc = Thread{
         .ef = undefined,
@@ -72,12 +81,11 @@ fn init() kernel.Task.Ret {
 
 fn enqueue(thread: *Thread) void {
     const node: *ThreadLinkedList.Node = @fieldParentPtr("data", thread);
-    while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
-    defer lock.store(false, .release);
 
     for (global_queue.items) |*queue| {
         if (queue.first.?.data.priority == thread.priority) {
             queue.append(node);
+            return;
         }
     }
     var queue = ThreadLinkedList{};
@@ -107,10 +115,7 @@ fn check_cur_thread(cpu_info: *smp.CPU) void {
             // Handle dead thread
             delete_proc = cp;
             cpu_info.cur_proc = null;
-        } else if (cp.status == .sleeping) {
-            // Handle sleeping thread
-            @panic("Handling sleeping threads unimplemented");
-        }
+        } else if (cp.status == .sleeping) {}
     }
 }
 
@@ -133,18 +138,11 @@ fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
     return null;
 }
 
-pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
-    _ = ctx;
+pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const cpu_info = smp.cpu_info(null);
-    const alloc = mem.kheap.allocator();
 
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
-
-    if (delete_proc) |dp| {
-        delete_proc = null;
-        alloc.destroy(dp);
-    }
 
     check_cur_thread(cpu_info);
     const next_thread = check_ready_threads(cpu_info);
@@ -153,7 +151,7 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
         // Preempt current process and switch to next thread
         const cp = cpu_info.cur_proc.?;
         cp.ef = status.*;
-        global_queue.items[0].append(@fieldParentPtr("data", cp));
+        enqueue(cp);
     } else if (cpu_info.cur_proc != null) {
         return status;
     }
@@ -164,6 +162,7 @@ pub fn schedule(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
         timers.callback(QUANTUM, null, schedule);
         return &nt.ef;
     }
+
     return &idle_thread.ef;
 }
 
@@ -174,4 +173,8 @@ fn idle_func() noreturn {
 fn compareThreadPriorities(_: void, a: ThreadLinkedList, b: ThreadLinkedList) std.math.Order {
     // Highest priority first, lowest priority last
     return std.math.order(b.first.?.data.priority, a.first.?.data.priority);
+}
+
+fn compareSleepThreads(_: void, a: SleepThread, b: SleepThread) std.math.Order {
+    return std.math.order(a.wakeup, b.wakeup);
 }

@@ -145,7 +145,7 @@ fn time() usize {
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }
 
-fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+fn timer_handler(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ret = callback(ctx, status);
     intctrl.eoi(irq);
     return ret;

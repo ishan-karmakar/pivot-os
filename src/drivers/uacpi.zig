@@ -291,7 +291,7 @@ export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.ua
     }
 }
 
-fn uacpi_handler(_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+fn uacpi_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ctx: *HandlerInfo = @alignCast(@ptrCast(_ctx));
     const ret = ctx.callback.?(ctx.ctx);
     if (ret == uacpi.UACPI_INTERRUPT_HANDLED) {

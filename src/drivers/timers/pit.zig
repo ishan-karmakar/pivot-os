@@ -49,7 +49,7 @@ fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn disable_pit_callback(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     @as(*bool, @alignCast(@ptrCast(ctx))).* = true;
     return status;
 }
@@ -64,7 +64,7 @@ fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
     intctrl.mask(thandler_ctx.irq, false);
 }
 
-fn timer_handler(callback_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+fn timer_handler(callback_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ret = thandler_ctx.callback(callback_ctx, status);
     // No need to mask because we are only doing oneshot ints
     intctrl.eoi(thandler_ctx.irq);
