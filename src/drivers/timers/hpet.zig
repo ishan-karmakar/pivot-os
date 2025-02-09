@@ -117,13 +117,13 @@ fn init() kernel.Task.Ret {
 
 // TODO: Only map main area and specific comparator we are using
 fn map_hpet() void {
-    mem.kmapper.map(@intFromPtr(registers), @intFromPtr(registers), 0b10);
+    mem.kmapper.map(@intFromPtr(registers), @intFromPtr(registers), 0b11);
     const comparator_start = @intFromPtr(registers.get_comparator(0));
     const comparator_end = @intFromPtr(registers.get_comparator(registers.gcap_id.num_tim_cap)) + @sizeOf(Comparator);
     var comparator_page_start = @divFloor(comparator_start, 0x1000) * 0x1000;
     const comparator_page_end = @divFloor(comparator_end, 0x1000) * 0x1000;
     while (comparator_page_start <= comparator_page_end) {
-        mem.kmapper.map(comparator_page_start, comparator_page_start, 0b10);
+        mem.kmapper.map(comparator_page_start, comparator_page_start, 0b11);
         comparator_page_start += 0x1000;
     }
 }
@@ -145,7 +145,7 @@ fn time() usize {
     return registers.counter * registers.gcap_id.counter_clk_period / 1_000_000;
 }
 
-fn timer_handler(ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+fn timer_handler(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ret = callback(ctx, status);
     intctrl.eoi(irq);
     return ret;

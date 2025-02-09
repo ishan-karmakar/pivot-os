@@ -36,6 +36,20 @@ pub fn init() kernel.Task.Ret {
 pub fn write(bytes: []const u8) void {
     if ((Task.ret orelse return) != .success) return;
     for (bytes) |b| {
-        if (ssfn.ssfn_putc(@intCast(b)) != ssfn.SSFN_OK) @panic("ssfn_putc failed");
+        // Wrap around on x overflow
+        if (ssfn.ssfn_dst.x >= ssfn.ssfn_dst.w) {
+            ssfn.ssfn_dst.y += ssfn.ssfn_src.*.height;
+            ssfn.ssfn_dst.x = 0;
+        }
+
+        // Clear screen on y overflow
+        if (ssfn.ssfn_dst.y >= ssfn.ssfn_dst.h) {
+            ssfn.ssfn_dst.y = 0;
+            @memset(ssfn.ssfn_dst.ptr[0..(@as(usize, @intCast(ssfn.ssfn_dst.p)) * @as(usize, @intCast(ssfn.ssfn_dst.h)))], 0);
+        }
+        if (b == '\n') {
+            ssfn.ssfn_dst.x = 0;
+            ssfn.ssfn_dst.y += ssfn.ssfn_src.*.height;
+        } else if (ssfn.ssfn_putc(@intCast(b)) != ssfn.SSFN_OK) @panic("ssfn_putc failed");
     }
 }

@@ -33,7 +33,7 @@ var rawTable: [256]Entry = .{.{
 }} ** 256;
 
 pub const HandlerData = struct {
-    handler: ?*const fn (?*anyopaque, *const cpu.Status) *const cpu.Status = null,
+    handler: ?*const fn (?*anyopaque, *cpu.Status) *const cpu.Status = null,
     ctx: ?*anyopaque = null,
     reserved: bool = false,
 };
@@ -45,6 +45,14 @@ pub var Task = kernel.Task{
     .init = init,
     .dependencies = &.{
         .{ .task = &kernel.drivers.gdt.StaticTask },
+    },
+};
+
+pub var TaskAP = kernel.Task{
+    .name = "IDT (AP)",
+    .init = init_ap,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.gdt.DynamicTaskAP },
     },
 };
 
@@ -82,6 +90,11 @@ fn init() kernel.Task.Ret {
     inline for (0x20..256) |vec| set_ent(@intCast(vec), create_irq(vec));
 
     idtr.addr = @intFromPtr(&rawTable);
+    lidt();
+    return .success;
+}
+
+fn init_ap() kernel.Task.Ret {
     lidt();
     return .success;
 }
@@ -196,7 +209,7 @@ fn log_status(status: *const cpu.IRETStatus) void {
     log.debug("SS: {}", .{status.ss});
 }
 
-export fn irq_handler(status: *const cpu.Status, vec: usize) *const cpu.Status {
+export fn irq_handler(status: *cpu.Status, vec: usize) *const cpu.Status {
     const handler = vec2handler(@intCast(vec));
     if (!handler.reserved) return status;
     if (handler.handler) |h| return h(handler.ctx, status);

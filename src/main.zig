@@ -45,7 +45,7 @@ pub const Task = struct {
 
         switch (ret) {
             .success => log.info("Task \"{s}\" successfully initialized", .{self.name}),
-            .skipped => log.info("Task \"{s}\" skipped initialization", .{self.name}),
+            .skipped => log.debug("Task \"{s}\" skipped initialization", .{self.name}),
             .failed => log.err("Task \"{s}\" failed initialization", .{self.name}),
         }
     }
@@ -59,9 +59,7 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
-    drivers.modules.Task.run();
-    if (drivers.modules.Task.ret.? != .success) @panic("Modules failed to initialize");
-    drivers.elf.load(drivers.modules.get_module("kmod-ide")) catch @panic("Error loading ELF file");
+    lib.scheduler.Task.run();
     while (true) asm volatile ("hlt");
 }
 

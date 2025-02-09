@@ -1,3 +1,4 @@
 pub const logger = @import("logger.zig");
 pub const mem = @import("mem/index.zig");
-pub const Mutex = @import("mutex.zig");
+pub const scheduler = @import("scheduler.zig");
+pub const syscalls = @import("syscalls.zig");

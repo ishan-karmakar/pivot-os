@@ -58,8 +58,6 @@ fn init_legacy() void {
     write_reg = pci_write_reg;
 
     log.info("Initialized legacy PCI", .{});
-
-    scan_devices(0);
 }
 
 fn scan_devices(segment: u16) void {
@@ -131,7 +129,7 @@ fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
 
     for (segment_groups) |seg| {
         for (0..PCIE_CONFIG_SPACE_PAGES) |i| {
-            kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b10);
+            kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
         scan_devices(seg.segment);
     }

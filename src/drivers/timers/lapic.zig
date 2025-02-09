@@ -86,7 +86,7 @@ fn oneshot_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) vo
     lapic.write_reg(INITIAL_COUNT_OFF, ticks);
 }
 
-fn timer_handler(_ctx: ?*anyopaque, status: *const cpu.Status) *const cpu.Status {
+fn timer_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ctx: *HandlerCtx = @ptrCast(@alignCast(_ctx));
     const ret = ctx.callback(ctx.ctx, status);
     kernel.drivers.intctrl.eoi(0);

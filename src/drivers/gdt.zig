@@ -52,6 +52,12 @@ pub var DynamicTask = kernel.Task{
     },
 };
 
+pub var DynamicTaskAP = kernel.Task{
+    .name = "Dynamic GDT (AP)",
+    .init = init_dynamic_ap,
+    .dependencies = &.{},
+};
+
 fn init_static() kernel.Task.Ret {
     gdtr.addr = @intFromPtr(&static_gdt);
     lgdt();
@@ -72,6 +78,11 @@ fn init_dynamic() kernel.Task.Ret {
     };
     gdtr.size = @intCast(buf.len * @sizeOf(Entry) - 1);
     gdtr.addr = @intFromPtr(buf.ptr);
+    lgdt();
+    return .success;
+}
+
+fn init_dynamic_ap() kernel.Task.Ret {
     lgdt();
     return .success;
 }

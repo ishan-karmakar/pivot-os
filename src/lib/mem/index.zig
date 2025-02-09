@@ -20,6 +20,7 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
 };
 
 const KHEAP_SIZE = 0x1000 * 512;
+const KVMM_SIZE = KHEAP_SIZE + 0x1000 * 2;
 
 pub var KMapperTask = kernel.Task{
     .name = "Kernel Mapper",
@@ -57,7 +58,7 @@ fn mapper_init() kernel.Task.Ret {
 fn vmm_init() kernel.Task.Ret {
     const mmap = MMAP_REQUEST.response.?.entries();
     const last = mmap[mmap.len - 1];
-    kvmm = VMM.create(virt(0) + last.base + last.length, KHEAP_SIZE, 0b10 | (1 << 63), &kmapper);
+    kvmm = VMM.create(virt(0) + last.base + last.length, KVMM_SIZE, 0b11 | (1 << 63), &kmapper);
     return .success;
 }
 

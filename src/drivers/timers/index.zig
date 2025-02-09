@@ -7,7 +7,7 @@ const kernel = @import("kernel");
 const cpu = kernel.drivers.cpu;
 const std = @import("std");
 
-pub const CallbackFn = *const fn (?*anyopaque, *const cpu.Status) *const cpu.Status;
+pub const CallbackFn = *const fn (?*anyopaque, *cpu.Status) *const cpu.Status;
 pub const VTable = struct {
     callback: ?*const fn (ns: usize, ctx: ?*anyopaque, handler: CallbackFn) void,
     time: ?*const fn () usize,
@@ -55,6 +55,11 @@ fn no_cal_init() kernel.Task.Ret {
     return .success;
 }
 
+pub fn time() usize {
+    const t = gts orelse (no_cal_gts orelse @panic("No GTS available"));
+    return t.time.?();
+}
+
 pub fn sleep(ns: usize) void {
     const _gts = gts orelse no_cal_gts;
     const _timer = timer orelse no_cal_timer;
@@ -63,10 +68,16 @@ pub fn sleep(ns: usize) void {
         const start = t();
         while (t() < (start + ns)) asm volatile ("pause");
     } else if (_timer) |vtable| {
+        // TODO: Consider std.atomic.Value?
         var triggered = false;
         vtable.callback.?(ns, &triggered, sleep_callback);
         while (!@atomicLoad(bool, @as(*const volatile bool, &triggered), .unordered)) asm volatile ("pause");
     } else @panic("No timer found");
+}
+
+pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) void {
+    const t = timer orelse (no_cal_timer orelse @panic("No timer available"));
+    t.callback.?(ns, ctx, func);
 }
 
 fn sleep_callback(ctx: ?*anyopaque, status: *const kernel.drivers.cpu.Status) *const kernel.drivers.cpu.Status {

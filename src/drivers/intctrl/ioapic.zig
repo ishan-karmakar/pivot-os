@@ -43,7 +43,7 @@ const IOAPIC = struct {
     data: *const uacpi.acpi_madt_ioapic,
 
     pub fn create(data: *const uacpi.acpi_madt_ioapic) @This() {
-        kernel.lib.mem.kmapper.map(data.address, data.address, (@as(u64, 1) << 63) | 0b10);
+        kernel.lib.mem.kmapper.map(data.address, data.address, (@as(u64, 1) << 63) | 0b11);
         var self = @This(){ .data = data, .max_red_ent = 0 };
         self.max_red_ent = ((self.read_reg(1) >> 16) & 0xFF) + 1;
         for (0..self.max_red_ent) |i| {

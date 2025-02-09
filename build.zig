@@ -2,24 +2,26 @@ const std = @import("std");
 const Step = std.Build.Step;
 const Options = Step.Options;
 
-const CPU_FEATURES_ADD = std.Target.x86.featureSet(&.{
-    .soft_float,
-});
-
-const CPU_FEATURES_SUB = std.Target.x86.featureSet(&.{
-    .mmx,
-    .sse,
-    .sse2,
-    .avx,
-    .avx2,
-});
-
-const CPU_FEATURES_QUERY = std.Target.Query{
+const KERNEL_TARGET_QUERY = std.Target.Query{
     .cpu_arch = .x86_64,
     .abi = .none,
     .os_tag = .freestanding,
-    .cpu_features_add = CPU_FEATURES_ADD,
-    .cpu_features_sub = CPU_FEATURES_SUB,
+    .cpu_features_add = std.Target.x86.featureSet(&.{.soft_float}),
+    .cpu_features_sub = std.Target.x86.featureSet(&.{
+        .mmx,
+        .sse,
+        .sse2,
+        .avx,
+        .avx2,
+    }),
+};
+
+const MODULE_TARGET_QUERY = std.Target.Query{
+    .cpu_arch = .x86_64,
+    .abi = .none,
+    .os_tag = .freestanding,
+    .cpu_features_add = std.Target.x86.featureSet(&.{}),
+    .cpu_features_sub = std.Target.x86.featureSet(&.{}),
 };
 
 const ISO_COPY = [_][]const u8{ "limine.conf", "u_vga16.sfn" };
@@ -72,22 +74,21 @@ var ssfnCSourceFile: std.Build.Module.CSourceFile = undefined;
 var ssfnIncludePath: std.Build.LazyPath = undefined;
 
 pub fn build(b: *std.Build) void {
-    const target = b.resolveTargetQuery(CPU_FEATURES_QUERY);
     const optimize = b.standardOptimizeOption(.{});
-    initSSFN(b, target, optimize);
-    initUACPI(b, target, optimize);
+    initSSFN(b, optimize);
+    initUACPI(b, optimize);
     initLimine(b);
 
-    createNoQEMUPipeline(b, target, optimize);
-    createQEMUPipeline(b, target, optimize);
+    createNoQEMUPipeline(b, optimize);
+    createQEMUPipeline(b, optimize);
 }
 
-fn createNoQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+fn createNoQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const options = b.addOptions();
     options.addOption(bool, "qemu", false);
-    const kernel = getKernelStep(b, target, optimize, options); // Options implicitly added as dependency
+    const kernel = getKernelStep(b, optimize, options); // Options implicitly added as dependency
     const iso_dir = getISODirStep(b, kernel); // Implicitly add kernel as dependency
-    getModulesStep(b, iso_dir, target, optimize) catch @panic("Error with modules step");
+    getModulesStep(b, iso_dir, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory()); // Implictly added iso_dir as dependency
     const install_iso = b.addInstallBinFile(iso_out, "os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
@@ -96,14 +97,14 @@ fn createNoQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimiz
     b.getInstallStep().dependOn(&install_iso.step);
 }
 
-fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+fn createQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const options = b.addOptions();
     options.addOption(bool, "qemu", true);
-    const kernel = getKernelStep(b, target, optimize, options);
+    const kernel = getKernelStep(b, optimize, options);
     const iso_dir = getISODirStep(b, kernel);
-    getModulesStep(b, iso_dir, target, optimize) catch @panic("Error with modules step");
+    getModulesStep(b, iso_dir, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory());
-    const install_iso = b.addInstallBinFile(iso_out, "qemu/os.iso");
+    const install_iso = b.addInstallBinFile(iso_out, "os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
 
     const qemu = b.addSystemCommand(&QEMU_ARGS);
@@ -112,7 +113,7 @@ fn createQEMUPipeline(b: *std.Build, target: std.Build.ResolvedTarget, optimize:
     qemu.addFileArg(iso_out);
     const run_step = b.step("run", "Run with QEMU emulator");
     run_step.dependOn(&qemu.step);
-    run_step.dependOn(&b.addInstallArtifact(kernel, .{ .dest_sub_path = "qemu/pivot-os" }).step);
+    run_step.dependOn(&b.addInstallArtifact(kernel, .{}).step);
 }
 
 fn getLimineBiosStep(b: *std.Build, iso: std.Build.LazyPath) *Step {
@@ -150,11 +151,11 @@ fn getISODirStep(b: *std.Build, kernel: *Step.Compile) *Step.WriteFile {
     return wf;
 }
 
-fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, options: *Options) *Step.Compile {
+fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Options) *Step.Compile {
     const kernel = b.addExecutable(.{
         .name = "pivot-os",
         .root_source_file = b.path("src/main.zig"),
-        .target = target,
+        .target = b.resolveTargetQuery(KERNEL_TARGET_QUERY),
         .optimize = optimize,
         .code_model = .kernel,
         .linkage = .static,
@@ -175,25 +176,25 @@ fn getKernelStep(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     return kernel;
 }
 
-fn initSSFN(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+fn initSSFN(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const dep = b.dependency("ssfn", .{});
     ssfnCSourceFile = .{ .file = b.path("src/ssfn.c") };
     const translateC = b.addTranslateC(.{
         .link_libc = false,
         .optimize = optimize,
-        .target = target,
+        .target = b.resolveTargetQuery(KERNEL_TARGET_QUERY),
         .root_source_file = dep.path("ssfn.h"),
     });
     ssfnModule = translateC.createModule();
     ssfnIncludePath = dep.path("");
 }
 
-fn initUACPI(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) void {
+fn initUACPI(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const uacpi = b.dependency("uacpi", .{});
     const translateC = b.addTranslateC(.{
         .link_libc = false,
         .optimize = optimize,
-        .target = target,
+        .target = b.resolveTargetQuery(KERNEL_TARGET_QUERY),
         .root_source_file = b.path("src/uacpi.h"),
     });
     uacpiIncludePath = uacpi.path("include");
@@ -222,7 +223,10 @@ fn initUACPI(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.buil
             "uacpi.c",
             "utilities.c",
         },
-        .flags = &.{"-DUACPI_SIZED_FREES"},
+        .flags = &.{
+            "-DUACPI_SIZED_FREES",
+            "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_TRACE",
+        },
     };
 }
 
@@ -235,7 +239,7 @@ fn initLimine(b: *std.Build) void {
     limineBuildExeStep = &buildLimineExe.step;
 }
 
-fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !void {
+fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, optimize: std.builtin.OptimizeMode) !void {
     const mod_root = try std.fs.cwd().openDir(MODULES_DIR, .{ .iterate = true });
     var iter = mod_root.iterate();
     while (try iter.next()) |entry| {
@@ -243,7 +247,7 @@ fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, target: std
         const exe = b.addExecutable(.{
             .name = try b.allocator.dupe(u8, entry.name),
             .root_source_file = b.path(mainFile),
-            .target = target,
+            .target = b.resolveTargetQuery(MODULE_TARGET_QUERY),
             .optimize = optimize,
             .strip = true,
         });

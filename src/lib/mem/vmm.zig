@@ -78,13 +78,11 @@ fn rsv_extra(self: *Self, block: Block, size: usize) void {
     }
 }
 
-pub fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
+fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
     // TODO: Maybe implement pointer alignment, but right now no need for it and will unnecessarily complicate code
     const self: *Self = @ptrCast(@alignCast(ctx));
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
-    if (bsize > self.max_bsize) {
-        return null;
-    }
+    if (bsize > self.max_bsize) return null;
     // self.mutex.lock();
     var block = self.alloc_traverse(Block{
         .depth = 0,
@@ -102,7 +100,7 @@ pub fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
     return @ptrFromInt(addr);
 }
 
-pub fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
+fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
     const self: *Self = @ptrCast(@alignCast(ctx));
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
     if (bsize > self.max_bsize) return;
@@ -120,7 +118,7 @@ pub fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
     // self.mutex.unlock();
 }
 
-pub fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
+fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
     const self: *Self = @ptrCast(@alignCast(ctx));
     const new_bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
     const old_bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
