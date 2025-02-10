@@ -51,7 +51,14 @@ var global_queue: ThreadPriorityQueue = undefined;
 var sleep_queue: SleepPriorityQueue = undefined;
 var delete_proc: ?*Thread = null;
 
-var idle_thread: Thread = undefined;
+var idle_thread_ef: cpu.Status = .{
+    .iret_status = .{
+        .cs = 0x8,
+        .ss = 0x10,
+        .rip = undefined,
+        .rsp = undefined,
+    },
+};
 
 fn init() kernel.Task.Ret {
     syscalls.register_syscall(syscalls.SYSCALLS.EXIT, syscall_exit);
@@ -69,17 +76,8 @@ fn init() kernel.Task.Ret {
     };
 
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
-    idle_thread = .{
-        .priority = 0,
-        .status = .ready,
-        .mapper = mem.kmapper,
-        .ef = .{ .iret_status = .{
-            .cs = 0x8,
-            .ss = 0x10,
-            .rip = @intFromPtr(&idle_func),
-            .rsp = @intFromPtr(stack.ptr) + 0x1000,
-        } },
-    };
+    idle_thread_ef.iret_status.rsp = @intFromPtr(stack.ptr) + 0x1000;
+    idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);
 
     smp.cpu_info(null).cur_proc = create_thread(kproc);
     timers.callback(QUANTUM, null, schedule);
@@ -181,7 +179,7 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     if (sleep_queue.peek()) |t| {
         timers.callback(t.wakeup - timers.time(), null, schedule);
     }
-    return &idle_thread.ef;
+    return &idle_thread_ef;
 }
 
 fn syscall_exit(status: *cpu.Status) *const cpu.Status {
