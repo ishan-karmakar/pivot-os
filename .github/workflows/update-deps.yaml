@@ -54,7 +54,6 @@ jobs:
             echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.web_url'))" >> ${{ runner.temp }}/pr-body.txt
           fi
       - name: Create PR
-        if: steps.check-pr.outputs.files_exists == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           title: "[bot] Update dependencies"
