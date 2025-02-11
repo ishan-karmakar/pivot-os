@@ -24,9 +24,17 @@ pub var Task = kernel.Task{
     },
 };
 
-pub fn bsp_init() kernel.Task.Ret {
-    var msr = cpu.rdmsr(MSR) | (1 << 11);
+pub var TaskAP = kernel.Task{
+    .name = "Local APIC (AP)",
+    .init = ap_init,
+    .dependencies = &.{
+        .{ .task = &kernel.drivers.idt.Task },
+        .{ .task = &kernel.lib.mem.KMapperTaskAP },
+    },
+};
 
+fn bsp_init() kernel.Task.Ret {
+    var msr = cpu.rdmsr(MSR) | (1 << 11);
     const cpuid = cpu.cpuid(1, 0);
     if (cpuid.ecx & (1 << 21) > 0) {
         msr |= 1 << 10;
@@ -41,11 +49,28 @@ pub fn bsp_init() kernel.Task.Ret {
         log.debug("Found xAPIC", .{});
     } else return .failed;
     cpu.wrmsr(MSR, msr);
-    write_reg(TPR_OFF, 0);
 
     kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
     return .success;
+}
+
+fn ap_init() kernel.Task.Ret {
+    var msr = cpu.rdmsr(MSR) | (1 << 11);
+    if (read_reg == x2apic_read_reg) msr |= 1 << 10;
+    cpu.wrmsr(MSR, msr);
+
+    write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    return .success;
+}
+
+pub fn ipi(dest: u8, vec: u8) void {
+    if (read_reg == x2apic_read_reg) {
+        write_reg(ICRLO, (@as(u64, dest) << 56) | vec);
+    } else {
+        write_reg(ICRHI, @as(u32, dest) << 24);
+        write_reg(ICRLO, vec);
+    }
 }
 
 pub inline fn eoi() void {

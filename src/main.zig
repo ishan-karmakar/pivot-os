@@ -49,6 +49,15 @@ pub const Task = struct {
             .failed => log.err("Task \"{s}\" failed initialization", .{self.name}),
         }
     }
+
+    pub fn reset(self: *@This()) void {
+        reset_inner(self);
+    }
+
+    fn reset_inner(task: *Task) void {
+        task.ret = null;
+        for (task.dependencies) |dep| reset_inner(dep.task);
+    }
 };
 
 export var LIMINE_BASE_REVISION = limine.BaseRevision{ .revision = 3 };

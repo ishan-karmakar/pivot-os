@@ -51,9 +51,7 @@ pub var Task = kernel.Task{
 pub var TaskAP = kernel.Task{
     .name = "IDT (AP)",
     .init = init_ap,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.gdt.DynamicTaskAP },
-    },
+    .dependencies = &.{},
 };
 
 fn init() kernel.Task.Ret {
