@@ -84,7 +84,7 @@ fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn enqueue(thread: *Thread) void {
+fn enqueue_no_preempt(thread: *Thread) void {
     const node: *ThreadLinkedList.Node = @fieldParentPtr("data", thread);
 
     for (global_queue.items) |*queue| {
@@ -96,6 +96,16 @@ fn enqueue(thread: *Thread) void {
     var queue = ThreadLinkedList{};
     queue.append(node);
     global_queue.add(queue) catch @panic("OOM");
+}
+
+fn enqueue(thread: *Thread) void {
+    enqueue_no_preempt(thread);
+    for (0..smp.cpu_count()) |i| {
+        const cproc = smp.cpu_info(i).cur_proc;
+        if (cproc) |cp| {
+            if (thread.priority > cp.priority) kernel.drivers.lapic.ipi(i, idt.handler2vec(sched_vec));
+        } else kernel.drivers.lapic.ipi(i, idt.handler2vec(sched_vec));
+    }
 }
 
 fn create_thread(thread: Thread) *Thread {

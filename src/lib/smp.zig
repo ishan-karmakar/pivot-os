@@ -19,6 +19,7 @@ pub var Task = kernel.Task{
     .dependencies = &.{
         .{ .task = &kernel.lib.mem.KHeapTask },
         .{ .task = &kernel.drivers.gdt.DynamicTask },
+        .{ .task = &kernel.drivers.lapic.Task },
     },
 };
 
@@ -28,6 +29,7 @@ var TaskAP = kernel.Task{
     .dependencies = &.{
         .{ .task = &kernel.drivers.idt.TaskAP },
         .{ .task = &kernel.drivers.gdt.DynamicTaskAP },
+        .{ .task = &kernel.drivers.lapic.TaskAP },
     },
 };
 
@@ -47,10 +49,6 @@ pub fn init() kernel.Task.Ret {
         } else {
             info.goto_address = ap_init;
             while (!_info.ready.load(.acquire)) {}
-            // This is hack, because the APs are reusing the same task
-            // This means that we need to be EXTREMELY careful about using TaskAP outside of this file
-            // Because it only reflects the status of the last CPU that ran the task
-            TaskAP.ret = null;
         }
     }
     return .success;
@@ -60,6 +58,7 @@ fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
     kernel.drivers.cpu.set_kgs(info.extra_argument);
     TaskAP.run();
     if (TaskAP.ret != .success) @panic("SMP AP Task failed");
+    TaskAP.reset();
     asm volatile ("sti");
     cpu_info(null).ready.store(true, .monotonic);
     while (true) asm volatile ("hlt");

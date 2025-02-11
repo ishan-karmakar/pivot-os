@@ -30,6 +30,12 @@ pub var KMapperTask = kernel.Task{
     },
 };
 
+pub var KMapperTaskAP = kernel.Task{
+    .name = "Kernel Mapper (AP)",
+    .init = mapper_ap_init,
+    .dependencies = &.{},
+};
+
 pub var KVMMTask = kernel.Task{
     .name = "Kernel Virtual Memory Manager",
     .init = vmm_init,
@@ -52,6 +58,11 @@ fn mapper_init() kernel.Task.Ret {
     kmapper = Mapper.create(virt(asm volatile ("mov %%cr3, %[result]"
         : [result] "=r" (-> usize),
     ) & 0xfffffffffffffffe));
+    return .success;
+}
+
+fn mapper_ap_init() kernel.Task.Ret {
+    kernel.drivers.cpu.set_cr3(phys(@intFromPtr(kmapper.pml4)));
     return .success;
 }
 
