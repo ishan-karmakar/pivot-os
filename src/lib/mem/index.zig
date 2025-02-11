@@ -19,7 +19,7 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .flags = 0,
 };
 
-const KHEAP_SIZE = 0x1000 * 512;
+const KHEAP_SIZE = 0x1000 * 32;
 const KVMM_SIZE = KHEAP_SIZE + 0x1000 * 2;
 
 pub var KMapperTask = kernel.Task{
