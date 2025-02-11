@@ -17,6 +17,12 @@ const Block = struct {
     bsize: usize,
 };
 
+const BlockStatus = enum(u2) {
+    FREE,
+    RESERVED,
+    INTERNAL,
+};
+
 bitmap: []u8,
 start: usize,
 internal_blocks: usize,
@@ -50,6 +56,36 @@ pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     return vmm;
 }
 
+pub fn destroy(self: *Self) void {
+    self.destroy_traverse(Block{
+        .bsize = self.max_bsize,
+        .col = 0,
+        .depth = 0,
+    });
+}
+
+fn destroy_traverse(self: *Self, block: Block) void {
+    const status = self.get_status(block);
+
+    if (status == .RESERVED) {
+        // Need to free
+        const addr = self.block_addr(block);
+        const num_pages = block.bsize / 0x1000;
+        for (0..num_pages) |i| {
+            mem.pmm.free(self.mapper.translate(addr + 0x1000 * i) orelse continue);
+        }
+    } else if (status == .INTERNAL) {
+        var child = Block{
+            .depth = block.depth + 1,
+            .col = block.col * 2,
+            .bsize = block.bsize / 2,
+        };
+        self.destroy_traverse(child);
+        child.col += 1;
+        self.destroy_traverse(child);
+    }
+}
+
 pub fn allocator(self: *Self) Allocator {
     return .{
         .ptr = self,
@@ -65,7 +101,7 @@ fn rsv_extra(self: *Self, block: Block, size: usize) void {
     const start = block.col * block.bsize;
     const end = start + block.bsize;
     if (start >= size) {
-        self.set_status(block, 0b1);
+        self.set_status(block, .RESERVED);
     } else if (end > size) {
         var child = Block{
             .depth = block.depth + 1,
@@ -90,7 +126,7 @@ fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
         .bsize = self.max_bsize,
     }, bsize) orelse return null;
     block = if (block.bsize == bsize) block else self.split_block(block, bsize);
-    self.set_status(block, 1);
+    self.set_status(block, .RESERVED);
     // self.mutex.unlock();
     const addr = self.block_addr(block);
     for (0..math.divCeil(usize, len, 0x1000) catch unreachable) |i| {
@@ -142,7 +178,7 @@ fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
         buddy.depth += 1;
         buddy.col = buddy.col * 2 + 1;
         // Buddy is not free, cannot resize
-        if (self.get_status(buddy) != 0) return false;
+        if (self.get_status(buddy) != .FREE) return false;
         for (0..new_pages - old_pages) |i| {
             mem.kmapper.map(mem.pmm.frame(), end + i * 0x1000, self.flags);
         }
@@ -158,17 +194,17 @@ fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
             mem.pmm.free(mem.kmapper.translate(end + i * 0x1000) orelse @panic("Page was not mapped to a physical address"));
         }
     }
-    self.set_status(new_block, 0b1);
+    self.set_status(new_block, .RESERVED);
     return true;
 }
 
 fn alloc_traverse(self: Self, node: Block, target_bsize: usize) ?Block {
     const status = self.get_status(node);
     if (node.bsize == target_bsize) {
-        return if (status > 0) null else node;
+        return if (status != .FREE) null else node;
     } else {
-        if (status & 1 > 0) return null;
-        if (status & (0b10) > 0) {
+        if (status == .RESERVED) return null;
+        if (status == .INTERNAL) {
             // Internal
             var child = Block{
                 .depth = node.depth + 1,
@@ -194,13 +230,13 @@ fn alloc_traverse(self: Self, node: Block, target_bsize: usize) ?Block {
 
 fn split_block(self: *Self, block: Block, target_bsize: usize) Block {
     if (block.bsize == target_bsize) return block;
-    self.set_status(block, 0b10);
+    self.set_status(block, BlockStatus.INTERNAL);
     var child = Block{
         .bsize = block.bsize / 2,
         .depth = block.depth + 1,
         .col = block.col * 2 + 1,
     };
-    self.set_status(child, 0);
+    self.set_status(child, .FREE);
     child.col -= 1;
     return self.split_block(child, target_bsize);
 }
@@ -208,14 +244,14 @@ fn split_block(self: *Self, block: Block, target_bsize: usize) Block {
 fn merge_buddies(self: *Self, block: Block) void {
     var buddy = block;
     buddy.col ^= 1;
-    if (buddy.depth > 0 and self.get_status(buddy) == 0) {
+    if (buddy.depth > 0 and self.get_status(buddy) == .FREE) {
         self.merge_buddies(Block{
             .depth = block.depth - 1,
             .col = block.col / 2,
             .bsize = block.bsize / 2,
         });
     } else {
-        self.set_status(block, 0);
+        self.set_status(block, .FREE);
     }
 }
 
@@ -223,15 +259,15 @@ fn block_addr(self: Self, block: Block) usize {
     return @intFromPtr(self.bitmap.ptr) + self.bitmap.len + block.bsize * block.col;
 }
 
-fn get_status(self: Self, block: Block) u2 {
+fn get_status(self: Self, block: Block) BlockStatus {
     const d = self.translate(block);
-    return @truncate(self.bitmap[d[0]] >> d[1]);
+    return @enumFromInt(self.bitmap[d[0]] >> d[1]);
 }
 
-fn set_status(self: *Self, block: Block, status: u2) void {
+fn set_status(self: *Self, block: Block, status: BlockStatus) void {
     const d = self.translate(block);
     self.bitmap[d[0]] &= ~(d[2] << d[1]);
-    self.bitmap[d[0]] |= @as(u8, @intCast(status)) << d[1];
+    self.bitmap[d[0]] |= @as(u8, @intFromEnum(status)) << d[1];
 }
 
 fn translate(self: Self, block: Block) Tuple(&.{ usize, u3, u8 }) {
