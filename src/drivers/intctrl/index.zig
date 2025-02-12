@@ -1,5 +1,4 @@
 pub const ioapic = @import("ioapic.zig");
-pub const pic = @import("pic.zig");
 
 const kernel = @import("kernel");
 const mem = kernel.lib.mem;
@@ -14,16 +13,24 @@ pub const VTable = struct {
 
 pub var controller: ?*const VTable = null;
 
+const AVAILABLE_CONTROLLERS = [_]type{
+    ioapic,
+};
+
 pub var Task = kernel.Task{
     .name = "Interrupt Controller",
     .init = init,
-    .dependencies = &.{
-        .{ .task = &ioapic.Task, .accept_failure = true },
-        .{ .task = &pic.Task, .accept_failure = true },
-    },
+    .dependencies = &.{},
 };
 
 fn init() kernel.Task.Ret {
+    inline for (AVAILABLE_CONTROLLERS) |cntrl| {
+        cntrl.Task.run();
+        if (cntrl.Task.ret == .success) {
+            controller = &cntrl.vtable;
+            break;
+        }
+    }
     if (controller == null) return .failed;
     asm volatile ("sti");
     return .success;

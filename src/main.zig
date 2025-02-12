@@ -33,7 +33,7 @@ pub const Task = struct {
 
         for (self.dependencies) |dep| {
             dep.task.run();
-            if (dep.task.ret.? != .success and !dep.accept_failure) {
+            if (dep.task.ret != .success and !dep.accept_failure) {
                 log.warn("Task \"{s}\" depends on task \"{s}\" (failed/skipped init)", .{ self.name, dep.task.name });
                 self.ret = .skipped;
                 break;
@@ -58,8 +58,8 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
-    if (drivers.fb.Task.ret.? != .success) @panic("Framebuffer failed to initialize");
-    lib.scheduler.Task.run();
+    if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
+    drivers.timers.Task.run();
     while (true) asm volatile ("hlt");
 }
 

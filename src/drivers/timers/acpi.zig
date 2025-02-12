@@ -4,7 +4,7 @@ const serial = kernel.drivers.serial;
 const std = @import("std");
 const uacpi = @import("uacpi");
 
-pub var Task = kernel.Task{
+pub var GTSTask = kernel.Task{
     .name = "ACPI Timer",
     .init = init,
     .dependencies = &.{
@@ -12,8 +12,8 @@ pub var Task = kernel.Task{
     },
 };
 
-const vtable = timers.VTable{
-    .callback = null,
+pub const GTSVTable = timers.GTSVTable{
+    .requires_calibration = false,
     .time = time,
 };
 
@@ -22,7 +22,6 @@ const HZ = 3579545;
 var address: usize = undefined;
 
 fn init() kernel.Task.Ret {
-    if (timers.gts != null) return .skipped;
     const fadt = kernel.drivers.acpi.get_table(uacpi.acpi_fadt, "FACP") orelse return .failed;
     if (fadt.pm_tmr_len != 4) return .failed;
     var rsdp_addr: u64 = undefined;
@@ -34,7 +33,6 @@ fn init() kernel.Task.Ret {
             address = @intCast(fadt.pm_tmr_blk);
         } else return .failed;
     }
-    timers.gts = &vtable;
     return .success;
 }
 

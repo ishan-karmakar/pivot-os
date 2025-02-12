@@ -12,7 +12,6 @@ pub const elf = @import("elf.zig");
 pub const gdt = @import("gdt.zig");
 pub const idt = @import("idt.zig");
 pub const cpu = @import("cpu.zig");
-pub const smp = @import("smp.zig");
 pub const lapic = @import("lapic.zig");
 
 comptime {
