@@ -1,13 +1,32 @@
 const kernel = @import("kernel");
+const uacpi = @import("uacpi");
 const pci = kernel.drivers.pci;
+const acpi = kernel.drivers.acpi;
 const serial = kernel.drivers.serial;
 const log = @import("std").log.scoped(.ide);
 
-pub const vtable = pci.VTable{
+pub var PCIVTable = pci.VTable{
     .target_codes = &.{
         .{ .class_code = 0x1, .subclass_code = 0x1 },
     },
-    .init = init,
+    .target_ret = undefined,
+};
+
+pub var PCITask = kernel.Task{
+    .name = "IDE PCI Driver",
+    .init = null,
+    .dependencies = &.{},
+};
+
+pub var ACPIVTable = acpi.VTable{
+    .hids = &.{"PNP0103"},
+    .ret = undefined,
+};
+
+pub var ACPITask = kernel.Task{
+    .name = "IDE ACPI Driver",
+    .init = null,
+    .dependencies = &.{},
 };
 
 const ChannelRegisters = struct {
@@ -29,13 +48,13 @@ const Device = packed struct {
     model: [41]u8,
 };
 
-fn init(segment: u16, bus: u8, device: u5, func: u3) void {
-    const prog_if: u8 = @truncate(pci.read_reg(segment, bus, device, func, 0x8) >> 8);
-    const primary_channel = get_primary_channel(prog_if, segment, bus, device, func);
-    const primary_channel_cntrl_port = get_primary_channel_control_port(prog_if, segment, bus, device, func);
-    const secondary_channel = get_secondary_channel(prog_if, segment, bus, device, func);
-    const secondary_channel_cntrl_port = get_secondary_channel_control_port(prog_if, segment, bus, device, func);
-}
+// fn init(segment: u16, bus: u8, device: u5, func: u3) void {
+//     const prog_if: u8 = @truncate(pci.read_reg(segment, bus, device, func, 0x8) >> 8);
+//     const primary_channel = get_primary_channel(prog_if, segment, bus, device, func);
+//     const primary_channel_cntrl_port = get_primary_channel_control_port(prog_if, segment, bus, device, func);
+//     const secondary_channel = get_secondary_channel(prog_if, segment, bus, device, func);
+//     const secondary_channel_cntrl_port = get_secondary_channel_control_port(prog_if, segment, bus, device, func);
+// }
 
 fn get_primary_channel(prog_if: u8, segment: u16, bus: u8, device: u5, func: u3) u32 {
     if (prog_if & 1 == 0) return 0x1F0;
