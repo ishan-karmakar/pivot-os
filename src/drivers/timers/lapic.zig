@@ -7,17 +7,17 @@ const cpu = kernel.drivers.cpu;
 const std = @import("std");
 const log = std.log.scoped(.lapic_timer);
 
-pub var vtable = timers.VTable{
-    .callback = null,
-    .time = null,
+pub var TimerVTable = timers.TimerVTable{
+    .requires_calibration = true,
+    .callback = undefined,
 };
 
-pub var Task = kernel.Task{
+pub var TimerTask = kernel.Task{
     .name = "Local APIC Timer",
     .init = init,
     .dependencies = &.{
         .{ .task = &lapic.Task },
-        .{ .task = &timers.tsc.Task, .accept_failure = true },
+        .{ .task = &timers.tsc.GTSTask, .accept_failure = true },
     },
 };
 
@@ -39,16 +39,14 @@ const CALIBRATION_NS = 1_000_000; // 1 ms
 var hertz: usize = undefined;
 
 fn init() kernel.Task.Ret {
-    if (timers.timer != null) return .skipped;
-
     const tsc_deadline = cpu.cpuid(0x1, 0).ecx & (1 << 24);
-    if (tsc_deadline > 0 and timers.tsc.Task.ret == .success) {
+    if (tsc_deadline > 0 and timers.tsc.GTSTask.ret == .success) {
         // We are actually able to use TSC Deadline
         log.debug("Using TSC deadine mode", .{});
-        vtable.callback = tsc_deadline_callback;
+        TimerVTable.callback = tsc_deadline_callback;
     } else {
         log.debug("Using normal oneshot mode", .{});
-        vtable.callback = oneshot_callback;
+        TimerVTable.callback = oneshot_callback;
 
         lapic.write_reg(INITIAL_COUNT_OFF, std.math.maxInt(u32));
         timers.sleep(CALIBRATION_NS);
@@ -57,7 +55,6 @@ fn init() kernel.Task.Ret {
         hertz = (std.math.maxInt(u32) - cur_count) * (1_000_000_000 / CALIBRATION_NS);
     }
 
-    timers.timer = &vtable;
     return .success;
 }
 

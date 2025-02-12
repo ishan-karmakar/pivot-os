@@ -66,19 +66,42 @@ const Comparator = packed struct {
     }
 };
 
-pub const vtable: timers.VTable = .{
+var registers: *volatile Registers = undefined;
+
+pub var HPETCommonTask = kernel.Task{
+    .name = "HPET Common",
+    .init = init_common,
+    .dependencies = &.{
+        .{ .task = &kernel.lib.mem.KMapperTask },
+        .{ .task = &kernel.drivers.acpi.TablesTask },
+    },
+};
+
+pub const TimerVTable = timers.TimerVTable{
+    .requires_calibration = false,
     .callback = timer_callback,
+};
+
+pub var TimerTask = kernel.Task{
+    .name = "HPET Timer",
+    .init = init_timer,
+    .dependencies = &.{
+        .{ .task = &HPETCommonTask },
+        .{ .task = &kernel.drivers.idt.Task },
+        .{ .task = &kernel.drivers.intctrl.Task },
+    },
+};
+
+pub const GTSVTable = timers.GTSVTable{
+    .requires_calibration = false,
     .time = time,
 };
 
-var registers: *volatile Registers = undefined;
-
-pub var Task = kernel.Task{
-    .name = "HPET",
-    .init = init,
+pub var GTSTask = kernel.Task{
+    .name = "HPET GTS",
+    .init = null,
     .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
-        .{ .task = &kernel.drivers.intctrl.Task },
+        .{ .task = &HPETCommonTask },
     },
 };
 
@@ -90,8 +113,7 @@ var comp: *Comparator = undefined;
 // FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them, but my physical machine does)
 // FIXME: Use standard mapping if leg ret doesn't exist
 // TODO: Multiple comparators (for scheduling on different CPUs, periodic not necessary)
-fn init() kernel.Task.Ret {
-    if (timers.timer != null and timers.gts != null) return .skipped;
+fn init_common() kernel.Task.Ret {
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
         log.debug("HPET not found", .{});
         return .failed;
@@ -100,6 +122,10 @@ fn init() kernel.Task.Ret {
     map_hpet();
     registers.gcfg.enable_cnf = true;
 
+    return .success;
+}
+
+fn init_timer() kernel.Task.Ret {
     if (!registers.gcap_id.leg_rt_cap) return .failed;
     registers.gcfg.leg_rt_cnf = true;
     comp = registers.get_comparator(0);
@@ -110,8 +136,7 @@ fn init() kernel.Task.Ret {
         return .failed;
     };
     handler.handler = timer_handler;
-    timers.timer = timers.timer orelse &vtable;
-    timers.gts = timers.gts orelse &vtable;
+
     return .success;
 }
 
