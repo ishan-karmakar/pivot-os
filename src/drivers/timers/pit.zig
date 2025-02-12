@@ -12,18 +12,18 @@ const DATA_REG = 0x40;
 const IRQ = 0;
 const HZ = 1193182;
 
-pub const vtable = timers.VTable{
-    .callback = callback,
-    .time = null,
-};
-
-pub var Task = kernel.Task{
-    .name = "PIT",
+pub var TimerTask = kernel.Task{
+    .name = "PIT Timer",
     .init = init,
     .dependencies = &.{
         .{ .task = &kernel.drivers.idt.Task },
         .{ .task = &kernel.drivers.intctrl.Task },
     },
+};
+
+pub const TimerVTable = timers.TimerVTable{
+    .requires_calibration = false,
+    .callback = callback,
 };
 
 const THandlerCtx = struct {
@@ -34,7 +34,6 @@ var thandler_ctx: THandlerCtx = undefined;
 var idt_handler: *idt.HandlerData = undefined;
 
 fn init() kernel.Task.Ret {
-    if (timers.timer != null) return .skipped;
     idt_handler = idt.allocate_handler(intctrl.pref_vec(IRQ));
     thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), IRQ) catch {
         idt_handler.reserved = false;
@@ -45,7 +44,6 @@ fn init() kernel.Task.Ret {
     var triggered: bool = false;
     callback(1_000_000, &triggered, disable_pit_callback);
     while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
-    timers.timer = &vtable;
     return .success;
 }
 

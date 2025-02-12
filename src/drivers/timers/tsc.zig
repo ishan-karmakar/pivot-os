@@ -6,25 +6,22 @@ const cpu = kernel.drivers.cpu;
 const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
 
-pub var vtable: timers.VTable = .{
+pub var GTSVTable = timers.GTSVTable{
+    .requires_calibration = true,
     .time = time,
-    .callback = null,
 };
 
 const CALIBRATION_NS = 1_000_000; // 1 ms
 
-pub var Task = kernel.Task{
+pub var GTSTask = kernel.Task{
     .name = "TSC",
     .init = init,
-    .dependencies = &.{
-        .{ .task = &timers.NoCalibrationTask },
-    },
+    .dependencies = &.{},
 };
 
 pub var hertz: usize = undefined;
 
 fn init() kernel.Task.Ret {
-    if (timers.gts != null) return .skipped;
     const cpuid = cpu.cpuid(0x80000007, 0);
     if (cpuid.edx & (1 << 8) == 0) {
         log.debug("Invariant TSC not supported", .{});
@@ -33,14 +30,12 @@ fn init() kernel.Task.Ret {
     const freqs = cpu.cpuid(0x15, 0);
     if (freqs.ebx != 0 and freqs.ecx != 0) {
         hertz = freqs.ecx * (freqs.ebx / freqs.eax);
-        timers.gts = &vtable;
         return .success;
     }
     const before = rdtsc();
     timers.sleep(CALIBRATION_NS);
     const after = rdtsc();
     hertz = (after - before) * (1_000_000_000 / CALIBRATION_NS);
-    timers.gts = &vtable;
     return .success;
 }
 
