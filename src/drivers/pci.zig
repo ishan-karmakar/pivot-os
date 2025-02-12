@@ -27,10 +27,20 @@ pub const Codes = struct {
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    init: *const fn (u16, u8, u5, u3) void,
+    target_ret: struct {
+        class_code: u8,
+        subclass_code: u8,
+        prog_if: u8,
+        segment: u16,
+        bus: u8,
+        device: u5,
+        func: u3,
+    },
 };
 
-const drivers = [_]*const VTable{};
+const AVAILABLE_DRIVERS = [_]type{
+    kernel.drivers.ide,
+};
 
 pub var Task = kernel.Task{
     .name = "PCI(e)",
@@ -58,6 +68,8 @@ fn init_legacy() void {
     write_reg = pci_write_reg;
 
     log.info("Initialized legacy PCI", .{});
+
+    scan_devices(0);
 }
 
 fn scan_devices(segment: u16) void {
@@ -106,11 +118,19 @@ fn check_function(segment: u16, bus: u8, device: u5, func: u3) bool {
             prog_if,
         },
     );
-    for (drivers) |driver| {
-        for (driver.target_codes) |code| {
+    inline for (AVAILABLE_DRIVERS) |driver| {
+        for (driver.PCIVTable.target_codes) |code| {
             if (code.matches(class_code, subclass_code, prog_if)) {
-                driver.init(segment, bus, device, func);
-                break;
+                driver.PCIVTable.target_ret = .{
+                    .class_code = class_code,
+                    .subclass_code = subclass_code,
+                    .prog_if = prog_if,
+                    .segment = segment,
+                    .bus = bus,
+                    .device = device,
+                    .func = func,
+                };
+                driver.PCITask.run();
             }
         }
     }

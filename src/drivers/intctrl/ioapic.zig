@@ -6,7 +6,7 @@ const log = @import("std").log.scoped(.ioapic);
 const uacpi = @import("uacpi");
 const std = @import("std");
 
-pub var vtable = intctrl.VTable{
+pub var InterruptControllerVTable = intctrl.VTable{
     .map = map,
     .unmap = unmap,
     .pref_vec = pref_vec,
@@ -14,7 +14,7 @@ pub var vtable = intctrl.VTable{
     .eoi = eoi,
 };
 
-pub var Task = kernel.Task{
+pub var InterruptControllerTask = kernel.Task{
     .name = "I/O APIC",
     .init = init,
     .dependencies = &.{
