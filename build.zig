@@ -88,7 +88,6 @@ fn createNoQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void 
     options.addOption(bool, "qemu", false);
     const kernel = getKernelStep(b, optimize, options); // Options implicitly added as dependency
     const iso_dir = getISODirStep(b, kernel); // Implicitly add kernel as dependency
-    getModulesStep(b, iso_dir, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory()); // Implictly added iso_dir as dependency
     const install_iso = b.addInstallBinFile(iso_out, "os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));
@@ -102,7 +101,6 @@ fn createQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     options.addOption(bool, "qemu", true);
     const kernel = getKernelStep(b, optimize, options);
     const iso_dir = getISODirStep(b, kernel);
-    getModulesStep(b, iso_dir, optimize) catch @panic("Error with modules step");
     const iso_out = getXorrisoStep(b, iso_dir.getDirectory());
     const install_iso = b.addInstallBinFile(iso_out, "os.iso");
     install_iso.step.dependOn(getLimineBiosStep(b, iso_out));

@@ -35,9 +35,7 @@ pub var DriversTask = kernel.Task{
     },
 };
 
-const AVAILABLE_DRIVERS = [_]type{
-    kernel.drivers.ide,
-};
+const AVAILABLE_DRIVERS = [_]type{};
 
 const CallbackInfo = struct {
     vtable: *VTable,
@@ -63,6 +61,8 @@ fn init_drivers() kernel.Task.Ret {
         std.mem.copyForwards([*c]const u8, hids, driver.ACPIVTable.hids);
         hids[driver.ACPIVTable.hids.len] = @ptrCast(uacpi.UACPI_NULL);
         if (uacpi.uacpi_find_devices_at(
+            // Simple optimization because basically all devices are in the SB namespace
+            // If this proves to be an issue will change it to uacpi_namespace_root
             uacpi.uacpi_namespace_get_predefined(uacpi.UACPI_PREDEFINED_NAMESPACE_SB),
             hids.ptr,
             driver_callback,

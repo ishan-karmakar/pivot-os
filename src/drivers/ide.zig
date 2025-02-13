@@ -14,26 +14,17 @@ pub var PCIVTable = pci.VTable{
 
 pub var PCITask = kernel.Task{
     .name = "IDE PCI Driver",
-    .init = null,
+    .init = init,
     .dependencies = &.{},
 };
 
-pub var ACPIVTable = acpi.VTable{
-    .hids = &.{"PNP0103"},
-    .ret = undefined,
-};
-
-pub var ACPITask = kernel.Task{
-    .name = "IDE ACPI Driver",
-    .init = null,
-    .dependencies = &.{},
-};
+const ATA_PRIMARY = 0;
+const ATA_SECONDARY = 1;
 
 const ChannelRegisters = struct {
-    base: u16,
-    cntrl: u16,
-    bmide: u16,
-    nIEN: u8,
+    base: u32,
+    ctrl: u32,
+    bmide: u32,
 };
 
 const Device = packed struct {
@@ -48,46 +39,49 @@ const Device = packed struct {
     model: [41]u8,
 };
 
-// fn init(segment: u16, bus: u8, device: u5, func: u3) void {
-//     const prog_if: u8 = @truncate(pci.read_reg(segment, bus, device, func, 0x8) >> 8);
-//     const primary_channel = get_primary_channel(prog_if, segment, bus, device, func);
-//     const primary_channel_cntrl_port = get_primary_channel_control_port(prog_if, segment, bus, device, func);
-//     const secondary_channel = get_secondary_channel(prog_if, segment, bus, device, func);
-//     const secondary_channel_cntrl_port = get_secondary_channel_control_port(prog_if, segment, bus, device, func);
-// }
+fn init() kernel.Task.Ret {
+    const bmide = get_bmide(PCIVTable.target_ret.prog_if, PCIVTable.target_ret.addr);
+    const channels = [2]ChannelRegisters{
+        .{
+            .base = get_primary_channel(PCIVTable.target_ret.prog_if, PCIVTable.target_ret.addr),
+            .ctrl = get_primary_channel_control_port(PCIVTable.target_ret.prog_if, PCIVTable.target_ret.addr),
+            .bmide = bmide,
+        },
+        .{
+            .base = get_secondary_channel(PCIVTable.target_ret.prog_if, PCIVTable.target_ret.addr),
+            .ctrl = get_secondary_channel_control_port(PCIVTable.target_ret.prog_if, PCIVTable.target_ret.addr),
+            .bmide = bmide + 8,
+        },
+    };
+    _ = channels;
 
-fn get_primary_channel(prog_if: u8, segment: u16, bus: u8, device: u5, func: u3) u32 {
-    if (prog_if & 1 == 0) return 0x1F0;
+    return .success;
+}
+
+inline fn get_primary_channel(prog_if: u8, addr: uacpi.uacpi_pci_address) u32 {
+    return if (prog_if & 1 == 0) 0x1F0 else get_bar(addr, 0x10);
     // TODO: Use bit 1 to modify pci native/compatibility
-
-    const bar = pci.read_reg(segment, bus, device, func, 0x10);
-    if (bar & 1 == 0) @panic("IDE Bar is in physical memory");
-    return bar & 0xFFFFFFFC;
 }
 
-fn get_primary_channel_control_port(prog_if: u8, segment: u16, bus: u8, device: u5, func: u3) u32 {
-    if (prog_if & (1 << 1) == 0) return 0x3F6;
+inline fn get_primary_channel_control_port(prog_if: u8, addr: uacpi.uacpi_pci_address) u32 {
+    return if (prog_if & 1 == 0) 0x3F6 else get_bar(addr, 0x14);
     // TODO: Use bit 1 to modify pci native/compatibility
-
-    const bar = pci.read_reg(segment, bus, device, func, 0x14);
-    if (bar & 1 == 0) @panic("IDE Bar is in physical memory");
-    return bar & 0xFFFFFFFC;
 }
 
-fn get_secondary_channel(prog_if: u8, segment: u16, bus: u8, device: u5, func: u3) u32 {
-    if (prog_if & (1 << 3) == 0) return 0x170;
-    // TODO: Use bit 3 to modify pci native/compatibility
-
-    const bar = pci.read_reg(segment, bus, device, func, 0x18);
-    if (bar & 1 == 0) @panic("IDE Bar is in physical memory");
-    return bar & 0xFFFFFFFC;
+inline fn get_secondary_channel(prog_if: u8, addr: uacpi.uacpi_pci_address) u32 {
+    return if (prog_if & (1 << 2) == 0) 0x170 else get_bar(addr, 0x18);
 }
 
-fn get_secondary_channel_control_port(prog_if: u8, segment: u16, bus: u8, device: u5, func: u3) u32 {
-    if (prog_if & (1 << 3) == 0) return 0x376;
-    // TODO: Use bit 3 to modify pci native/compatibility
+inline fn get_secondary_channel_control_port(prog_if: u8, addr: uacpi.uacpi_pci_address) u32 {
+    return if (prog_if & (1 << 2) == 0) 0x376 else get_bar(addr, 0x1C);
+}
 
-    const bar = pci.read_reg(segment, bus, device, func, 0x1C);
+inline fn get_bmide(prog_if: u8, addr: uacpi.uacpi_pci_address) u32 {
+    return if (prog_if & (1 << 7) == 0) 0 else get_bar(addr, 0x20);
+}
+
+fn get_bar(addr: uacpi.uacpi_pci_address, off: u8) u32 {
+    const bar = pci.read_reg(addr, off);
     if (bar & 1 == 0) @panic("IDE Bar is in physical memory");
     return bar & 0xFFFFFFFC;
 }

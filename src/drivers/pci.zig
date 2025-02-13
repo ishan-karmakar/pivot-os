@@ -31,10 +31,7 @@ pub const VTable = struct {
         class_code: u8,
         subclass_code: u8,
         prog_if: u8,
-        segment: u16,
-        bus: u8,
-        device: u5,
-        func: u3,
+        addr: uacpi.uacpi_pci_address,
     },
 };
 
@@ -51,8 +48,8 @@ pub var Task = kernel.Task{
     },
 };
 
-pub var read_reg: *const fn (segment: u16, bus: u8, device: u5, func: u3, off: u8) u32 = undefined;
-pub var write_reg: *const fn (segment: u16, bus: u8, device: u5, func: u3, off: u8, val: u32) void = undefined;
+pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u8) u32 = undefined;
+pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u8, val: u32) void = undefined;
 var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
 
 fn init() kernel.Task.Ret {
@@ -73,44 +70,58 @@ fn init_legacy() void {
 }
 
 fn scan_devices(segment: u16) void {
-    const header_type = (read_reg(segment, 0, 0, 0, 0xC) >> 16) & 0xFF;
+    var addr = uacpi.uacpi_pci_address{
+        .segment = segment,
+        .bus = 0,
+        .device = 0,
+        .function = 0,
+    };
+    const header_type = (read_reg(addr, 0xC) >> 16) & 0xFF;
     if (header_type & (1 << 7) == 0) {
         // Single PCI host controller
-        check_bus(segment, 0);
+        addr.bus = 0;
+        check_bus(addr);
     } else {
         for (0..8) |f| {
-            if (read_reg(segment, 0, 0, @intCast(f), 0) == 0xFFFFFFFF) break;
-            check_bus(segment, @intCast(f));
+            addr.bus = @intCast(f);
+            if (read_reg(addr, 0) == 0xFFFFFFFF) break;
+            check_bus(addr);
         }
     }
 }
 
-inline fn check_bus(segment: u16, bus: u8) void {
-    for (0..32) |d| check_device(segment, bus, @intCast(d));
-}
-
-fn check_device(segment: u16, bus: u8, device: u5) void {
-    if (!check_function(segment, bus, device, 0)) return;
-    const header_type = (read_reg(segment, bus, device, 0, 0xC) >> 16) & 0xFF;
-    if (header_type & (1 << 7) > 0) {
-        for (1..8) |func| _ = check_function(segment, bus, device, @intCast(func));
+inline fn check_bus(_addr: uacpi.uacpi_pci_address) void {
+    var addr = _addr;
+    for (0..32) |d| {
+        addr.device = @intCast(d);
+        check_device(addr);
     }
 }
 
-fn check_function(segment: u16, bus: u8, device: u5, func: u3) bool {
-    const vendor_dev = read_reg(segment, bus, device, func, 0);
+fn check_device(_addr: uacpi.uacpi_pci_address) void {
+    var addr = _addr;
+    addr.function = 0;
+    if (!check_function(addr)) return;
+    const header_type = (read_reg(addr, 0xC) >> 16) & 0xFF;
+    if (header_type & (1 << 7) > 0) {
+        for (1..8) |func| {
+            addr.function = @intCast(func);
+            _ = check_function(addr);
+        }
+    }
+}
+
+fn check_function(addr: uacpi.uacpi_pci_address) bool {
+    const vendor_dev = read_reg(addr, 0);
     if (vendor_dev == 0xFFFFFFFF) return false;
-    const codes_raw = read_reg(segment, bus, device, func, 0x8);
+    const codes_raw = read_reg(addr, 0x8);
     const class_code: u8 = @truncate(codes_raw >> 24);
     const subclass_code: u8 = @truncate(codes_raw >> 16);
     const prog_if: u8 = @truncate(codes_raw >> 8);
     log.info(
-        "Found function at S: {}, B: {}, D: {}, F: {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
+        "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
-            segment,
-            bus,
-            device,
-            func,
+            addr,
             vendor_dev & 0xFFFF,
             (vendor_dev >> 16) & 0xFFFF,
             class_code,
@@ -125,10 +136,7 @@ fn check_function(segment: u16, bus: u8, device: u5, func: u3) bool {
                     .class_code = class_code,
                     .subclass_code = subclass_code,
                     .prog_if = prog_if,
-                    .segment = segment,
-                    .bus = bus,
-                    .device = device,
-                    .func = func,
+                    .addr = addr,
                 };
                 driver.PCITask.run();
             }
@@ -159,43 +167,43 @@ inline fn get_vendor_id(seg: u16, bus: u8, device: u5, func: u3) u16 {
     return @truncate(read_reg(seg, bus, device, func, 0));
 }
 
-fn pci_get_addr(_bus: u8, _device: u5, _func: u3, _off: u8) u32 {
-    const bus: u32 = @intCast(_bus);
-    const device: u32 = @intCast(_device);
-    const func: u32 = @intCast(_func);
+fn pci_get_addr(addr: uacpi.uacpi_pci_address, _off: u8) u32 {
+    const bus: u32 = @intCast(addr.bus);
+    const device: u32 = @intCast(addr.device);
+    const func: u32 = @intCast(addr.function);
     const off: u32 = @intCast(_off);
 
     return (bus << 16) | (device << 11) | (func << 8) | (off & 0xFC) | (1 << 31);
 }
 
-fn pci_read_reg(_: u16, bus: u8, device: u5, func: u3, off: u8) u32 {
-    serial.out(CONFIG_ADDR, pci_get_addr(bus, device, func, off));
+fn pci_read_reg(addr: uacpi.uacpi_pci_address, off: u8) u32 {
+    serial.out(CONFIG_ADDR, pci_get_addr(addr, off));
     return serial.in(CONFIG_DATA, u32);
 }
 
-fn pci_write_reg(_: u16, bus: u8, device: u5, func: u3, off: u8, val: u32) void {
-    serial.out(CONFIG_ADDR, pci_get_addr(bus, device, func, off));
+fn pci_write_reg(addr: uacpi.uacpi_pci_address, off: u8, val: u32) void {
+    serial.out(CONFIG_ADDR, pci_get_addr(addr, off));
     serial.out(CONFIG_DATA, val);
 }
 
-fn pcie_get_addr(base: usize, _bus: u8, _device: u5, _func: u3, _off: u8) *u32 {
-    const bus: u32 = @intCast(_bus);
-    const device: u32 = @intCast(_device);
-    const func: u32 = @intCast(_func);
+fn pcie_get_addr(base: usize, addr: uacpi.uacpi_pci_address, _off: u8) *u32 {
+    const bus: u32 = @intCast(addr.bus);
+    const device: u32 = @intCast(addr.device);
+    const func: u32 = @intCast(addr.function);
     const off: u32 = @intCast(_off);
     return @ptrFromInt(base + ((bus << 20) | (device << 15) | (func << 12)) + (off & 0xFC));
 }
 
-fn pcie_read_reg(segment: u16, bus: u8, device: u5, func: u3, off: u8) u32 {
+fn pcie_read_reg(addr: uacpi.uacpi_pci_address, off: u8) u32 {
     for (segment_groups) |seg| {
-        if (seg.segment == segment) return pcie_get_addr(seg.address, bus, device, func, off).*;
+        if (seg.segment == addr.segment) return pcie_get_addr(seg.address, addr, off).*;
     }
     @panic("PCIe segment not found");
 }
 
-fn pcie_write_reg(segment: u16, bus: u8, device: u5, func: u3, off: u8, val: u32) void {
+fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u8, val: u32) void {
     for (segment_groups) |seg| {
-        if (seg.segment == segment) pcie_get_addr(seg.address, bus, device, func, off).* = val;
+        if (seg.segment == addr.segment) pcie_get_addr(seg.address, addr, off).* = val;
     }
     @panic("PCIe segment not found");
 }
