@@ -70,20 +70,17 @@ export fn uacpi_kernel_pci_device_close(handle: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_pci_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
-    val.* = @truncate(pci.read_reg(addr.segment, addr.bus, @intCast(addr.device), @intCast(addr.function), @intCast(off)));
+    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off)));
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
-    val.* = @truncate(pci.read_reg(addr.segment, addr.bus, @intCast(addr.device), @intCast(addr.function), @intCast(off)));
+    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off)));
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u32) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
-    val.* = pci.read_reg(addr.segment, addr.bus, @intCast(addr.device), @intCast(addr.function), @intCast(off)) & 0xFFFFFFFF;
+    val.* = pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off)) & 0xFFFFFFFF;
     return uacpi.UACPI_STATUS_OK;
 }
 
