@@ -113,6 +113,8 @@ var comp: *Comparator = undefined;
 // FIXME: Explore FSB interrupts (don't think QEMU/VirtualBox supports them, but my physical machine does)
 // FIXME: Use standard mapping if leg ret doesn't exist
 // TODO: Multiple comparators (for scheduling on different CPUs, periodic not necessary)
+// FIXME: Allocate handlers in init, should not be each time callback is called
+// FIXME: Add deinit/destroy to timer API vtable to free IRQs for non calibrated timers
 fn init_common() kernel.Task.Ret {
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) orelse {
         log.debug("HPET not found", .{});

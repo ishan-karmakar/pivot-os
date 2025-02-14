@@ -8,8 +8,19 @@ const SPURIOUS_VEC = 0xFF;
 const TPR_OFF = 0x80;
 const EOI_OFF = 0xB0;
 const SPURIOUS_OFF = 0xF0;
+const CONFIG_OFF = 0x3E0;
 const ICRLO = 0x300;
 const ICRHI = 0x310;
+
+// 0b0 - Divide by 2
+// 0b1 - Divide by 4
+// 0b10 - Divide by 8
+// 0b11 - Divide by 16
+// 0b1000 - Divide by 32
+// 0b1001 - Divide by 64
+// 0b1010 - Divide by 128
+// 0b1011 - Divide by 1
+const TDIV = 1;
 
 var addr: usize = undefined;
 pub var read_reg: *const fn (off: u32) u64 = undefined;
@@ -52,6 +63,8 @@ fn bsp_init() kernel.Task.Ret {
 
     kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    write_reg(TPR_OFF, 0);
+    write_reg(CONFIG_OFF, TDIV);
     return .success;
 }
 
@@ -61,6 +74,8 @@ fn ap_init() kernel.Task.Ret {
     cpu.wrmsr(MSR, msr);
 
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    write_reg(TPR_OFF, 0);
+    write_reg(CONFIG_OFF, TDIV);
     return .success;
 }
 
