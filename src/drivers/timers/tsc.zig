@@ -19,7 +19,8 @@ pub var GTSTask = kernel.Task{
     .dependencies = &.{},
 };
 
-pub var hertz: usize = undefined;
+// Period between ticks in nanoseconds
+pub var period: f64 = undefined;
 
 fn init() kernel.Task.Ret {
     const cpuid = cpu.cpuid(0x80000007, 0);
@@ -28,21 +29,26 @@ fn init() kernel.Task.Ret {
         return .failed;
     }
     const freqs = cpu.cpuid(0x15, 0);
-    if (freqs.ebx != 0 and freqs.ecx != 0) {
-        hertz = freqs.ecx * (freqs.ebx / freqs.eax);
-        return .success;
+    const freqs2 = cpu.cpuid(0x16, 0);
+    if (freqs.eax != 0 and freqs.ebx != 0) {
+        if (freqs.ecx != 0) {
+            period = @as(f64, @floatFromInt(@as(u64, freqs.ecx) * freqs.ebx)) / @as(f64, @floatFromInt(freqs.eax)) / 1_000_000_000.0;
+            return .success;
+        } else if (freqs2.eax != 0) {
+            period = @as(f64, @floatFromInt(@as(u64, freqs2.eax) * 10_000_000 * freqs.eax)) / @as(f64, @floatFromInt(freqs.ebx)) / 1_000_000_000.0;
+            return .success;
+        }
     }
     const before = rdtsc();
     timers.sleep(CALIBRATION_NS);
     const after = rdtsc();
-    hertz = (after - before) * (1_000_000_000 / CALIBRATION_NS);
+    period = @as(f64, @floatFromInt(after - before)) / @as(f64, CALIBRATION_NS);
     return .success;
 }
 
 pub fn rdtsc() usize {
-    // TODO: rdtscp? mfence + lfence? https://stackoverflow.com/questions/27693145/rdtscp-versus-rdtsc-cpuid
-    var upper: u32 = undefined;
-    var lower: u32 = undefined;
+    var upper: u32 = 0;
+    var lower: u32 = 0;
     asm volatile ("rdtsc"
         : [edx] "={edx}" (upper),
           [eax] "={eax}" (lower),
@@ -51,5 +57,9 @@ pub fn rdtsc() usize {
 }
 
 fn time() usize {
-    return rdtsc() * 1_000_000_000 / hertz;
+    return @intFromFloat(@as(f128, @floatFromInt(rdtsc())) * period);
+}
+
+pub fn ns2ticks(ns: usize) usize {
+    return @intFromFloat(@as(f128, @floatFromInt(ns)) / period);
 }
