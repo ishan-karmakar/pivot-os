@@ -1,12 +1,10 @@
 name: Build PivotOS
-on:
-  pull_request:
-    types:
-      - ready_for_review
+on: [pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
     name: Build PivotOS
+    if: github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
