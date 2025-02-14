@@ -100,12 +100,13 @@ fn enqueue_no_preempt(thread: *Thread) void {
 pub fn enqueue(thread: *Thread) void {
     enqueue_no_preempt(thread);
     for (0..smp.cpu_count()) |i| {
-        // FIXME: If CPU 0 has thread with priority 99 and CPU 1 has no thread running, a thread with priority 100 will
-        // still send IPI to CPU 0 instead of 1
         const cproc = smp.cpu_info(i).cur_proc;
-        if (cproc) |cp| {
-            if (thread.priority > cp.priority) kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
-        } else kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+        if (cproc == null) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+    }
+    for (0..smp.cpu_count()) |i| {
+        // If it made it here, then all threads have a process running
+        const cproc = smp.cpu_info(i).cur_proc.?;
+        if (thread.priority > cproc.priority) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
     }
 }
 
@@ -164,7 +165,9 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
 
-    // FIXME: Either remove EOI from timer handler or figure out how to handle EOI in IPI automatically
+    // We have to do EOI here because we call this interrupt handler with the IPI and IPI expects an EOI
+    // This results in normal timer handler calling EOI twice, but its probably fine
+    // Scheduler is pretty tightly knit with LAPIC
     defer kernel.drivers.intctrl.eoi(0);
 
     check_sleep_threads();
