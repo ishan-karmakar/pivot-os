@@ -165,7 +165,9 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
 
-    // FIXME: Either remove EOI from timer handler or figure out how to handle EOI in IPI automatically
+    // We have to do EOI here because we call this interrupt handler with the IPI and IPI expects an EOI
+    // This results in normal timer handler calling EOI twice, but its probably fine
+    // Scheduler is pretty tightly knit with LAPIC
     defer kernel.drivers.intctrl.eoi(0);
 
     check_sleep_threads();
