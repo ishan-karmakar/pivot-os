@@ -59,7 +59,8 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    drivers.timers.Task.run();
+    drivers.pci.Task.run();
+    // drivers.acpi.DriversTask.run();
     while (true) asm volatile ("hlt");
 }
 

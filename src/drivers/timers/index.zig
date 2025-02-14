@@ -1,8 +1,8 @@
-pub const pit = @import("pit.zig");
-pub const acpi = @import("acpi.zig");
 pub const hpet = @import("hpet.zig");
-pub const tsc = @import("tsc.zig");
+pub const acpi = @import("acpi.zig");
+pub const pit = @import("pit.zig");
 pub const lapic = @import("lapic.zig");
+pub const tsc = @import("tsc.zig");
 const kernel = @import("kernel");
 const cpu = kernel.drivers.cpu;
 const std = @import("std");

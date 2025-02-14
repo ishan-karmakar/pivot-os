@@ -25,9 +25,9 @@ pub var Task = kernel.Task{
 
 fn init() kernel.Task.Ret {
     inline for (AVAILABLE_CONTROLLERS) |cntrl| {
-        cntrl.Task.run();
-        if (cntrl.Task.ret == .success) {
-            controller = &cntrl.vtable;
+        cntrl.InterruptControllerTask.run();
+        if (cntrl.InterruptControllerTask.ret == .success) {
+            controller = &cntrl.InterruptControllerVTable;
             break;
         }
     }
