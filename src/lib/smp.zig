@@ -11,6 +11,7 @@ pub const CPU = struct {
     id: u32,
     ready: std.atomic.Value(bool),
     cur_proc: ?*kernel.lib.scheduler.Thread,
+    lapic_handler: *kernel.drivers.idt.HandlerData,
 };
 
 pub var Task = kernel.Task{
@@ -42,6 +43,7 @@ pub fn init() kernel.Task.Ret {
             .id = @truncate(i),
             .ready = std.atomic.Value(bool).init(false),
             .cur_proc = null,
+            .lapic_handler = undefined,
         };
         info.extra_argument = @intFromPtr(_info);
         if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {
@@ -61,7 +63,10 @@ fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
     TaskAP.reset();
     asm volatile ("sti");
     cpu_info(null).ready.store(true, .monotonic);
-    while (true) asm volatile ("hlt");
+    while (true) {
+        asm volatile ("hlt");
+        log.info("Returned from int", .{});
+    }
 }
 
 /// Gets CPU info of {idx} cpu
