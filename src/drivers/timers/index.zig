@@ -112,7 +112,7 @@ pub fn sleep(ns: usize) void {
 }
 
 pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) void {
-    timer.callback(ns, ctx, func);
+    (timer orelse @panic("No timer available")).callback(ns, ctx, func);
 }
 
 fn sleep_callback(ctx: ?*anyopaque, status: *const kernel.drivers.cpu.Status) *const kernel.drivers.cpu.Status {
