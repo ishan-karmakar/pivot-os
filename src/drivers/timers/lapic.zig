@@ -18,6 +18,8 @@ pub var TimerTask = kernel.Task{
     .dependencies = &.{
         .{ .task = &lapic.Task },
         .{ .task = &timers.tsc.GTSTask, .accept_failure = true },
+        .{ .task = &mem.KHeapTask },
+        .{ .task = &kernel.drivers.intctrl.Task },
     },
 };
 
@@ -67,6 +69,7 @@ fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
         .ctx = _ctx,
         .idt_handler = handler,
     };
+    log.info("{}", .{ctx});
     handler.ctx = ctx;
     return idt.handler2vec(handler);
 }

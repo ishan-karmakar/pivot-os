@@ -80,7 +80,6 @@ fn init() kernel.Task.Ret {
     idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);
 
     smp.cpu_info(null).cur_proc = create_thread(kproc);
-    timers.callback(QUANTUM, null, schedule);
     return .success;
 }
 
@@ -98,17 +97,17 @@ fn enqueue_no_preempt(thread: *Thread) void {
     global_queue.add(queue) catch @panic("OOM");
 }
 
-fn enqueue(thread: *Thread) void {
+pub fn enqueue(thread: *Thread) void {
     enqueue_no_preempt(thread);
     for (0..smp.cpu_count()) |i| {
         const cproc = smp.cpu_info(i).cur_proc;
         if (cproc) |cp| {
-            if (thread.priority > cp.priority) kernel.drivers.lapic.ipi(i, idt.handler2vec(sched_vec));
-        } else kernel.drivers.lapic.ipi(i, idt.handler2vec(sched_vec));
+            if (thread.priority > cp.priority) kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+        } else kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
     }
 }
 
-fn create_thread(thread: Thread) *Thread {
+pub fn create_thread(thread: Thread) *Thread {
     const node = mem.kheap.allocator().create(ThreadLinkedList.Node) catch @panic("OOM");
     node.data = thread;
     node.data.id = id_counter.fetchAdd(1, .monotonic);
@@ -158,6 +157,7 @@ fn check_sleep_threads() void {
 
 pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const cpu_info = smp.cpu_info(null);
+    log.info("Entered schedule(), CPU is {}", .{cpu_info.id});
 
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
@@ -173,6 +173,7 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
         cp.ef = status.*;
         enqueue(cp);
     } else if (cpu_info.cur_proc != null) {
+        log.info("test", .{});
         return status;
     }
 
