@@ -11,6 +11,7 @@ pub const CPU = struct {
     id: u32,
     ready: std.atomic.Value(bool),
     cur_proc: ?*kernel.lib.scheduler.Thread,
+    lapic_handler: *kernel.drivers.idt.HandlerData,
 };
 
 pub var Task = kernel.Task{
@@ -19,6 +20,7 @@ pub var Task = kernel.Task{
     .dependencies = &.{
         .{ .task = &kernel.lib.mem.KHeapTask },
         .{ .task = &kernel.drivers.gdt.DynamicTask },
+        .{ .task = &kernel.drivers.lapic.Task },
     },
 };
 
@@ -28,6 +30,7 @@ var TaskAP = kernel.Task{
     .dependencies = &.{
         .{ .task = &kernel.drivers.idt.TaskAP },
         .{ .task = &kernel.drivers.gdt.DynamicTaskAP },
+        .{ .task = &kernel.drivers.lapic.TaskAP },
     },
 };
 
@@ -40,6 +43,7 @@ pub fn init() kernel.Task.Ret {
             .id = @truncate(i),
             .ready = std.atomic.Value(bool).init(false),
             .cur_proc = null,
+            .lapic_handler = undefined,
         };
         info.extra_argument = @intFromPtr(_info);
         if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {
@@ -47,10 +51,6 @@ pub fn init() kernel.Task.Ret {
         } else {
             info.goto_address = ap_init;
             while (!_info.ready.load(.acquire)) {}
-            // This is hack, because the APs are reusing the same task
-            // This means that we need to be EXTREMELY careful about using TaskAP outside of this file
-            // Because it only reflects the status of the last CPU that ran the task
-            TaskAP.ret = null;
         }
     }
     return .success;
@@ -60,9 +60,13 @@ fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
     kernel.drivers.cpu.set_kgs(info.extra_argument);
     TaskAP.run();
     if (TaskAP.ret != .success) @panic("SMP AP Task failed");
+    TaskAP.reset();
     asm volatile ("sti");
     cpu_info(null).ready.store(true, .monotonic);
-    while (true) asm volatile ("hlt");
+    while (true) {
+        asm volatile ("hlt");
+        log.info("Returned from int", .{});
+    }
 }
 
 /// Gets CPU info of {idx} cpu

@@ -55,7 +55,9 @@ pub var DynamicTask = kernel.Task{
 pub var DynamicTaskAP = kernel.Task{
     .name = "Dynamic GDT (AP)",
     .init = init_dynamic_ap,
-    .dependencies = &.{},
+    .dependencies = &.{
+        .{ .task = &mem.KMapperTaskAP },
+    },
 };
 
 fn init_static() kernel.Task.Ret {

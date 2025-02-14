@@ -80,11 +80,10 @@ fn init() kernel.Task.Ret {
     idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);
 
     smp.cpu_info(null).cur_proc = create_thread(kproc);
-    timers.callback(QUANTUM, null, schedule);
     return .success;
 }
 
-fn enqueue(thread: *Thread) void {
+fn enqueue_no_preempt(thread: *Thread) void {
     const node: *ThreadLinkedList.Node = @fieldParentPtr("data", thread);
 
     for (global_queue.items) |*queue| {
@@ -98,7 +97,19 @@ fn enqueue(thread: *Thread) void {
     global_queue.add(queue) catch @panic("OOM");
 }
 
-fn create_thread(thread: Thread) *Thread {
+pub fn enqueue(thread: *Thread) void {
+    enqueue_no_preempt(thread);
+    for (0..smp.cpu_count()) |i| {
+        // FIXME: If CPU 0 has thread with priority 99 and CPU 1 has no thread running, a thread with priority 100 will
+        // still send IPI to CPU 0 instead of 1
+        const cproc = smp.cpu_info(i).cur_proc;
+        if (cproc) |cp| {
+            if (thread.priority > cp.priority) kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+        } else kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+    }
+}
+
+pub fn create_thread(thread: Thread) *Thread {
     const node = mem.kheap.allocator().create(ThreadLinkedList.Node) catch @panic("OOM");
     node.data = thread;
     node.data.id = id_counter.fetchAdd(1, .monotonic);
@@ -146,11 +157,15 @@ fn check_sleep_threads() void {
     }
 }
 
+// TODO: Create separate method to get delta for next call
 pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const cpu_info = smp.cpu_info(null);
 
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
+
+    // FIXME: Either remove EOI from timer handler or figure out how to handle EOI in IPI automatically
+    defer kernel.drivers.intctrl.eoi(0);
 
     check_sleep_threads();
     check_cur_thread(cpu_info);
@@ -159,7 +174,6 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     if (cpu_info.cur_proc != null and next_thread != null) {
         // Preempt current process and switch to next thread
         const cp = cpu_info.cur_proc.?;
-        log.info("test", .{});
         cp.ef = status.*;
         enqueue(cp);
     } else if (cpu_info.cur_proc != null) {
@@ -167,7 +181,6 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     }
 
     if (next_thread) |nt| {
-        log.info("Loading thread {x}", .{@intFromPtr(nt)});
         nt.quantum_end = timers.time() + QUANTUM;
         cpu_info.cur_proc = nt;
         cpu.set_cr3(mem.phys(@intFromPtr(nt.mapper.pml4)));

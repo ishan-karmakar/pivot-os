@@ -4,6 +4,7 @@ const timers = kernel.drivers.timers;
 const mem = kernel.lib.mem;
 const idt = kernel.drivers.idt;
 const cpu = kernel.drivers.cpu;
+const smp = kernel.lib.smp;
 const std = @import("std");
 const log = std.log.scoped(.lapic_timer);
 
@@ -18,17 +19,18 @@ pub var TimerTask = kernel.Task{
     .dependencies = &.{
         .{ .task = &lapic.Task },
         .{ .task = &timers.tsc.GTSTask, .accept_failure = true },
+        .{ .task = &mem.KHeapTask },
+        .{ .task = &kernel.drivers.intctrl.Task },
+        .{ .task = &smp.Task },
     },
 };
 
 const HandlerCtx = struct {
     callback: timers.CallbackFn,
     ctx: ?*anyopaque,
-    idt_handler: *idt.HandlerData, // Passed so handler can free ctx
 };
 
 const INITIAL_COUNT_OFF = 0x380;
-const CONFIG_OFF = 0x3E0;
 const CUR_COUNT_OFF = 0x390;
 const TIMER_OFF = 0x320;
 
@@ -55,19 +57,23 @@ fn init() kernel.Task.Ret {
         hertz = (std.math.maxInt(u32) - cur_count) * (1_000_000_000 / CALIBRATION_NS);
     }
 
+    for (0..smp.cpu_count()) |i| {
+        const cpu_info = smp.cpu_info(i);
+        cpu_info.lapic_handler = idt.allocate_handler(null);
+        cpu_info.lapic_handler.handler = timer_handler;
+        cpu_info.lapic_handler.ctx = mem.kheap.allocator().create(HandlerCtx) catch @panic("OOM");
+    }
+
     return .success;
 }
 
 fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
-    const handler = idt.allocate_handler(null);
-    handler.handler = timer_handler;
-    const ctx = mem.kheap.allocator().create(HandlerCtx) catch @panic("OOM");
+    const handler = smp.cpu_info(null).lapic_handler;
+    const ctx: *HandlerCtx = @alignCast(@ptrCast(handler.ctx));
     ctx.* = .{
         .callback = callback,
         .ctx = _ctx,
-        .idt_handler = handler,
     };
-    handler.ctx = ctx;
     return idt.handler2vec(handler);
 }
 
@@ -87,7 +93,5 @@ fn timer_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ctx: *HandlerCtx = @ptrCast(@alignCast(_ctx));
     const ret = ctx.callback(ctx.ctx, status);
     kernel.drivers.intctrl.eoi(0);
-    ctx.idt_handler.reserved = false;
-    mem.kheap.allocator().destroy(ctx);
     return ret;
 }
