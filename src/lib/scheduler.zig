@@ -100,12 +100,13 @@ fn enqueue_no_preempt(thread: *Thread) void {
 pub fn enqueue(thread: *Thread) void {
     enqueue_no_preempt(thread);
     for (0..smp.cpu_count()) |i| {
-        // FIXME: If CPU 0 has thread with priority 99 and CPU 1 has no thread running, a thread with priority 100 will
-        // still send IPI to CPU 0 instead of 1
         const cproc = smp.cpu_info(i).cur_proc;
-        if (cproc) |cp| {
-            if (thread.priority > cp.priority) kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
-        } else kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+        if (cproc == null) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+    }
+    for (0..smp.cpu_count()) |i| {
+        // If it made it here, then all threads have a process running
+        const cproc = smp.cpu_info(i).cur_proc.?;
+        if (thread.priority > cproc.priority) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
     }
 }
 
