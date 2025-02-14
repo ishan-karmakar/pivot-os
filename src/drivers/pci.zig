@@ -35,8 +35,9 @@ pub const VTable = struct {
     },
 };
 
+// This should be modified to add or remove PCI drivers
 const AVAILABLE_DRIVERS = [_]type{
-    // kernel.drivers.ide,
+    kernel.drivers.ide,
 };
 
 pub var Task = kernel.Task{
