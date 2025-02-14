@@ -158,7 +158,6 @@ fn check_sleep_threads() void {
     }
 }
 
-// TODO: Create separate method to get delta for next call
 pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const cpu_info = smp.cpu_info(null);
 
