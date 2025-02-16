@@ -19,7 +19,7 @@ export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .flags = 0,
 };
 
-const KHEAP_SIZE = 0x1000 * 32;
+const KHEAP_SIZE = 0x1000 * 128;
 const KVMM_SIZE = KHEAP_SIZE + 0x1000 * 2;
 
 pub var KMapperTask = kernel.Task{
@@ -67,14 +67,21 @@ fn mapper_ap_init() kernel.Task.Ret {
 }
 
 fn vmm_init() kernel.Task.Ret {
+    // The VMM size will be a percentage of the total free space from the PMM rounded up to the nearest power of two
+    // The minimum size will be 0.1% of total free space
+    const vmm_size = std.math.ceilPowerOfTwoAssert(usize, pmm.get_free_size() * 1 / 1000);
     const mmap = MMAP_REQUEST.response.?.entries();
     const last = mmap[mmap.len - 1];
-    kvmm = VMM.create(virt(0) + last.base + last.length, KVMM_SIZE, 0b11 | (1 << 63), &kmapper);
+    kvmm = VMM.create(virt(0) + last.base + last.length, vmm_size, 0b11 | (1 << 63), &kmapper);
     return .success;
 }
 
 fn kheap_init() kernel.Task.Ret {
-    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, KHEAP_SIZE) catch return .failed);
+    // The kernel heap size will be a percentage of the total free space from the PMM
+    // For now it will be 0.1%
+    // It must be less than or equal to the VMM size
+    const kheap_size = (pmm.get_free_size() / 1000) / 0x1000 * 0x1000;
+    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, kheap_size) catch return .failed);
     return .success;
 }
 

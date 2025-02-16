@@ -59,6 +59,9 @@ const QEMU_ARGS = .{
     "-no-shutdown",
     "-nic",
     "none",
+    "-enable-kvm",
+    "-cpu",
+    "host",
 };
 
 var limineZigModule: *std.Build.Module = undefined;
@@ -223,7 +226,7 @@ fn initUACPI(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
         },
         .flags = &.{
             "-DUACPI_SIZED_FREES",
-            "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_TRACE",
+            "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_INFO",
         },
     };
 }

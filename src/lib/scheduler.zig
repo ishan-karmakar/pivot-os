@@ -74,7 +74,6 @@ fn init() kernel.Task.Ret {
         .priority = 100,
         .quantum_end = timers.time() + QUANTUM,
     };
-
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
     idle_thread_ef.iret_status.rsp = @intFromPtr(stack.ptr) + 0x1000;
     idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);

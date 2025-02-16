@@ -79,14 +79,12 @@ fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
 
 fn tsc_deadline_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) void {
     lapic.write_reg(TIMER_OFF, @as(u32, @intCast(callback_common(ctx, callback))) | (0b10 << 17));
-    const ticks = (ns * timers.tsc.hertz) / 1_000_000_000;
-    cpu.wrmsr(IA32_TSC_DEADLINE, timers.tsc.rdtsc() + ticks);
+    cpu.wrmsr(IA32_TSC_DEADLINE, timers.tsc.rdtsc() + timers.tsc.ns2ticks(ns));
 }
 
 fn oneshot_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) void {
     lapic.write_reg(TIMER_OFF, @as(u32, @intCast(callback_common(ctx, callback))));
-    const ticks = (ns * hertz) / 1_000_000_000;
-    lapic.write_reg(INITIAL_COUNT_OFF, ticks);
+    lapic.write_reg(INITIAL_COUNT_OFF, timers.tsc.ns2ticks(ns));
 }
 
 fn timer_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {

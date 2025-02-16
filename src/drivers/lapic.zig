@@ -39,7 +39,6 @@ pub var TaskAP = kernel.Task{
     .name = "Local APIC (AP)",
     .init = ap_init,
     .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
         .{ .task = &kernel.lib.mem.KMapperTaskAP },
     },
 };
