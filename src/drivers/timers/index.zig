@@ -12,9 +12,11 @@ pub const TimerVTable = struct {
     requires_calibration: bool,
     callback: *const fn (ns: usize, ctx: ?*anyopaque, handler: CallbackFn) void,
 };
+
 pub const GTSVTable = struct {
     requires_calibration: bool,
     time: *const fn () usize,
+    deinit: ?*const fn () void = null,
 };
 
 pub var Task = kernel.Task{
@@ -42,6 +44,7 @@ fn init() kernel.Task.Ret {
     inline for (AVAILABLE_TIMERS) |src| {
         if (src.TimerVTable.requires_calibration) {
             init_no_cal_gts();
+            // No way to calibrate timer now
             if (gts == null) return .failed;
         }
         src.TimerTask.run();
@@ -59,6 +62,10 @@ fn init() kernel.Task.Ret {
         }
         src.GTSTask.run();
         if (src.GTSTask.ret == .success) {
+            if (gts != null and gts != &src.GTSVTable) {
+                // Intermediate GTS was used
+                if (gts.?.deinit) |deinit| deinit();
+            }
             gts = &src.GTSVTable;
             break;
         }
@@ -68,18 +75,6 @@ fn init() kernel.Task.Ret {
     // TODO: Backup for no GTS, periodic IRQ every 10 ms?
     if (gts == null or timer == null) return .failed;
     return .success;
-}
-
-fn init_no_cal_timer() void {
-    inline for (AVAILABLE_TIMERS) |src| {
-        if (!src.TimerVTable.requires_calibration) {
-            src.TimerTask.run();
-            if (src.TimerTask.ret == .success) {
-                timer = &src.TimerVTable;
-                break;
-            }
-        }
-    }
 }
 
 fn init_no_cal_gts() void {
@@ -92,30 +87,17 @@ fn init_no_cal_gts() void {
             }
         }
     }
-    if (gts == null) init_no_cal_timer();
 }
 
 pub fn time() usize {
-    return (gts orelse @panic("No global time source available")).time();
+    return gts.?.time();
 }
 
 pub fn sleep(ns: usize) void {
-    if (gts) |vtable| {
-        const start = vtable.time();
-        while (vtable.time() < (start + ns)) asm volatile ("pause");
-    } else if (timer) |vtable| {
-        // TODO: Consider std.atomic.Value?
-        var triggered = false;
-        vtable.callback(ns, &triggered, sleep_callback);
-        while (!@atomicLoad(bool, @as(*const volatile bool, &triggered), .unordered)) asm volatile ("pause");
-    } else @panic("No timer found");
+    const start = gts.?.time();
+    while (gts.?.time() < (start + ns)) asm volatile ("pause");
 }
 
 pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) void {
     (timer orelse @panic("No timer available")).callback(ns, ctx, func);
-}
-
-fn sleep_callback(ctx: ?*anyopaque, status: *const kernel.drivers.cpu.Status) *const kernel.drivers.cpu.Status {
-    @as(*bool, @alignCast(@ptrCast(ctx))).* = true;
-    return status;
 }
