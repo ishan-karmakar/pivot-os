@@ -68,7 +68,8 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    drivers.timers.Task.run();
+    drivers.acpi.NamespaceLoadTask.run();
+    // lib.scheduler.Task.run();
     // const stack = lib.mem.kvmm.allocator().alloc(u8, 0x1000) catch @panic("OOM");
     // lib.scheduler.enqueue(lib.scheduler.create_thread(.{
     //     .ef = .{ .iret_status = .{

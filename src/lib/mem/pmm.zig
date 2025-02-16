@@ -31,7 +31,6 @@ fn init() kernel.Task.Ret {
     if (mem.HHDM_REQUEST.response == null) return .failed;
     const response = mem.MMAP_REQUEST.response orelse return .failed;
     for (response.entries()) |ent| {
-        // log.debug("start: 0x{x}, length: 0x{x}, kind: {}", .{ ent.base, ent.length, ent.kind });
         if (ent.kind == .usable) {
             add_region(ent.base, ent.length / 0x1000);
         }
@@ -53,7 +52,7 @@ pub fn add_region(start: usize, num_pages: usize) void {
 /// Runs in O(N), so should rarely be used
 pub fn get_free_size() usize {
     var cur = head_region;
-    var size = 0;
+    var size: usize = 0;
     while (cur != null) {
         size += cur.?.num_pages * 0x1000;
         cur = cur.?.next;

@@ -70,12 +70,16 @@ export fn uacpi_kernel_pci_device_close(handle: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_pci_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
-    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off)));
+    const aligned = (off / 4) * 4;
+    const shift: u5 = @intCast(off % 4);
+    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(aligned)) >> shift);
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
-    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off)));
+    const aligned = (off / 4) * 4;
+    const shift: u5 = @intCast(off % 4);
+    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(aligned)) >> shift);
     return uacpi.UACPI_STATUS_OK;
 }
 
@@ -290,11 +294,8 @@ export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.ua
 
 fn uacpi_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ctx: *HandlerInfo = @alignCast(@ptrCast(_ctx));
-    const ret = ctx.callback.?(ctx.ctx);
-    if (ret == uacpi.UACPI_INTERRUPT_HANDLED) {
-        log.debug("uACPI handler for irq {} was handled correctly", .{ctx.irq});
-    } else {
-        log.warn("uACPI handler for irq {} was not handled correctly", .{ctx.irq});
+    if (ctx.callback.?(ctx.ctx) == uacpi.UACPI_INTERRUPT_NOT_HANDLED) {
+        log.warn("uACPI handler for IRQ {} was not handled correctly", .{ctx.irq});
     }
     kernel.drivers.intctrl.eoi(ctx.irq);
     return status;
