@@ -11,11 +11,16 @@ jobs:
       GH_TOKEN: ${{ secrets.PR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      - name: Read Zig version
+        id: zig-version
+        run: echo "version=$(cat .zigversion)" >> $GITHUB_OUTPUT
       - uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ steps.zig-version.outputs.version }}
       - name: Update Zig Nightly
         run: |
           version=$(curl -s https://ziglang.org/download/index.json | jq -r .master.version)
-          if [ $version == $(cat .zigversion) ]; then
+          if [ $version != $(cat .zigversion) ]; then
             echo -n $version > .zigversion
             echo "Updated Zig to version $version" >> ${{ runner.temp }}/pr-body.txt
           fi
