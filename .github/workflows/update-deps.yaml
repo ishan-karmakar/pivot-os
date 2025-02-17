@@ -11,6 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
+      - name: Update Zig Nightly
+        run: |
+          version=$(curl -s https://ziglang.org/download/index.json | jq -r .master.version)
+          if [ $version == $(cat .zigversion) ]; then
+            echo -n $version > .zigversion
+            echo "Updated Zig to version $version" >> ${{ runner.temp }}/pr-body.txt
+          fi
       - name: Update Limine Binaries
         run: |
           REPO=limine-bootloader/limine

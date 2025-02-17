@@ -9,8 +9,11 @@ jobs:
     if: github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
+      - name: Read Zig version
+        id: zig-version
+        run: echo "version=$(cat .zigversion)" >> $GITHUB_OUTPUT
       - uses: mlugg/setup-zig@v1
         with:
-          version: 0.14.0-dev.3237+ddff1fa4c
+          version: ${{ steps.zig-version.outputs.version }}
       - run: sudo apt-get install xorriso
       - run: zig build
