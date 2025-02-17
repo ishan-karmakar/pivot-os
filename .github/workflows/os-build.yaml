@@ -10,5 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
+        with:
+          version: 0.14.0-dev.3237+ddff1fa4c
       - run: sudo apt-get install xorriso
       - run: zig build
