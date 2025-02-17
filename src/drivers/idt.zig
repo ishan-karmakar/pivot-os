@@ -25,12 +25,8 @@ var idtr = IDTR{
     .addr = 0,
 };
 
-var rawTable: [256]Entry = .{.{
-    .off0 = 0,
-    .off1 = 0,
-    .off2 = 0,
-    .flags = 0,
-}} ** 256;
+// IDT init overwrites all the entries anyway
+var rawTable: [256]Entry = undefined;
 
 pub const HandlerData = struct {
     handler: ?*const fn (?*anyopaque, *cpu.Status) *const cpu.Status = null,

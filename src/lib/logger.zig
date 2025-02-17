@@ -6,7 +6,7 @@ const Writer = std.io.GenericWriter(void, anyerror, kernelWrite);
 pub const writer = Writer{ .context = {} };
 var lock = std.atomic.Value(bool).init(false);
 
-pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.EnumLiteral), comptime format: []const u8, args: anytype) void {
+pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.enum_literal), comptime format: []const u8, args: anytype) void {
     const levelText = comptime level.asText();
     const prefix = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}

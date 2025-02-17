@@ -92,6 +92,7 @@ pub fn allocator(self: *Self) Allocator {
         .vtable = &.{
             .alloc = alloc,
             .resize = resize,
+            .remap = remap,
             .free = free,
         },
     };
@@ -114,7 +115,7 @@ fn rsv_extra(self: *Self, block: Block, size: usize) void {
     }
 }
 
-fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
+fn alloc(ctx: *anyopaque, len: usize, _: std.mem.Alignment, _: usize) ?[*]u8 {
     // TODO: Maybe implement pointer alignment, but right now no need for it and will unnecessarily complicate code
     const self: *Self = @ptrCast(@alignCast(ctx));
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
@@ -136,7 +137,7 @@ fn alloc(ctx: *anyopaque, len: usize, _: u8, _: usize) ?[*]u8 {
     return @ptrFromInt(addr);
 }
 
-fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
+fn free(ctx: *anyopaque, buf: []u8, _: std.mem.Alignment, _: usize) void {
     const self: *Self = @ptrCast(@alignCast(ctx));
     const bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
     if (bsize > self.max_bsize) return;
@@ -154,7 +155,7 @@ fn free(ctx: *anyopaque, buf: []u8, _: u8, _: usize) void {
     // self.mutex.unlock();
 }
 
-fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
+fn resize(ctx: *anyopaque, buf: []u8, _: std.mem.Alignment, len: usize, _: usize) bool {
     const self: *Self = @ptrCast(@alignCast(ctx));
     const new_bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, len));
     const old_bsize = @max(0x1000, math.ceilPowerOfTwoAssert(usize, buf.len));
@@ -196,6 +197,12 @@ fn resize(ctx: *anyopaque, buf: []u8, _: u8, len: usize, _: usize) bool {
     }
     self.set_status(new_block, .RESERVED);
     return true;
+}
+
+// TODO: Write a proper implementation
+fn remap(ctx: *anyopaque, buf: []u8, alignment: std.mem.Alignment, len: usize, ret_addr: usize) ?[*]u8 {
+    if (resize(ctx, buf, alignment, len, ret_addr) == true) return buf.ptr;
+    return null;
 }
 
 fn alloc_traverse(self: Self, node: Block, target_bsize: usize) ?Block {
