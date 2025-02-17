@@ -5,7 +5,7 @@ const limine = @import("limine");
 const log = std.log.scoped(.main);
 const config = @import("config");
 
-pub const std_options = .{
+pub const std_options = std.Options{
     .logFn = lib.logger.logger,
     .log_level = .debug,
 };

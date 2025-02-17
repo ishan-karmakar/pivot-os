@@ -173,7 +173,7 @@ fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Op
     kernel.root_module.addImport("limine", limineZigModule);
     kernel.root_module.addImport("ssfn", ssfnModule);
     kernel.root_module.addImport("uacpi", uacpiModule);
-    kernel.root_module.addImport("kernel", &kernel.root_module);
+    kernel.root_module.addImport("kernel", kernel.root_module);
     return kernel;
 }
 
@@ -199,7 +199,8 @@ fn initUACPI(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
         .root_source_file = b.path("src/uacpi.h"),
     });
     uacpiIncludePath = uacpi.path("include");
-    translateC.addIncludeDir(uacpiIncludePath.getPath(b)); // This is a hack. Specifically states that should only be called during make phase
+    translateC.addIncludePath(uacpiIncludePath);
+    // translateC.addIncludeDir(uacpiIncludePath.getPath(b)); // This is a hack. Specifically states that should only be called during make phase
     uacpiModule = translateC.createModule();
     uacpiCSourceFileOptions = .{
         .root = uacpi.path("source"),
