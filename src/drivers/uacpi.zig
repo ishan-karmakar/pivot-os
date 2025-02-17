@@ -130,24 +130,28 @@ export fn uacpi_kernel_map(addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) 
 
 export fn uacpi_kernel_unmap(_: ?*anyopaque, _: uacpi.uacpi_size) void {}
 
-export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, callback: uacpi.uacpi_interrupt_handler, _ctx: uacpi.uacpi_handle, _: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
+export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, callback: uacpi.uacpi_interrupt_handler, _ctx: uacpi.uacpi_handle, out_handle: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
     const handler = idt.allocate_handler(kernel.drivers.intctrl.pref_vec(@intCast(irq)));
     const ctx = mem.kheap.allocator().create(HandlerInfo) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
     ctx.* = .{
         .ctx = _ctx,
         .callback = callback,
-        .irq = @intCast(irq),
+        .irq = kernel.drivers.intctrl.map(idt.handler2vec(handler), irq) catch return uacpi.UACPI_STATUS_INTERNAL_ERROR,
     };
     handler.ctx = ctx;
     handler.handler = uacpi_handler;
-    ctx.irq = kernel.drivers.intctrl.map(idt.handler2vec(handler), ctx.irq) catch return uacpi.UACPI_STATUS_INTERNAL_ERROR;
+    out_handle.* = handler;
     kernel.drivers.intctrl.mask(ctx.irq, false);
     return uacpi.UACPI_STATUS_OK;
 }
 
-export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_handler, _: uacpi.uacpi_handle) uacpi.uacpi_status {
-    @panic("uacpi_kernel_uninstall_interrupt_handler unimplemented");
-    // return uacpi.UACPI_STATUS_UNIMPLEMENTED;
+export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
+    const handler: *idt.HandlerData = @alignCast(@ptrCast(handle));
+    const ctx: *HandlerInfo = @alignCast(@ptrCast(handler.ctx));
+    kernel.drivers.intctrl.unmap(ctx.irq);
+    handler.reserved = false;
+    mem.kheap.allocator().destroy(ctx);
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_create_mutex() uacpi.uacpi_handle {
@@ -258,13 +262,11 @@ export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
 }
 
 export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
-    _ = ms;
-    @panic("uacpi_kernel_sleep unimplemented");
-    // timers.sleep(ms);
+    kernel.drivers.timers.sleep(ms * 1_000_000);
 }
 
-export fn uacpi_kernel_stall(_: uacpi.uacpi_u8) void {
-    uacpi_kernel_sleep(1);
+export fn uacpi_kernel_stall(us: uacpi.uacpi_u8) void {
+    kernel.drivers.timers.sleep(@as(u64, @intCast(us)) * 1_000);
 }
 
 export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware_request) uacpi.uacpi_status {
