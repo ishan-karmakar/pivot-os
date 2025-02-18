@@ -28,8 +28,8 @@
             .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v8.7.0-binary",
-            .hash = "1220412bffeb555ae2aa1a6b18b204adf3cabbcf6c94505d513d851d9884c3a4a7e0",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.0.0-binary",
+            .hash = "12202b853547b15bee83729be72dca9eb3168172fdec54c581fc3c7330714798353d",
         },
         .uacpi = .{
             .url = "https://api.github.com/repos/uACPI/uACPI/zipball/757dcece1a9f1c069355b23f7feaf21656728f94",
