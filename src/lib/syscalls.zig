@@ -19,7 +19,7 @@ pub const SYSCALLS = enum(c_int) {
     SLEEP,
 };
 
-var syscalls: [@typeInfo(SYSCALLS).Enum.fields.len]SyscallHandler = undefined;
+var syscalls: [@typeInfo(SYSCALLS).@"enum".fields.len]SyscallHandler = undefined;
 
 fn init() kernel.Task.Ret {
     const handler = idt.allocate_handler(0x80);
