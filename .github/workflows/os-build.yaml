@@ -2,6 +2,9 @@ name: Build PivotOS
 on:
   pull_request:
     types: [opened, review_requested, ready_for_review, synchronize, reopened]
+  push:
+    branches:
+      - master
 jobs:
   build:
     runs-on: ubuntu-latest
