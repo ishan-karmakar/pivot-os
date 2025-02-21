@@ -26,6 +26,7 @@ pub const Thread = struct {
     priority: u8,
     ef: cpu.Status,
     mapper: mem.Mapper,
+    affinity: ?u32 = null,
     quantum_end: usize = 0, // Absolute time of when thread should end
     status: enum {
         ready,
@@ -45,7 +46,7 @@ const ThreadPriorityQueue = std.PriorityQueue(ThreadLinkedList, void, compareThr
 const SleepPriorityQueue = std.PriorityQueue(SleepThread, void, compareSleepThreads);
 
 var sched_vec: *idt.HandlerData = undefined;
-var id_counter = std.atomic.Value(usize).init(0);
+var id_counter = std.atomic.Value(usize).init(1);
 var lock = std.atomic.Value(bool).init(false);
 var global_queue: ThreadPriorityQueue = undefined;
 var sleep_queue: SleepPriorityQueue = undefined;
@@ -98,14 +99,20 @@ fn enqueue_no_preempt(thread: *Thread) void {
 
 pub fn enqueue(thread: *Thread) void {
     enqueue_no_preempt(thread);
-    for (0..smp.cpu_count()) |i| {
-        const cproc = smp.cpu_info(i).cur_proc;
-        if (cproc == null) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
-    }
-    for (0..smp.cpu_count()) |i| {
-        // If it made it here, then all threads have a process running
-        const cproc = smp.cpu_info(i).cur_proc.?;
-        if (thread.priority > cproc.priority) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+    if (thread.affinity) |id| {
+        // If there is affinity, only check that CPU
+        const cproc = smp.cpu_info(id).cur_proc;
+        if (cproc == null or thread.priority > cproc.?.priority)
+            return kernel.drivers.lapic.ipi(@intCast(id), idt.handler2vec(sched_vec));
+    } else {
+        for (0..smp.cpu_count()) |i| {
+            const cproc = smp.cpu_info(i).cur_proc;
+            if (cproc == null) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+        }
+        for (0..smp.cpu_count()) |i| {
+            const cproc = smp.cpu_info(i).cur_proc.?;
+            if (thread.priority > cproc.priority) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+        }
     }
 }
 
@@ -136,15 +143,16 @@ fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
         if (global_queue.count() > 0) {
             const pq = &global_queue.items[0];
             // SCHED_RR, account for timeslice/quantum
-            const pq_prio = pq.first.?.data.priority;
-            if (pq_prio > cp.priority or (pq_prio == cp.priority and cp.quantum_end <= timers.time())) {
+            const pq_proc = &pq.first.?.data;
+            if ((pq_proc.affinity == null or pq_proc.affinity.? == cpu_info.id) and (pq_proc.priority > cp.priority or (pq_proc.priority == cp.priority and cp.quantum_end <= timers.time()))) {
                 return &pq.popFirst().?.data;
             }
         }
     } else {
         if (global_queue.count() == 0) return null;
-        const proc = global_queue.items[0].popFirst().?;
-        return &proc.data;
+        const proc = global_queue.items[0].first.?;
+        if (proc.data.affinity != null and proc.data.affinity.? != cpu_info.id) return null;
+        return &global_queue.items[0].popFirst().?.data;
     }
     return null;
 }
