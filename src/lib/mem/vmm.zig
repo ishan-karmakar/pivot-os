@@ -268,7 +268,7 @@ inline fn block_addr(self: Self, block: Block) usize {
 
 inline fn get_status(self: Self, block: Block) BlockStatus {
     const d = self.translate(block);
-    return @enumFromInt(self.bitmap[d[0]] >> d[1]);
+    return @enumFromInt((self.bitmap[d[0]] >> d[1]) & d[2]);
 }
 
 inline fn set_status(self: *Self, block: Block, status: BlockStatus) void {
