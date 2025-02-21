@@ -40,7 +40,7 @@ pub fn init() kernel.Task.Ret {
         const info = response.cpus()[i];
         const _info = mem.kheap.allocator().create(CPU) catch return .failed;
         _info.* = CPU{
-            .id = @truncate(i),
+            .id = info.lapic_id,
             .ready = std.atomic.Value(bool).init(false),
             .cur_proc = null,
             .lapic_handler = undefined,
@@ -49,7 +49,7 @@ pub fn init() kernel.Task.Ret {
         if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {
             cpu.set_kgs(info.extra_argument);
         } else {
-            info.goto_address = ap_init;
+            @atomicStore(usize, @as(*usize, @ptrCast(&info.goto_address)), @intFromPtr(&ap_init), .unordered);
             while (!_info.ready.load(.acquire)) {}
         }
     }
@@ -63,10 +63,7 @@ fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
     TaskAP.reset();
     asm volatile ("sti");
     cpu_info(null).ready.store(true, .monotonic);
-    while (true) {
-        asm volatile ("hlt");
-        log.info("Returned from int", .{});
-    }
+    while (true) asm volatile ("hlt");
 }
 
 /// Gets CPU info of {idx} cpu
