@@ -5,13 +5,15 @@ const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const log = std.log.scoped(.smp);
 
-pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1, .revision = 3 };
+pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = @intFromEnum(limine.SmpFlags.x2apic), .revision = 3 };
 
 pub const CPU = struct {
-    id: u32,
+    id: u32, // Public ID that should be passed around and used
+    lapic_id: u32, // Internally used for IPIs and other stuff
     ready: std.atomic.Value(bool),
     cur_proc: ?*kernel.lib.scheduler.Thread,
     lapic_handler: *kernel.drivers.idt.HandlerData,
+    tss: *kernel.drivers.tss.TSS,
 };
 
 pub var Task = kernel.Task{
@@ -40,10 +42,12 @@ pub fn init() kernel.Task.Ret {
         const info = response.cpus()[i];
         const _info = mem.kheap.allocator().create(CPU) catch return .failed;
         _info.* = CPU{
-            .id = info.lapic_id,
+            .id = @intCast(i),
+            .lapic_id = info.lapic_id,
             .ready = std.atomic.Value(bool).init(false),
             .cur_proc = null,
             .lapic_handler = undefined,
+            .tss = undefined,
         };
         info.extra_argument = @intFromPtr(_info);
         if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {

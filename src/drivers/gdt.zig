@@ -3,7 +3,7 @@ const smp = kernel.lib.smp;
 const mem = kernel.lib.mem;
 const log = @import("std").log.scoped(.gdt);
 
-const Entry = packed struct {
+pub const Entry = packed struct {
     limit0: u16 = 0xFFFF,
     base0: u16 = 0,
     base1: u8 = 0,
@@ -33,7 +33,7 @@ var static_gdt: [3]Entry = .{
     },
 };
 
-var gdtr = GDTR{
+pub var gdtr = GDTR{
     .addr = 0,
     .size = static_gdt.len * @sizeOf(Entry) - 1,
 };

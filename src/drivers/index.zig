@@ -11,6 +11,7 @@ pub const elf = @import("elf.zig");
 // CPU stuff
 pub const gdt = @import("gdt.zig");
 pub const idt = @import("idt.zig");
+pub const tss = @import("tss.zig");
 pub const cpu = @import("cpu.zig");
 pub const lapic = @import("lapic.zig");
 
