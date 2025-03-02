@@ -69,7 +69,7 @@ fn fixed_shutdown_handler(_: ?*anyopaque) callconv(.C) uacpi.uacpi_interrupt_ret
 
 fn namespace_load() kernel.Task.Ret {
     if (uacpi.uacpi_namespace_load() != uacpi.UACPI_STATUS_OK) return .failed;
-    if (uacpi.uacpi_find_devices("PNP0C0C", install_notify_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
+    // if (uacpi.uacpi_find_devices("PNP0C0C", install_notify_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
     return .success;
 }
 

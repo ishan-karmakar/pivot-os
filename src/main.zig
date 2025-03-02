@@ -68,20 +68,8 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    drivers.acpi.NamespaceLoadTask.run();
-    // lib.scheduler.Task.run();
-    // const stack = lib.mem.kvmm.allocator().alloc(u8, 0x1000) catch @panic("OOM");
-    // lib.scheduler.enqueue(lib.scheduler.create_thread(.{
-    //     .ef = .{ .iret_status = .{
-    //         .cs = 0x8,
-    //         .ss = 0x10,
-    //         .rip = @intFromPtr(&test_thread),
-    //         .rsp = @intFromPtr(stack.ptr) + 0x1000,
-    //     } },
-    //     .mapper = lib.mem.kmapper,
-    //     .priority = 99,
-    // }));
-    // drivers.acpi.DriversTask.run();
+    // drivers.acpi.NamespaceLoadTask.run();
+    lib.smp.Task.run();
     while (true) asm volatile ("hlt");
 }
 

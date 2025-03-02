@@ -101,17 +101,18 @@ pub fn enqueue(thread: *Thread) void {
     enqueue_no_preempt(thread);
     if (thread.affinity) |id| {
         // If there is affinity, only check that CPU
-        const cproc = smp.cpu_info(id).cur_proc;
+        const cpu_info = smp.cpu_info(id);
+        const cproc = cpu_info.cur_proc;
         if (cproc == null or thread.priority > cproc.?.priority)
-            return kernel.drivers.lapic.ipi(@intCast(id), idt.handler2vec(sched_vec));
+            return kernel.drivers.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
     } else {
         for (0..smp.cpu_count()) |i| {
-            const cproc = smp.cpu_info(i).cur_proc;
-            if (cproc == null) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+            const cpu_info = smp.cpu_info(i);
+            if (cpu_info.cur_proc == null) return kernel.drivers.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
         }
         for (0..smp.cpu_count()) |i| {
-            const cproc = smp.cpu_info(i).cur_proc.?;
-            if (thread.priority > cproc.priority) return kernel.drivers.lapic.ipi(@intCast(i), idt.handler2vec(sched_vec));
+            const cpu_info = smp.cpu_info(i);
+            if (thread.priority > cpu_info.cur_proc.?.priority) return kernel.drivers.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
         }
     }
 }
