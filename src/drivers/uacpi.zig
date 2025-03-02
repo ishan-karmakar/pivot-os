@@ -91,24 +91,32 @@ export fn uacpi_kernel_pci_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_s
 }
 
 export fn uacpi_kernel_pci_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u8) uacpi.uacpi_status {
-    _ = handle;
-    _ = off;
-    _ = val;
-    @panic("uacpi_kernel_write8");
+    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    log.info("{}", .{addr});
+    const aligned = (off / 4) * 4;
+    const shift: u5 = @intCast((off % 4) * 8);
+    var old = pci.read_reg(addr.*, @intCast(aligned));
+    old &= ~(@as(u32, std.math.maxInt(u8)) << shift);
+    old |= @as(u32, val) << shift;
+    pci.write_reg(addr.*, @intCast(aligned), old);
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u16) uacpi.uacpi_status {
-    _ = handle;
-    _ = off;
-    _ = val;
-    @panic("uacpi_kernel_write16");
+    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    log.info("{}", .{addr});
+    const aligned = (off / 4) * 4;
+    const shift: u5 = @intCast((off % 4) * 8);
+    var old = pci.read_reg(addr.*, @intCast(aligned));
+    old &= ~(@as(u32, std.math.maxInt(u16)) << shift);
+    old |= @as(u32, val) << shift;
+    pci.write_reg(addr.*, @intCast(aligned), old);
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u32) uacpi.uacpi_status {
-    _ = handle;
-    _ = off;
-    _ = val;
-    @panic("uacpi_kernel_write32");
+    pci.write_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off), val);
+    return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
@@ -314,7 +322,7 @@ export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.ua
     }
 }
 
-fn uacpi_work_handler(func: uacpi.uacpi_work_handler, ctx: uacpi.uacpi_handle) void {
+fn uacpi_work_handler(func: uacpi.uacpi_work_handler, ctx: uacpi.uacpi_handle) callconv(.C) void {
     _ = num_jobs.fetchAdd(1, .acquire);
     func.?(ctx);
     _ = num_jobs.fetchSub(1, .release);
