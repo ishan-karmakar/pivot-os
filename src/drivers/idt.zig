@@ -34,7 +34,7 @@ pub const HandlerData = struct {
     reserved: bool = false,
 };
 
-var handlerTable: [256 - 0x20]HandlerData = .{.{}} ** (256 - 0x20);
+var handlerTable: [256 - 0x20]HandlerData = .{HandlerData{}} ** (256 - 0x20);
 
 pub var Task = kernel.Task{
     .name = "IDT",
