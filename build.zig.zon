@@ -38,19 +38,19 @@
     .dependencies = .{
         .limine_zig = .{
             .url = "https://api.github.com/repos/48cf/limine-zig/zipball/7b29b6e6f6d35052f01ed3831085a39aae131705",
-            .hash = "1220f946f839eab2ec49dca1c805ce72ac3e3ef9c47b3afcdecd1c05a7b35f66d277",
+            .hash = "N-V-__8AAGg-AAD5Rvg56rLsSdyhyAXOcqw-PvnEezr83s0c",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.0.1-binary",
-            .hash = "12203d3d0997a26790e02d773733ba787c11080255b59c6349a1598b175d527efceb",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.1.0-binary",
+            .hash = "N-V-__8AAPc8RwDzEVa5sCf2oaqmTjFOcwDMgmOZ1ljFO23U",
         },
         .uacpi = .{
-            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/4ab3a78006a930e2cda5a92f33fc84e1ec6b4a3d",
-            .hash = "1220172694f04b562cf0f09ab554ca7bbd30babed7071ff1b9391f26dc98c14055e5",
+            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/8f95a9f0b5301f16d99dc02c10d58e63f7f5c5b9",
+            .hash = "N-V-__8AAPUGEwCy72_8paoqOlsZTqvvMKObZrwANgq40cTO",
         },
         .ssfn = .{
             .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=76658c2064d985e5d4cde400d4975dcf96a533cc",
-            .hash = "12205db540d97128b8a29e0009be207992354eb02fe2ee7baa4401ca5f8d7336abad",
+            .hash = "N-V-__8AAM3GQwFdtUDZcSi4op4ACb4geZI1TrAv4u57qkQB",
         },
     },
 
