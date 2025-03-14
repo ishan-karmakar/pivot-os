@@ -155,12 +155,20 @@ fn getISODirStep(b: *std.Build, kernel: *Step.Compile) *Step.WriteFile {
 fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Options) *Step.Compile {
     const kernel = b.addExecutable(.{
         .name = "pivot-os",
-        .root_source_file = b.path("src/main.zig"),
-        .target = b.resolveTargetQuery(KERNEL_TARGET_QUERY),
-        .optimize = optimize,
-        .code_model = .kernel,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = b.resolveTargetQuery(KERNEL_TARGET_QUERY),
+            .optimize = optimize,
+            .code_model = .kernel,
+            .strip = false,
+            .imports = &.{
+                .{ .name = "config", .module = options.createModule() },
+                .{ .name = "limine", .module = limineZigModule },
+                .{ .name = "ssfn", .module = ssfnModule },
+                .{ .name = "uacpi", .module = uacpiModule },
+            },
+        }),
         .linkage = .static,
-        .strip = false,
     });
     kernel.want_lto = false;
     kernel.setLinkerScript(b.path("linker.ld"));
@@ -169,10 +177,7 @@ fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Op
     kernel.addIncludePath(uacpiIncludePath);
     kernel.addIncludePath(ssfnIncludePath);
 
-    kernel.root_module.addImport("config", options.createModule());
-    kernel.root_module.addImport("limine", limineZigModule);
-    kernel.root_module.addImport("ssfn", ssfnModule);
-    kernel.root_module.addImport("uacpi", uacpiModule);
+    // Cyclic dependency
     kernel.root_module.addImport("kernel", kernel.root_module);
     return kernel;
 }
@@ -239,22 +244,4 @@ fn initLimine(b: *std.Build) void {
     const buildLimineExe = b.addSystemCommand(&.{"make"});
     buildLimineExe.setCwd(limineBinDep.path(""));
     limineBuildExeStep = &buildLimineExe.step;
-}
-
-fn getModulesStep(b: *std.Build, iso_dir: *std.Build.Step.WriteFile, optimize: std.builtin.OptimizeMode) !void {
-    const mod_root = try std.fs.cwd().openDir(MODULES_DIR, .{ .iterate = true });
-    var iter = mod_root.iterate();
-    while (try iter.next()) |entry| {
-        const mainFile = b.pathJoin(&.{ MODULES_DIR, entry.name, "main.zig" });
-        const exe = b.addExecutable(.{
-            .name = try b.allocator.dupe(u8, entry.name),
-            .root_source_file = b.path(mainFile),
-            .target = b.resolveTargetQuery(MODULE_TARGET_QUERY),
-            .optimize = optimize,
-            .strip = true,
-        });
-        exe.root_module.addImport("module", &exe.root_module);
-        _ = iso_dir.addCopyFile(exe.getEmittedBin(), b.pathJoin(&.{ ISO_MODULES_DIR, entry.name }));
-        iso_dir.step.dependOn(&b.addInstallArtifact(exe, .{ .dest_sub_path = b.pathJoin(&.{ "modules", exe.name }) }).step);
-    }
 }
