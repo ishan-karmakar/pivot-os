@@ -37,16 +37,16 @@
     // internet connectivity.
     .dependencies = .{
         .limine_zig = .{
-            .url = "https://api.github.com/repos/48cf/limine-zig/zipball/7b29b6e6f6d35052f01ed3831085a39aae131705",
-            .hash = "N-V-__8AAGg-AAD5Rvg56rLsSdyhyAXOcqw-PvnEezr83s0c",
+            .url = "https://api.github.com/repos/48cf/limine-zig/zipball/4281ba905cabe6d8ccd3e062d2e48364c3485172",
+            .hash = "limine_zig-0.0.0-1TjwQOl6AACYbbHZxh6lCxJ-WMBUoz03PUuBZhpKlxQs",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.1.0-binary",
-            .hash = "N-V-__8AAPc8RwDzEVa5sCf2oaqmTjFOcwDMgmOZ1ljFO23U",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.1.3-binary",
+            .hash = "N-V-__8AAPBcRwAUWQnSx5vKqFXu0VBr5pye8zSiqSq5A4CV",
         },
         .uacpi = .{
-            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/8f95a9f0b5301f16d99dc02c10d58e63f7f5c5b9",
-            .hash = "N-V-__8AAPUGEwCy72_8paoqOlsZTqvvMKObZrwANgq40cTO",
+            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/156da869393e2deff93a4cba30792c447db46899",
+            .hash = "N-V-__8AAI9GEwBLtXPbmlr-E4g6CSDstWSqmWlTSEjbWTea",
         },
         .ssfn = .{
             .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=76658c2064d985e5d4cde400d4975dcf96a533cc",

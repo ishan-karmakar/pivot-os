@@ -15,8 +15,9 @@ pub export var MMAP_REQUEST: limine.MemoryMapRequest = .{ .revision = 3 };
 pub export var HHDM_REQUEST: limine.HhdmRequest = .{ .revision = 3 };
 export var PAGING_REQUEST: limine.PagingModeRequest = .{
     .revision = 3,
-    .mode = .four_level,
-    .flags = 0,
+    .mode = .@"4lvl",
+    .max_mode = .@"4lvl",
+    .min_mode = .@"4lvl",
 };
 
 const KHEAP_SIZE = 0x1000 * 128;
@@ -70,7 +71,7 @@ fn vmm_init() kernel.Task.Ret {
     // The VMM size will be a percentage of the total free space from the PMM rounded up to the nearest power of two
     // The minimum size will be 0.1% of total free space
     const vmm_size = std.math.ceilPowerOfTwoAssert(usize, pmm.get_free_size() * 4 / 1000);
-    const mmap = MMAP_REQUEST.response.?.entries();
+    const mmap = MMAP_REQUEST.response.?.getEntries();
     const last = mmap[mmap.len - 1];
     kvmm = VMM.create(virt(0) + last.base + last.length, vmm_size, 0b11 | (1 << 63), &kmapper);
     return .success;

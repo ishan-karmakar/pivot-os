@@ -281,7 +281,7 @@ export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
 
 export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_status {
     const req = RSDP_REQUEST.response orelse return uacpi.UACPI_STATUS_NOT_FOUND;
-    out.* = @intFromPtr(req.address);
+    out.* = req.address;
     return uacpi.UACPI_STATUS_OK;
 }
 
