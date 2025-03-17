@@ -18,7 +18,7 @@ export var FB_REQUEST = limine.FramebufferRequest{ .revision = 3 };
 pub fn init() kernel.Task.Ret {
     const response = FB_REQUEST.response orelse return .failed;
     // TODO: Multiple framebuffers
-    const fb = response.framebuffers()[0];
+    const fb = response.getFramebuffers()[0];
     const font = kernel.drivers.modules.get_module("font");
 
     ssfn.ssfn_src = @ptrFromInt(font);
@@ -29,7 +29,7 @@ pub fn init() kernel.Task.Ret {
     ssfn.ssfn_dst.h = @intCast(fb.height);
     ssfn.ssfn_dst.w = @intCast(fb.width);
     ssfn.ssfn_dst.p = @intCast(fb.pitch);
-    ssfn.ssfn_dst.ptr = fb.address;
+    ssfn.ssfn_dst.ptr = @ptrCast(fb.address);
     return .success;
 }
 

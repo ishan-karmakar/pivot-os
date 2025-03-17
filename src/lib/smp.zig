@@ -5,7 +5,10 @@ const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const log = std.log.scoped(.smp);
 
-pub export var SMP_REQUEST: limine.SmpRequest = .{ .flags = 1, .revision = 3 };
+pub export var SMP_REQUEST: limine.MpRequest = .{
+    .flags = .{ .x2apic = true },
+    .revision = 3,
+};
 
 pub const CPU = struct {
     id: u32,
@@ -37,7 +40,7 @@ var TaskAP = kernel.Task{
 pub fn init() kernel.Task.Ret {
     const response = SMP_REQUEST.response orelse return .failed;
     for (0..response.cpu_count) |i| {
-        const info = response.cpus()[i];
+        const info = response.getCpus()[i];
         const _info = mem.kheap.allocator().create(CPU) catch return .failed;
         _info.* = CPU{
             .id = info.lapic_id,
@@ -56,7 +59,7 @@ pub fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
+fn ap_init(info: *limine.MpInfo) callconv(.C) noreturn {
     kernel.drivers.cpu.set_kgs(info.extra_argument);
     TaskAP.run();
     if (TaskAP.ret != .success) @panic("SMP AP Task failed");
@@ -69,7 +72,7 @@ fn ap_init(info: *limine.SmpInfo) callconv(.C) noreturn {
 /// Gets CPU info of {idx} cpu
 /// If idx is null, gets current cpu info
 pub fn cpu_info(idx: ?usize) *CPU {
-    if (idx) |i| return @ptrFromInt(SMP_REQUEST.response.?.cpus_ptr[i].extra_argument);
+    if (idx) |i| return @ptrFromInt(SMP_REQUEST.response.?.getCpus()[i].extra_argument);
     return @ptrFromInt(cpu.get_kgs());
 }
 

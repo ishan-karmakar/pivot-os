@@ -30,8 +30,8 @@ var head_region: ?*FreeRegion = null;
 fn init() kernel.Task.Ret {
     if (mem.HHDM_REQUEST.response == null) return .failed;
     const response = mem.MMAP_REQUEST.response orelse return .failed;
-    for (response.entries()) |ent| {
-        if (ent.kind == .usable) {
+    for (response.getEntries()) |ent| {
+        if (ent.type == .usable) {
             add_region(ent.base, ent.length / 0x1000);
         }
     }

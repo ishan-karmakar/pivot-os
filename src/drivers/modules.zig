@@ -15,8 +15,8 @@ fn init() kernel.Task.Ret {
 }
 
 pub fn get_module(cmdline: []const u8) usize {
-    for (MODULE_REQUEST.response.?.modules()) |m| {
-        if (mem.eql(u8, mem.span(m.cmdline), cmdline)) return @intFromPtr(m.address);
+    for (MODULE_REQUEST.response.?.getModules()) |m| {
+        if (mem.eql(u8, mem.span(m.string), cmdline)) return @intFromPtr(m.address);
     }
     @panic("Module not found");
 }

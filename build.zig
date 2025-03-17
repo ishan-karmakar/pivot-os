@@ -238,7 +238,11 @@ fn initUACPI(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
 }
 
 fn initLimine(b: *std.Build) void {
-    limineZigModule = b.dependency("limine_zig", .{}).module("limine");
+    limineZigModule = b.dependency("limine_zig", .{
+        .api_revision = 3,
+        .allow_deprecated = false,
+        .no_pointers = false,
+    }).module("limine");
     limineBinDep = b.dependency("limine_bin", .{});
 
     const buildLimineExe = b.addSystemCommand(&.{"make"});
