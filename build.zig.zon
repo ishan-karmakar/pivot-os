@@ -41,12 +41,12 @@
             .hash = "limine_zig-0.0.0-1TjwQOl6AACYbbHZxh6lCxJ-WMBUoz03PUuBZhpKlxQs",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.2.0-binary",
-            .hash = "N-V-__8AAOxcRwD_8nEgTH-PMj-YS3D7b7CJ4I44a9CU7e4v",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v9.2.1-binary",
+            .hash = "N-V-__8AAMRvRwD5aI6hvWrw6gWJGE1IQys38NERbmpoh7Bp",
         },
         .uacpi = .{
-            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/3bd2a570104ae95e555131765888d9038ec4322b",
-            .hash = "N-V-__8AAJNGEwD2lk6agqi9rP-oNjTCzseILDf16gQe9ZJb",
+            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/c163b24bada6069e13c564e57d1b0bbeb1c6d21f",
+            .hash = "N-V-__8AAE1HEwBDJfW7a3JNk-FgNnYn6vEwOantBwsTFl-G",
         },
         .ssfn = .{
             .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=76658c2064d985e5d4cde400d4975dcf96a533cc",
