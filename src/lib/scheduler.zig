@@ -33,6 +33,14 @@ pub const Thread = struct {
         sleeping,
         dead,
     } = .ready,
+    node: std.DoublyLinkedList.Node = std.DoublyLinkedList.Node{},
+
+    pub fn create(info: @This()) !*@This() {
+        const thread: *@This() = try mem.kheap.allocator().create(@This());
+        thread.* = info;
+        thread.id = id_counter.fetchAdd(1, .monotonic);
+        return thread;
+    }
 };
 
 const SleepThread = struct {
@@ -40,8 +48,7 @@ const SleepThread = struct {
     wakeup: usize,
 };
 
-const ThreadLinkedList = std.DoublyLinkedList(Thread);
-const ThreadPriorityQueue = std.PriorityQueue(ThreadLinkedList, void, compareThreadPriorities);
+const ThreadPriorityQueue = std.PriorityQueue(std.DoublyLinkedList, void, compareThreadPriorities);
 
 const SleepPriorityQueue = std.PriorityQueue(SleepThread, void, compareSleepThreads);
 
@@ -69,31 +76,28 @@ fn init() kernel.Task.Ret {
     global_queue = ThreadPriorityQueue.init(mem.kheap.allocator(), {});
     sleep_queue = SleepPriorityQueue.init(mem.kheap.allocator(), {});
 
-    const kproc = Thread{
-        .ef = undefined,
-        .mapper = mem.kmapper,
-        .priority = 100,
-        .quantum_end = timers.time() + QUANTUM,
-    };
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
     idle_thread_ef.iret_status.rsp = @intFromPtr(stack.ptr) + 0x1000;
     idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);
 
-    smp.cpu_info(null).cur_proc = create_thread(kproc);
+    smp.cpu_info(null).cur_proc = Thread.create(.{
+        .ef = undefined,
+        .mapper = mem.kmapper,
+        .priority = 100,
+        .quantum_end = timers.time() + QUANTUM,
+    }) catch return .failed;
     return .success;
 }
 
 fn enqueue_no_preempt(thread: *Thread) void {
-    const node: *ThreadLinkedList.Node = @fieldParentPtr("data", thread);
-
     for (global_queue.items) |*queue| {
-        if (queue.first.?.data.priority == thread.priority) {
-            queue.append(node);
+        if (@as(*Thread, @alignCast(@fieldParentPtr("node", queue.first.?))).priority == thread.priority) {
+            queue.append(&thread.node);
             return;
         }
     }
-    var queue = ThreadLinkedList{};
-    queue.append(node);
+    var queue = std.DoublyLinkedList{};
+    queue.append(&thread.node);
     global_queue.add(queue) catch @panic("OOM");
 }
 
@@ -117,12 +121,8 @@ pub fn enqueue(thread: *Thread) void {
     }
 }
 
-pub fn create_thread(thread: Thread) *Thread {
-    const node = mem.kheap.allocator().create(ThreadLinkedList.Node) catch @panic("OOM");
-    node.data = thread;
-    node.data.id = id_counter.fetchAdd(1, .monotonic);
-
-    return &node.data;
+pub fn create_thread(thread: *Thread) void {
+    thread.id = id_counter.fetchAdd(1, .monotonic);
 }
 
 fn check_cur_thread(cpu_info: *smp.CPU) void {
@@ -211,7 +211,7 @@ fn syscall_exit(status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     if (delete_proc) |dp| {
         delete_proc = null;
-        mem.kheap.allocator().destroy(@as(*ThreadLinkedList.Node, @fieldParentPtr("data", dp)));
+        mem.kheap.allocator().destroy(@fieldParentPtr("data", dp));
     }
     delete_proc = cpu_info.cur_proc;
     cpu_info.cur_proc = null;
@@ -239,9 +239,11 @@ fn idle_func() noreturn {
     while (true) asm volatile ("hlt");
 }
 
-fn compareThreadPriorities(_: void, a: ThreadLinkedList, b: ThreadLinkedList) std.math.Order {
+fn compareThreadPriorities(_: void, a: std.DoublyLinkedList, b: std.DoublyLinkedList) std.math.Order {
     // Highest priority first, lowest priority last
-    return std.math.order(b.first.?.data.priority, a.first.?.data.priority);
+    const ta = @as(*Thread, @alignCast(@fieldParentPtr("node", a.first.?)));
+    const tb = @as(*Thread, @alignCast(@fieldParentPtr("node", b.first.?)));
+    return std.math.order(tb.priority, ta.priority);
 }
 
 fn compareSleepThreads(_: void, a: SleepThread, b: SleepThread) std.math.Order {
