@@ -120,7 +120,7 @@ export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_
 }
 
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
-    const ptr = mem.kheap.allocator().alignedAlloc(u8, 8, size) catch @panic("OOM");
+    const ptr = mem.kheap.allocator().alignedAlloc(u8, std.mem.Alignment.@"8", size) catch @panic("OOM");
     return @ptrCast(ptr.ptr);
 }
 
