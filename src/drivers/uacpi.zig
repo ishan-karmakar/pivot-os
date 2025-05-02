@@ -120,7 +120,7 @@ export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_
 }
 
 export fn uacpi_kernel_alloc(size: uacpi.uacpi_size) ?*anyopaque {
-    const ptr = mem.kheap.allocator().alignedAlloc(u8, 8, size) catch @panic("OOM");
+    const ptr = mem.kheap.allocator().alignedAlloc(u8, std.mem.Alignment.@"8", size) catch @panic("OOM");
     return @ptrCast(ptr.ptr);
 }
 
@@ -246,7 +246,7 @@ export fn uacpi_kernel_free_event(handle: uacpi.uacpi_handle) void {
 
 export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacpi.uacpi_work_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
-    const thread = kernel.lib.scheduler.Thread{
+    kernel.lib.scheduler.enqueue(kernel.lib.scheduler.Thread.create(kernel.lib.scheduler.Thread{
         .affinity = if (wtype == uacpi.UACPI_WORK_GPE_EXECUTION) 0 else null,
         .priority = 99,
         .ef = .{
@@ -260,8 +260,7 @@ export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacp
             .rsi = @intFromPtr(handle),
         },
         .mapper = mem.kmapper,
-    };
-    kernel.lib.scheduler.enqueue(kernel.lib.scheduler.create_thread(thread));
+    }) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY);
     return uacpi.UACPI_STATUS_OK;
 }
 
