@@ -160,7 +160,6 @@ fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Op
             .target = b.resolveTargetQuery(KERNEL_TARGET_QUERY),
             .optimize = optimize,
             .code_model = .kernel,
-            .strip = false,
             .imports = &.{
                 .{ .name = "config", .module = options.createModule() },
                 .{ .name = "limine", .module = limineZigModule },
@@ -168,9 +167,11 @@ fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Op
                 .{ .name = "uacpi", .module = uacpiModule },
             },
         }),
-        .linkage = .static,
+        // There seems to be a bug in the custom x86 backend where soft-float causes a segfault
+        // Until that is fixed we are sticking with the LLVM backend
+        .use_llvm = true,
     });
-    kernel.want_lto = false;
+    // kernel.want_lto = false;
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.addCSourceFiles(uacpiCSourceFileOptions);
     kernel.addCSourceFile(ssfnCSourceFile);
