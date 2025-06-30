@@ -37,7 +37,7 @@
     // internet connectivity.
     .dependencies = .{
         .limine_zig = .{
-            .url = "https://api.github.com/repos/48cf/limine-zig/zipball/4281ba905cabe6d8ccd3e062d2e48364c3485172",
+            .url = "git+https://github.com/48cf/limine-zig.git#4281ba905cabe6d8ccd3e062d2e48364c3485172",
             .hash = "limine_zig-0.0.0-1TjwQOl6AACYbbHZxh6lCxJ-WMBUoz03PUuBZhpKlxQs",
         },
         .limine_bin = .{
@@ -45,12 +45,16 @@
             .hash = "N-V-__8AAIRpRwAz9-EPrciNtBX6AxrGGdPct5iYU_DIKR25",
         },
         .uacpi = .{
-            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/56258b3b9edc6dedbfce81955c9331caf9f4e2da",
+            .url = "git+https://github.com/uACPI/uACPI#56258b3b9edc6dedbfce81955c9331caf9f4e2da",
             .hash = "N-V-__8AAJuPEwCdHowrwjb0Xqa2sV-lWCstBcbk7GzwkkrB",
         },
         .ssfn = .{
-            .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=8ac41c8aaed8c9c992527548d2b76074609da7f6",
+            .url = "git+https://gitlab.com/bztsrc/scalable-font2.git#8ac41c8aaed8c9c992527548d2b76074609da7f6",
             .hash = "N-V-__8AAIzCQwFM6qX-buA6ZfeJXJIefQItbFtHTKEqYVad",
+        },
+        .lwip = .{
+            .url = "git+https://github.com/lwip-tcpip/lwip#56b29f8bcfaefe2974dca67bde16cc7c391feaeb",
+            .hash = "N-V-__8AAD3NdQBPcV433xHShU6nGGmBgmcsbohtIa3eLttZ",
         },
     },
 

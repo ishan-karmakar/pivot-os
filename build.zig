@@ -175,8 +175,11 @@ fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Op
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.addCSourceFiles(uacpiCSourceFileOptions);
     kernel.addCSourceFile(ssfnCSourceFile);
+    kernel.addCSourceFiles(init_lwip(b));
     kernel.addIncludePath(uacpiIncludePath);
     kernel.addIncludePath(ssfnIncludePath);
+    kernel.addIncludePath(b.dependency("lwip", .{}).path("src/include"));
+    kernel.addIncludePath(b.path("src/lwip"));
 
     // Cyclic dependency
     kernel.root_module.addImport("kernel", kernel.root_module);
@@ -249,4 +252,33 @@ fn initLimine(b: *std.Build) void {
     const buildLimineExe = b.addSystemCommand(&.{"make"});
     buildLimineExe.setCwd(limineBinDep.path(""));
     limineBuildExeStep = &buildLimineExe.step;
+}
+
+fn init_lwip(b: *std.Build) std.Build.Module.AddCSourceFilesOptions {
+    const dep = b.dependency("lwip", .{});
+    return std.Build.Module.AddCSourceFilesOptions{
+        .root = dep.path("src"),
+        .files = &.{
+            "core/init.c",
+            "core/def.c",
+            "core/dns.c",
+            "core/inet_chksum.c",
+            "core/ip.c",
+            "core/mem.c",
+            "core/netif.c",
+            "core/pbuf.c",
+            "core/raw.c",
+            "core/stats.c",
+            "core/sys.c",
+            "core/altcp.c",
+            "core/altcp_alloc.c",
+            "core/altcp_tcp.c",
+            "core/tcp.c",
+            "core/tcp_in.c",
+            "core/tcp_out.c",
+            "core/timeouts.c",
+            "core/udp.c",
+        },
+        .flags = &.{},
+    };
 }
