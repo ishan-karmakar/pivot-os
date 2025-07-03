@@ -1,7 +1,5 @@
 // This is a shortcut so that all the necessary include files are translated at once for
 // Zig
 #pragma once
-#define UACPI_SIZED_FREES
-#include <uacpi/event.h>
-#include <uacpi/tables.h>
-#include <uacpi/uacpi.h>
+
+#include <lwip/init.h>

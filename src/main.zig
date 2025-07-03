@@ -4,6 +4,7 @@ const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);
 const config = @import("config");
+const lwip = @import("lwip");
 
 pub const std_options = std.Options{
     .logFn = lib.logger.logger,
@@ -39,7 +40,6 @@ pub const Task = struct {
                 break;
             }
         }
-
         const ret = self.ret orelse if (self.init) |init| init() else .success;
         self.ret = ret;
 
@@ -71,11 +71,8 @@ export fn _start() noreturn {
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
     // drivers.acpi.NamespaceLoadTask.run();
-    lib.smp.Task.run();
-    while (true) asm volatile ("hlt");
-}
-
-fn test_thread() noreturn {
+    drivers.timers.Task.run();
+    lwip.lwip_init();
     while (true) asm volatile ("hlt");
 }
 
@@ -86,4 +83,24 @@ pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
         \\hlt
     );
     unreachable;
+}
+
+export fn atoi(_: [*c]const c_char) c_int {
+    @panic("atoi()");
+}
+
+export fn memmove(_: *anyopaque, _: *const anyopaque, _: c_ulong) *anyopaque {
+    @panic("memmove()");
+}
+
+export fn strlen(_: [*c]const u8) c_ulong {
+    @panic("strlen()");
+}
+
+export fn strncmp(_: [*c]const u8, _: [*c]const u8, _: c_ulong) c_int {
+    @panic("strncmp()");
+}
+
+export fn lwip_memcpy(_: *anyopaque, _: *const anyopaque, _: c_ulong) *anyopaque {
+    @panic("lwip_memcpy()");
 }
