@@ -106,6 +106,15 @@ const LWIP_SOURCES = &.{
     "netif/ethernet.c",
     "netif/bridgeif.c",
     "netif/bridgeif_fdb.c",
+    "api/api_lib.c",
+    "api/api_msg.c",
+    "api/err.c",
+    "api/if_api.c",
+    "api/netbuf.c",
+    "api/netdb.c",
+    "api/netifapi.c",
+    "api/sockets.c",
+    "api/tcpip.c",
 };
 
 pub fn build(b: *std.Build) void {

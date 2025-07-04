@@ -72,7 +72,7 @@ export fn _start() noreturn {
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
     // drivers.acpi.NamespaceLoadTask.run();
     drivers.timers.Task.run();
-    lwip.lwip_init();
+    lwip.tcpip_init(null, null);
     while (true) asm volatile ("hlt");
 }
 
