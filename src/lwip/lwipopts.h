@@ -11,8 +11,6 @@
 #define MEM_CUSTOM_FREE lwip_free
 #define MEMP_MEM_MALLOC 1
 
-// Not used at this moment because arch_protect and unprotect just enable/disable
-// interrupts
 typedef uint8_t sys_prot_t;
 
 void *lwip_malloc(size_t);

@@ -3,6 +3,30 @@ const mem = kernel.lib.mem;
 const timers = kernel.drivers.timers;
 const std = @import("std");
 const lwip = @import("lwip");
+const log = std.log.scoped(.lwip);
+
+pub var Task = kernel.Task{
+    .init = init,
+    .dependencies = &.{
+        .{ .task = &timers.Task },
+        .{ .task = &kernel.lib.scheduler.Task },
+    },
+    .name = "LWIP",
+};
+
+var lock = std.atomic.Value(bool).init(false);
+
+const MBox = struct {
+    first: u32,
+    last: u32,
+    msgs: []*anyopaque,
+    wait_send: u32,
+};
+
+fn init() kernel.Task.Ret {
+    lwip.tcpip_init(null, null);
+    return .success;
+}
 
 // LWIP doesn't support sized frees, so we have to encode the size within the malloced buffer
 export fn lwip_malloc(_size: c_ulong) *anyopaque {
@@ -24,14 +48,13 @@ export fn lwip_calloc(size: c_ulong) *anyopaque {
     return buf;
 }
 
-// FIXME: Change to a mutex? Still haven't thought about implications of disabling interrupts here
 export fn sys_arch_protect(_: lwip.sys_prot_t) lwip.sys_prot_t {
-    asm volatile ("cli");
+    while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     return 0;
 }
 
 export fn sys_arch_unprotect(_: lwip.sys_prot_t) void {
-    asm volatile ("sti");
+    lock.store(false, .release);
 }
 
 export fn sys_now() u32 {
@@ -68,16 +91,23 @@ export fn sys_mbox_trypost_fromisr(_: *lwip.sys_mbox_t, _: *anyopaque) lwip.err_
     @panic("sys_mbox_trypost_fromisr()");
 }
 
-export fn sys_mbox_new(_: *lwip.sys_mbox_t, _: c_int) lwip.err_t {
-    @panic("sys_mbox_new()");
+export fn sys_mbox_new(mbox: *lwip.sys_mbox_t, size: c_int) lwip.err_t {
+    const _mbox = mem.kheap.allocator().create(MBox) catch return lwip.ERR_MEM;
+    _mbox.first = 0;
+    _mbox.last = 0;
+    _mbox.wait_send = 0;
+    _mbox.msgs = mem.kheap.allocator().alloc(*anyopaque, @intCast(size)) catch return lwip.ERR_MEM;
+    mbox.* = _mbox;
+    return lwip.ERR_OK;
 }
 
 export fn sys_arch_mbox_fetch(_: *lwip.sys_mbox_t, _: **anyopaque, _: u32) u32 {
     @panic("sys_arch_mbox_fetch()");
 }
 
-export fn sys_mutex_new(_: *lwip.sys_mutex_t) lwip.err_t {
-    @panic("sys_mutex_new()");
+export fn sys_mutex_new(ptr: *std.atomic.Value(bool)) lwip.err_t {
+    ptr.* = std.atomic.Value(bool).init(false);
+    return lwip.ERR_OK;
 }
 
 export fn sys_mutex_lock(_: *lwip.sys_mutex_t) void {
@@ -88,6 +118,22 @@ export fn sys_mutex_unlock(_: *lwip.sys_mutex_t) void {
     @panic("sys_mutex_unlock");
 }
 
-export fn sys_thread_new(_: [*c]const u8, _: lwip.lwip_thread_fn, _: *anyopaque, _: c_int, _: c_int) lwip.sys_thread_t {
-    @panic("sys_thread_new()");
+export fn sys_thread_new(_: [*c]const u8, func: lwip.lwip_thread_fn, arg: *anyopaque, stacksize: c_int, prio: c_int) lwip.sys_thread_t {
+    // TODO: Switch to own mapper/VMM
+    const stack = mem.kvmm.allocator().alloc(u8, @intCast(stacksize)) catch @panic("OOM");
+    const thread = kernel.lib.scheduler.Thread.create(.{
+        .priority = @intCast(prio), // TODO: Verify if bigger is higher priority
+        .mapper = mem.kmapper,
+        .ef = .{
+            .iret_status = .{
+                .cs = 0x8,
+                .ss = 0x10,
+                .rip = @intFromPtr(func.?),
+                .rsp = @intFromPtr(stack.ptr) + stack.len,
+            },
+            .rdi = @intFromPtr(arg),
+        },
+    }) catch @panic("Error creating thread");
+    kernel.lib.scheduler.enqueue(thread);
+    return thread;
 }

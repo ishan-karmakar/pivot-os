@@ -2,14 +2,12 @@ const kernel = @import("kernel");
 const log = @import("std").log.scoped(.mapper);
 const mem = kernel.lib.mem;
 const math = @import("std").math;
-const Mutex = kernel.lib.Mutex;
 pub const Table = *[512]u64;
 
 const HP_SIZE = 0x20000;
 const SIGN_MASK: usize = 0x000ffffffffff00;
 
 pml4: Table,
-// mutex: Mutex = Mutex{},
 
 pub fn create(tbl: usize) @This() {
     return .{ .pml4 = @ptrFromInt(tbl) };
@@ -21,8 +19,6 @@ pub fn map(self: *@This(), phys: usize, virt: usize, flags: u64) void {
     const p2_ent = (virt >> 21) & 0x1FF;
     const p1_ent = (virt >> 12) & 0x1FF;
 
-    // self.mutex.lock();
-    // defer self.mutex.unlock();
     const p3_tbl = next_table(&self.pml4[p4_ent]);
     const p2_tbl = next_table(&p3_tbl[p3_ent]);
     const hp_works = phys % HP_SIZE == virt % HP_SIZE;

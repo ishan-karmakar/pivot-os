@@ -17,6 +17,8 @@ pub const lapic = @import("lapic.zig");
 // Additional drivers
 pub const ide = @import("ide.zig");
 
+pub const lwip = @import("lwip.zig");
+
 comptime {
     _ = @import("uacpi.zig");
     _ = @import("lwip.zig");

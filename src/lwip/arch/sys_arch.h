@@ -1,9 +1,16 @@
 #pragma once
+#include <stdbool.h>
 
-typedef int sys_mutex_t;
-typedef int sys_thread_t;
-typedef int sys_mbox_t;
 typedef int sys_sem_t;
+
+// Make sure that sizeof(sys_mutex_t) == sizeof(std.atomic.Value(bool))
+typedef bool sys_mutex_t;
+
+// Actual structure is defined inside Zig code
+typedef void* sys_mbox_t;
+
+// Actual structure is defined inside Zig code
+typedef void* sys_thread_t;
 
 #define ENOMEM 12
 #define ENOBUFS 105

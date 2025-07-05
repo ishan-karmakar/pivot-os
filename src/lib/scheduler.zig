@@ -83,9 +83,11 @@ fn init() kernel.Task.Ret {
     smp.cpu_info(null).cur_proc = Thread.create(.{
         .ef = undefined,
         .mapper = mem.kmapper,
-        .priority = 100,
+        .priority = 1,
         .quantum_end = timers.time() + QUANTUM,
     }) catch return .failed;
+    // FIXME: This is kinda redundant, I just need to get schedule() called from ISR context
+    timers.callback(QUANTUM, null, schedule);
     return .success;
 }
 
@@ -121,10 +123,6 @@ pub fn enqueue(thread: *Thread) void {
     }
 }
 
-pub fn create_thread(thread: *Thread) void {
-    thread.id = id_counter.fetchAdd(1, .monotonic);
-}
-
 fn check_cur_thread(cpu_info: *smp.CPU) void {
     if (cpu_info.cur_proc) |cp| {
         if (cp.status == .dead) {
@@ -138,22 +136,24 @@ fn check_cur_thread(cpu_info: *smp.CPU) void {
 // Checks if any threads are ready to be scheduled to know whether to preempt current one
 fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
     defer {
-        if (global_queue.count() > 0 and global_queue.peek().?.len == 0) _ = global_queue.remove();
+        if (global_queue.count() > 0 and global_queue.peek().?.first == null) _ = global_queue.remove();
     }
     if (cpu_info.cur_proc) |cp| {
         if (global_queue.count() > 0) {
             const pq = &global_queue.items[0];
             // SCHED_RR, account for timeslice/quantum
-            const pq_proc = &pq.first.?.data;
+            const pq_proc: *Thread = @alignCast(@fieldParentPtr("node", pq.first.?));
             if ((pq_proc.affinity == null or pq_proc.affinity.? == cpu_info.id) and (pq_proc.priority > cp.priority or (pq_proc.priority == cp.priority and cp.quantum_end <= timers.time()))) {
-                return &pq.popFirst().?.data;
+                _ = pq.popFirst();
+                return pq_proc;
             }
         }
     } else {
         if (global_queue.count() == 0) return null;
-        const proc = global_queue.items[0].first.?;
-        if (proc.data.affinity != null and proc.data.affinity.? != cpu_info.id) return null;
-        return &global_queue.items[0].popFirst().?.data;
+        const proc: *Thread = @alignCast(@fieldParentPtr("node", global_queue.items[0].first.?));
+        if (proc.affinity != null and proc.affinity.? != cpu_info.id) return null;
+        _ = global_queue.items[0].popFirst();
+        return proc;
     }
     return null;
 }
@@ -172,6 +172,8 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
 
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
+
+    log.info("test", .{});
 
     // We have to do EOI here because we call this interrupt handler with the IPI and IPI expects an EOI
     // This results in normal timer handler calling EOI twice, but its probably fine
@@ -211,7 +213,7 @@ fn syscall_exit(status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     if (delete_proc) |dp| {
         delete_proc = null;
-        mem.kheap.allocator().destroy(@fieldParentPtr("data", dp));
+        mem.kheap.allocator().destroy(dp);
     }
     delete_proc = cpu_info.cur_proc;
     cpu_info.cur_proc = null;
@@ -241,8 +243,8 @@ fn idle_func() noreturn {
 
 fn compareThreadPriorities(_: void, a: std.DoublyLinkedList, b: std.DoublyLinkedList) std.math.Order {
     // Highest priority first, lowest priority last
-    const ta = @as(*Thread, @alignCast(@fieldParentPtr("node", a.first.?)));
-    const tb = @as(*Thread, @alignCast(@fieldParentPtr("node", b.first.?)));
+    const ta: *Thread = @alignCast(@fieldParentPtr("node", a.first.?));
+    const tb: *Thread = @alignCast(@fieldParentPtr("node", b.first.?));
     return std.math.order(tb.priority, ta.priority);
 }
 
