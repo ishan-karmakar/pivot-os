@@ -89,3 +89,18 @@ pub inline fn set_cr3(pml4: usize) void {
         : [pml4] "r" (pml4),
     );
 }
+
+pub inline fn insd(port: u32, ptr: *anyopaque, count: usize) void {
+    const addr = @intFromPtr(ptr);
+    asm volatile (
+        \\cld
+        \\mov %ds, %ax
+        \\mov %ax, %es
+        \\rep insl
+        :
+        : [addr] "{rdi}" (addr),
+          [count] "{ecx}" (count),
+          [port] "{dx}" (port),
+        : "ax", "es"
+    );
+}
