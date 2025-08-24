@@ -3,7 +3,7 @@ const kernel = @import("kernel");
 const cpu = kernel.drivers.cpu;
 const log = std.log.scoped(.idt);
 
-const ISR = *const fn () callconv(.Naked) void;
+const ISR = *const fn () callconv(.naked) void;
 
 const Entry = packed struct {
     off0: u16,
@@ -131,7 +131,7 @@ pub fn allocate_handler(pref: ?u8) *HandlerData {
 
 fn create_exc_isr(comptime num: usize, comptime ec: bool, comptime fn_name: []const u8) ISR {
     return struct {
-        fn handler() callconv(.Naked) void {
+        fn handler() callconv(.naked) void {
             if (comptime ec) {
                 asm volatile ("pop %%rsi");
             } else asm volatile ("xor %%rsi, %%rsi");
@@ -150,7 +150,7 @@ fn create_exc_isr(comptime num: usize, comptime ec: bool, comptime fn_name: []co
 
 fn create_irq(comptime vec: usize) ISR {
     return struct {
-        fn handler() callconv(.Naked) void {
+        fn handler() callconv(.naked) void {
             asm volatile (
                 \\cli
                 \\push %%rax

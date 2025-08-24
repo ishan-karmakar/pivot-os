@@ -38,7 +38,7 @@ fn syscall_handler(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     return syscalls[status.rdi](status);
 }
 
-pub fn syscall(_: SYSCALLS, ...) callconv(.C) usize {
+pub fn syscall(_: SYSCALLS, ...) callconv(.c) usize {
     // Wrapper over SYS V calling convention
     return asm volatile ("int $0x80"
         : [result] "=rax" (-> usize),

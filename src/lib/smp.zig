@@ -5,7 +5,7 @@ const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const log = std.log.scoped(.smp);
 
-pub export var SMP_REQUEST: limine.MpRequest = .{
+pub export var SMP_REQUEST: limine.SmpRequest = .{
     .flags = .{ .x2apic = true },
     .revision = 3,
 };
@@ -59,7 +59,7 @@ pub fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn ap_init(info: *limine.MpInfo) callconv(.C) noreturn {
+fn ap_init(info: *limine.SmpInfo) callconv(.c) noreturn {
     kernel.drivers.cpu.set_kgs(info.extra_argument);
     TaskAP.run();
     if (TaskAP.ret != .success) @panic("SMP AP Task failed");

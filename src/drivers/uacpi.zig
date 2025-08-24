@@ -67,31 +67,31 @@ export fn uacpi_kernel_pci_device_open(addr: uacpi.uacpi_pci_address, out: [*c]u
 }
 
 export fn uacpi_kernel_pci_device_close(handle: uacpi.uacpi_handle) void {
-    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    const addr: *uacpi.uacpi_pci_address = @ptrCast(@alignCast(handle));
     mem.kheap.allocator().destroy(addr);
 }
 
 export fn uacpi_kernel_pci_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
     const aligned = (off / 4) * 4;
     const shift: u5 = @intCast(off % 4);
-    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(aligned)) >> shift);
+    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(aligned)) >> shift);
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
     const aligned = (off / 4) * 4;
     const shift: u5 = @intCast(off % 4);
-    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(aligned)) >> shift);
+    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(aligned)) >> shift);
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u32) uacpi.uacpi_status {
-    val.* = pci.read_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off)) & 0xFFFFFFFF;
+    val.* = pci.read_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off)) & 0xFFFFFFFF;
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u8) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    const addr: *uacpi.uacpi_pci_address = @ptrCast(@alignCast(handle));
     log.info("{}", .{addr});
     const aligned = (off / 4) * 4;
     const shift: u5 = @intCast((off % 4) * 8);
@@ -103,7 +103,7 @@ export fn uacpi_kernel_pci_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_s
 }
 
 export fn uacpi_kernel_pci_write16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u16) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @alignCast(@ptrCast(handle));
+    const addr: *uacpi.uacpi_pci_address = @ptrCast(@alignCast(handle));
     log.info("{}", .{addr});
     const aligned = (off / 4) * 4;
     const shift: u5 = @intCast((off % 4) * 8);
@@ -115,7 +115,7 @@ export fn uacpi_kernel_pci_write16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_
 }
 
 export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u32) uacpi.uacpi_status {
-    pci.write_reg(@as(*uacpi.uacpi_pci_address, @alignCast(@ptrCast(handle))).*, @intCast(off), val);
+    pci.write_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off), val);
     return uacpi.UACPI_STATUS_OK;
 }
 
@@ -156,8 +156,8 @@ export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, callback:
 }
 
 export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
-    const handler: *idt.HandlerData = @alignCast(@ptrCast(handle));
-    const ctx: *HandlerInfo = @alignCast(@ptrCast(handler.ctx));
+    const handler: *idt.HandlerData = @ptrCast(@alignCast(handle));
+    const ctx: *HandlerInfo = @ptrCast(@alignCast(handler.ctx));
     kernel.drivers.intctrl.unmap(ctx.irq);
     handler.reserved = false;
     mem.kheap.allocator().destroy(ctx);
@@ -321,7 +321,7 @@ export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.ua
     }
 }
 
-fn uacpi_work_handler(func: uacpi.uacpi_work_handler, ctx: uacpi.uacpi_handle) callconv(.C) void {
+fn uacpi_work_handler(func: uacpi.uacpi_work_handler, ctx: uacpi.uacpi_handle) callconv(.c) void {
     _ = num_jobs.fetchAdd(1, .acquire);
     func.?(ctx);
     _ = num_jobs.fetchSub(1, .release);
@@ -329,7 +329,7 @@ fn uacpi_work_handler(func: uacpi.uacpi_work_handler, ctx: uacpi.uacpi_handle) c
 }
 
 fn uacpi_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
-    const ctx: *HandlerInfo = @alignCast(@ptrCast(_ctx));
+    const ctx: *HandlerInfo = @ptrCast(@alignCast(_ctx));
     if (ctx.callback.?(ctx.ctx) == uacpi.UACPI_INTERRUPT_NOT_HANDLED) {
         log.warn("uACPI handler for IRQ {} was not handled correctly", .{ctx.irq});
     }
