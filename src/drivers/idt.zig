@@ -94,12 +94,13 @@ fn init_ap() kernel.Task.Ret {
 }
 
 fn set_ent(vec: u8, comptime handler: ISR) void {
-    const ent = &rawTable[vec];
     const ptr = @intFromPtr(handler);
-    ent.off0 = @truncate(ptr);
-    ent.off1 = @truncate(ptr >> 16);
-    ent.off2 = @truncate(ptr >> 32);
-    ent.flags = 0x8E;
+    rawTable[vec] = .{
+        .off0 = @truncate(ptr),
+        .off1 = @truncate(ptr >> 16),
+        .off2 = @truncate(ptr >> 32),
+        .flags = 0x8E,
+    };
 }
 
 pub fn vec2handler(vec: u8) *HandlerData {
