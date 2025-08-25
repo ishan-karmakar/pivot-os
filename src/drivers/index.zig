@@ -13,11 +13,11 @@ pub const gdt = @import("gdt.zig");
 pub const idt = @import("idt.zig");
 pub const cpu = @import("cpu.zig");
 pub const lapic = @import("lapic.zig");
+pub const lwip = @import("lwip.zig");
 
 // Additional drivers
 pub const ide = @import("ide.zig");
 
 comptime {
     _ = @import("uacpi.zig");
-    _ = @import("lwip.zig");
 }

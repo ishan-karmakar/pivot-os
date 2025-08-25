@@ -71,14 +71,7 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    // drivers.acpi.NamespaceLoadTask.run();
     lib.smp.Task.run();
-    drivers.timers.Task.run();
-    lwip.lwip_init();
-    while (true) asm volatile ("hlt");
-}
-
-fn test_thread() noreturn {
     while (true) asm volatile ("hlt");
 }
 
