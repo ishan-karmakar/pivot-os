@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const lapic = kernel.drivers.lapic;
 const timers = kernel.drivers.timers;
 const mem = kernel.lib.mem;
@@ -69,7 +69,7 @@ fn init() kernel.Task.Ret {
 
 fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
     const handler = smp.cpu_info(null).lapic_handler;
-    const ctx: *HandlerCtx = @alignCast(@ptrCast(handler.ctx));
+    const ctx: *HandlerCtx = @ptrCast(@alignCast(handler.ctx));
     ctx.* = .{
         .callback = callback,
         .ctx = _ctx,

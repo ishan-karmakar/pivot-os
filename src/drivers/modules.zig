@@ -1,5 +1,5 @@
 const limine = @import("limine");
-const kernel = @import("kernel");
+const kernel = @import("root");
 const mem = @import("std").mem;
 
 export var MODULE_REQUEST = limine.ModuleRequest{ .revision = 3 };

@@ -1,7 +1,7 @@
 const uacpi = @import("uacpi");
 const log = @import("std").log.scoped(.acpi);
 const std = @import("std");
-const kernel = @import("kernel");
+const kernel = @import("root");
 
 pub const VTable = struct {
     hids: []const [*c]const u8,
@@ -95,7 +95,7 @@ fn init_drivers() kernel.Task.Ret {
 }
 
 fn driver_callback(_info: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: uacpi.uacpi_u32) callconv(.C) uacpi.uacpi_iteration_decision {
-    const info: *CallbackInfo = @alignCast(@ptrCast(_info));
+    const info: *CallbackInfo = @ptrCast(@alignCast(_info));
     info.vtable.ret = node.?;
     info.task.run();
     // We don't care about the return code because the next driver will be completely different

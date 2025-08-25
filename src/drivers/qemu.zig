@@ -1,5 +1,5 @@
 const std = @import("std");
-const serial = @import("kernel").drivers.serial;
+const serial = @import("root").drivers.serial;
 
 const QEMU_SERIAL_PORT = 0x3F8;
 

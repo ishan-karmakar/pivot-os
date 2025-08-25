@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const timers = kernel.drivers.timers;
 const intctrl = kernel.drivers.intctrl;
 const idt = kernel.drivers.idt;
@@ -48,7 +48,7 @@ fn init() kernel.Task.Ret {
 }
 
 fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
-    @as(*bool, @alignCast(@ptrCast(ctx))).* = true;
+    @as(*bool, @ptrCast(@alignCast(ctx))).* = true;
     return status;
 }
 

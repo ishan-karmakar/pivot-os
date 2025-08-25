@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const limine = @import("limine");
 const std = @import("std");
 const log = @import("std").log.scoped(.pmm);

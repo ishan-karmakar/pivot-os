@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 
 pub const CPUIDResult = struct {
     eax: u32,

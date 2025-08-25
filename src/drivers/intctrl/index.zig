@@ -1,6 +1,6 @@
 pub const ioapic = @import("ioapic.zig");
 
-const kernel = @import("kernel");
+const kernel = @import("root");
 const mem = kernel.lib.mem;
 
 pub const VTable = struct {

@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const uacpi = @import("uacpi");
 const serial = kernel.drivers.serial;
 const pci = kernel.drivers.pci;

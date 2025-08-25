@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const std = @import("std");
 const log = std.log.scoped(.syscall);
 const idt = kernel.drivers.idt;

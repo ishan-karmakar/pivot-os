@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const idt = kernel.drivers.idt;
 const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;

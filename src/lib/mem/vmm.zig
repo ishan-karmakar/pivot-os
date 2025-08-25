@@ -3,7 +3,7 @@
 /// Uses an efficient bitmap under the hood to save space
 const std = @import("std");
 const Tuple = std.meta.Tuple;
-const kernel = @import("kernel");
+const kernel = @import("root");
 const log = std.log.scoped(.vmm);
 const math = std.math;
 const Allocator = std.mem.Allocator;

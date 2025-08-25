@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const limine = @import("limine");
 const std = @import("std");
 const mem = kernel.lib.mem;

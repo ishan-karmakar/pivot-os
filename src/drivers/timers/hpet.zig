@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const std = @import("std");
 const uacpi = @import("uacpi");
 const log = std.log.scoped(.hpet);

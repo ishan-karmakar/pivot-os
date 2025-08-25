@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const timers = kernel.drivers.timers;
 const serial = kernel.drivers.serial;
 const std = @import("std");

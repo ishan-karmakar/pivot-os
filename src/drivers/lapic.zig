@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const log = @import("std").log.scoped(.lapic);
 const cpu = kernel.drivers.cpu;
 

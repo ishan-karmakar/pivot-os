@@ -1,6 +1,6 @@
 const limine = @import("limine");
 const ssfn = @import("ssfn");
-const kernel = @import("kernel");
+const kernel = @import("root");
 const std = @import("std");
 const log = std.log.scoped(.fb);
 const mem = kernel.lib.mem;

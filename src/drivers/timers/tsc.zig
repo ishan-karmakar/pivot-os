@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const timers = kernel.drivers.timers;
 const hpet = kernel.drivers.timers.hpet;
 const pit = kernel.drivers.timers.pit;

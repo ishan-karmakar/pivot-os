@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const smp = kernel.lib.smp;
 const mem = kernel.lib.mem;
 const log = @import("std").log.scoped(.gdt);

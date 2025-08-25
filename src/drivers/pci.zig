@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const uacpi = @import("uacpi");
 const std = @import("std");
 const log = std.log.scoped(.pci);

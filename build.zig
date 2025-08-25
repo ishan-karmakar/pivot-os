@@ -177,9 +177,6 @@ fn getKernelStep(b: *std.Build, optimize: std.builtin.OptimizeMode, options: *Op
     kernel.addCSourceFile(ssfnCSourceFile);
     kernel.addIncludePath(uacpiIncludePath);
     kernel.addIncludePath(ssfnIncludePath);
-
-    // Cyclic dependency
-    kernel.root_module.addImport("kernel", kernel.root_module);
     return kernel;
 }
 

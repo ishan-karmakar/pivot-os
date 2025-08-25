@@ -1,5 +1,5 @@
 const std = @import("std");
-const kernel = @import("kernel");
+const kernel = @import("root");
 const cpu = kernel.drivers.cpu;
 const log = std.log.scoped(.idt);
 

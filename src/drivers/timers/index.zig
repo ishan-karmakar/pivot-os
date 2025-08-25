@@ -3,7 +3,7 @@ pub const acpi = @import("acpi.zig");
 pub const pit = @import("pit.zig");
 pub const lapic = @import("lapic.zig");
 pub const tsc = @import("tsc.zig");
-const kernel = @import("kernel");
+const kernel = @import("root");
 const cpu = kernel.drivers.cpu;
 const std = @import("std");
 

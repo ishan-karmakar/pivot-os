@@ -1,4 +1,4 @@
-const kernel = @import("kernel");
+const kernel = @import("root");
 const intctrl = kernel.drivers.intctrl;
 const acpi = kernel.drivers.acpi;
 const lapic = kernel.drivers.lapic;
