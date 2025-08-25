@@ -50,3 +50,12 @@ export fn sys_now() u32 {
     // Convert NS -> MS
     return @intCast(kernel.drivers.timers.time() / 1_000_000);
 }
+
+export fn sys_arch_protect() c_char {
+    asm volatile ("cli");
+    return 0;
+}
+
+export fn sys_arch_unprotect(_: c_char) void {
+    asm volatile ("sti");
+}
