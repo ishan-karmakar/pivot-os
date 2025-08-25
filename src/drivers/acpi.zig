@@ -62,7 +62,7 @@ fn shutdown_notify_handler(_: ?*anyopaque, _: ?*uacpi.uacpi_namespace_node, valu
     return uacpi.UACPI_STATUS_OK;
 }
 
-fn fixed_shutdown_handler(_: ?*anyopaque) callconv(.C) uacpi.uacpi_interrupt_ret {
+fn fixed_shutdown_handler(_: ?*anyopaque) callconv(.c) uacpi.uacpi_interrupt_ret {
     log.info("Shutdown fixed event handler", .{});
     return uacpi.UACPI_INTERRUPT_HANDLED;
 }

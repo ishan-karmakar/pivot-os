@@ -19,4 +19,5 @@ pub const ide = @import("ide.zig");
 
 comptime {
     _ = @import("uacpi.zig");
+    _ = @import("lwip.zig");
 }

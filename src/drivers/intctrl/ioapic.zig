@@ -90,17 +90,17 @@ fn init() kernel.Task.Ret {
     const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) orelse return .failed;
 
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
-    var ioapic_arr = std.ArrayList(IOAPIC).init(kernel.lib.mem.kheap.allocator());
-    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(IOAPIC.create(ioapic)) catch return .failed;
+    var ioapic_arr = std.ArrayList(IOAPIC).empty;
+    while (ioapic_iter.next()) |ioapic| ioapic_arr.append(kernel.lib.mem.kheap.allocator(), IOAPIC.create(ioapic)) catch return .failed;
 
     if (ioapic_arr.items.len == 0) return .failed;
 
     var iso_iter = acpi.Iterator(uacpi.acpi_madt_interrupt_source_override).create(uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE, &madt.hdr, @sizeOf(uacpi.acpi_madt));
-    var iso_arr = std.ArrayList(*const uacpi.acpi_madt_interrupt_source_override).init(kernel.lib.mem.kheap.allocator());
-    while (iso_iter.next()) |iso| iso_arr.append(iso) catch return .failed;
+    var iso_arr = std.ArrayList(*const uacpi.acpi_madt_interrupt_source_override).empty;
+    while (iso_iter.next()) |iso| iso_arr.append(kernel.lib.mem.kheap.allocator(), iso) catch return .failed;
 
-    ioapics = ioapic_arr.toOwnedSlice() catch return .failed;
-    isos = iso_arr.toOwnedSlice() catch return .failed;
+    ioapics = ioapic_arr.toOwnedSlice(kernel.lib.mem.kheap.allocator()) catch return .failed;
+    isos = iso_arr.toOwnedSlice(kernel.lib.mem.kheap.allocator()) catch return .failed;
     return .success;
 }
 
