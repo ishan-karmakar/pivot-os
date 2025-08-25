@@ -114,7 +114,7 @@ const LWIP_SOURCES = &.{
     // "api/netdb.c",
     // "api/netifapi.c",
     // "api/sockets.c",
-    // "api/tcpip.c",
+    "api/tcpip.c",
 };
 
 pub fn build(b: *std.Build) void {
