@@ -47,6 +47,8 @@ const QEMU_ARGS = .{
     "-no-reboot",
     "-no-shutdown",
     "-enable-kvm",
+    "-machine",
+    "q35",
     "-cpu",
     "host,+invtsc",
 };
