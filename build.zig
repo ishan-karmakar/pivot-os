@@ -49,6 +49,8 @@ const QEMU_ARGS = .{
     "-enable-kvm",
     "-cpu",
     "host,+invtsc",
+    "-device",
+    "rtl8139",
 };
 
 const UACPI_SOURCES = &.{
