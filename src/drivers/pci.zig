@@ -13,58 +13,40 @@ pub const Codes = struct {
     class_code: ?u8 = null,
     subclass_code: ?u8 = null,
     prog_if: ?u8 = null,
-
-    fn matches(self: @This(), cc: u8, sc: u8, prog_if: u8) bool {
-        if (self.class_code == null) return true;
-        if (self.class_code.? != cc) return false;
-        if (self.subclass_code == null) return true;
-        if (self.subclass_code.? != sc) return true;
-        if (self.prog_if == null) return true;
-        if (self.prog_if.? != prog_if) return false;
-        return true;
-    }
+    vendor_id: ?u16 = null,
+    device_id: ?u16 = null,
 };
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    target_ret: struct {
-        class_code: u8,
-        subclass_code: u8,
-        prog_if: u8,
-        addr: uacpi.uacpi_pci_address,
-    },
+    addr: uacpi.uacpi_pci_address = undefined,
 };
 
 const AVAILABLE_DRIVERS = [_]type{
     // kernel.drivers.ide,
+    @import("rtl8139.zig"),
 };
 
 pub var Task = kernel.Task{
     .name = "PCI(e)",
     .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KMapperTask },
-        .{ .task = &kernel.drivers.acpi.TablesTask },
-    },
+    .dependencies = &.{},
 };
 
-pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = undefined;
-pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = undefined;
+pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = pci_read_reg;
+pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = pci_write_reg;
 var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
 
 fn init() kernel.Task.Ret {
     const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
-    if (pcie_table) |tbl| {
-        init_pcie(tbl);
-    } else init_legacy();
+    if (pcie_table) |tbl| init_pcie(tbl);
+
+    if (read_reg == pci_read_reg) {
+        scan_devices(0);
+    } else for (segment_groups) |seg| {
+        scan_devices(seg.segment);
+    }
     return .success;
-}
-
-fn init_legacy() void {
-    read_reg = pci_read_reg;
-    write_reg = pci_write_reg;
-
-    scan_devices(0);
 }
 
 fn scan_devices(segment: u16) void {
@@ -116,12 +98,14 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     const class_code: u8 = @truncate(codes_raw >> 24);
     const subclass_code: u8 = @truncate(codes_raw >> 16);
     const prog_if: u8 = @truncate(codes_raw >> 8);
-    log.info(
+    const vendor_id: u16 = @truncate(vendor_dev);
+    const device_id: u16 = @truncate(vendor_dev >> 16);
+    log.debug(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
             addr,
-            vendor_dev & 0xFFFF,
-            (vendor_dev >> 16) & 0xFFFF,
+            vendor_id,
+            device_id,
             class_code,
             subclass_code,
             prog_if,
@@ -129,21 +113,20 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     );
     inline for (AVAILABLE_DRIVERS) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
-            if (code.matches(class_code, subclass_code, prog_if)) {
-                driver.PCIVTable.target_ret = .{
-                    .class_code = class_code,
-                    .subclass_code = subclass_code,
-                    .prog_if = prog_if,
-                    .addr = addr,
-                };
-                driver.PCITask.run();
-            }
+            if (code.class_code) |cc| if (cc != class_code) continue;
+            if (code.subclass_code) |scc| if (scc != subclass_code) continue;
+            if (code.prog_if) |pif| if (pif != prog_if) continue;
+            if (code.vendor_id) |vid| if (vid != vendor_id) continue;
+            if (code.device_id) |did| if (did != device_id) continue;
+            driver.PCIVTable.addr = addr;
+            driver.PCITask.run();
         }
     }
     return true;
 }
 
 fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
+    log.info("Using PCIe", .{});
     const num_entries = (tbl.hdr.length - @sizeOf(uacpi.acpi_mcfg)) / @sizeOf(uacpi.acpi_mcfg_allocation);
     const groups: [*]const uacpi.acpi_mcfg_allocation = tbl.entries();
     segment_groups = groups[0..num_entries];
@@ -155,7 +138,6 @@ fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
         for (0..PCIE_CONFIG_SPACE_PAGES) |i| {
             kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
-        scan_devices(seg.segment);
     }
 }
 
@@ -177,7 +159,7 @@ fn pci_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
     serial.out(CONFIG_DATA, val);
 }
 
-fn pcie_get_addr(base: usize, addr: uacpi.uacpi_pci_address, off: u13) *u32 {
+pub fn pcie_get_addr(base: usize, addr: uacpi.uacpi_pci_address, off: u13) *u32 {
     const bus: u32 = @intCast(addr.bus);
     const device: u32 = @intCast(addr.device);
     const func: u32 = @intCast(addr.function);
@@ -193,7 +175,10 @@ fn pcie_read_reg(addr: uacpi.uacpi_pci_address, off: u13) u32 {
 
 fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
     for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) pcie_get_addr(seg.address, addr, off).* = val;
+        if (seg.segment == addr.segment) {
+            pcie_get_addr(seg.address, addr, off).* = val;
+            return;
+        }
     }
     @panic("PCIe segment not found");
 }
