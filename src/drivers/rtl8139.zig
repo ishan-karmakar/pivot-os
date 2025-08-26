@@ -24,6 +24,7 @@ fn init() kernel.Task.Ret {
     serial.out(ioaddr + 0x30, @as(u32, @intCast(kernel.lib.mem.kmapper.translate(@intFromPtr((kernel.lib.mem.kvmm.allocator().alloc(u8, 1500) catch return .failed).ptr)).?)));
 
     var out_table: *uacpi.uacpi_pci_routing_table = undefined;
-    if (uacpi.uacpi_get_pci_routing_table(uacpi.uacpi_namespace_root(), @ptrCast(&out_table)) != uacpi.UACPI_STATUS_OK) return .failed;
+    log.info("{}", .{uacpi.uacpi_namespace_node_get_object(uacpi.uacpi_namespace_root()).?.*.type});
+    log.info("{}", .{uacpi.uacpi_get_pci_routing_table(uacpi.uacpi_namespace_root(), @ptrCast(&out_table))});
     return .success;
 }
