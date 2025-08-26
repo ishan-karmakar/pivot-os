@@ -27,12 +27,27 @@ const AVAILABLE_DRIVERS = [_]type{
     @import("rtl8139.zig"),
 };
 
-pub var Task = kernel.Task{
-    .name = "PCI(e)",
+pub var InitTask = kernel.Task{
+    .name = "PCI(e) Init",
     .init = init,
     .dependencies = &.{
         .{ .task = &kernel.lib.mem.KMapperTask },
         .{ .task = &kernel.drivers.acpi.TablesTask },
+    },
+};
+
+pub var DriversTask = kernel.Task{
+    .name = "PCI(e) Drivers",
+    .init = drivers_init,
+    .dependencies = &.{},
+};
+
+pub var Task = kernel.Task{
+    .name = "PCI(e)",
+    .init = null,
+    .dependencies = &.{
+        .{ .task = &InitTask },
+        .{ .task = &DriversTask },
     },
 };
 
@@ -48,11 +63,18 @@ fn init() kernel.Task.Ret {
     return .success;
 }
 
+fn drivers_init() kernel.Task.Ret {
+    if (read_reg == pci_read_reg) {
+        scan_devices(0);
+    } else for (segment_groups) |seg| {
+        scan_devices(seg.segment);
+    }
+    return .success;
+}
+
 fn init_legacy() void {
     read_reg = pci_read_reg;
     write_reg = pci_write_reg;
-
-    scan_devices(0);
 }
 
 fn scan_devices(segment: u16) void {
@@ -143,7 +165,6 @@ fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
         for (0..PCIE_CONFIG_SPACE_PAGES) |i| {
             kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
-        scan_devices(seg.segment);
     }
 }
 
