@@ -13,30 +13,18 @@ pub const Codes = struct {
     class_code: ?u8 = null,
     subclass_code: ?u8 = null,
     prog_if: ?u8 = null,
-
-    fn matches(self: @This(), cc: u8, sc: u8, prog_if: u8) bool {
-        if (self.class_code == null) return true;
-        if (self.class_code.? != cc) return false;
-        if (self.subclass_code == null) return true;
-        if (self.subclass_code.? != sc) return true;
-        if (self.prog_if == null) return true;
-        if (self.prog_if.? != prog_if) return false;
-        return true;
-    }
+    vendor_id: ?u16 = null,
+    device_id: ?u16 = null,
 };
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    target_ret: struct {
-        class_code: u8,
-        subclass_code: u8,
-        prog_if: u8,
-        addr: uacpi.uacpi_pci_address,
-    },
+    addr: uacpi.uacpi_pci_address = undefined,
 };
 
 const AVAILABLE_DRIVERS = [_]type{
     // kernel.drivers.ide,
+    @import("rtl8139.zig"),
 };
 
 pub var Task = kernel.Task{
@@ -116,12 +104,14 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     const class_code: u8 = @truncate(codes_raw >> 24);
     const subclass_code: u8 = @truncate(codes_raw >> 16);
     const prog_if: u8 = @truncate(codes_raw >> 8);
-    log.info(
+    const vendor_id: u16 = @truncate(vendor_dev);
+    const device_id: u16 = @truncate(vendor_dev >> 16);
+    log.debug(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
             addr,
-            vendor_dev & 0xFFFF,
-            (vendor_dev >> 16) & 0xFFFF,
+            vendor_id,
+            device_id,
             class_code,
             subclass_code,
             prog_if,
@@ -129,15 +119,13 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     );
     inline for (AVAILABLE_DRIVERS) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
-            if (code.matches(class_code, subclass_code, prog_if)) {
-                driver.PCIVTable.target_ret = .{
-                    .class_code = class_code,
-                    .subclass_code = subclass_code,
-                    .prog_if = prog_if,
-                    .addr = addr,
-                };
-                driver.PCITask.run();
-            }
+            if (code.class_code) |cc| if (cc != class_code) continue;
+            if (code.subclass_code) |scc| if (scc != subclass_code) continue;
+            if (code.prog_if) |pif| if (pif != prog_if) continue;
+            if (code.vendor_id) |vid| if (vid != vendor_id) continue;
+            if (code.device_id) |did| if (did != device_id) continue;
+            driver.PCIVTable.addr = addr;
+            driver.PCITask.run();
         }
     }
     return true;
