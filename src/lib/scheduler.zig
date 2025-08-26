@@ -138,22 +138,24 @@ fn check_cur_thread(cpu_info: *smp.CPU) void {
 // Checks if any threads are ready to be scheduled to know whether to preempt current one
 fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
     defer {
-        if (global_queue.count() > 0 and global_queue.peek().?.len == 0) _ = global_queue.remove();
+        if (global_queue.count() > 0 and global_queue.peek().?.len() == 0) _ = global_queue.remove();
     }
     if (cpu_info.cur_proc) |cp| {
         if (global_queue.count() > 0) {
             const pq = &global_queue.items[0];
             // SCHED_RR, account for timeslice/quantum
-            const pq_proc = &pq.first.?.data;
+            const pq_proc: *Thread = @alignCast(@fieldParentPtr("node", pq.first.?));
             if ((pq_proc.affinity == null or pq_proc.affinity.? == cpu_info.id) and (pq_proc.priority > cp.priority or (pq_proc.priority == cp.priority and cp.quantum_end <= timers.time()))) {
-                return &pq.popFirst().?.data;
+                _ = pq.popFirst();
+                return pq_proc;
             }
         }
     } else {
         if (global_queue.count() == 0) return null;
-        const proc = global_queue.items[0].first.?;
-        if (proc.data.affinity != null and proc.data.affinity.? != cpu_info.id) return null;
-        return &global_queue.items[0].popFirst().?.data;
+        const proc: *Thread = @alignCast(@fieldParentPtr("node", global_queue.items[0].first.?));
+        if (proc.affinity != null and proc.affinity.? != cpu_info.id) return null;
+        _ = global_queue.items[0].popFirst();
+        return proc;
     }
     return null;
 }
@@ -211,7 +213,7 @@ fn syscall_exit(status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     if (delete_proc) |dp| {
         delete_proc = null;
-        mem.kheap.allocator().destroy(@fieldParentPtr("data", dp));
+        mem.kheap.allocator().destroy(dp);
     }
     delete_proc = cpu_info.cur_proc;
     cpu_info.cur_proc = null;
