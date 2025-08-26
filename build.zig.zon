@@ -52,6 +52,10 @@
             .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=437fdeb37e221714dbe7e8d6f9ad89833c7d2c74",
             .hash = "N-V-__8AAJDEQwF4fisId-uKBlWFh58fr844SOKBT53LzLry",
         },
+        .lwip = .{
+            .url = "git+https://github.com/lwip-tcpip/lwip#4599f551dead9eac233b91c0b9ee5879f5d0620a",
+            .hash = "N-V-__8AANzNdQAY471YRuPP6HaYoVa5VHQC0g-khTT7H6rZ",
+        },
     },
 
     // Specifies the set of files and directories that are included in this package.

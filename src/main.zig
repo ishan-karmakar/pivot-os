@@ -4,6 +4,7 @@ const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);
 const config = @import("config");
+const lwip = @import("lwip");
 
 pub const std_options = std.Options{
     .logFn = lib.logger.logger,
@@ -70,12 +71,7 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    // drivers.acpi.NamespaceLoadTask.run();
     lib.smp.Task.run();
-    while (true) asm volatile ("hlt");
-}
-
-fn test_thread() noreturn {
     while (true) asm volatile ("hlt");
 }
 

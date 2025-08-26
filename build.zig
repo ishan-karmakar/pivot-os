@@ -73,6 +73,50 @@ const UACPI_SOURCES = &.{
     "utilities.c",
 };
 
+const LWIP_SOURCES = &.{
+    "core/init.c",
+    "core/def.c",
+    "core/dns.c",
+    "core/inet_chksum.c",
+    "core/ip.c",
+    "core/mem.c",
+    "core/memp.c",
+    "core/netif.c",
+    "core/pbuf.c",
+    "core/raw.c",
+    "core/stats.c",
+    "core/sys.c",
+    "core/altcp.c",
+    "core/altcp_alloc.c",
+    "core/altcp_tcp.c",
+    "core/tcp.c",
+    "core/tcp_in.c",
+    "core/tcp_out.c",
+    "core/timeouts.c",
+    "core/udp.c",
+    "core/ipv4/acd.c",
+    "core/ipv4/autoip.c",
+    "core/ipv4/dhcp.c",
+    "core/ipv4/etharp.c",
+    "core/ipv4/icmp.c",
+    "core/ipv4/igmp.c",
+    "core/ipv4/ip4_frag.c",
+    "core/ipv4/ip4.c",
+    "core/ipv4/ip4_addr.c",
+    "netif/ethernet.c",
+    "netif/bridgeif.c",
+    "netif/bridgeif_fdb.c",
+    // "api/api_lib.c",
+    // "api/api_msg.c",
+    // "api/err.c",
+    // "api/if_api.c",
+    // "api/netbuf.c",
+    // "api/netdb.c",
+    // "api/netifapi.c",
+    // "api/sockets.c",
+    "api/tcpip.c",
+};
+
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     createNoQEMUPipeline(b, optimize);
@@ -153,6 +197,7 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
     addSSFN(kernel);
     addLimine(kernel);
     addUACPI(kernel);
+    addLWIP(kernel);
     return kernel;
 }
 
@@ -196,4 +241,24 @@ fn addLimine(kernel: *Step.Compile) void {
         .no_pointers = false,
     }).module("limine");
     kernel.root_module.addImport("limine", limineZigMod);
+}
+
+fn addLWIP(kernel: *Step.Compile) void {
+    const dep = kernel.step.owner.dependency("lwip", .{});
+    kernel.addCSourceFiles(.{
+        .root = dep.path("src"),
+        .files = LWIP_SOURCES,
+        .flags = &.{},
+    });
+    const translateC = kernel.step.owner.addTranslateC(.{
+        .link_libc = false,
+        .optimize = kernel.root_module.optimize.?,
+        .target = kernel.root_module.resolved_target.?,
+        .root_source_file = kernel.step.owner.path("src/lwip.h"),
+    });
+    translateC.addIncludePath(dep.path("src/include"));
+    translateC.addIncludePath(kernel.step.owner.path("src/lwip"));
+    kernel.root_module.addImport("lwip", translateC.createModule());
+    kernel.addIncludePath(dep.path("src/include"));
+    kernel.addIncludePath(kernel.step.owner.path("src/lwip"));
 }
