@@ -24,7 +24,6 @@ pub const VTable = struct {
 
 const AVAILABLE_DRIVERS = [_]type{
     // kernel.drivers.ide,
-    @import("rtl8139.zig"),
 };
 
 pub var Task = kernel.Task{
@@ -38,15 +37,30 @@ pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32)
 var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
 
 fn init() kernel.Task.Ret {
-    const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
-    if (pcie_table) |tbl| init_pcie(tbl);
+    const hids: *const []const u8 = &.{
+        "PNP0A03",
+        "PNP0A08",
+    };
+    uacpi.uacpi_find_devices_at(
+        uacpi.uacpi_namespace_root(),
+        hids,
+        iterate_host_bridges,
+        null,
+    );
+    // const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
+    // if (pcie_table) |tbl| init_pcie(tbl);
 
-    if (read_reg == pci_read_reg) {
-        scan_devices(0);
-    } else for (segment_groups) |seg| {
-        scan_devices(seg.segment);
-    }
+    // if (read_reg == pci_read_reg) {
+    //     scan_devices(0);
+    // } else for (segment_groups) |seg| {
+    //     scan_devices(seg.segment);
+    // }
     return .success;
+}
+
+fn iterate_host_bridges(_: ?*anyopaque, node: [*c]uacpi.uacpi_namespace_node, _: u32) uacpi.uacpi_iteration_decision {
+    _ = node;
+    return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }
 
 fn scan_devices(segment: u16) void {
