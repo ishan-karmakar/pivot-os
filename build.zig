@@ -51,6 +51,8 @@ const QEMU_ARGS = .{
     "q35",
     "-cpu",
     "host,+invtsc",
+    "-device",
+    "rtl8139",
 };
 
 const UACPI_SOURCES = &.{
@@ -130,6 +132,7 @@ fn createQEMUPipeline(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     options.addOption(bool, "qemu", true);
     const kernel = createKernelStep(b, options, optimize);
     const iso_out = createISOStep(kernel);
+
     createQEMUStep(b, iso_out);
 }
 
@@ -169,6 +172,7 @@ fn createISOStep(kernel: *Step.Compile) std.Build.LazyPath {
     xorriso.addDirectoryArg(wf.getDirectory());
     xorriso.addArg("-o");
     const iso_out = xorriso.addOutputFileArg("os.iso");
+    xorriso.step.dependOn(&kernel.step.owner.addInstallBinFile(kernel.getEmittedBin(), "pivot-os").step);
 
     const makeLimineStep = kernel.step.owner.addSystemCommand(&.{"make"});
     const limineBiosStep = kernel.step.owner.addSystemCommand(&.{ "./limine", "bios-install" });
@@ -223,7 +227,7 @@ fn addUACPI(kernel: *Step.Compile) void {
         .files = UACPI_SOURCES,
         .flags = &.{
             "-DUACPI_SIZED_FREES",
-            "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_INFO",
+            "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_TRACE",
         },
     });
     const translateC = kernel.step.owner.addTranslateC(.{
