@@ -29,37 +29,52 @@ const AVAILABLE_DRIVERS = [_]type{
 pub var Task = kernel.Task{
     .name = "PCI(e)",
     .init = init,
-    .dependencies = &.{},
+    .dependencies = &.{.{ .task = &kernel.drivers.acpi.NamespaceTask }},
 };
 
 pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = pci_read_reg;
 pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = pci_write_reg;
 var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
+var routing_table = std.ArrayList(*const uacpi.uacpi_pci_routing_table_entry).empty;
 
 fn init() kernel.Task.Ret {
-    const hids: *const []const u8 = &.{
+    const hids: [*]const [*c]const u8 = &.{
         "PNP0A03",
         "PNP0A08",
+        0,
     };
-    uacpi.uacpi_find_devices_at(
+    _ = uacpi.uacpi_find_devices_at(
         uacpi.uacpi_namespace_root(),
         hids,
         iterate_host_bridges,
         null,
     );
-    // const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
-    // if (pcie_table) |tbl| init_pcie(tbl);
 
-    // if (read_reg == pci_read_reg) {
-    //     scan_devices(0);
-    // } else for (segment_groups) |seg| {
-    //     scan_devices(seg.segment);
-    // }
+    const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
+    if (pcie_table) |tbl| init_pcie(tbl);
+
+    if (read_reg == pci_read_reg) {
+        scan_devices(0);
+    } else for (segment_groups) |seg| {
+        scan_devices(seg.segment);
+    }
+
+    _ = allocate_irq(.{
+        .segment = 0,
+        .bus = 0,
+        .device = 3,
+        .function = 0,
+    });
     return .success;
 }
 
-fn iterate_host_bridges(_: ?*anyopaque, node: [*c]uacpi.uacpi_namespace_node, _: u32) uacpi.uacpi_iteration_decision {
-    _ = node;
+fn iterate_host_bridges(_: ?*anyopaque, node: [*c]uacpi.uacpi_namespace_node, _: u32) callconv(.c) uacpi.uacpi_iteration_decision {
+    const path = uacpi.uacpi_namespace_node_generate_absolute_path(node);
+    uacpi.uacpi_free_absolute_path(path);
+    var rt: *uacpi.uacpi_pci_routing_table = undefined;
+    if (uacpi.uacpi_get_pci_routing_table(node, @ptrCast(&rt)) != uacpi.UACPI_STATUS_OK) @panic("Failed to get PCI routing table of host bridge");
+    for (0..rt.num_entries) |i| routing_table.append(kernel.lib.mem.kheap.allocator(), @ptrCast(&rt.entries()[i])) catch @panic("OOM");
+    // We can't free them because the routing table entries are still being used
     return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }
 
@@ -195,4 +210,85 @@ fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
         }
     }
     @panic("PCIe segment not found");
+}
+
+// This allocates a legacy IRQ for a device using the PCI routing table and ACPI resources
+// If there are multiple buses, this WILL break
+// TODO: Fix when multiple buses, _BBN?
+// Returns the GSI
+pub fn allocate_irq(addr: uacpi.uacpi_pci_address) u32 {
+    const pin: u8 = @truncate(read_reg(addr, 0x3C) >> 8);
+    log.debug("Device is using interrupt pin {}", .{pin});
+    for (routing_table.items) |entry| if (entry.pin == pin) {
+        const entry_device: u16 = @truncate(entry.address >> 16);
+        const entry_function: u16 = @truncate(entry.address);
+        if (addr.function != entry_function and entry_function != 0xFFFF) continue;
+        if (addr.device != entry_device and entry_device != 0xFFFF) continue;
+        if (entry.source == null) return entry.index;
+
+        // First check the device's current resources. If any non-zero IRQs are listed, we can use them
+        var irq: ?u32 = null;
+        if (uacpi.uacpi_for_each_device_resource(entry.source, "_CRS", iterate_resources, &irq) != uacpi.UACPI_STATUS_OK) @panic("Could not iterate over current device resources");
+        var resources: *uacpi.uacpi_resources = undefined;
+        if (uacpi.uacpi_get_possible_resources(entry.source, @ptrCast(&resources)) != uacpi.UACPI_STATUS_OK) @panic("Could not get possible resources of device");
+        var resource: *uacpi.uacpi_resource = resources.entries;
+        const old_size = resources.length;
+        while (true) {
+            switch (resource.type) {
+                uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
+                    for (0..resource.unnamed_0.extended_irq.num_irqs) |i| {
+                        const extended_irq = resource.unnamed_0.extended_irq;
+                        if (extended_irq.irqs()[i] == 0) continue;
+                        resources.length = 48 + 8;
+                        resources.entries = resource;
+                        const end_tag: *uacpi.uacpi_resource = @ptrFromInt(@intFromPtr(resource) + 48);
+                        end_tag.type = uacpi.UACPI_RESOURCE_TYPE_END_TAG;
+                        end_tag.length = 8;
+                        break;
+                    }
+                },
+                uacpi.UACPI_RESOURCE_TYPE_END_TAG => break,
+                else => {},
+            }
+            resource = @ptrFromInt(@intFromPtr(resource) + resource.length);
+        }
+        if (uacpi.uacpi_set_resources(entry.source, resources) != uacpi.UACPI_STATUS_OK) @panic("Failed to set resources");
+        resources.length = old_size;
+        uacpi.uacpi_free_resources(resources);
+        log.info("", .{});
+        if (uacpi.uacpi_for_each_device_resource(entry.source, "_CRS", iterate_resources, &irq) != uacpi.UACPI_STATUS_OK) @panic("Could not iterate over current device resources");
+        // if (uacpi.uacpi_set_resources(entry.source, resources) != uacpi.UACPI_STATUS_OK) @panic("Failed to set resources");
+        // uacpi.uacpi_free_resources(resources);
+    };
+    @panic("No routing table entry found for device");
+}
+
+fn iterate_resources(_user: ?*anyopaque, resource: [*c]uacpi.uacpi_resource) callconv(.c) uacpi.uacpi_iteration_decision {
+    const user: *?u32 = @ptrCast(@alignCast(_user));
+    switch (resource.*.type) {
+        uacpi.UACPI_RESOURCE_TYPE_IRQ => {
+            const irq = resource.*.unnamed_0.irq;
+            log.info("Current resources: {}", .{irq});
+            for (0..irq.num_irqs) |i| {
+                log.info("Found IRQ {}", .{i});
+                if (irq.irqs()[i] != 0) {
+                    user.* = irq.irqs()[i];
+                    return uacpi.UACPI_ITERATION_DECISION_BREAK;
+                }
+            }
+        },
+        uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
+            const irq = resource.*.unnamed_0.extended_irq;
+            log.info("Current resources: {}", .{irq});
+            for (0..irq.num_irqs) |i| {
+                log.info("Found IRQ {}", .{i});
+                if (irq.irqs()[i] != 0) {
+                    user.* = irq.irqs()[i];
+                    return uacpi.UACPI_ITERATION_DECISION_BREAK;
+                }
+            }
+        },
+        else => {},
+    }
+    return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }
