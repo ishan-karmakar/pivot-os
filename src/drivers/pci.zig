@@ -23,7 +23,7 @@ pub const VTable = struct {
 };
 
 const AVAILABLE_DRIVERS = [_]type{
-    // kernel.drivers.ide,
+    @import("net/virtio-net.zig"),
 };
 
 pub var Task = kernel.Task{
@@ -38,17 +38,17 @@ var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
 var routing_table = std.ArrayList(*const uacpi.uacpi_pci_routing_table_entry).empty;
 
 fn init() kernel.Task.Ret {
-    const hids: [*]const [*c]const u8 = &.{
-        "PNP0A03",
-        "PNP0A08",
-        0,
-    };
-    _ = uacpi.uacpi_find_devices_at(
-        uacpi.uacpi_namespace_root(),
-        hids,
-        iterate_host_bridges,
-        null,
-    );
+    // const hids: [*]const [*c]const u8 = &.{
+    //     "PNP0A03",
+    //     "PNP0A08",
+    //     0,
+    // };
+    // _ = uacpi.uacpi_find_devices_at(
+    //     uacpi.uacpi_namespace_root(),
+    //     hids,
+    //     iterate_host_bridges,
+    //     null,
+    // );
 
     const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
     if (pcie_table) |tbl| init_pcie(tbl);
@@ -58,13 +58,6 @@ fn init() kernel.Task.Ret {
     } else for (segment_groups) |seg| {
         scan_devices(seg.segment);
     }
-
-    _ = allocate_irq(.{
-        .segment = 0,
-        .bus = 0,
-        .device = 3,
-        .function = 0,
-    });
     return .success;
 }
 
@@ -188,28 +181,22 @@ fn pci_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
     serial.out(CONFIG_DATA, val);
 }
 
-pub fn pcie_get_addr(base: usize, addr: uacpi.uacpi_pci_address, off: u13) *u32 {
-    const bus: u32 = @intCast(addr.bus);
-    const device: u32 = @intCast(addr.device);
-    const func: u32 = @intCast(addr.function);
-    return @ptrFromInt(base + ((bus << 20) | (device << 15) | (func << 12)) + off);
+pub fn pcie_get_addr(addr: uacpi.uacpi_pci_address, off: u13) *u32 {
+    for (segment_groups) |seg| if (seg.segment == addr.segment) {
+        const bus: u32 = @intCast(addr.bus);
+        const device: u32 = @intCast(addr.device);
+        const func: u32 = @intCast(addr.function);
+        return @ptrFromInt(seg.address + ((bus << 20) | (device << 15) | (func << 12)) + off);
+    };
+    @panic("PCIe segment not found");
 }
 
 fn pcie_read_reg(addr: uacpi.uacpi_pci_address, off: u13) u32 {
-    for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) return pcie_get_addr(seg.address, addr, off).*;
-    }
-    @panic("PCIe segment not found");
+    return pcie_get_addr(addr, off).*;
 }
 
 fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
-    for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) {
-            pcie_get_addr(seg.address, addr, off).* = val;
-            return;
-        }
-    }
-    @panic("PCIe segment not found");
+    pcie_get_addr(addr, off).* = val;
 }
 
 // This allocates a legacy IRQ for a device using the PCI routing table and ACPI resources
