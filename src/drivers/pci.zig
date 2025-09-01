@@ -9,6 +9,12 @@ const CONFIG_ADDR = 0xCF8;
 const CONFIG_DATA = 0xCFC;
 const PCIE_CONFIG_SPACE_PAGES: comptime_int = ((255 << 20) | (31 << 15) | (7 << 12) + 0x1000) / 0x1000;
 
+const BARTag = enum { IO, MEM };
+pub const BAR = union(BARTag) {
+    IO: u16,
+    MEM: usize,
+};
+
 pub const Codes = struct {
     class_code: ?u8 = null,
     subclass_code: ?u8 = null,
@@ -197,6 +203,16 @@ fn pcie_read_reg(addr: uacpi.uacpi_pci_address, off: u13) u32 {
 
 fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
     pcie_get_addr(addr, off).* = val;
+}
+
+pub fn read_bar(addr: uacpi.uacpi_pci_address, idx: u8) BAR {
+    const bar = read_reg(addr, 0x10 + 4 * idx);
+    // IO BAR
+    if (bar & 1 == 1) return BAR{ .IO = @intCast(bar & 0xFFFC) };
+    // 32 bit BAR
+    if ((bar >> 1) & 0b11 == 0) return BAR{ .MEM = bar & 0xFFFFFFF0 };
+    // 64 bit BAR
+    return BAR{ .MEM = (@as(usize, @intCast(read_reg(addr, 0x10 + 4 * (idx + 1)))) << 32) + @as(usize, @intCast(bar & 0xFFFFFFF0)) };
 }
 
 // This allocates a legacy IRQ for a device using the PCI routing table and ACPI resources
