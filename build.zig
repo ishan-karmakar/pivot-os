@@ -52,7 +52,7 @@ const QEMU_ARGS = .{
     "-cpu",
     "host,+invtsc",
     "-device",
-    "rtl8139",
+    "virtio-net-pci",
 };
 
 const UACPI_SOURCES = &.{
