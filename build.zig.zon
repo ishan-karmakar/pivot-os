@@ -49,8 +49,8 @@
             .hash = "N-V-__8AAAK5EwCW97F5wnlePYPG90_0wf502I6YC8IHvO6r",
         },
         .ssfn = .{
-            .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=437fdeb37e221714dbe7e8d6f9ad89833c7d2c74",
-            .hash = "N-V-__8AAJDEQwF4fisId-uKBlWFh58fr844SOKBT53LzLry",
+            .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=0155a80f584af918d5cc14bb5665e334bbf4a25d",
+            .hash = "N-V-__8AAIzEQwE9mF4EBaUQNUP9p8yR8Adweb-fMZz5hxV5",
         },
         .lwip = .{
             .url = "git+https://github.com/lwip-tcpip/lwip#4599f551dead9eac233b91c0b9ee5879f5d0620a",
