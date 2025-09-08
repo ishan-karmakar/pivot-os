@@ -14,7 +14,6 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @Type(.enum_literal
     const prefix = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     writer.print(levelText ++ prefix ++ format ++ "\n", args) catch {};
-    // std.fmt.format(writer, levelText ++ prefix ++ format ++ "\n", args) catch {};
     lock.store(false, .release);
 }
 
