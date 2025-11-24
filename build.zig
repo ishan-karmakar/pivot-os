@@ -194,6 +194,7 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
 
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.root_module.addImport("config", options.createModule());
+    b.installArtifact(kernel);
     addSSFN(kernel);
     addLimine(kernel);
     addUACPI(kernel);
