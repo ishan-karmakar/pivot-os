@@ -187,10 +187,10 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
             .optimize = optimize,
             .code_model = .kernel,
         }),
-        // There seems to be a bug in the custom x86 backend where soft-float causes a segfault
-        // Until that is fixed we are sticking with the LLVM backend
-        .use_llvm = true,
+        .use_llvm = false,
     });
+    kernel.bundle_ubsan_rt = false;
+    kernel.root_module.addAssemblyFile(b.path("src/asm.S"));
 
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.root_module.addImport("config", options.createModule());

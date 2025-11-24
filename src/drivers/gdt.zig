@@ -89,28 +89,7 @@ fn init_dynamic_ap() kernel.Task.Ret {
     return .success;
 }
 
-pub fn lgdt() void {
-    asm volatile ("lgdt (%[gdtr])"
-        :
-        : [gdtr] "r" (&gdtr),
-    );
-
-    asm volatile (
-        \\mov %[data], %%ds
-        \\mov %[data], %%es
-        \\mov %[data], %%fs
-        \\mov %[data], %%gs
-        \\mov %[data], %%ss
-        :
-        : [data] "r" (@as(u16, 0x10)),
-    );
-
-    asm volatile (
-        \\push %[code]
-        \\push $1f
-        \\lretq
-        \\1:
-        :
-        : [code] "i" (0x8),
-    );
+extern fn lgdt_internal(gdtr: usize) void;
+pub inline fn lgdt() void {
+    lgdt_internal(@intFromPtr(&gdtr));
 }
