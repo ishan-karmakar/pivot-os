@@ -86,13 +86,13 @@ fn kheap_init() kernel.Task.Ret {
     return .success;
 }
 
-/// Converts physical address to virtual address
+/// Converts virtual address to physical address
 /// DOES NOT CHECK FOR OVERFLOW
 pub inline fn phys(addr: usize) usize {
     return addr - HHDM_REQUEST.response.?.offset;
 }
 
-/// Converts virtual address to physical address
+/// Converts physical address to virtual address
 /// DOES NOT CHECK FOR OVERFLOW
 pub inline fn virt(addr: usize) usize {
     return addr + HHDM_REQUEST.response.?.offset;
