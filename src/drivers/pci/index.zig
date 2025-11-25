@@ -71,7 +71,7 @@ pub fn scan_devices(segment: u16) void {
         .device = 0,
         .function = 0,
     };
-    const header_type = (read_reg(addr, 0xC) >> 16) & 0xFF;
+    const header_type = read_reg8(addr, 0xC + 2);
     if (header_type & (1 << 7) == 0) {
         // Single PCI host controller
         addr.bus = 0;
@@ -79,7 +79,7 @@ pub fn scan_devices(segment: u16) void {
     } else {
         for (0..8) |f| {
             addr.bus = @intCast(f);
-            if (read_reg(addr, 0) == 0xFFFFFFFF) break;
+            if (read_reg32(addr, 0) == 0xFFFFFFFF) break;
             check_bus(addr);
         }
     }
@@ -97,7 +97,7 @@ fn check_device(_addr: uacpi.uacpi_pci_address) void {
     var addr = _addr;
     addr.function = 0;
     if (!check_function(addr)) return;
-    const header_type = (read_reg(addr, 0xC) >> 16) & 0xFF;
+    const header_type = read_reg8(addr, 0xC + 2);
     if (header_type & (1 << 7) > 0) {
         for (1..8) |func| {
             addr.function = @intCast(func);
@@ -107,12 +107,11 @@ fn check_device(_addr: uacpi.uacpi_pci_address) void {
 }
 
 fn check_function(addr: uacpi.uacpi_pci_address) bool {
-    const vendor_dev = read_reg(addr, 0);
+    const vendor_dev = read_reg32(addr, 0);
     if (vendor_dev == 0xFFFFFFFF) return false;
-    const codes_raw = read_reg(addr, 0x8);
-    const class_code: u8 = @truncate(codes_raw >> 24);
-    const subclass_code: u8 = @truncate(codes_raw >> 16);
-    const prog_if: u8 = @truncate(codes_raw >> 8);
+    const prog_if = read_reg8(addr, 0x8 + 1);
+    const subclass_code = read_reg8(addr, 0x8 + 2);
+    const class_code = read_reg8(addr, 0x8 + 3);
     log.info(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
@@ -141,13 +140,13 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
 }
 
 fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
-    const status: u16 = @intCast(read_reg(addr, 4) >> 16);
+    const status: u16 = read_reg16(addr, 4 + 2);
     // No capability list
     if ((status & (1 << 4)) == 0) return null;
 
-    var ptr: u8 = @truncate(read_reg(addr, 0x34));
-    while (ptr != 0) : (ptr = @truncate(read_reg(addr, ptr) >> 8)) {
-        const id: u8 = @truncate(read_reg(addr, @intCast(ptr)));
+    var ptr = read_reg8(addr, 0x34);
+    while (ptr != 0) : (ptr = read_reg8(addr, ptr + 1)) {
+        const id = read_reg8(addr, @intCast(ptr));
         if (id == cap_id) return ptr;
     }
     return null;
