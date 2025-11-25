@@ -42,8 +42,21 @@ pub var Task = kernel.Task{
     },
 };
 
-pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = undefined;
-pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = undefined;
+fn ReadFunc(T: type) type {
+    return *const fn (addr: uacpi.uacpi_pci_address, off: u13) @sizeOf(T);
+}
+
+fn WriteFunc(T: type) type {
+    return *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: T) void;
+}
+
+pub var read_reg8: ReadFunc(u8) = undefined;
+pub var read_reg16: ReadFunc(u16) = undefined;
+pub var read_reg32: ReadFunc(u32) = undefined;
+pub var write_reg8: WriteFunc(u8) = undefined;
+pub var write_reg16: WriteFunc(u16) = undefined;
+pub var write_reg32: WriteFunc(u32) = undefined;
+pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: anytype) void = undefined;
 
 fn init() kernel.Task.Ret {
     if (pcie.Task.ret == .success) return .success;
