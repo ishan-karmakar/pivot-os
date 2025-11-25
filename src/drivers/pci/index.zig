@@ -1,10 +1,10 @@
+const pci = @import("pci.zig");
+const pcie = @import("pcie.zig");
 const kernel = @import("root");
 const uacpi = @import("uacpi");
 const std = @import("std");
 const log = std.log.scoped(.pci);
 const acpi = kernel.drivers.acpi;
-const pci = @import("pci.zig");
-const pcie = @import("pcie.zig");
 
 pub const Codes = struct {
     class_code: ?u8 = null,
@@ -38,7 +38,7 @@ pub var Task = kernel.Task{
     .name = "PCI(e)",
     .init = init,
     .dependencies = &.{
-        .{ .task = &kernel.drivers.acpi.TablesTask },
+        .{ .task = &pcie.Task, .accept_failure = true },
     },
 };
 
@@ -46,15 +46,8 @@ pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = unde
 pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = undefined;
 
 fn init() kernel.Task.Ret {
-    if (acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE) != null) {
-        read_reg = pcie.read_reg;
-        write_reg = pcie.write_reg;
-        pcie.Task.run();
-        if (pcie.Task.ret == .success) return .success;
-        log.warn("PCIe failed to initialize, falling back to legacy PCI", .{});
-    }
-    read_reg = pci.read_reg;
-    write_reg = pci.write_reg;
+    if (pcie.Task.ret == .success) return .success;
+    log.warn("PCIe failed to initialize, falling back to legacy PCI", .{});
     pci.Task.run();
     return pci.Task.ret.?;
 }

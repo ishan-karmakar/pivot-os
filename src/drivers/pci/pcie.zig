@@ -1,5 +1,6 @@
 const uacpi = @import("uacpi");
 const kernel = @import("root");
+const pci = kernel.drivers.pci;
 
 pub var Task = kernel.Task{
     .init = init,
@@ -18,12 +19,14 @@ fn init() kernel.Task.Ret {
     const num_entries = (tbl.hdr.length - @sizeOf(uacpi.acpi_mcfg)) / @sizeOf(uacpi.acpi_mcfg_allocation);
     const groups: [*]const uacpi.acpi_mcfg_allocation = tbl.entries();
     segment_groups = groups[0..num_entries];
+    pci.read_reg = read_reg;
+    pci.write_reg = write_reg;
 
     for (segment_groups) |seg| {
         for (0..CONFIG_SPACE_PAGES) |i| {
             kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
-        kernel.drivers.pci.scan_devices(seg.segment);
+        pci.scan_devices(seg.segment);
     }
     return .success;
 }

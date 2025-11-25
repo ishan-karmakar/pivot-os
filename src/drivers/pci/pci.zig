@@ -1,6 +1,7 @@
 const uacpi = @import("uacpi");
 const kernel = @import("root");
 const serial = kernel.drivers.serial;
+const pci = kernel.drivers.pci;
 
 const CONFIG_ADDR = 0xCF8;
 const CONFIG_DATA = 0xCFC;
@@ -12,7 +13,9 @@ pub var Task = kernel.Task{
 };
 
 fn init() kernel.Task.Ret {
-    kernel.drivers.pci.scan_devices(0);
+    pci.read_reg = read_reg;
+    pci.write_reg = write_reg;
+    pci.scan_devices(0);
     return .success;
 }
 
