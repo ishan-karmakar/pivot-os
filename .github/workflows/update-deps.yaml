@@ -15,6 +15,7 @@ jobs:
       - name: Update Zig Nightly
         run: |
           version=$(curl -s https://ziglang.org/download/index.json | jq -r .master.version)
+          sed 's/minimum_zig_version = ".*"/minimum_zig_version = "'$version'"/' build.zig.zon
       - name: Update Limine Binaries
         run: |
           REPO=limine-bootloader/limine
@@ -22,10 +23,7 @@ jobs:
                    -H "X-GitHub-Api-Version: 2022-11-28" \
                    /repos/$REPO/tags?per_page=2 | \
             jq '.[] | select(.name|endswith("-binary"))')
-          out=$(zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url') 2>&1)
-          if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated $REPO to [latest tag]($GITHUB_SERVER_URL/$REPO/commit/$(echo $json | jq -r '.commit.sha'))" >> ${{ runner.temp }}/pr-body.txt
-          fi
+          zig fetch --save=limine_bin $(echo $json | jq -r '.zipball_url')
       - name: Update limine-zig
         run: |
           REPO=ishan-karmakar/limine-zig
@@ -33,10 +31,7 @@ jobs:
                         -H "X-GitHub-Api-Version: 2022-11-28" \
                         /repos/$REPO/commits?per_page=1 | \
                  jq '.[0]')
-          out=$(zig fetch --save=limine_zig $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha') 2>&1)
-          if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.html_url'))" >> ${{ runner.temp }}/pr-body.txt
-          fi
+          zig fetch --save=limine_zig $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha')
       - name: Update uACPI
         run: |
           REPO=uACPI/uACPI
@@ -44,24 +39,17 @@ jobs:
                         -H "X-GitHub-Api-Version: 2022-11-28" \
                         /repos/$REPO/commits?per_page=1 | \
                  jq '.[0]')
-          out=$(zig fetch --save=uacpi $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha') 2>&1)
-          if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.html_url'))" >> ${{ runner.temp }}/pr-body.txt
-          fi
+          zig fetch --save=uacpi $GITHUB_API_URL/repos/$REPO/zipball/$(echo $json | jq -r '.sha')
       - name: Update SSFN
         run: |
           REPO=bztsrc/scalable-font2
           PROJECT_ID=18860409 # bztsrc/scalable-font2 project id
           json=$(curl --url https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/commits | jq -r '.[0]')
-          out=$(zig fetch --save=ssfn https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/archive.zip?sha=$(echo $json | jq -r '.id') 2>&1)
-          if [[ $out != *"up-to-date"* ]]; then
-            echo "Updated $REPO to [latest commit]($(echo $json | jq -r '.web_url'))" >> ${{ runner.temp }}/pr-body.txt
-          fi
+          zig fetch --save=ssfn https://gitlab.com/api/v4/projects/$PROJECT_ID/repository/archive.zip?sha=$(echo $json | jq -r '.id')
       - name: Create PR
         uses: peter-evans/create-pull-request@v7
         with:
           title: "[bot] Update dependencies"
-          body-path: ${{ runner.temp }}/pr-body.txt
           commit-message: "[bot] Update dependencies"
           branch: update-deps
           token: ${{ secrets.PR_TOKEN }}
