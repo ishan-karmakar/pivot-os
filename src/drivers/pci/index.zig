@@ -1,13 +1,10 @@
+const pci = @import("pci.zig");
+const pcie = @import("pcie.zig");
 const kernel = @import("root");
 const uacpi = @import("uacpi");
 const std = @import("std");
 const log = std.log.scoped(.pci);
 const acpi = kernel.drivers.acpi;
-const serial = kernel.drivers.serial;
-
-const CONFIG_ADDR = 0xCF8;
-const CONFIG_DATA = 0xCFC;
-const PCIE_CONFIG_SPACE_PAGES: comptime_int = ((255 << 20) | (31 << 15) | (7 << 12) + 0x1000) / 0x1000;
 
 pub const Codes = struct {
     class_code: ?u8 = null,
@@ -41,31 +38,21 @@ pub var Task = kernel.Task{
     .name = "PCI(e)",
     .init = init,
     .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KMapperTask },
-        .{ .task = &kernel.drivers.acpi.TablesTask },
+        .{ .task = &pcie.Task, .accept_failure = true },
     },
 };
 
 pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = undefined;
 pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = undefined;
-var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
 
 fn init() kernel.Task.Ret {
-    const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
-    if (pcie_table) |tbl| {
-        init_pcie(tbl);
-    } else init_legacy();
-    return .success;
+    if (pcie.Task.ret == .success) return .success;
+    log.warn("PCIe failed to initialize, falling back to legacy PCI", .{});
+    pci.Task.run();
+    return pci.Task.ret.?;
 }
 
-fn init_legacy() void {
-    read_reg = pci_read_reg;
-    write_reg = pci_write_reg;
-
-    scan_devices(0);
-}
-
-fn scan_devices(segment: u16) void {
+pub fn scan_devices(segment: u16) void {
     var addr = uacpi.uacpi_pci_address{
         .segment = segment,
         .bus = 0,
@@ -86,7 +73,7 @@ fn scan_devices(segment: u16) void {
     }
 }
 
-inline fn check_bus(_addr: uacpi.uacpi_pci_address) void {
+fn check_bus(_addr: uacpi.uacpi_pci_address) void {
     var addr = _addr;
     for (0..32) |d| {
         addr.device = @intCast(d);
@@ -141,22 +128,6 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     return true;
 }
 
-fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
-    const num_entries = (tbl.hdr.length - @sizeOf(uacpi.acpi_mcfg)) / @sizeOf(uacpi.acpi_mcfg_allocation);
-    const groups: [*]const uacpi.acpi_mcfg_allocation = tbl.entries();
-    segment_groups = groups[0..num_entries];
-
-    read_reg = pcie_read_reg;
-    write_reg = pcie_write_reg;
-
-    for (segment_groups) |seg| {
-        for (0..PCIE_CONFIG_SPACE_PAGES) |i| {
-            kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
-        }
-        scan_devices(seg.segment);
-    }
-}
-
 fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
     const status: u16 = @intCast(read_reg(addr, 4) >> 16);
     // No capability list
@@ -168,43 +139,4 @@ fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
         if (id == cap_id) return ptr;
     }
     return null;
-}
-
-fn pci_get_addr(addr: uacpi.uacpi_pci_address, off: u13) u32 {
-    const bus: u32 = @intCast(addr.bus);
-    const device: u32 = @intCast(addr.device);
-    const func: u32 = @intCast(addr.function);
-
-    return ((bus << 16) | (device << 11) | (func << 8) | (1 << 31)) + off;
-}
-
-fn pci_read_reg(addr: uacpi.uacpi_pci_address, off: u13) u32 {
-    serial.out(CONFIG_ADDR, pci_get_addr(addr, off));
-    return serial.in(CONFIG_DATA, u32);
-}
-
-fn pci_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
-    serial.out(CONFIG_ADDR, pci_get_addr(addr, off));
-    serial.out(CONFIG_DATA, val);
-}
-
-fn pcie_get_addr(base: usize, addr: uacpi.uacpi_pci_address, off: u13) *u32 {
-    const bus: u32 = @intCast(addr.bus);
-    const device: u32 = @intCast(addr.device);
-    const func: u32 = @intCast(addr.function);
-    return @ptrFromInt(base + ((bus << 20) | (device << 15) | (func << 12)) + off);
-}
-
-fn pcie_read_reg(addr: uacpi.uacpi_pci_address, off: u13) u32 {
-    for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) return pcie_get_addr(seg.address, addr, off).*;
-    }
-    @panic("PCIe segment not found");
-}
-
-fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
-    for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) pcie_get_addr(seg.address, addr, off).* = val;
-    }
-    @panic("PCIe segment not found");
 }
