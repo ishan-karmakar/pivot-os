@@ -37,12 +37,12 @@
     // internet connectivity.
     .dependencies = .{
         .limine_zig = .{
-            .url = "https://api.github.com/repos/ishan-karmakar/limine-zig/zipball/b0ee9db1f9ba7d0320bb0dafe59df13d41b6fdc8",
-            .hash = "limine_zig-0.0.0-1TjwQJxaAADVPHQ-unkwkc8k6YkpauoSfJGgP4O5qkpe",
+            .url = "https://api.github.com/repos/ishan-karmakar/limine-zig/zipball/cb685d5d1bc3d92a8d74d0e14e7e4d5ed444c79e",
+            .hash = "limine_zig-0.0.0-1TjwQFdJAABbeFXBXfJk5PG1DGMpwjwlRfsI79h9BW0B",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v10.3.0-binary",
-            .hash = "N-V-__8AAKFRSAD41K-aDrVgXpNGlZnBBok_Lttg5qO06ex0",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v10.3.2-binary",
+            .hash = "N-V-__8AABTXRwDZ3zSsk2JYPEOAz2A0oCwJUkyy5dWV2FLA",
         },
         .uacpi = .{
             .url = "https://api.github.com/repos/uACPI/uACPI/zipball/e5e5deea6f4dea0ea81237db39ca061ead048e60",
