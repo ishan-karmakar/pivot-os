@@ -61,7 +61,7 @@ pub const Task = struct {
     }
 };
 
-export var LIMINE_BASE_REVISION = limine.BaseRevision{ .revision = 3 };
+export var LIMINE_BASE_REVISION = limine.BaseRevision.init(4);
 
 export fn _start() noreturn {
     if (!LIMINE_BASE_REVISION.isValid()) {
