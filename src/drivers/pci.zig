@@ -35,9 +35,7 @@ pub const VTable = struct {
     },
 };
 
-const AVAILABLE_DRIVERS = [_]type{
-    // kernel.drivers.ide,
-};
+const AVAILABLE_DRIVERS = [_]type{};
 
 pub var Task = kernel.Task{
     .name = "PCI(e)",
@@ -157,6 +155,19 @@ fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
         }
         scan_devices(seg.segment);
     }
+}
+
+fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
+    const status: u16 = @intCast(read_reg(addr, 4) >> 16);
+    // No capability list
+    if ((status & (1 << 4)) == 0) return null;
+
+    var ptr: u8 = @truncate(read_reg(addr, 0x34));
+    while (ptr != 0) : (ptr = @truncate(read_reg(addr, ptr) >> 8)) {
+        const id: u8 = @truncate(read_reg(addr, @intCast(ptr)));
+        if (id == cap_id) return ptr;
+    }
+    return null;
 }
 
 fn pci_get_addr(addr: uacpi.uacpi_pci_address, off: u13) u32 {
