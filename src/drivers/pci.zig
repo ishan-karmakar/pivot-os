@@ -9,62 +9,72 @@ const CONFIG_ADDR = 0xCF8;
 const CONFIG_DATA = 0xCFC;
 const PCIE_CONFIG_SPACE_PAGES: comptime_int = ((255 << 20) | (31 << 15) | (7 << 12) + 0x1000) / 0x1000;
 
+const BARTag = enum { IO, MEM };
+pub const BAR = union(BARTag) {
+    IO: u16,
+    MEM: usize,
+};
+
 pub const Codes = struct {
     class_code: ?u8 = null,
     subclass_code: ?u8 = null,
     prog_if: ?u8 = null,
-
-    fn matches(self: @This(), cc: u8, sc: u8, prog_if: u8) bool {
-        if (self.class_code == null) return true;
-        if (self.class_code.? != cc) return false;
-        if (self.subclass_code == null) return true;
-        if (self.subclass_code.? != sc) return true;
-        if (self.prog_if == null) return true;
-        if (self.prog_if.? != prog_if) return false;
-        return true;
-    }
+    vendor_id: ?u16 = null,
+    device_id: ?u16 = null,
 };
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    target_ret: struct {
-        class_code: u8,
-        subclass_code: u8,
-        prog_if: u8,
-        addr: uacpi.uacpi_pci_address,
-    },
+    addr: uacpi.uacpi_pci_address = undefined,
 };
 
 const AVAILABLE_DRIVERS = [_]type{
-    // kernel.drivers.ide,
+    @import("net/virtio-net.zig"),
 };
 
 pub var Task = kernel.Task{
     .name = "PCI(e)",
     .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KMapperTask },
-        .{ .task = &kernel.drivers.acpi.TablesTask },
-    },
+    .dependencies = &.{.{ .task = &kernel.drivers.acpi.NamespaceTask }},
 };
 
-pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = undefined;
-pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = undefined;
+pub var read_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13) u32 = pci_read_reg;
+pub var write_reg: *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: u32) void = pci_write_reg;
 var segment_groups: []const uacpi.acpi_mcfg_allocation = undefined;
+var routing_table = std.ArrayList(*const uacpi.uacpi_pci_routing_table_entry).empty;
 
 fn init() kernel.Task.Ret {
+    // const hids: [*]const [*c]const u8 = &.{
+    //     "PNP0A03",
+    //     "PNP0A08",
+    //     0,
+    // };
+    // _ = uacpi.uacpi_find_devices_at(
+    //     uacpi.uacpi_namespace_root(),
+    //     hids,
+    //     iterate_host_bridges,
+    //     null,
+    // );
+
     const pcie_table = acpi.get_table(uacpi.acpi_mcfg, uacpi.ACPI_MCFG_SIGNATURE);
-    if (pcie_table) |tbl| {
-        init_pcie(tbl);
-    } else init_legacy();
+    if (pcie_table) |tbl| init_pcie(tbl);
+
+    if (read_reg == pci_read_reg) {
+        scan_devices(0);
+    } else for (segment_groups) |seg| {
+        scan_devices(seg.segment);
+    }
     return .success;
 }
 
-fn init_legacy() void {
-    read_reg = pci_read_reg;
-    write_reg = pci_write_reg;
-
-    scan_devices(0);
+fn iterate_host_bridges(_: ?*anyopaque, node: [*c]uacpi.uacpi_namespace_node, _: u32) callconv(.c) uacpi.uacpi_iteration_decision {
+    const path = uacpi.uacpi_namespace_node_generate_absolute_path(node);
+    uacpi.uacpi_free_absolute_path(path);
+    var rt: *uacpi.uacpi_pci_routing_table = undefined;
+    if (uacpi.uacpi_get_pci_routing_table(node, @ptrCast(&rt)) != uacpi.UACPI_STATUS_OK) @panic("Failed to get PCI routing table of host bridge");
+    for (0..rt.num_entries) |i| routing_table.append(kernel.lib.mem.kheap.allocator(), @ptrCast(&rt.entries()[i])) catch @panic("OOM");
+    // We can't free them because the routing table entries are still being used
+    return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }
 
 fn scan_devices(segment: u16) void {
@@ -116,12 +126,14 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     const class_code: u8 = @truncate(codes_raw >> 24);
     const subclass_code: u8 = @truncate(codes_raw >> 16);
     const prog_if: u8 = @truncate(codes_raw >> 8);
-    log.info(
+    const vendor_id: u16 = @truncate(vendor_dev);
+    const device_id: u16 = @truncate(vendor_dev >> 16);
+    log.debug(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
             addr,
-            vendor_dev & 0xFFFF,
-            (vendor_dev >> 16) & 0xFFFF,
+            vendor_id,
+            device_id,
             class_code,
             subclass_code,
             prog_if,
@@ -129,21 +141,20 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     );
     inline for (AVAILABLE_DRIVERS) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
-            if (code.matches(class_code, subclass_code, prog_if)) {
-                driver.PCIVTable.target_ret = .{
-                    .class_code = class_code,
-                    .subclass_code = subclass_code,
-                    .prog_if = prog_if,
-                    .addr = addr,
-                };
-                driver.PCITask.run();
-            }
+            if (code.class_code) |cc| if (cc != class_code) continue;
+            if (code.subclass_code) |scc| if (scc != subclass_code) continue;
+            if (code.prog_if) |pif| if (pif != prog_if) continue;
+            if (code.vendor_id) |vid| if (vid != vendor_id) continue;
+            if (code.device_id) |did| if (did != device_id) continue;
+            driver.PCIVTable.addr = addr;
+            driver.PCITask.run();
         }
     }
     return true;
 }
 
 fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
+    log.info("Using PCIe", .{});
     const num_entries = (tbl.hdr.length - @sizeOf(uacpi.acpi_mcfg)) / @sizeOf(uacpi.acpi_mcfg_allocation);
     const groups: [*]const uacpi.acpi_mcfg_allocation = tbl.entries();
     segment_groups = groups[0..num_entries];
@@ -155,7 +166,6 @@ fn init_pcie(tbl: *const uacpi.acpi_mcfg) void {
         for (0..PCIE_CONFIG_SPACE_PAGES) |i| {
             kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
-        scan_devices(seg.segment);
     }
 }
 
@@ -177,23 +187,111 @@ fn pci_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
     serial.out(CONFIG_DATA, val);
 }
 
-fn pcie_get_addr(base: usize, addr: uacpi.uacpi_pci_address, off: u13) *u32 {
-    const bus: u32 = @intCast(addr.bus);
-    const device: u32 = @intCast(addr.device);
-    const func: u32 = @intCast(addr.function);
-    return @ptrFromInt(base + ((bus << 20) | (device << 15) | (func << 12)) + off);
+pub fn pcie_get_addr(addr: uacpi.uacpi_pci_address, off: u13) *u32 {
+    for (segment_groups) |seg| if (seg.segment == addr.segment) {
+        const bus: u32 = @intCast(addr.bus);
+        const device: u32 = @intCast(addr.device);
+        const func: u32 = @intCast(addr.function);
+        return @ptrFromInt(seg.address + ((bus << 20) | (device << 15) | (func << 12)) + off);
+    };
+    @panic("PCIe segment not found");
 }
 
 fn pcie_read_reg(addr: uacpi.uacpi_pci_address, off: u13) u32 {
-    for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) return pcie_get_addr(seg.address, addr, off).*;
-    }
-    @panic("PCIe segment not found");
+    return pcie_get_addr(addr, off).*;
 }
 
 fn pcie_write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: u32) void {
-    for (segment_groups) |seg| {
-        if (seg.segment == addr.segment) pcie_get_addr(seg.address, addr, off).* = val;
+    pcie_get_addr(addr, off).* = val;
+}
+
+pub fn read_bar(addr: uacpi.uacpi_pci_address, idx: u8) BAR {
+    const bar = read_reg(addr, 0x10 + 4 * idx);
+    // IO BAR
+    if (bar & 1 == 1) return BAR{ .IO = @intCast(bar & 0xFFFC) };
+    // 32 bit BAR
+    if ((bar >> 1) & 0b11 == 0) return BAR{ .MEM = bar & 0xFFFFFFF0 };
+    // 64 bit BAR
+    return BAR{ .MEM = (@as(usize, @intCast(read_reg(addr, 0x10 + 4 * (idx + 1)))) << 32) + @as(usize, @intCast(bar & 0xFFFFFFF0)) };
+}
+
+// This allocates a legacy IRQ for a device using the PCI routing table and ACPI resources
+// If there are multiple buses, this WILL break
+// TODO: Fix when multiple buses, _BBN?
+// Returns the GSI
+pub fn allocate_irq(addr: uacpi.uacpi_pci_address) u32 {
+    const pin: u8 = @truncate(read_reg(addr, 0x3C) >> 8);
+    log.debug("Device is using interrupt pin {}", .{pin});
+    for (routing_table.items) |entry| if (entry.pin == pin) {
+        const entry_device: u16 = @truncate(entry.address >> 16);
+        const entry_function: u16 = @truncate(entry.address);
+        if (addr.function != entry_function and entry_function != 0xFFFF) continue;
+        if (addr.device != entry_device and entry_device != 0xFFFF) continue;
+        if (entry.source == null) return entry.index;
+
+        // First check the device's current resources. If any non-zero IRQs are listed, we can use them
+        var irq: ?u32 = null;
+        if (uacpi.uacpi_for_each_device_resource(entry.source, "_CRS", iterate_resources, &irq) != uacpi.UACPI_STATUS_OK) @panic("Could not iterate over current device resources");
+        var resources: *uacpi.uacpi_resources = undefined;
+        if (uacpi.uacpi_get_possible_resources(entry.source, @ptrCast(&resources)) != uacpi.UACPI_STATUS_OK) @panic("Could not get possible resources of device");
+        var resource: *uacpi.uacpi_resource = resources.entries;
+        const old_size = resources.length;
+        while (true) {
+            switch (resource.type) {
+                uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
+                    for (0..resource.unnamed_0.extended_irq.num_irqs) |i| {
+                        const extended_irq = resource.unnamed_0.extended_irq;
+                        if (extended_irq.irqs()[i] == 0) continue;
+                        resources.length = 48 + 8;
+                        resources.entries = resource;
+                        const end_tag: *uacpi.uacpi_resource = @ptrFromInt(@intFromPtr(resource) + 48);
+                        end_tag.type = uacpi.UACPI_RESOURCE_TYPE_END_TAG;
+                        end_tag.length = 8;
+                        break;
+                    }
+                },
+                uacpi.UACPI_RESOURCE_TYPE_END_TAG => break,
+                else => {},
+            }
+            resource = @ptrFromInt(@intFromPtr(resource) + resource.length);
+        }
+        if (uacpi.uacpi_set_resources(entry.source, resources) != uacpi.UACPI_STATUS_OK) @panic("Failed to set resources");
+        resources.length = old_size;
+        uacpi.uacpi_free_resources(resources);
+        log.info("", .{});
+        if (uacpi.uacpi_for_each_device_resource(entry.source, "_CRS", iterate_resources, &irq) != uacpi.UACPI_STATUS_OK) @panic("Could not iterate over current device resources");
+        // if (uacpi.uacpi_set_resources(entry.source, resources) != uacpi.UACPI_STATUS_OK) @panic("Failed to set resources");
+        // uacpi.uacpi_free_resources(resources);
+    };
+    @panic("No routing table entry found for device");
+}
+
+fn iterate_resources(_user: ?*anyopaque, resource: [*c]uacpi.uacpi_resource) callconv(.c) uacpi.uacpi_iteration_decision {
+    const user: *?u32 = @ptrCast(@alignCast(_user));
+    switch (resource.*.type) {
+        uacpi.UACPI_RESOURCE_TYPE_IRQ => {
+            const irq = resource.*.unnamed_0.irq;
+            log.info("Current resources: {}", .{irq});
+            for (0..irq.num_irqs) |i| {
+                log.info("Found IRQ {}", .{i});
+                if (irq.irqs()[i] != 0) {
+                    user.* = irq.irqs()[i];
+                    return uacpi.UACPI_ITERATION_DECISION_BREAK;
+                }
+            }
+        },
+        uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
+            const irq = resource.*.unnamed_0.extended_irq;
+            log.info("Current resources: {}", .{irq});
+            for (0..irq.num_irqs) |i| {
+                log.info("Found IRQ {}", .{i});
+                if (irq.irqs()[i] != 0) {
+                    user.* = irq.irqs()[i];
+                    return uacpi.UACPI_ITERATION_DECISION_BREAK;
+                }
+            }
+        },
+        else => {},
     }
-    @panic("PCIe segment not found");
+    return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }

@@ -17,14 +17,13 @@ pub var TablesTask = kernel.Task{
     },
 };
 
-pub var NamespaceLoadTask = kernel.Task{
+pub var NamespaceTask = kernel.Task{
     .name = "ACPI Namespace Load",
-    .init = namespace_load,
+    .init = namespace,
     .dependencies = &.{
         .{ .task = &TablesTask },
         .{ .task = &kernel.drivers.timers.Task },
         .{ .task = &kernel.drivers.intctrl.Task },
-        .{ .task = &kernel.drivers.pci.Task },
         .{ .task = &kernel.lib.scheduler.Task },
     },
 };
@@ -33,7 +32,7 @@ pub var DriversTask = kernel.Task{
     .name = "ACPI Drivers",
     .init = init_drivers,
     .dependencies = &.{
-        .{ .task = &NamespaceLoadTask },
+        .{ .task = &NamespaceTask },
     },
 };
 
@@ -46,7 +45,7 @@ const CallbackInfo = struct {
 
 fn init_tables() kernel.Task.Ret {
     if (uacpi.uacpi_initialize(0) != uacpi.UACPI_STATUS_OK) return .failed;
-    if (uacpi.uacpi_install_fixed_event_handler(uacpi.UACPI_FIXED_EVENT_POWER_BUTTON, fixed_shutdown_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
+    // if (uacpi.uacpi_install_fixed_event_handler(uacpi.UACPI_FIXED_EVENT_POWER_BUTTON, fixed_shutdown_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
     return .success;
 }
 
@@ -67,8 +66,10 @@ fn fixed_shutdown_handler(_: ?*anyopaque) callconv(.c) uacpi.uacpi_interrupt_ret
     return uacpi.UACPI_INTERRUPT_HANDLED;
 }
 
-fn namespace_load() kernel.Task.Ret {
+fn namespace() kernel.Task.Ret {
     if (uacpi.uacpi_namespace_load() != uacpi.UACPI_STATUS_OK) return .failed;
+    if (uacpi.uacpi_namespace_initialize() != uacpi.UACPI_STATUS_OK) return .failed;
+    if (uacpi.uacpi_finalize_gpe_initialization() != uacpi.UACPI_STATUS_OK) return .failed;
     // if (uacpi.uacpi_find_devices("PNP0C0C", install_notify_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
     return .success;
 }
