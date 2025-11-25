@@ -72,50 +72,32 @@ export fn uacpi_kernel_pci_device_close(handle: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_pci_read8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u8) uacpi.uacpi_status {
-    const aligned = (off / 4) * 4;
-    const shift: u5 = @intCast(off % 4);
-    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(aligned)) >> shift);
+    val.* = pci.read_reg8(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off));
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u16) uacpi.uacpi_status {
-    const aligned = (off / 4) * 4;
-    const shift: u5 = @intCast(off % 4);
-    val.* = @truncate(pci.read_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(aligned)) >> shift);
+    val.* = pci.read_reg16(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off));
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_read32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: [*c]uacpi.uacpi_u32) uacpi.uacpi_status {
-    val.* = pci.read_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off)) & 0xFFFFFFFF;
+    val.* = pci.read_reg32(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off));
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write8(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u8) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @ptrCast(@alignCast(handle));
-    log.info("{}", .{addr});
-    const aligned = (off / 4) * 4;
-    const shift: u5 = @intCast((off % 4) * 8);
-    var old = pci.read_reg(addr.*, @intCast(aligned));
-    old &= ~(@as(u32, std.math.maxInt(u8)) << shift);
-    old |= @as(u32, val) << shift;
-    pci.write_reg(addr.*, @intCast(aligned), old);
+    pci.write_reg8(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off), val);
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write16(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u16) uacpi.uacpi_status {
-    const addr: *uacpi.uacpi_pci_address = @ptrCast(@alignCast(handle));
-    log.info("{}", .{addr});
-    const aligned = (off / 4) * 4;
-    const shift: u5 = @intCast((off % 4) * 8);
-    var old = pci.read_reg(addr.*, @intCast(aligned));
-    old &= ~(@as(u32, std.math.maxInt(u16)) << shift);
-    old |= @as(u32, val) << shift;
-    pci.write_reg(addr.*, @intCast(aligned), old);
+    pci.write_reg16(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off), val);
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_pci_write32(handle: uacpi.uacpi_handle, off: uacpi.uacpi_size, val: uacpi.uacpi_u32) uacpi.uacpi_status {
-    pci.write_reg(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off), val);
+    pci.write_reg32(@as(*uacpi.uacpi_pci_address, @ptrCast(@alignCast(handle))).*, @intCast(off), val);
     return uacpi.UACPI_STATUS_OK;
 }
 
