@@ -236,11 +236,7 @@ fn addUACPI(kernel: *Step.Compile) void {
 }
 
 fn addLimine(kernel: *Step.Compile) void {
-    const limineZigMod = kernel.step.owner.dependency("limine_zig", .{
-        .api_revision = 3,
-        .allow_deprecated = false,
-        .no_pointers = false,
-    }).module("limine");
+    const limineZigMod = kernel.step.owner.dependency("limine_zig", .{}).module("limine");
     kernel.root_module.addImport("limine", limineZigMod);
 }
 
