@@ -57,8 +57,10 @@ fn GenerateWriteFunc(T: type) pci.WriteFunc(T) {
     return struct {
         fn write_reg(addr: uacpi.uacpi_pci_address, off: u13, val: T) void {
             for (segment_groups) |seg| {
-                if (seg.segment == addr.segment)
+                if (seg.segment == addr.segment) {
                     @as(*T, @ptrFromInt(get_addr(seg.address, addr, off))).* = val;
+                    return;
+                }
             }
             @panic("PCIe segment not found");
         }
