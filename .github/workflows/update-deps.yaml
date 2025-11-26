@@ -52,5 +52,6 @@ jobs:
           title: "[bot] Update dependencies"
           commit-message: "[bot] Update dependencies"
           branch: update-deps
+          body: ""
           token: ${{ secrets.PR_TOKEN }}
           delete-branch: true
