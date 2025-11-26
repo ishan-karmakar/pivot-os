@@ -50,6 +50,14 @@ pub fn WriteFunc(T: type) type {
     return *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: T) void;
 }
 
+const BAR = union(enum) {
+    IO: u32,
+    MEM: struct {
+        addr: usize,
+        prefetchable: bool,
+    },
+};
+
 pub var read_reg8: ReadFunc(u8) = undefined;
 pub var read_reg16: ReadFunc(u16) = undefined;
 pub var read_reg32: ReadFunc(u32) = undefined;
@@ -150,4 +158,18 @@ fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
         if (id == cap_id) return ptr;
     }
     return null;
+}
+
+pub fn find_bar(addr: uacpi.uacpi_pci_address, idx: u8) BAR {
+    const raw = read_reg32(addr, 0x10 + idx * 4);
+    if (raw & 1 == 1)
+        return .{ .IO = raw & ~@as(u32, 0b11) };
+
+    var bar_addr: usize = @intCast(raw);
+    if ((raw >> 1) & 0b11 > 0)
+        bar_addr |= @as(u64, read_reg32(addr, 0x10 + (idx + 1) * 4)) << 32;
+    return .{ .MEM = .{
+        .addr = bar_addr,
+        .prefetchable = (raw >> 3) & 1 > 0,
+    } };
 }
