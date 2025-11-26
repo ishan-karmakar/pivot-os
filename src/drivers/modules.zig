@@ -2,7 +2,7 @@ const limine = @import("limine");
 const kernel = @import("root");
 const mem = @import("std").mem;
 
-export var MODULE_REQUEST = limine.ModuleRequest{ .revision = 3 };
+export var MODULE_REQUEST = limine.Module.Request{};
 
 pub var Task = kernel.Task{
     .name = "Limine Modules",
@@ -15,8 +15,7 @@ fn init() kernel.Task.Ret {
 }
 
 pub fn get_module(cmdline: []const u8) usize {
-    for (MODULE_REQUEST.response.?.getModules()) |m| {
+    for (MODULE_REQUEST.response.?.get_modules()) |m|
         if (mem.eql(u8, mem.span(m.string), cmdline)) return @intFromPtr(m.address);
-    }
     @panic("Module not found");
 }

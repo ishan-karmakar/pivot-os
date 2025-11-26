@@ -13,12 +13,12 @@ pub var Task = kernel.Task{
     },
 };
 
-export var FB_REQUEST = limine.FramebufferRequest{ .revision = 3 };
+export var FB_REQUEST = limine.Framebuffer.Request{};
 
 pub fn init() kernel.Task.Ret {
     const response = FB_REQUEST.response orelse return .failed;
     // TODO: Multiple framebuffers
-    const fb = response.getFramebuffers()[0];
+    const fb = response.framebuffers[0];
     const font = kernel.drivers.modules.get_module("font");
 
     ssfn.ssfn_src = @ptrFromInt(font);
