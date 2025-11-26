@@ -61,12 +61,12 @@ pub const Task = struct {
     }
 };
 
-export var LIMINE_BASE_REVISION = limine.BaseRevision.init(4);
+export var LIMINE_BASE_REVISION = limine.BaseRevision{ .revision = 4 };
 
 export fn _start() noreturn {
-    if (!LIMINE_BASE_REVISION.isValid()) {
+    if (!LIMINE_BASE_REVISION.is_valid()) {
         @panic("Limine bootloader base revision not valid");
-    } else if (!LIMINE_BASE_REVISION.isSupported()) {
+    } else if (!LIMINE_BASE_REVISION.is_supported()) {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
