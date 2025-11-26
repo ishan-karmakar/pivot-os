@@ -147,7 +147,7 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     return true;
 }
 
-fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
+pub fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
     const status: u16 = read_reg16(addr, 4 + 2);
     // No capability list
     if ((status & (1 << 4)) == 0) return null;
