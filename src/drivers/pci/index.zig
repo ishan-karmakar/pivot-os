@@ -32,8 +32,6 @@ pub const VTable = struct {
     },
 };
 
-const AVAILABLE_DRIVERS = [_]type{};
-
 pub var Task = kernel.Task{
     .name = "PCI(e)",
     .init = init,
@@ -131,7 +129,7 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
             prog_if,
         },
     );
-    inline for (AVAILABLE_DRIVERS) |driver| {
+    inline for (kernel.drivers.PCI_DRIVER_LIST) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
             if (code.matches(class_code, subclass_code, prog_if)) {
                 driver.PCIVTable.target_ret = .{

@@ -37,8 +37,6 @@ pub var DriversTask = kernel.Task{
     },
 };
 
-const AVAILABLE_DRIVERS = [_]type{};
-
 const CallbackInfo = struct {
     vtable: *VTable,
     task: *kernel.Task,
@@ -74,7 +72,7 @@ fn namespace_load() kernel.Task.Ret {
 }
 
 fn init_drivers() kernel.Task.Ret {
-    inline for (AVAILABLE_DRIVERS) |driver| {
+    inline for (kernel.drivers.ACPI_DRIVER_LIST) |driver| {
         var info = CallbackInfo{ .task = &driver.ACPITask, .vtable = &driver.ACPIVTable };
         // I am doing this allocation because I don't want the user making ACPI drivers to have to constantly
         // put the uacpi.UACPI_NULL themselves. This should be handled automatically and one extra allocation + free is the cost
