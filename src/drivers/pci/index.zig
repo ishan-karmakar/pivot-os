@@ -11,15 +11,15 @@ pub const Codes = struct {
     class_code: ?u8 = null,
     subclass_code: ?u8 = null,
     prog_if: ?u8 = null,
+    vendor_id: ?u16 = null,
+    device_id: ?u16 = null,
 
-    fn matches(self: @This(), cc: u8, sc: u8, prog_if: u8) bool {
-        if (self.class_code == null) return true;
-        if (self.class_code.? != cc) return false;
-        if (self.subclass_code == null) return true;
-        if (self.subclass_code.? != sc) return true;
-        if (self.prog_if == null) return true;
-        if (self.prog_if.? != prog_if) return false;
-        return true;
+    fn matches(self: @This(), addr: uacpi.uacpi_pci_address) bool {
+        return !((self.class_code != null and self.class_code != read_reg8(addr, 0x8 + 3)) or
+            (self.subclass_code != null and self.subclass_code != read_reg8(addr, 0x8 + 2)) or
+            (self.prog_if != null and self.prog_if != read_reg8(addr, 0x8 + 1)) or
+            (self.vendor_id != null and self.vendor_id != read_reg16(addr, 0)) or
+            (self.device_id != null and self.device_id != read_reg16(addr, 2)));
     }
 };
 
@@ -139,7 +139,7 @@ fn check_function(addr: uacpi.uacpi_pci_address) bool {
     );
     inline for (kernel.drivers.PCI_DRIVER_LIST) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
-            if (code.matches(class_code, subclass_code, prog_if)) {
+            if (code.matches(addr)) {
                 driver.PCIVTable.target_ret = .{
                     .class_code = class_code,
                     .subclass_code = subclass_code,
