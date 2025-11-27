@@ -50,12 +50,31 @@ pub fn WriteFunc(T: type) type {
     return *const fn (addr: uacpi.uacpi_pci_address, off: u13, val: T) void;
 }
 
-const BAR = union(enum) {
-    IO: u32,
-    MEM: struct {
-        addr: usize,
-        prefetchable: bool,
-    },
+pub const DeviceInfo = struct {
+    pub const Capability = struct {
+        id: u8,
+        // Offset into the PCI config space
+        offset: u8,
+    };
+
+    pub const BAR = union(enum) {
+        IO: u32,
+        MEM: struct {
+            addr: usize,
+            prefetchable: bool,
+        },
+    };
+
+    addr: uacpi.uacpi_pci_address,
+    vendor_id: u16,
+    device_id: u16,
+    class_code: u8,
+    subclass_code: u8,
+    prog_if: u8,
+    bars: []BAR,
+    capabilities: []Capability,
+    interrupt_pin: u8,
+    header_type: u8,
 };
 
 pub var read_reg8: ReadFunc(u8) = undefined;
@@ -306,29 +325,58 @@ fn get_handler_prt_resource_callback(_gsi: ?*anyopaque, _resource: [*c]uacpi.uac
     return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }
 
-pub fn find_cap(addr: uacpi.uacpi_pci_address, cap_id: u8) ?u8 {
-    const status: u16 = read_reg16(addr, 4 + 2);
-    // No capability list
-    if ((status & (1 << 4)) == 0) return null;
-
-    var ptr = read_reg8(addr, 0x34);
-    while (ptr != 0) : (ptr = read_reg8(addr, ptr + 1)) {
-        const id = read_reg8(addr, @intCast(ptr));
-        if (id == cap_id) return ptr;
-    }
-    return null;
+pub fn get_device_info(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
+    const vendor_id = read_reg16(addr, 0);
+    if (vendor_id == 0xFFFF) return null;
+    return DeviceInfo{
+        .addr = addr,
+        .vendor_id = vendor_id,
+        .device_id = read_reg16(addr, 2),
+        .class_code = read_reg8(addr, 0x8 + 3),
+        .subclass_code = read_reg8(addr, 0x8 + 2),
+        .prog_if = read_reg8(addr, 0x8 + 1),
+        .interrupt_pin = read_reg8(addr, 0x3C + 1),
+        .header_type = read_reg8(addr, 0xC + 2),
+        .bars = try get_bars(addr),
+        .capabilities = try get_capabilities(addr),
+    };
 }
 
-pub fn find_bar(addr: uacpi.uacpi_pci_address, idx: u8) BAR {
-    const raw = read_reg32(addr, 0x10 + idx * 4);
-    if (raw & 1 == 1)
-        return .{ .IO = raw & ~@as(u32, 0b11) };
+fn get_bars(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.BAR {
+    var bars = std.ArrayList(DeviceInfo.BAR).empty;
+    var i: u8 = 0;
+    while (i < 5) : (i += 1) {
+        const raw = read_reg32(addr, 0x10 + i * 4);
+        if (raw & 1 == 1) {
+            try bars.append(kernel.lib.mem.kheap.allocator(), .{ .IO = raw & ~@as(u32, 0b11) });
+            continue;
+        }
 
-    var bar_addr: usize = @intCast(raw);
-    if ((raw >> 1) & 0b11 > 0)
-        bar_addr |= @as(u64, read_reg32(addr, 0x10 + (idx + 1) * 4)) << 32;
-    return .{ .MEM = .{
-        .addr = bar_addr,
-        .prefetchable = (raw >> 3) & 1 > 0,
-    } };
+        var bar_addr: usize = @intCast(raw);
+        if ((raw >> 1) & 0b11 > 0) {
+            i += 1;
+            bar_addr |= @as(u64, read_reg32(addr, 0x10 + i * 4)) << 32;
+        }
+        try bars.append(kernel.lib.mem.kheap.allocator(), .{ .MEM = .{
+            .addr = bar_addr,
+            .prefetchable = (raw >> 3) & 1 > 0,
+        } });
+    }
+    return try bars.toOwnedSlice(kernel.lib.mem.kheap.allocator());
+}
+
+fn get_capabilities(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.Capability {
+    const status: u16 = read_reg16(addr, 4 + 2);
+    // Check if capability list exists
+    if ((status & (1 << 4)) == 0) return &.{};
+
+    var capabilities = std.ArrayList(DeviceInfo.Capability).empty;
+    var ptr = read_reg8(addr, 0x34);
+    while (ptr != 0) : (ptr = read_reg8(addr, ptr + 1)) {
+        try capabilities.append(kernel.lib.mem.kheap.allocator(), .{
+            .id = read_reg8(addr, @intCast(ptr)),
+            .offset = ptr,
+        });
+    }
+    return try capabilities.toOwnedSlice(kernel.lib.mem.kheap.allocator());
 }
