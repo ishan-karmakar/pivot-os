@@ -19,7 +19,7 @@ fn init() kernel.Task.Ret {
     pci.write_reg8 = GenerateWriteFunc(u8);
     pci.write_reg16 = GenerateWriteFunc(u16);
     pci.write_reg32 = GenerateWriteFunc(u32);
-    pci.scan_devices(0);
+    pci.scan_devices(0) catch return .failed;
     return .success;
 }
 

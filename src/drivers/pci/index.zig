@@ -14,23 +14,18 @@ pub const Codes = struct {
     vendor_id: ?u16 = null,
     device_id: ?u16 = null,
 
-    fn matches(self: @This(), addr: uacpi.uacpi_pci_address) bool {
-        return !((self.class_code != null and self.class_code != read_reg8(addr, 0x8 + 3)) or
-            (self.subclass_code != null and self.subclass_code != read_reg8(addr, 0x8 + 2)) or
-            (self.prog_if != null and self.prog_if != read_reg8(addr, 0x8 + 1)) or
-            (self.vendor_id != null and self.vendor_id != read_reg16(addr, 0)) or
-            (self.device_id != null and self.device_id != read_reg16(addr, 2)));
+    fn matches(self: @This(), info: DeviceInfo) bool {
+        return !((self.class_code != null and self.class_code != info.class_code) or
+            (self.subclass_code != null and self.subclass_code != info.subclass_code) or
+            (self.prog_if != null and self.prog_if != info.prog_if) or
+            (self.vendor_id != null and self.vendor_id != info.vendor_id) or
+            (self.device_id != null and self.device_id != info.device_id));
     }
 };
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    target_ret: struct {
-        class_code: u8,
-        subclass_code: u8,
-        prog_if: u8,
-        addr: uacpi.uacpi_pci_address,
-    },
+    target_ret: DeviceInfo,
 };
 
 pub var Task = kernel.Task{
@@ -97,79 +92,64 @@ fn init() kernel.Task.Ret {
     return pci.Task.ret.?;
 }
 
-pub fn scan_devices(segment: u16) void {
-    var addr = uacpi.uacpi_pci_address{
-        .segment = segment,
-        .bus = 0,
-        .device = 0,
-        .function = 0,
-    };
-    const header_type = read_reg8(addr, 0xC + 2);
-    if (header_type & (1 << 7) == 0) {
+pub fn scan_devices(segment: u16) !void {
+    var addr = uacpi.uacpi_pci_address{ .segment = segment };
+    const bus_device_info = try get_device_info(addr) orelse return;
+    if (bus_device_info.header_type & (1 << 7) == 0) {
         // Single PCI host controller
         addr.bus = 0;
-        check_bus(addr);
+        try check_bus(addr);
     } else {
         for (0..8) |f| {
             addr.bus = @intCast(f);
-            if (read_reg32(addr, 0) == 0xFFFFFFFF) break;
-            check_bus(addr);
+            if (try get_device_info(addr) == null) break;
+            try check_bus(addr);
         }
     }
 }
 
-fn check_bus(_addr: uacpi.uacpi_pci_address) void {
+fn check_bus(_addr: uacpi.uacpi_pci_address) !void {
     var addr = _addr;
     for (0..32) |d| {
         addr.device = @intCast(d);
-        check_device(addr);
+        try check_device(addr);
     }
 }
 
-fn check_device(_addr: uacpi.uacpi_pci_address) void {
+fn check_device(_addr: uacpi.uacpi_pci_address) !void {
     var addr = _addr;
     addr.function = 0;
-    if (!check_function(addr)) return;
-    const header_type = read_reg8(addr, 0xC + 2);
-    if (header_type & (1 << 7) > 0) {
+    const info = try check_function(addr) orelse return;
+    if (info.header_type & (1 << 7) > 0) {
         for (1..8) |func| {
             addr.function = @intCast(func);
-            _ = check_function(addr);
+            _ = try check_function(addr);
         }
     }
 }
 
-fn check_function(addr: uacpi.uacpi_pci_address) bool {
-    const vendor_dev = read_reg32(addr, 0);
-    if (vendor_dev == 0xFFFFFFFF) return false;
-    const prog_if = read_reg8(addr, 0x8 + 1);
-    const subclass_code = read_reg8(addr, 0x8 + 2);
-    const class_code = read_reg8(addr, 0x8 + 3);
+fn check_function(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
+    const info = try get_device_info(addr) orelse return null;
     log.info(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
             addr,
-            vendor_dev & 0xFFFF,
-            (vendor_dev >> 16) & 0xFFFF,
-            class_code,
-            subclass_code,
-            prog_if,
+            info.vendor_id,
+            info.device_id,
+            info.class_code,
+            info.subclass_code,
+            info.prog_if,
         },
     );
     inline for (kernel.drivers.PCI_DRIVER_LIST) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
-            if (code.matches(addr)) {
-                driver.PCIVTable.target_ret = .{
-                    .class_code = class_code,
-                    .subclass_code = subclass_code,
-                    .prog_if = prog_if,
-                    .addr = addr,
-                };
+            if (code.matches(info)) {
+                driver.PCIVTable.target_ret = info;
                 driver.PCITask.run();
             }
         }
     }
-    return true;
+    return info;
 }
 
 fn resource_callback(_: ?*anyopaque, _resource: [*c]uacpi.uacpi_resource) callconv(.c) uacpi.uacpi_iteration_decision {

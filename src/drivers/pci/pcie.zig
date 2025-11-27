@@ -30,7 +30,7 @@ fn init() kernel.Task.Ret {
         for (0..CONFIG_SPACE_PAGES) |i| {
             kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
-        pci.scan_devices(seg.segment);
+        pci.scan_devices(seg.segment) catch return .failed;
     }
     return .success;
 }
