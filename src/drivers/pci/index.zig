@@ -26,7 +26,7 @@ pub const Codes = struct {
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    target_ret: DeviceInfo = undefined,
+    info: DeviceInfo = undefined,
 };
 
 pub var Task = kernel.Task{
@@ -174,7 +174,7 @@ fn check_function(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
     inline for (kernel.drivers.PCI_DRIVER_LIST) |driver| {
         for (driver.PCIVTable.target_codes) |code| {
             if (code.matches(info)) {
-                driver.PCIVTable.target_ret = info;
+                driver.PCIVTable.info = info;
                 driver.PCITask.run();
             }
         }
