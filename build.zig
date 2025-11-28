@@ -187,10 +187,10 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
             .optimize = optimize,
             .code_model = .kernel,
         }),
-        // There seems to be a bug in the custom x86 backend where soft-float causes a segfault
-        // Until that is fixed we are sticking with the LLVM backend
-        .use_llvm = true,
+        .use_llvm = false,
     });
+    kernel.bundle_ubsan_rt = false;
+    kernel.root_module.addAssemblyFile(b.path("src/asm.S"));
 
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.root_module.addImport("config", options.createModule());
@@ -204,7 +204,11 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
 
 fn addSSFN(kernel: *Step.Compile) void {
     const dep = kernel.step.owner.dependency("ssfn", .{});
-    kernel.addCSourceFile(.{ .file = kernel.step.owner.path("src/ssfn.c") });
+    kernel.root_module.addCSourceFile(.{
+        .file = kernel.step.owner.path("src/ssfn.c"),
+        .flags = &.{"-fno-sanitize=undefined"},
+        .language = .c,
+    });
     kernel.root_module.addImport("ssfn", kernel.step.owner.addTranslateC(.{
         .link_libc = false,
         .optimize = kernel.root_module.optimize.?,
@@ -216,13 +220,15 @@ fn addSSFN(kernel: *Step.Compile) void {
 
 fn addUACPI(kernel: *Step.Compile) void {
     const uacpi = kernel.step.owner.dependency("uacpi", .{});
-    kernel.addCSourceFiles(.{
+    kernel.root_module.addCSourceFiles(.{
         .root = uacpi.path("source"),
         .files = UACPI_SOURCES,
         .flags = &.{
             "-DUACPI_SIZED_FREES",
             "-DUACPI_DEFAULT_LOG_LEVEL=UACPI_LOG_INFO",
+            "-fno-sanitize=undefined",
         },
+        .language = .c,
     });
     const translateC = kernel.step.owner.addTranslateC(.{
         .link_libc = false,
@@ -242,10 +248,11 @@ fn addLimine(kernel: *Step.Compile) void {
 
 fn addLWIP(kernel: *Step.Compile) void {
     const dep = kernel.step.owner.dependency("lwip", .{});
-    kernel.addCSourceFiles(.{
+    kernel.root_module.addCSourceFiles(.{
         .root = dep.path("src"),
         .files = LWIP_SOURCES,
-        .flags = &.{},
+        .flags = &.{"-fno-sanitize=undefined"},
+        .language = .c,
     });
     const translateC = kernel.step.owner.addTranslateC(.{
         .link_libc = false,

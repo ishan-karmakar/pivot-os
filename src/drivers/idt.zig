@@ -51,37 +51,37 @@ pub var TaskAP = kernel.Task{
 };
 
 fn init() kernel.Task.Ret {
-    set_ent(0, create_exc_isr(0, false, "exception_handler"));
-    set_ent(1, create_exc_isr(1, false, "exception_handler"));
-    set_ent(2, create_exc_isr(2, false, "exception_handler"));
-    set_ent(3, create_exc_isr(3, false, "exception_handler"));
-    set_ent(4, create_exc_isr(4, false, "exception_handler"));
-    set_ent(5, create_exc_isr(5, false, "exception_handler"));
-    set_ent(6, create_exc_isr(6, false, "exception_handler"));
-    set_ent(7, create_exc_isr(7, false, "exception_handler"));
-    set_ent(8, create_exc_isr(8, true, "exception_handler"));
-    set_ent(10, create_exc_isr(10, true, "exception_handler"));
-    set_ent(11, create_exc_isr(11, true, "exception_handler"));
-    set_ent(12, create_exc_isr(12, true, "exception_handler"));
-    set_ent(13, create_exc_isr(13, true, "exception_handler"));
-    set_ent(14, create_exc_isr(14, true, "pf_handler"));
-    set_ent(16, create_exc_isr(16, false, "exception_handler"));
-    set_ent(17, create_exc_isr(17, true, "exception_handler"));
-    set_ent(18, create_exc_isr(18, false, "exception_handler"));
-    set_ent(19, create_exc_isr(19, false, "exception_handler"));
-    set_ent(20, create_exc_isr(20, false, "exception_handler"));
-    set_ent(21, create_exc_isr(21, false, "exception_handler"));
-    set_ent(22, create_exc_isr(22, false, "exception_handler"));
-    set_ent(23, create_exc_isr(23, false, "exception_handler"));
-    set_ent(24, create_exc_isr(24, false, "exception_handler"));
-    set_ent(25, create_exc_isr(25, false, "exception_handler"));
-    set_ent(26, create_exc_isr(26, false, "exception_handler"));
-    set_ent(27, create_exc_isr(27, false, "exception_handler"));
-    set_ent(28, create_exc_isr(28, false, "exception_handler"));
-    set_ent(29, create_exc_isr(29, true, "exception_handler"));
-    set_ent(30, create_exc_isr(30, true, "exception_handler"));
+    // set_ent(0, create_exc_isr(0, false, "exception_handler"));
+    // set_ent(1, create_exc_isr(1, false, "exception_handler"));
+    // set_ent(2, create_exc_isr(2, false, "exception_handler"));
+    // set_ent(3, create_exc_isr(3, false, "exception_handler"));
+    // set_ent(4, create_exc_isr(4, false, "exception_handler"));
+    // set_ent(5, create_exc_isr(5, false, "exception_handler"));
+    // set_ent(6, create_exc_isr(6, false, "exception_handler"));
+    // set_ent(7, create_exc_isr(7, false, "exception_handler"));
+    // set_ent(8, create_exc_isr(8, true, "exception_handler"));
+    // set_ent(10, create_exc_isr(10, true, "exception_handler"));
+    // set_ent(11, create_exc_isr(11, true, "exception_handler"));
+    // set_ent(12, create_exc_isr(12, true, "exception_handler"));
+    // set_ent(13, create_exc_isr(13, true, "exception_handler"));
+    // set_ent(14, create_exc_isr(14, true, "pf_handler"));
+    // set_ent(16, create_exc_isr(16, false, "exception_handler"));
+    // set_ent(17, create_exc_isr(17, true, "exception_handler"));
+    // set_ent(18, create_exc_isr(18, false, "exception_handler"));
+    // set_ent(19, create_exc_isr(19, false, "exception_handler"));
+    // set_ent(20, create_exc_isr(20, false, "exception_handler"));
+    // set_ent(21, create_exc_isr(21, false, "exception_handler"));
+    // set_ent(22, create_exc_isr(22, false, "exception_handler"));
+    // set_ent(23, create_exc_isr(23, false, "exception_handler"));
+    // set_ent(24, create_exc_isr(24, false, "exception_handler"));
+    // set_ent(25, create_exc_isr(25, false, "exception_handler"));
+    // set_ent(26, create_exc_isr(26, false, "exception_handler"));
+    // set_ent(27, create_exc_isr(27, false, "exception_handler"));
+    // set_ent(28, create_exc_isr(28, false, "exception_handler"));
+    // set_ent(29, create_exc_isr(29, true, "exception_handler"));
+    // set_ent(30, create_exc_isr(30, true, "exception_handler"));
 
-    inline for (0x20..256) |vec| set_ent(@intCast(vec), create_irq(vec));
+    // inline for (0x20..256) |vec| set_ent(@intCast(vec), create_irq(vec));
 
     idtr.addr = @intFromPtr(&rawTable);
     lidt();
@@ -226,9 +226,7 @@ export fn exception_handler(num: usize, ec: usize, status: *const cpu.IRETStatus
     @panic("Panicking...");
 }
 
-pub fn lidt() void {
-    asm volatile ("lidt (%[idtr])"
-        :
-        : [idtr] "r" (&idtr),
-    );
+extern fn lidt_internal(idtr: usize) void;
+pub inline fn lidt() void {
+    lidt_internal(@intFromPtr(&idtr));
 }
