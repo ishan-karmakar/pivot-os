@@ -70,6 +70,23 @@ pub const DeviceInfo = struct {
     capabilities: []Capability,
     interrupt_pin: u8,
     header_type: u8,
+
+    pub fn init(addr: uacpi.uacpi_pci_address) !?@This() {
+        const vendor_id = read_reg16(addr, 0);
+        if (vendor_id == 0xFFFF) return null;
+        return .{
+            .addr = addr,
+            .vendor_id = vendor_id,
+            .device_id = read_reg16(addr, 2),
+            .class_code = read_reg8(addr, 0x8 + 3),
+            .subclass_code = read_reg8(addr, 0x8 + 2),
+            .prog_if = read_reg8(addr, 0x8 + 1),
+            .interrupt_pin = read_reg8(addr, 0x3C + 1),
+            .header_type = read_reg8(addr, 0xC + 2),
+            .bars = try get_bars(addr),
+            .capabilities = try get_capabilities(addr),
+        };
+    }
 };
 
 pub var read_reg8: ReadFunc(u8) = undefined;
@@ -94,7 +111,7 @@ fn init() kernel.Task.Ret {
 
 pub fn scan_devices(segment: u16) !void {
     var addr = uacpi.uacpi_pci_address{ .segment = segment };
-    const bus_device_info = try get_device_info(addr) orelse return;
+    const bus_device_info = try DeviceInfo.init(addr) orelse return;
     if (bus_device_info.header_type & (1 << 7) == 0) {
         // Single PCI host controller
         addr.bus = 0;
@@ -102,7 +119,7 @@ pub fn scan_devices(segment: u16) !void {
     } else {
         for (0..8) |f| {
             addr.bus = @intCast(f);
-            if (try get_device_info(addr) == null) break;
+            if (try DeviceInfo.init(addr) == null) break;
             try check_bus(addr);
         }
     }
@@ -129,7 +146,7 @@ fn check_device(_addr: uacpi.uacpi_pci_address) !void {
 }
 
 fn check_function(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
-    const info = try get_device_info(addr) orelse return null;
+    const info = try DeviceInfo.init(addr) orelse return null;
     log.info(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
@@ -303,23 +320,6 @@ fn get_handler_prt_resource_callback(_gsi: ?*anyopaque, _resource: [*c]uacpi.uac
         else => {},
     }
     return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
-}
-
-pub fn get_device_info(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
-    const vendor_id = read_reg16(addr, 0);
-    if (vendor_id == 0xFFFF) return null;
-    return DeviceInfo{
-        .addr = addr,
-        .vendor_id = vendor_id,
-        .device_id = read_reg16(addr, 2),
-        .class_code = read_reg8(addr, 0x8 + 3),
-        .subclass_code = read_reg8(addr, 0x8 + 2),
-        .prog_if = read_reg8(addr, 0x8 + 1),
-        .interrupt_pin = read_reg8(addr, 0x3C + 1),
-        .header_type = read_reg8(addr, 0xC + 2),
-        .bars = try get_bars(addr),
-        .capabilities = try get_capabilities(addr),
-    };
 }
 
 fn get_bars(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.BAR {
