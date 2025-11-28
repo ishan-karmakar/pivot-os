@@ -33,6 +33,7 @@ pub var Task = kernel.Task{
     .init = init,
     .dependencies = &.{
         .{ .task = &kernel.drivers.intctrl.Task },
+        .{ .task = &kernel.drivers.acpi.NamespaceLoadTask },
         .{ .task = &pcie.Task, .accept_failure = true },
     },
 };
