@@ -83,14 +83,14 @@ fn resource_callback(_gsi: ?*anyopaque, _resource: [*c]uacpi.uacpi_resource) cal
     const resource: *uacpi.uacpi_resource = @ptrCast(_resource);
     switch (resource.type) {
         uacpi.UACPI_RESOURCE_TYPE_IRQ => {
-            const irq = resource.unnamed_0.irq;
+            const irq = &resource.unnamed_0.irq;
             if (irq.num_irqs >= 1) {
                 gsi.* = irq.irqs()[0];
                 return uacpi.UACPI_ITERATION_DECISION_BREAK;
             }
         },
         uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
-            const irq = resource.unnamed_0.extended_irq;
+            const irq = &resource.unnamed_0.extended_irq;
             if (irq.num_irqs >= 1) {
                 gsi.* = irq.irqs()[0];
                 return uacpi.UACPI_ITERATION_DECISION_BREAK;
