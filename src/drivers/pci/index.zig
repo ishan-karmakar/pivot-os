@@ -72,11 +72,10 @@ pub const DeviceInfo = struct {
     header_type: u8,
 
     pub fn init(addr: uacpi.uacpi_pci_address) !?@This() {
-        const vendor_id = read_reg16(addr, 0);
-        if (vendor_id == 0xFFFF) return null;
+        if (!is_valid(addr)) return null;
         return .{
             .addr = addr,
-            .vendor_id = vendor_id,
+            .vendor_id = read_reg16(addr, 0),
             .device_id = read_reg16(addr, 2),
             .class_code = read_reg8(addr, 0x8 + 3),
             .subclass_code = read_reg8(addr, 0x8 + 2),
@@ -86,6 +85,10 @@ pub const DeviceInfo = struct {
             .bars = try get_bars(addr),
             .capabilities = try get_capabilities(addr),
         };
+    }
+
+    pub inline fn is_valid(addr: uacpi.uacpi_pci_address) bool {
+        return read_reg16(addr, 0) != 0xFFFF;
     }
 };
 
@@ -119,7 +122,7 @@ pub fn scan_devices(segment: u16) !void {
     } else {
         for (0..8) |f| {
             addr.bus = @intCast(f);
-            if (try DeviceInfo.init(addr) == null) break;
+            if (!DeviceInfo.is_valid(addr)) break;
             try check_bus(addr);
         }
     }
