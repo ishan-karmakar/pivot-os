@@ -68,8 +68,35 @@ pub const DeviceInfo = struct {
     prog_if: u8,
     bars: []BAR,
     capabilities: []Capability,
-    interrupt_pin: u8,
+    interrupt_pin: ?u8,
     header_type: u8,
+
+    pub fn init(addr: uacpi.uacpi_pci_address) !?@This() {
+        if (!is_valid(addr)) return null;
+        const interrupt_pin = read_reg8(addr, 0x3C + 1);
+        return .{
+            .addr = addr,
+            .vendor_id = read_reg16(addr, 0),
+            .device_id = read_reg16(addr, 2),
+            .class_code = read_reg8(addr, 0x8 + 3),
+            .subclass_code = read_reg8(addr, 0x8 + 2),
+            .prog_if = read_reg8(addr, 0x8 + 1),
+            .interrupt_pin = if (interrupt_pin == 0) null else interrupt_pin - 1,
+            .header_type = read_reg8(addr, 0xC + 2),
+            .bars = try get_bars(addr),
+            .capabilities = try get_capabilities(addr),
+        };
+    }
+
+    pub inline fn is_valid(addr: uacpi.uacpi_pci_address) bool {
+        return read_reg16(addr, 0) != 0xFFFF;
+    }
+};
+
+pub const RoutingType = union(enum) {
+    MSI: void,
+    MSIX: void,
+    PRT: u32,
 };
 
 pub var read_reg8: ReadFunc(u8) = undefined;
@@ -94,7 +121,7 @@ fn init() kernel.Task.Ret {
 
 pub fn scan_devices(segment: u16) !void {
     var addr = uacpi.uacpi_pci_address{ .segment = segment };
-    const bus_device_info = try get_device_info(addr) orelse return;
+    const bus_device_info = try DeviceInfo.init(addr) orelse return;
     if (bus_device_info.header_type & (1 << 7) == 0) {
         // Single PCI host controller
         addr.bus = 0;
@@ -102,7 +129,7 @@ pub fn scan_devices(segment: u16) !void {
     } else {
         for (0..8) |f| {
             addr.bus = @intCast(f);
-            if (try get_device_info(addr) == null) break;
+            if (!DeviceInfo.is_valid(addr)) break;
             try check_bus(addr);
         }
     }
@@ -129,7 +156,7 @@ fn check_device(_addr: uacpi.uacpi_pci_address) !void {
 }
 
 fn check_function(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
-    const info = try get_device_info(addr) orelse return null;
+    const info = try DeviceInfo.init(addr) orelse return null;
     log.info(
         "Found function at address {} (VID: 0x{x}, DID: 0x{x}, CC: 0x{x}, SC: 0x{x}, PIF: 0x{x})",
         .{
@@ -152,73 +179,16 @@ fn check_function(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
     return info;
 }
 
-fn resource_callback(_: ?*anyopaque, _resource: [*c]uacpi.uacpi_resource) callconv(.c) uacpi.uacpi_iteration_decision {
-    const resource: *uacpi.uacpi_resource = @ptrCast(_resource);
-    switch (resource.type) {
-        uacpi.UACPI_RESOURCE_TYPE_IRQ => {
-            const irq = resource.unnamed_0.irq;
-            for (0..irq.num_irqs) |i| {
-                log.info("Possible GSI: {}", .{irq.irqs()[i]});
-            }
-        },
-        uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
-            const irq = resource.unnamed_0.extended_irq;
-            for (0..irq.num_irqs) |i| {
-                log.info("Possible GSI: {}", .{irq.irqs()[i]});
-            }
-        },
-        else => {},
-    }
-    return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
-}
-
-fn callback(data: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: uacpi.uacpi_u32) callconv(.c) uacpi.uacpi_iteration_decision {
-    const addr: *uacpi.uacpi_pci_address = @ptrCast(@alignCast(data));
-    if (!uacpi.uacpi_device_matches_pnp_id(node, @ptrCast(&PCI_DEVICE_PNP_IDS))) return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
-    var bbn: u64 = 0;
-    _ = uacpi.uacpi_eval_simple_integer(node, "_BBN", &bbn);
-    if (bbn != addr.bus) return uacpi.UACPI_ITERATION_DECISION_NEXT_PEER;
-    var prt: *uacpi.uacpi_pci_routing_table = undefined;
-    if (uacpi.uacpi_get_pci_routing_table(node, @ptrCast(&prt)) != uacpi.UACPI_STATUS_OK)
-        @panic("uACPI failed to get PCI routing table from node");
-    for (0..prt.num_entries) |i| {
-        const entry: uacpi.uacpi_pci_routing_table_entry = prt.entries()[i];
-        const device: u16 = @intCast(entry.address >> 16);
-        const function: u16 = @truncate(entry.address);
-        if (device != addr.device) continue;
-        if (function != 0xFFFF and (function != addr.function)) continue;
-        const pin = read_reg8(addr.*, 0x3C + 1);
-        if (pin == 0) {
-            log.warn("PCI device does not use an interrupt pin", .{});
-            return uacpi.UACPI_ITERATION_DECISION_BREAK;
-        } else if (pin - 1 != entry.pin) continue;
-        // var gsi = entry.index;
-        if (entry.source) |source| {
-            if (uacpi.uacpi_for_each_device_resource(source, "_CRS", resource_callback, null) != uacpi.UACPI_STATUS_OK)
-                @panic("Failed to iterate over resources of link device");
-        }
-    }
-    uacpi.uacpi_free_pci_routing_table(prt);
-    // PCI devices cannot be nested, so no point of doing it recursively
-    return uacpi.UACPI_ITERATION_DECISION_NEXT_PEER;
-}
-
-pub const RoutingType = union(enum) {
-    MSI: void,
-    MSIX: void,
-    PRT: u32,
-};
-
-pub fn setup_handlers(addr: uacpi.uacpi_pci_address, handlers: []*idt.HandlerData) RoutingType {
+pub fn setup_handlers(info: DeviceInfo, handlers: []*idt.HandlerData) RoutingType {
     // Try MSI-X first, then return handler if success
     // Try MSI second, then return handler if success
     if (handlers.len != 1) @panic("Exactly one handler needed for PRT based routing");
-    return .{ .PRT = get_handler_prt(addr, handlers[0]) };
+    return .{ .PRT = get_handler_prt(info, handlers[0]) };
 }
 
 // Get handler through PCI routing table
-fn get_handler_prt(addr: uacpi.uacpi_pci_address, handler: *idt.HandlerData) u32 {
-    var data = @Tuple(&.{ uacpi.uacpi_pci_address, u32 }){ addr, 0 };
+fn get_handler_prt(info: DeviceInfo, handler: *idt.HandlerData) u32 {
+    var data = .{ info, @as(u32, 0) };
     if (uacpi.uacpi_namespace_for_each_child(
         uacpi.uacpi_namespace_get_predefined(uacpi.UACPI_PREDEFINED_NAMESPACE_SB),
         get_handler_prt_device_callback,
@@ -234,8 +204,8 @@ fn get_handler_prt(addr: uacpi.uacpi_pci_address, handler: *idt.HandlerData) u32
 }
 
 fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: uacpi.uacpi_u32) callconv(.c) uacpi.uacpi_iteration_decision {
-    const data: *@Tuple(&.{ uacpi.uacpi_pci_address, u32 }) = @ptrCast(@alignCast(_data));
-    const addr = data.@"0";
+    const data: *@Tuple(&.{ DeviceInfo, u32 }) = @ptrCast(@alignCast(_data));
+    const info = data.@"0";
 
     // Check if the device is actually a PCI bus
     if (!uacpi.uacpi_device_matches_pnp_id(node, @ptrCast(&PCI_DEVICE_PNP_IDS)))
@@ -244,7 +214,7 @@ fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_names
     // Check if the bus number of PCI device is same as actual device (i.e. is device on this PCI bus?)
     var bbn: u64 = 0;
     _ = uacpi.uacpi_eval_simple_integer(node, "_BBN", &bbn);
-    if (bbn != addr.bus)
+    if (bbn != info.addr.bus)
         return uacpi.UACPI_ITERATION_DECISION_NEXT_PEER;
 
     // Get the PCI routing table
@@ -255,8 +225,7 @@ fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_names
     }
 
     // Get interrupt pin from the device's config space
-    const pin = read_reg8(addr, 0x3C + 1);
-    if (pin == 0) {
+    if (info.interrupt_pin == null) {
         log.warn("PCI device does not use an interrupt pin", .{});
         return uacpi.UACPI_ITERATION_DECISION_BREAK;
     }
@@ -266,9 +235,9 @@ fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_names
         const entry: uacpi.uacpi_pci_routing_table_entry = prt.entries()[i];
         const function: u16 = @truncate(entry.address);
         const device: u16 = @intCast(entry.address >> 16);
-        if (function != 0xFFFF and function != addr.function) continue;
-        if (device != 0xFFFF and device != addr.device) continue;
-        if (pin - 1 != entry.pin) continue;
+        if (function != 0xFFFF and function != info.addr.function) continue;
+        if (device != 0xFFFF and device != info.addr.device) continue;
+        if (info.interrupt_pin != entry.pin) continue;
 
         // If there is no link device, then entry.index can be treated as GSI
         data.@"1" = entry.index;
@@ -303,23 +272,6 @@ fn get_handler_prt_resource_callback(_gsi: ?*anyopaque, _resource: [*c]uacpi.uac
         else => {},
     }
     return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
-}
-
-pub fn get_device_info(addr: uacpi.uacpi_pci_address) !?DeviceInfo {
-    const vendor_id = read_reg16(addr, 0);
-    if (vendor_id == 0xFFFF) return null;
-    return DeviceInfo{
-        .addr = addr,
-        .vendor_id = vendor_id,
-        .device_id = read_reg16(addr, 2),
-        .class_code = read_reg8(addr, 0x8 + 3),
-        .subclass_code = read_reg8(addr, 0x8 + 2),
-        .prog_if = read_reg8(addr, 0x8 + 1),
-        .interrupt_pin = read_reg8(addr, 0x3C + 1),
-        .header_type = read_reg8(addr, 0xC + 2),
-        .bars = try get_bars(addr),
-        .capabilities = try get_capabilities(addr),
-    };
 }
 
 fn get_bars(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.BAR {
