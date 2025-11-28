@@ -188,7 +188,7 @@ pub fn setup_handlers(info: DeviceInfo, handlers: []*idt.HandlerData) RoutingTyp
 
 // Get handler through PCI routing table
 fn get_handler_prt(info: DeviceInfo, handler: *idt.HandlerData) u32 {
-    var data = .{ info, 0 };
+    var data = .{ info, @as(u32, 0) };
     if (uacpi.uacpi_namespace_for_each_child(
         uacpi.uacpi_namespace_get_predefined(uacpi.UACPI_PREDEFINED_NAMESPACE_SB),
         get_handler_prt_device_callback,
