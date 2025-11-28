@@ -68,11 +68,12 @@ pub const DeviceInfo = struct {
     prog_if: u8,
     bars: []BAR,
     capabilities: []Capability,
-    interrupt_pin: u8,
+    interrupt_pin: ?u8,
     header_type: u8,
 
     pub fn init(addr: uacpi.uacpi_pci_address) !?@This() {
         if (!is_valid(addr)) return null;
+        const interrupt_pin = read_reg8(addr, 0x3C + 1);
         return .{
             .addr = addr,
             .vendor_id = read_reg16(addr, 0),
@@ -80,7 +81,7 @@ pub const DeviceInfo = struct {
             .class_code = read_reg8(addr, 0x8 + 3),
             .subclass_code = read_reg8(addr, 0x8 + 2),
             .prog_if = read_reg8(addr, 0x8 + 1),
-            .interrupt_pin = read_reg8(addr, 0x3C + 1),
+            .interrupt_pin = if (interrupt_pin == 0) null else interrupt_pin - 1,
             .header_type = read_reg8(addr, 0xC + 2),
             .bars = try get_bars(addr),
             .capabilities = try get_capabilities(addr),
@@ -224,7 +225,7 @@ fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_names
     }
 
     // Get interrupt pin from the device's config space
-    if (info.interrupt_pin == 0) {
+    if (info.interrupt_pin == null) {
         log.warn("PCI device does not use an interrupt pin", .{});
         return uacpi.UACPI_ITERATION_DECISION_BREAK;
     }
@@ -236,7 +237,7 @@ fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_names
         const device: u16 = @intCast(entry.address >> 16);
         if (function != 0xFFFF and function != info.addr.function) continue;
         if (device != 0xFFFF and device != info.addr.device) continue;
-        if (info.interrupt_pin - 1 != entry.pin) continue;
+        if (info.interrupt_pin != entry.pin) continue;
 
         // If there is no link device, then entry.index can be treated as GSI
         data.@"1" = entry.index;
