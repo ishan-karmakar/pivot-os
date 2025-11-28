@@ -69,7 +69,7 @@ fn mapper_ap_init() kernel.Task.Ret {
 fn vmm_init() kernel.Task.Ret {
     // The VMM size will be a percentage of the total free space from the PMM rounded up to the nearest power of two
     // The minimum size will be 0.1% of total free space
-    const vmm_size = std.math.ceilPowerOfTwoAssert(usize, pmm.get_free_size() * 4 / 1000);
+    const vmm_size = std.math.ceilPowerOfTwoAssert(usize, pmm.get_free_size() * 2 / 100);
     const mmap = MMAP_REQUEST.response.?.get_entries();
     const last = mmap[mmap.len - 1];
     kvmm = VMM.create(virt(0) + last.base + last.length, vmm_size, 0b11 | (1 << 63), &kmapper);
@@ -80,7 +80,7 @@ fn kheap_init() kernel.Task.Ret {
     // The kernel heap size will be a percentage of the total free space from the PMM
     // For now it will be 0.1%
     // It must be less than or equal to the VMM size
-    const kheap_size = (pmm.get_free_size() * 2 / 1000) / 0x1000 * 0x1000;
+    const kheap_size = (pmm.get_free_size() * 1 / 100) / 0x1000 * 0x1000;
     kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, kheap_size) catch return .failed);
     return .success;
 }
