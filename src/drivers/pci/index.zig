@@ -26,7 +26,7 @@ pub const Codes = struct {
 
 pub const VTable = struct {
     target_codes: []const Codes,
-    target_ret: DeviceInfo,
+    target_ret: DeviceInfo = undefined,
 };
 
 pub var Task = kernel.Task{
@@ -68,6 +68,7 @@ pub const DeviceInfo = struct {
     class_code: u8,
     subclass_code: u8,
     prog_if: u8,
+    command: u16,
     bars: []BAR,
     capabilities: []Capability,
     interrupt_pin: ?u8,
@@ -83,6 +84,7 @@ pub const DeviceInfo = struct {
             .class_code = read_reg8(addr, 0x8 + 3),
             .subclass_code = read_reg8(addr, 0x8 + 2),
             .prog_if = read_reg8(addr, 0x8 + 1),
+            .command = read_reg16(addr, 0x4),
             .interrupt_pin = if (interrupt_pin == 0) null else interrupt_pin - 1,
             .header_type = read_reg8(addr, 0xC + 2),
             .bars = try get_bars(addr),
@@ -92,6 +94,11 @@ pub const DeviceInfo = struct {
 
     pub inline fn is_valid(addr: uacpi.uacpi_pci_address) bool {
         return read_reg16(addr, 0) != 0xFFFF;
+    }
+
+    pub fn write_command(self: *@This(), cmd: u16) void {
+        self.command = cmd;
+        write_reg16(self.addr, 0x4, self.command);
     }
 };
 
