@@ -1,5 +1,6 @@
 const pci = @import("pci.zig");
 const pcie = @import("pcie.zig");
+const prt = @import("prt.zig");
 const kernel = @import("root");
 const uacpi = @import("uacpi");
 const std = @import("std");
@@ -33,6 +34,7 @@ pub var Task = kernel.Task{
     .init = init,
     .dependencies = &.{
         .{ .task = &kernel.drivers.intctrl.Task },
+        .{ .task = &kernel.drivers.acpi.NamespaceLoadTask },
         .{ .task = &pcie.Task, .accept_failure = true },
     },
 };
@@ -106,12 +108,6 @@ pub var write_reg8: WriteFunc(u8) = undefined;
 pub var write_reg16: WriteFunc(u16) = undefined;
 pub var write_reg32: WriteFunc(u32) = undefined;
 
-const PCI_DEVICE_PNP_IDS = [_][*c]const u8{
-    "PNP0A03",
-    "PNP0A08",
-    @ptrCast(uacpi.UACPI_NULL),
-};
-
 fn init() kernel.Task.Ret {
     if (pcie.Task.ret == .success) return .success;
     log.warn("PCIe failed to initialize, falling back to legacy PCI", .{});
@@ -183,95 +179,7 @@ pub fn setup_handlers(info: DeviceInfo, handlers: []*idt.HandlerData) RoutingTyp
     // Try MSI-X first, then return handler if success
     // Try MSI second, then return handler if success
     if (handlers.len != 1) @panic("Exactly one handler needed for PRT based routing");
-    return .{ .PRT = get_handler_prt(info, handlers[0]) };
-}
-
-// Get handler through PCI routing table
-fn get_handler_prt(info: DeviceInfo, handler: *idt.HandlerData) u32 {
-    var data = .{ info, @as(u32, 0) };
-    if (uacpi.uacpi_namespace_for_each_child(
-        uacpi.uacpi_namespace_get_predefined(uacpi.UACPI_PREDEFINED_NAMESPACE_SB),
-        get_handler_prt_device_callback,
-        null,
-        uacpi.UACPI_OBJECT_DEVICE_BIT,
-        // TODO: Could restrict to depth 1?
-        uacpi.UACPI_MAX_DEPTH_ANY,
-        &data,
-        // &addr,
-    ) != uacpi.UACPI_STATUS_OK) @panic("Failed to iterate over PCI devices");
-    _ = kernel.drivers.intctrl.map(idt.handler2vec(handler), data.@"1") catch @panic("Failed to map PCI device's GSI");
-    return data.@"1";
-}
-
-fn get_handler_prt_device_callback(_data: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: uacpi.uacpi_u32) callconv(.c) uacpi.uacpi_iteration_decision {
-    const data: *@Tuple(&.{ DeviceInfo, u32 }) = @ptrCast(@alignCast(_data));
-    const info = data.@"0";
-
-    // Check if the device is actually a PCI bus
-    if (!uacpi.uacpi_device_matches_pnp_id(node, @ptrCast(&PCI_DEVICE_PNP_IDS)))
-        return uacpi.UACPI_ITERATION_DECISION_NEXT_PEER;
-
-    // Check if the bus number of PCI device is same as actual device (i.e. is device on this PCI bus?)
-    var bbn: u64 = 0;
-    _ = uacpi.uacpi_eval_simple_integer(node, "_BBN", &bbn);
-    if (bbn != info.addr.bus)
-        return uacpi.UACPI_ITERATION_DECISION_NEXT_PEER;
-
-    // Get the PCI routing table
-    var prt: *uacpi.uacpi_pci_routing_table = undefined;
-    if (uacpi.uacpi_get_pci_routing_table(node, @ptrCast(&prt)) != uacpi.UACPI_STATUS_OK) {
-        log.warn("Failed to get the PCI routing table from PCI device", .{});
-        return uacpi.UACPI_ITERATION_DECISION_BREAK;
-    }
-
-    // Get interrupt pin from the device's config space
-    if (info.interrupt_pin == null) {
-        log.warn("PCI device does not use an interrupt pin", .{});
-        return uacpi.UACPI_ITERATION_DECISION_BREAK;
-    }
-
-    // Iterate over the routing table entries in search for one that matches our device
-    for (0..prt.num_entries) |i| {
-        const entry: uacpi.uacpi_pci_routing_table_entry = prt.entries()[i];
-        const function: u16 = @truncate(entry.address);
-        const device: u16 = @intCast(entry.address >> 16);
-        if (function != 0xFFFF and function != info.addr.function) continue;
-        if (device != 0xFFFF and device != info.addr.device) continue;
-        if (info.interrupt_pin != entry.pin) continue;
-
-        // If there is no link device, then entry.index can be treated as GSI
-        data.@"1" = entry.index;
-        if (entry.source) |source| {
-            if (uacpi.uacpi_for_each_device_resource(source, "_CRS", get_handler_prt_resource_callback, &data.@"1") != uacpi.UACPI_STATUS_OK) {
-                log.warn("Failed to iterate over resources of link device", .{});
-                return uacpi.UACPI_ITERATION_DECISION_BREAK;
-            }
-        }
-    }
-    return uacpi.UACPI_ITERATION_DECISION_NEXT_PEER;
-}
-
-fn get_handler_prt_resource_callback(_gsi: ?*anyopaque, _resource: [*c]uacpi.uacpi_resource) callconv(.c) uacpi.uacpi_iteration_decision {
-    const gsi: *u32 = @ptrCast(@alignCast(_gsi));
-    const resource: *uacpi.uacpi_resource = @ptrCast(_resource);
-    switch (resource.type) {
-        uacpi.UACPI_RESOURCE_TYPE_IRQ => {
-            const irq = resource.unnamed_0.irq;
-            if (irq.num_irqs > 1) {
-                gsi.* = irq.irqs()[0];
-                return uacpi.UACPI_ITERATION_DECISION_BREAK;
-            }
-        },
-        uacpi.UACPI_RESOURCE_TYPE_EXTENDED_IRQ => {
-            const irq = resource.unnamed_0.extended_irq;
-            if (irq.num_irqs > 1) {
-                gsi.* = irq.irqs()[0];
-                return uacpi.UACPI_ITERATION_DECISION_BREAK;
-            }
-        },
-        else => {},
-    }
-    return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
+    return .{ .PRT = prt.setup_handler(info, handlers[0]) };
 }
 
 fn get_bars(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.BAR {
