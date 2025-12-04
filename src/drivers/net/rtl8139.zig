@@ -91,13 +91,17 @@ fn irq_handler(_: ?*anyopaque, cpu_status: *cpu.Status) *const cpu.Status {
             const packet_raw: [*]u16 = @ptrFromInt(@intFromPtr(buffer.ptr) + rx_offset);
             const packet_status = packet_raw[0];
             const packet_len = packet_raw[1];
-            log.info("Received packet with length: {} and status {}", .{ packet_len, packet_status });
-            if (packet_status & (1 << 13) != 0) {
-                log.info("Received broadcast packet", .{});
-            } else if (packet_status & (1 << 14) != 0) {
-                log.info("Received unicast packet", .{});
-            } else if (packet_status & (1 << 15) != 0) {
-                log.info("Received multicast packet", .{});
+            if (packet_status & 1 != 0) {
+                log.info("Received packet with length: {} and status {}", .{ packet_len, packet_status });
+                if (packet_status & (1 << 13) != 0) {
+                    log.info("Received broadcast packet", .{});
+                } else if (packet_status & (1 << 14) != 0) {
+                    log.info("Received unicast packet", .{});
+                } else if (packet_status & (1 << 15) != 0) {
+                    log.info("Received multicast packet", .{});
+                }
+            } else {
+                log.debug("Frame is corrupt", .{});
             }
 
             rx_offset = ((rx_offset + packet_len + 4 + 3) & ~@as(u16, 3)) % BUFFER_SIZE;
