@@ -4,11 +4,48 @@ const pci = kernel.drivers.pci;
 const serial = kernel.drivers.serial;
 const cpu = kernel.drivers.cpu;
 
-const CONFIG_1 = 0x52;
-const CMD = 0x37;
-const RBSTART = 0x30;
-const IMR = 0x3C;
-const RCR = 0x44;
+const IORegisters = struct {
+    pub const CONFIG_1 = 0x52;
+    pub const CMD = 0x37;
+    pub const RBSTART = 0x30;
+    pub const IMR = 0x3C;
+    pub const RCR = 0x44;
+    pub const MAC_LOW = 0;
+    pub const MAC_HIGH = 4;
+    pub const ISR = 0x3E;
+    pub const CBR = 0x3A;
+    pub const CAPR = 0x38;
+};
+
+const InterruptStatusRegister = packed struct {
+    ROK: bool,
+    RER: bool,
+    TOK: bool,
+    TER: bool,
+    RXOVW: bool,
+    PUN: bool,
+    FOVW: bool,
+    reserved: u6,
+    LenChg: bool,
+    TimeOut: bool,
+    SERR: bool,
+};
+
+const Header = packed struct {
+    status: packed struct {
+        ROK: bool,
+        FAE: bool,
+        CRC: bool,
+        LONG: bool,
+        RUNT: bool,
+        ISE: bool,
+        reserved: u7,
+        BAR: bool,
+        PAM: bool,
+        MAR: bool,
+    },
+    len: u16,
+};
 
 const BUFFER_SIZE = 8192 + 16 + 1500;
 
@@ -47,10 +84,10 @@ fn init() kernel.Task.Ret {
     }
 
     PCIVTable.info.write_command(PCIVTable.info.command | (1 << 2));
-    serial.out(io_base + CONFIG_1, @as(u8, 0));
+    serial.out(io_base + IORegisters.CONFIG_1, @as(u8, 0));
 
-    serial.out(io_base + CMD, @as(u8, 0x10));
-    while (serial.in(io_base + CMD, u8) & 0x10 != 0) {}
+    serial.out(io_base + IORegisters.CMD, @as(u8, 0x10));
+    while (serial.in(io_base + IORegisters.CMD, u8) & 0x10 != 0) {}
 
     const page2 = kernel.lib.mem.pmm.frame();
     const page1 = kernel.lib.mem.pmm.frame();
@@ -59,17 +96,19 @@ fn init() kernel.Task.Ret {
     kernel.lib.mem.kmapper.map(page2, kernel.lib.mem.virt(page2), 0b11 | (1 << 63));
     buffer = @as([*]u8, @ptrFromInt(kernel.lib.mem.virt(page1)))[0..BUFFER_SIZE];
 
-    serial.out(io_base + RBSTART, @as(u32, @intCast(page1)));
-    serial.out(io_base + IMR, @as(u16, 0x5));
-    serial.out(io_base + RCR, @as(u32, 0b1110 | (1 << 7)));
-    serial.out(io_base + CMD, @as(u8, 0x0C));
+    serial.out(io_base + IORegisters.RBSTART, @as(u32, @intCast(page1)));
+    serial.out(io_base + IORegisters.IMR, @as(u16, 0x5));
+    serial.out(io_base + IORegisters.RCR, @as(u32, 0b1110 | (1 << 7)));
+    serial.out(io_base + IORegisters.CMD, @as(u8, 0x0C));
+
+    log.debug("MAC Address: {any}", .{get_mac()});
 
     return .success;
 }
 
 fn get_mac() [6]u8 {
-    const mac_low = serial.in(io_base, u32);
-    const mac_high = serial.in(io_base + 4, u16);
+    const mac_low = serial.in(io_base + IORegisters.MAC_LOW, u32);
+    const mac_high = serial.in(io_base + IORegisters.MAC_HIGH, u16);
     return .{
         @intCast(mac_high >> 8),
         @truncate(mac_high),
@@ -83,34 +122,34 @@ fn get_mac() [6]u8 {
 var rx_offset: u16 = 0;
 
 fn irq_handler(_: ?*anyopaque, cpu_status: *cpu.Status) *const cpu.Status {
-    const status = serial.in(io_base + 0x3E, u16);
+    var status: InterruptStatusRegister = @bitCast(serial.in(io_base + IORegisters.ISR, u16));
 
     // Check for receive OK
-    if ((status & 1) != 0) {
-        while (serial.in(io_base + 0x3A, u16) != rx_offset) {
-            const packet_raw: [*]u16 = @ptrFromInt(@intFromPtr(buffer.ptr) + rx_offset);
-            const packet_status = packet_raw[0];
-            const packet_len = packet_raw[1];
-            if (packet_status & 1 != 0) {
-                log.info("Received packet with length: {} and status {}", .{ packet_len, packet_status });
-                if (packet_status & (1 << 13) != 0) {
+    if (status.ROK) {
+        while (serial.in(io_base + IORegisters.CBR, u16) != rx_offset) {
+            const header = @as(*const Header, @ptrFromInt(@intFromPtr(buffer.ptr) + rx_offset)).*;
+            if (header.status.ROK) {
+                log.info("Received packet with length: {} and status {}", .{ header.len, header.status });
+                if (header.status.BAR) {
                     log.info("Received broadcast packet", .{});
-                } else if (packet_status & (1 << 14) != 0) {
+                } else if (header.status.PAM) {
                     log.info("Received unicast packet", .{});
-                } else if (packet_status & (1 << 15) != 0) {
+                } else if (header.status.MAR) {
                     log.info("Received multicast packet", .{});
                 }
             } else {
                 log.debug("Frame is corrupt", .{});
             }
 
-            rx_offset = ((rx_offset + packet_len + 4 + 3) & ~@as(u16, 3)) % BUFFER_SIZE;
-            serial.out(io_base + 0x38, rx_offset);
+            rx_offset = ((rx_offset + header.len + @sizeOf(Header) + 3) & ~@as(u16, 3)) % BUFFER_SIZE;
+            serial.out(io_base + IORegisters.CAPR, rx_offset);
         }
         log.info("Finished receiving packet", .{});
 
         // clear ROK bit in ISR
-        serial.out(io_base + 0x3E, @as(u16, 0x01));
+        status = @bitCast(@as(u16, 0));
+        status.ROK = true;
+        serial.out(io_base + IORegisters.ISR, @as(u16, @bitCast(status)));
     }
 
     return cpu_status;
