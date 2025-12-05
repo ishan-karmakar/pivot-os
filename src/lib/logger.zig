@@ -34,3 +34,7 @@ fn kernelDrain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io
 
     return total;
 }
+
+export fn _putchar(char: u8) void {
+    kernel.drivers.fb.write(&.{char});
+}

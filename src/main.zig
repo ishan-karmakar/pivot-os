@@ -3,8 +3,6 @@ pub const drivers = @import("drivers/index.zig");
 const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);
-const config = @import("config");
-const lwip = @import("lwip");
 
 pub const std_options = std.Options{
     .logFn = lib.logger.logger,
