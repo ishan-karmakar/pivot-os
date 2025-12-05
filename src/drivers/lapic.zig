@@ -80,7 +80,7 @@ fn ap_init() kernel.Task.Ret {
 
 pub fn ipi(dest: u8, vec: u8) void {
     if (read_reg == x2apic_read_reg) {
-        write_reg(ICRLO, (@as(u64, dest) << 56) | vec);
+        write_reg(ICRLO, (@as(u64, dest) << 32) | vec);
     } else {
         write_reg(ICRHI, @as(u32, dest) << 24);
         write_reg(ICRLO, vec);
