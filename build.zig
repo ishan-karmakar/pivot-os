@@ -199,12 +199,13 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
     addLimine(kernel);
     addUACPI(kernel);
     addLWIP(kernel);
+    addPrintf(kernel);
     return kernel;
 }
 
 fn addSSFN(kernel: *Step.Compile) void {
     const dep = kernel.step.owner.dependency("ssfn", .{});
-    kernel.addCSourceFile(.{ .file = kernel.step.owner.path("src/ssfn.c") });
+    kernel.root_module.addCSourceFile(.{ .file = kernel.step.owner.path("src/ssfn.c") });
     kernel.root_module.addImport("ssfn", kernel.step.owner.addTranslateC(.{
         .link_libc = false,
         .optimize = kernel.root_module.optimize.?,
@@ -216,7 +217,7 @@ fn addSSFN(kernel: *Step.Compile) void {
 
 fn addUACPI(kernel: *Step.Compile) void {
     const uacpi = kernel.step.owner.dependency("uacpi", .{});
-    kernel.addCSourceFiles(.{
+    kernel.root_module.addCSourceFiles(.{
         .root = uacpi.path("source"),
         .files = UACPI_SOURCES,
         .flags = &.{
@@ -242,7 +243,7 @@ fn addLimine(kernel: *Step.Compile) void {
 
 fn addLWIP(kernel: *Step.Compile) void {
     const dep = kernel.step.owner.dependency("lwip", .{});
-    kernel.addCSourceFiles(.{
+    kernel.root_module.addCSourceFiles(.{
         .root = dep.path("src"),
         .files = LWIP_SOURCES,
         .flags = &.{},
@@ -258,4 +259,16 @@ fn addLWIP(kernel: *Step.Compile) void {
     kernel.root_module.addImport("lwip", translateC.createModule());
     kernel.addIncludePath(dep.path("src/include"));
     kernel.addIncludePath(kernel.step.owner.path("src/lwip"));
+}
+
+fn addPrintf(kernel: *Step.Compile) void {
+    const dep = kernel.step.owner.dependency("printf", .{});
+    kernel.root_module.addCSourceFile(.{ .file = dep.path("printf.c") });
+    const translateC = kernel.step.owner.addTranslateC(.{
+        .link_libc = false,
+        .optimize = kernel.root_module.optimize.?,
+        .target = kernel.root_module.resolved_target.?,
+        .root_source_file = dep.path("printf.h"),
+    });
+    kernel.root_module.addImport("printf", translateC.createModule());
 }

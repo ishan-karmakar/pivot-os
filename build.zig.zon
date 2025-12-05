@@ -56,6 +56,10 @@
             .url = "git+https://github.com/lwip-tcpip/lwip#4599f551dead9eac233b91c0b9ee5879f5d0620a",
             .hash = "N-V-__8AANzNdQAY471YRuPP6HaYoVa5VHQC0g-khTT7H6rZ",
         },
+        .printf = .{
+            .url = "https://api.github.com/repos/mpaland/printf/zipball/d3b984684bb8a8bdc48cc7a1abecb93ce59bbe3e",
+            .hash = "N-V-__8AAAtwCQCm0Joa7hrSO-YKYxoZmIxSUEpnj4IWSlm_",
+        },
     },
 
     // Specifies the set of files and directories that are included in this package.
