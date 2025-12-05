@@ -4,6 +4,7 @@ const pci = kernel.drivers.pci;
 const serial = kernel.drivers.serial;
 const cpu = kernel.drivers.cpu;
 const lwip = @import("lwip");
+const std = @import("std");
 
 const IORegisters = struct {
     pub const CONFIG_1 = 0x52;
@@ -90,14 +91,13 @@ fn init() kernel.Task.Ret {
     serial.out(io_base + IORegisters.CMD, @as(u8, 0x10));
     while (serial.in(io_base + IORegisters.CMD, u8) & 0x10 != 0) {}
 
-    const page2 = kernel.lib.mem.pmm.frame();
-    const page1 = kernel.lib.mem.pmm.frame();
-    if (page1 + 0x1000 != page2) return .failed;
-    kernel.lib.mem.kmapper.map(page1, kernel.lib.mem.virt(page1), 0b11 | (1 << 63));
-    kernel.lib.mem.kmapper.map(page2, kernel.lib.mem.virt(page2), 0b11 | (1 << 63));
-    buffer = @as([*]u8, @ptrFromInt(kernel.lib.mem.virt(page1)))[0..BUFFER_SIZE];
+    const num_pages = std.math.divCeil(usize, BUFFER_SIZE, 0x1000) catch return .failed;
+    const pages = kernel.lib.mem.pmm.frames(num_pages);
+    for (0..num_pages) |i|
+        kernel.lib.mem.kmapper.map(pages + 0x1000 * i, kernel.lib.mem.virt(pages + 0x1000 + i), 0b11 | (1 << 63));
+    buffer = @as([*]u8, @ptrFromInt(kernel.lib.mem.virt(pages)))[0..BUFFER_SIZE];
 
-    serial.out(io_base + IORegisters.RBSTART, @as(u32, @intCast(page1)));
+    serial.out(io_base + IORegisters.RBSTART, @as(u32, @intCast(pages)));
     serial.out(io_base + IORegisters.IMR, @as(u16, 0x5));
     serial.out(io_base + IORegisters.RCR, @as(u32, 0b1110 | (1 << 7)));
     serial.out(io_base + IORegisters.CMD, @as(u8, 0x0C));
