@@ -66,12 +66,35 @@ pub fn get_free_size() usize {
 pub fn frame() usize {
     while (mutex.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer mutex.store(false, .release);
-    const hregion: *FreeRegion = head_region orelse @panic("No region has been added yet");
+    const hregion = head_region orelse @panic("No region has been added yet");
     const frm = hregion.frame();
     if (hregion.num_pages == 0) {
         head_region = hregion.next;
     }
     return frm;
+}
+
+pub fn frames(num_pages: usize) usize {
+    while (mutex.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    defer mutex.store(false, .release);
+    var prev_region: ?*FreeRegion = null;
+    var region = head_region orelse @panic("No region has been added yet");
+    while (true) : ({
+        prev_region = region;
+        region = region.next orelse @panic("No regions are big enough to satisfy request");
+    }) {
+        if (region.num_pages >= num_pages) {
+            region.num_pages -= num_pages - 1;
+            const frm = region.frame();
+            if (region.num_pages == 0) {
+                if (prev_region) |pr| {
+                    pr.next = region.next;
+                } else if (head_region.? == region)
+                    head_region = region.next;
+            }
+            return frm;
+        }
+    }
 }
 
 /// Free a frame allocated with frame()
