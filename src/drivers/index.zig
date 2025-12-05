@@ -15,7 +15,7 @@ pub const cpu = @import("cpu.zig");
 pub const lapic = @import("lapic.zig");
 pub const lwip = @import("lwip.zig");
 
-pub const PCI_DRIVER_LIST = [_]type{};
+pub const PCI_DRIVER_LIST = [_]type{@import("net/rtl8139.zig")};
 
 pub const ACPI_DRIVER_LIST = [_]type{};
 
