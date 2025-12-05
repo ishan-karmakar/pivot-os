@@ -18,17 +18,7 @@ pub var Task = kernel.Task{
 
 fn init() kernel.Task.Ret {
     lwip.lwip_init();
-    var netif = lwip.netif{};
-    var ipaddr = lwip.ip4_addr_t{};
-    var netmask = lwip.ip4_addr_t{};
-    var gw = lwip.ip4_addr_t{};
-    _ = lwip.netif_add(&netif, &ipaddr, &netmask, &gw, null, if_init, lwip.ethernet_input);
     return .success;
-}
-
-fn if_init(netif: [*c]lwip.netif) callconv(.c) lwip.err_t {
-    _ = netif;
-    @panic("if_init()");
 }
 
 export fn strncmp(s1: [*c]const u8, s2: [*c]const u8, num: usize) c_int {

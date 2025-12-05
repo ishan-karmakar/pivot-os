@@ -3,6 +3,7 @@ const log = @import("std").log.scoped(.rtl8139);
 const pci = kernel.drivers.pci;
 const serial = kernel.drivers.serial;
 const cpu = kernel.drivers.cpu;
+const lwip = @import("lwip");
 
 const IORegisters = struct {
     pub const CONFIG_1 = 0x52;
@@ -60,7 +61,7 @@ pub var PCIVTable = pci.VTable{ .target_codes = &.{.{
 pub var PCITask = kernel.Task{
     .name = "RTL8139 PCI Driver",
     .init = init,
-    .dependencies = &.{},
+    .dependencies = &.{.{ .task = &kernel.drivers.lwip.Task }},
 };
 
 var io_base: u16 = undefined;
@@ -101,9 +102,20 @@ fn init() kernel.Task.Ret {
     serial.out(io_base + IORegisters.RCR, @as(u32, 0b1110 | (1 << 7)));
     serial.out(io_base + IORegisters.CMD, @as(u8, 0x0C));
 
-    log.debug("MAC Address: {any}", .{get_mac()});
+    var netif = lwip.netif{};
+    var ipaddr = lwip.ip4_addr_t{ .addr = 0xC0A85C64 }; // 192.168.86.100
+    var netmask = lwip.ip4_addr_t{ .addr = 0xFFFFFF00 };
+    var gw = lwip.ip4_addr_t{};
+    _ = lwip.netif_add(&netif, &ipaddr, &netmask, &gw, null, if_init, lwip.ethernet_input);
 
     return .success;
+}
+
+fn if_init(_netif: [*c]lwip.netif) callconv(.c) lwip.err_t {
+    const netif: *lwip.netif = @ptrCast(_netif);
+    netif.hwaddr = get_mac();
+    netif.hwaddr_len = 6;
+    return lwip.ERR_OK;
 }
 
 fn get_mac() [6]u8 {
