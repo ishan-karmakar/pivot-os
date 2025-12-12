@@ -27,18 +27,18 @@ pub var Task = kernel.Task{
 
 // Because the global time source timer is always initialized after the timers, it does not need to be in this init order
 const TIMER_INIT_ORDER = [_]type{
-    // pit,
+    pit,
     // acpi,
     // hpet,
     // lapic,
 };
 
 const USAGE_ORDER = [_]type{
-    tsc,
+    // tsc,
     // lapic,
     // hpet,
     // acpi,
-    // pit,
+    pit,
 };
 
 fn init() kernel.Task.Ret {
@@ -67,7 +67,9 @@ pub fn sleep(ns: usize) void {
 }
 
 pub fn callback(ns: usize, ctx: ?*anyopaque, func: CallbackFn) void {
-    _ = ns;
-    _ = ctx;
-    _ = func;
+    inline for (USAGE_ORDER) |timer| if (timer.Task.ret.? == .success) if (timer.VTable.callback) |c| {
+        c(ns, ctx, func);
+        return;
+    };
+    @panic("No callback capable time source found");
 }

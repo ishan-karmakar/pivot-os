@@ -12,7 +12,7 @@ const DATA_REG = 0x40;
 const IRQ = 0;
 const HZ = 1193182;
 
-pub var TimerTask = kernel.Task{
+pub var Task = kernel.Task{
     .name = "PIT Timer",
     .init = init,
     .dependencies = &.{
@@ -21,9 +21,10 @@ pub var TimerTask = kernel.Task{
     },
 };
 
-pub const TimerVTable = timers.TimerVTable{
-    .requires_calibration = false,
+pub const VTable = timers.VTable{
+    .capabilities = .{ .FIXED = true },
     .callback = callback,
+    .time = null,
 };
 
 const THandlerCtx = struct {
@@ -41,19 +42,19 @@ fn init() kernel.Task.Ret {
     };
     idt_handler.handler = timer_handler;
 
-    var triggered: bool = false;
-    callback(1_000_000, &triggered, disable_pit_callback);
+    var triggered = false;
+    callback(1_000_000, &triggered, disable_callback);
     while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
     return .success;
 }
 
-fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
+fn disable_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     @as(*bool, @ptrCast(@alignCast(ctx))).* = true;
     return status;
 }
 
 fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
-    const ticks = (ns * HZ) / 1_000_000_000;
+    const ticks: u16 = @intCast((ns * HZ) / 1_000_000_000);
     thandler_ctx.callback = handler;
     idt_handler.ctx = ctx;
     serial.out(CMD_REG, @as(u8, 0x30));
