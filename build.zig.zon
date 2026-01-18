@@ -41,8 +41,8 @@
             .hash = "limine_zig-0.0.0-1TjwQDM9AAAntmTkJ49XLNPHlEm5gENE7FWbQ96sBpP1",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v10.6.2-binary",
-            .hash = "N-V-__8AAOFNSgDkVyOYv7TvcnDsWwF1-uQ3V_uaA_OTUj-4",
+            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v10.6.3-binary",
+            .hash = "N-V-__8AAFNxSgAmqC734zRSm3zL_0brYgzmptnRM0U_q6Zk",
         },
         .uacpi = .{
             .url = "https://api.github.com/repos/uACPI/uACPI/zipball/74ea1f7826a6909af88efba989059608925fb5bd",
