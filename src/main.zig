@@ -69,8 +69,15 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    lib.smp.Task.run();
+    drivers.timers.Task.run();
+    drivers.timers.callback(54925401, null, callback);
+    log.info("main loop", .{});
     while (true) asm volatile ("hlt");
+}
+
+fn callback(_: ?*anyopaque, status: *drivers.cpu.Status) *const drivers.cpu.Status {
+    log.info("test", .{});
+    return status;
 }
 
 pub fn panic(msg: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {

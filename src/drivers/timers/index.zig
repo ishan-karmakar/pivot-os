@@ -28,7 +28,7 @@ pub var Task = kernel.Task{
 // Because the global time source timer is always initialized after the timers, it does not need to be in this init order
 const TIMER_INIT_ORDER = [_]type{
     pit,
-    // acpi,
+    acpi,
     // hpet,
     // lapic,
 };
@@ -37,7 +37,7 @@ const USAGE_ORDER = [_]type{
     // tsc,
     // lapic,
     // hpet,
-    // acpi,
+    acpi,
     pit,
 };
 

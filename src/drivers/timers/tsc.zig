@@ -6,14 +6,17 @@ const cpu = kernel.drivers.cpu;
 const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
 
-pub var GTSVTable = timers.GTSVTable{
-    .requires_calibration = true,
+pub const VTable = timers.VTable{
     .time = time,
+    .capabilities = .{
+        .FIXED = false,
+    },
+    .callback = null,
 };
 
-const CALIBRATION_NS = 1_000_000; // 1 ms
+const CALIBRATION_TIME = 1_000_000;
 
-pub var GTSTask = kernel.Task{
+pub var Task = kernel.Task{
     .name = "TSC",
     .init = init,
     .dependencies = &.{},
@@ -40,9 +43,9 @@ fn init() kernel.Task.Ret {
         }
     }
     const before = rdtsc();
-    timers.sleep(CALIBRATION_NS);
+    timers.sleep(CALIBRATION_TIME);
     const after = rdtsc();
-    period = @as(f64, @floatFromInt(after - before)) / @as(f64, CALIBRATION_NS);
+    period = @as(f64, @floatFromInt(after - before)) / @as(f64, CALIBRATION_TIME);
     return .success;
 }
 
