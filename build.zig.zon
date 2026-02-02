@@ -28,7 +28,7 @@
 
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
-    .minimum_zig_version = "0.16.0-dev.1456+16fc083f2",
+    .minimum_zig_version = "0.16.0-dev.2368+380ea6fb5",
 
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
@@ -37,8 +37,8 @@
     // internet connectivity.
     .dependencies = .{
         .limine_zig = .{
-            .url = "https://api.github.com/repos/ishan-karmakar/limine-zig/zipball/dbdcf3ff15a26b55eef9ca025d98c434127aa871",
-            .hash = "limine_zig-0.0.0-1TjwQDM9AAAntmTkJ49XLNPHlEm5gENE7FWbQ96sBpP1",
+            .url = "https://api.github.com/repos/ishan-karmakar/limine-zig/zipball/f1f44167367796b58b68b81026220de04760fbe3",
+            .hash = "limine_zig-0.0.0-1TjwQCo9AACkjRUtqJcqt_4D5DlHimDQtQWHsOFBiF9u",
         },
         .limine_bin = .{
             .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v10.6.3-binary",

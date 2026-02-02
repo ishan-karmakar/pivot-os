@@ -212,7 +212,7 @@ fn addSSFN(kernel: *Step.Compile) void {
         .target = kernel.root_module.resolved_target.?,
         .root_source_file = dep.path("ssfn.h"),
     }).createModule());
-    kernel.addIncludePath(dep.path(""));
+    kernel.root_module.addIncludePath(dep.path(""));
 }
 
 fn addUACPI(kernel: *Step.Compile) void {
@@ -233,7 +233,7 @@ fn addUACPI(kernel: *Step.Compile) void {
     });
     translateC.addIncludePath(uacpi.path("include"));
     kernel.root_module.addImport("uacpi", translateC.createModule());
-    kernel.addIncludePath(uacpi.path("include"));
+    kernel.root_module.addIncludePath(uacpi.path("include"));
 }
 
 fn addLimine(kernel: *Step.Compile) void {
@@ -257,8 +257,8 @@ fn addLWIP(kernel: *Step.Compile) void {
     translateC.addIncludePath(dep.path("src/include"));
     translateC.addIncludePath(kernel.step.owner.path("src/lwip"));
     kernel.root_module.addImport("lwip", translateC.createModule());
-    kernel.addIncludePath(dep.path("src/include"));
-    kernel.addIncludePath(kernel.step.owner.path("src/lwip"));
+    kernel.root_module.addIncludePath(dep.path("src/include"));
+    kernel.root_module.addIncludePath(kernel.step.owner.path("src/lwip"));
 }
 
 fn addPrintf(kernel: *Step.Compile) void {
