@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const lapic = kernel.drivers.lapic;
-const timers = kernel.drivers.timers;
+const timers = kernel.timers;
 const mem = kernel.lib.mem;
 const idt = kernel.drivers.idt;
 const cpu = kernel.drivers.cpu;

@@ -268,15 +268,15 @@ export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_stat
 }
 
 export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
-    return kernel.drivers.timers.time();
+    return kernel.timers.time();
 }
 
 export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
-    kernel.drivers.timers.sleep(ms * 1_000_000);
+    kernel.timers.sleep(ms * 1_000_000);
 }
 
 export fn uacpi_kernel_stall(us: uacpi.uacpi_u8) void {
-    kernel.drivers.timers.sleep(@as(u64, @intCast(us)) * 1_000);
+    kernel.timers.sleep(@as(u64, @intCast(us)) * 1_000);
 }
 
 export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware_request) uacpi.uacpi_status {

@@ -1,5 +1,6 @@
 pub const lib = @import("lib/index.zig");
 pub const drivers = @import("drivers/index.zig");
+pub const timers = @import("timers/index.zig");
 const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);
@@ -69,8 +70,8 @@ export fn _start() noreturn {
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    drivers.timers.Task.run();
-    drivers.timers.callback(54925401, null, callback);
+    timers.Task.run();
+    timers.callback(54925401, null, callback);
     log.info("main loop", .{});
     while (true) asm volatile ("hlt");
 }
