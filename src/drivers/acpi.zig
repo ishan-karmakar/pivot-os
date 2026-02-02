@@ -22,7 +22,7 @@ pub var NamespaceLoadTask = kernel.Task{
     .init = namespace_load,
     .dependencies = &.{
         .{ .task = &TablesTask },
-        .{ .task = &kernel.drivers.timers.Task },
+        .{ .task = &kernel.timers.Task },
         .{ .task = &kernel.drivers.intctrl.Task },
         .{ .task = &kernel.lib.scheduler.Task },
     },
