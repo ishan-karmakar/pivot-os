@@ -5,7 +5,7 @@ const log = std.log.scoped(.hpet);
 const acpi = kernel.drivers.acpi;
 const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
-const timers = kernel.drivers.timers;
+const timers = kernel.timers;
 const intctrl = kernel.drivers.intctrl;
 const idt = kernel.drivers.idt;
 

@@ -7,7 +7,7 @@ pub var Task = kernel.Task{
     .name = "LWIP",
     .init = init,
     .dependencies = &.{
-        .{ .task = &kernel.drivers.timers.Task },
+        .{ .task = &kernel.timers.Task },
     },
 };
 
@@ -72,7 +72,7 @@ export fn strlen(str: [*c]const u8) usize {
 
 export fn sys_now() u32 {
     // Convert NS -> MS
-    return @intCast(kernel.drivers.timers.time() / 1_000_000);
+    return @intCast(kernel.timers.time() / 1_000_000);
 }
 
 export fn sys_arch_protect() c_char {

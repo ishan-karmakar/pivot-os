@@ -1,5 +1,5 @@
 const kernel = @import("root");
-const timers = kernel.drivers.timers;
+const timers = kernel.timers;
 const serial = kernel.drivers.serial;
 const std = @import("std");
 const uacpi = @import("uacpi");
