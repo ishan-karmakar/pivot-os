@@ -2,7 +2,6 @@
 /// Metadata is stored external to the arena, so size must be known at initialization
 /// Uses an efficient bitmap under the hood to save space
 const std = @import("std");
-const Tuple = std.meta.Tuple;
 const kernel = @import("root");
 const log = std.log.scoped(.vmm);
 const math = std.math;
@@ -277,7 +276,7 @@ inline fn set_status(self: *Self, block: Block, status: BlockStatus) void {
     self.bitmap[d[0]] |= @as(u8, @intFromEnum(status)) << d[1];
 }
 
-fn translate(self: Self, block: Block) Tuple(&.{ usize, u3, u8 }) {
+fn translate(self: Self, block: Block) struct { usize, u3, u8 } {
     // 2 ^ 0 = 1, so subtract one to be zero indexed
     const num_blocks = math.pow(usize, 2, block.depth) + block.col - 1;
     var bit_off: usize = undefined;
@@ -292,7 +291,7 @@ fn translate(self: Self, block: Block) Tuple(&.{ usize, u3, u8 }) {
     return .{ bit_off / 8, @intCast(bit_off % 8), mask };
 }
 
-fn calc_split(_size: usize) Tuple(&.{ usize, usize, usize, usize }) {
+fn calc_split(_size: usize) struct { usize, usize, usize, usize } {
     const size = _size / 0x1000 * 0x1000;
     var free_size = size - 0x1000;
     var max_bsize = math.ceilPowerOfTwoAssert(usize, free_size);
@@ -310,7 +309,7 @@ fn calc_split(_size: usize) Tuple(&.{ usize, usize, usize, usize }) {
     };
 }
 
-fn get_meta_size(bsize: usize) Tuple(&.{ usize, usize }) {
+fn get_meta_size(bsize: usize) struct { usize, usize } {
     const internal_blocks = math.pow(usize, 2, math.log2(bsize / 0x1000));
     return .{ internal_blocks, math.divCeil(usize, 2 * internal_blocks + bsize / 0x1000, 8) catch unreachable };
 }
