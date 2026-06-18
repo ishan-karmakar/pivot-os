@@ -294,6 +294,15 @@ export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware
     return uacpi.UACPI_STATUS_OK;
 }
 
+export fn uacpi_kernel_disable_interrupts() void {
+    asm volatile ("cli");
+}
+
+export fn uacpi_kernel_restore_interrupts(state: uacpi.uacpi_interrupt_state) void {
+    log.info("uacpi_kernel_restore_interrupts: {}", .{state});
+    @panic("uacpi_kernel_restore_interrupts");
+}
+
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {
     var str: []const u8 = std.mem.span(msg);
     str = str[0 .. str.len - 1];

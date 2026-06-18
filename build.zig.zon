@@ -45,8 +45,8 @@
             .hash = "N-V-__8AAIP9UwApsZhdYC0jFNncD8o9TNmj9mBlLF89WRue",
         },
         .uacpi = .{
-            .url = "https://api.github.com/repos/uACPI/uACPI/zipball/b36af9df8ea6b49142389a232ed0c2fd50209e2b",
-            .hash = "N-V-__8AAIfeEwCzlqpGWyP3n8BBb80M0HG1ugkdFJxlx3LL",
+            .url = "https://github.com/uACPI/uACPI/archive/6cc7d85f9ef97d77ac9596d66a93592fedff8245.zip",
+            .hash = "N-V-__8AAKFYKQDh-GkxC2Xfs3LRBElU3dvy0kPDHL8qizS-",
         },
         .ssfn = .{
             .url = "https://gitlab.com/api/v4/projects/18860409/repository/archive.zip?sha=4cb9bc1d4bdcf5ddb6819fabf010e1bed417ecf5",

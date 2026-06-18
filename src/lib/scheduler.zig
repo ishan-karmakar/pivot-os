@@ -138,7 +138,7 @@ fn check_cur_thread(cpu_info: *smp.CPU) void {
 // Checks if any threads are ready to be scheduled to know whether to preempt current one
 fn check_ready_threads(cpu_info: *smp.CPU) ?*Thread {
     defer {
-        if (global_queue.count() > 0 and global_queue.peek().?.len() == 0) _ = global_queue.remove();
+        if (global_queue.count() > 0 and global_queue.peek().?.len() == 0) _ = global_queue.pop();
     }
     if (cpu_info.cur_proc) |cp| {
         if (global_queue.count() > 0) {
@@ -164,7 +164,7 @@ fn check_sleep_threads() void {
     const time = timers.time();
     while (true) {
         const t = sleep_queue.peek() orelse return;
-        if (t.wakeup <= time) enqueue(sleep_queue.remove().thread) else return;
+        if (t.wakeup <= time) enqueue(sleep_queue.pop().?.thread) else return;
     }
 }
 
@@ -227,7 +227,7 @@ fn syscall_sleep(status: *cpu.Status) *const cpu.Status {
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     const cp = cpu_info.cur_proc.?;
     cp.ef = status.*;
-    sleep_queue.add(.{
+    sleep_queue.push(mem.kheap.allocator(), .{
         .thread = cp,
         .wakeup = timers.time() + status.rsi,
     }) catch @panic("OOM");
