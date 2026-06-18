@@ -2,7 +2,10 @@ const limine = @import("limine");
 const kernel = @import("root");
 const mem = @import("std").mem;
 
-export var MODULE_REQUEST = limine.Module.Request{};
+export var MODULE_REQUEST = limine.limine_module_request{
+    .id = kernel.LIMINE_REQUEST_ID(0x3e7e279702be32af, 0xca1c4f3bd1280cee),
+    .revision = 1,
+};
 
 pub var Task = kernel.Task{
     .name = "Limine Modules",
@@ -15,7 +18,9 @@ fn init() kernel.Task.Ret {
 }
 
 pub fn get_module(cmdline: []const u8) usize {
-    for (MODULE_REQUEST.response.?.get_modules()) |m|
-        if (mem.eql(u8, mem.span(m.string), cmdline)) return @intFromPtr(m.address);
+    for (0..MODULE_REQUEST.response.*.module_count) |i| {
+        const module: *limine.limine_file = MODULE_REQUEST.response.*.modules[i];
+        if (mem.eql(u8, mem.span(module.string), cmdline)) return @intFromPtr(module.address);
+    }
     @panic("Module not found");
 }

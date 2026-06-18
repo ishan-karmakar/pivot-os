@@ -12,7 +12,9 @@ const std = @import("std");
 
 const UACPI_CTX = std.meta.Tuple(&.{ uacpi.uacpi_interrupt_handler, uacpi.uacpi_handle });
 
-export var RSDP_REQUEST = limine.RSDP.Request{};
+export var RSDP_REQUEST = limine.limine_rsdp_request{
+    .id = kernel.LIMINE_REQUEST_ID(0xc5e77b6b397e7b43, 0x27637845accdcf3c),
+};
 
 const HandlerInfo = struct {
     ctx: uacpi.uacpi_handle,
@@ -262,8 +264,8 @@ export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
 }
 
 export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_status {
-    const req = RSDP_REQUEST.response orelse return uacpi.UACPI_STATUS_NOT_FOUND;
-    out.* = mem.phys(req.address);
+    const req: *limine.limine_rsdp_response = RSDP_REQUEST.response orelse return uacpi.UACPI_STATUS_NOT_FOUND;
+    out.* = mem.phys(@intFromPtr(req.address));
     return uacpi.UACPI_STATUS_OK;
 }
 
@@ -290,6 +292,15 @@ export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware
         else => return uacpi.UACPI_STATUS_TYPE_MISMATCH,
     }
     return uacpi.UACPI_STATUS_OK;
+}
+
+export fn uacpi_kernel_disable_interrupts() void {
+    asm volatile ("cli");
+}
+
+export fn uacpi_kernel_restore_interrupts(state: uacpi.uacpi_interrupt_state) void {
+    log.info("uacpi_kernel_restore_interrupts: {}", .{state});
+    @panic("uacpi_kernel_restore_interrupts");
 }
 
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {

@@ -29,11 +29,11 @@ var head_region: ?*FreeRegion = null;
 
 fn init() kernel.Task.Ret {
     if (mem.HHDM_REQUEST.response == null) return .failed;
-    const response = mem.MMAP_REQUEST.response orelse return .failed;
-    for (response.get_entries()) |ent| {
-        if (ent.type == .usable) {
-            add_region(ent.base, ent.length / 0x1000);
-        }
+    const response: *limine.limine_memmap_response = mem.MMAP_REQUEST.response orelse return .failed;
+    for (0..response.entry_count) |i| {
+        const entry: *limine.limine_memmap_entry = response.entries[i];
+        if (entry.type == limine.LIMINE_MEMMAP_USABLE)
+            add_region(entry.base, entry.length / 0x1000);
     }
     return .success;
 }

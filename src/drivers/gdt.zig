@@ -68,7 +68,7 @@ fn init_static() kernel.Task.Ret {
 
 fn init_dynamic() kernel.Task.Ret {
     if (smp.SMP_REQUEST.response == null) return .failed;
-    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.?.cpu_count * 2) catch return .failed;
+    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.*.cpu_count * 2) catch return .failed;
     for (0..3) |i| buf[i] = static_gdt[i];
     buf[3] = .{
         .access = 0b11111011,

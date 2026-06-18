@@ -59,16 +59,21 @@ pub const Task = struct {
     }
 };
 
-export var LIMINE_BASE_REVISION = limine.BaseRevision{ .revision = 4 };
+pub fn LIMINE_REQUEST_ID(suffix0: u64, suffix1: u64) [4]u64 {
+    return [_]u64{ 0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, suffix0, suffix1 };
+}
+
+export var LIMINE_BASE_REVISION = [_]u64{ 0xf9562b2d5c95a6c8, 0x6a7b384944536bdc, 6 };
 
 export fn _start() noreturn {
-    if (!LIMINE_BASE_REVISION.is_valid()) {
+    if (!limine.LIMINE_LOADED_BASE_REVISION_VALID(LIMINE_BASE_REVISION)) {
         @panic("Limine bootloader base revision not valid");
-    } else if (!LIMINE_BASE_REVISION.is_supported()) {
+    } else if (!limine.LIMINE_BASE_REVISION_SUPPORTED(LIMINE_BASE_REVISION)) {
         @panic("Limine bootloader base revision not supported");
     }
     drivers.fb.Task.run();
     if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
+    drivers.acpi.DriversTask.run();
     lib.smp.Task.run();
     while (true) asm volatile ("hlt");
 }

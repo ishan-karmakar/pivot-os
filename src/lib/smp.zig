@@ -5,9 +5,9 @@ const mem = kernel.lib.mem;
 const cpu = kernel.drivers.cpu;
 const log = std.log.scoped(.smp);
 
-pub export var SMP_REQUEST: limine.MP.Request = .{
-    .flags = .{ .x2apic = true },
-    .revision = 3,
+pub export var SMP_REQUEST = limine.limine_mp_request{
+    .id = kernel.LIMINE_REQUEST_ID(0x95a67b819a1b857e, 0xa0b61b723b6a73e0),
+    .flags = limine.LIMINE_MP_REQUEST_X86_64_X2APIC,
 };
 
 pub const CPU = struct {
@@ -38,9 +38,9 @@ var TaskAP = kernel.Task{
 };
 
 pub fn init() kernel.Task.Ret {
-    const response = SMP_REQUEST.response orelse return .failed;
+    const response: *limine.limine_mp_response = SMP_REQUEST.response orelse return .failed;
     for (0..response.cpu_count) |i| {
-        const info = response.get_cpus()[i];
+        const info: *limine.limine_mp_info = response.cpus[i];
         const _info = mem.kheap.allocator().create(CPU) catch return .failed;
         _info.* = CPU{
             .id = info.lapic_id,
@@ -49,7 +49,7 @@ pub fn init() kernel.Task.Ret {
             .lapic_handler = undefined,
         };
         info.extra_argument = @intFromPtr(_info);
-        if (info.lapic_id == SMP_REQUEST.response.?.bsp_lapic_id) {
+        if (info.lapic_id == response.bsp_lapic_id) {
             cpu.set_kgs(info.extra_argument);
         } else {
             @atomicStore(usize, @as(*usize, @ptrCast(&info.goto_address)), @intFromPtr(&ap_init), .unordered);
@@ -59,7 +59,7 @@ pub fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn ap_init(info: *limine.MP.Info) callconv(.c) noreturn {
+fn ap_init(info: *limine.limine_mp_info) callconv(.c) noreturn {
     kernel.drivers.cpu.set_kgs(info.extra_argument);
     TaskAP.run();
     if (TaskAP.ret != .success) @panic("SMP AP Task failed");
@@ -72,10 +72,10 @@ fn ap_init(info: *limine.MP.Info) callconv(.c) noreturn {
 /// Gets CPU info of {idx} cpu
 /// If idx is null, gets current cpu info
 pub fn cpu_info(idx: ?usize) *CPU {
-    if (idx) |i| return @ptrFromInt(SMP_REQUEST.response.?.get_cpus()[i].extra_argument);
+    if (idx) |i| return @ptrFromInt(SMP_REQUEST.response.*.cpus[i].*.extra_argument);
     return @ptrFromInt(cpu.get_kgs());
 }
 
 pub inline fn cpu_count() usize {
-    return SMP_REQUEST.response.?.cpu_count;
+    return SMP_REQUEST.response.*.cpu_count;
 }
