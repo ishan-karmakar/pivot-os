@@ -28,7 +28,7 @@
 
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
-    .minimum_zig_version = "0.17.0-dev.877+a3ae499dc",
+    .minimum_zig_version = "0.17.0-dev.387+31f157d80",
 
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
@@ -36,13 +36,13 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .limine_zig = .{
-            .url = "https://api.github.com/repos/ishan-karmakar/limine-zig/zipball/f1f44167367796b58b68b81026220de04760fbe3",
-            .hash = "limine_zig-0.0.0-1TjwQCo9AACkjRUtqJcqt_4D5DlHimDQtQWHsOFBiF9u",
+        .limine_protocol = .{
+            .url = "https://github.com/Limine-Bootloader/limine-protocol/archive/630686a3dd3ce40f9e510a7dd9fea6b4c60d952e.zip",
+            .hash = "N-V-__8AAOV4AQBqjA-75lstesZo4slko5ui6VrsiDNEurCh",
         },
         .limine_bin = .{
-            .url = "https://api.github.com/repos/limine-bootloader/limine/zipball/refs/tags/v10.7.0-binary",
-            .hash = "N-V-__8AANIOTADBiEELX7niIPWIRJGuPRJ4akYXOgIjMKjP",
+            .url = "https://github.com/Limine-Bootloader/Limine/releases/download/v12.3.3/limine-binary.zip",
+            .hash = "N-V-__8AAIP9UwApsZhdYC0jFNncD8o9TNmj9mBlLF89WRue",
         },
         .uacpi = .{
             .url = "https://api.github.com/repos/uACPI/uACPI/zipball/b36af9df8ea6b49142389a232ed0c2fd50209e2b",

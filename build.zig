@@ -237,8 +237,14 @@ fn addUACPI(kernel: *Step.Compile) void {
 }
 
 fn addLimine(kernel: *Step.Compile) void {
-    const limineZigMod = kernel.step.owner.dependency("limine_zig", .{}).module("limine");
-    kernel.root_module.addImport("limine", limineZigMod);
+    const limineZigMod = kernel.step.owner.dependency("limine_protocol", .{});
+    const translateC = kernel.step.owner.addTranslateC(.{
+        .link_libc = false,
+        .optimize = kernel.root_module.optimize.?,
+        .target = kernel.root_module.resolved_target.?,
+        .root_source_file = limineZigMod.path("include/limine.h"),
+    });
+    kernel.root_module.addImport("limine", translateC.createModule());
 }
 
 fn addLWIP(kernel: *Step.Compile) void {
