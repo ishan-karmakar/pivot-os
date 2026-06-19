@@ -21,14 +21,14 @@ fn kernelDrain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io
     var total: usize = 0;
     for (data[0 .. data.len - 1]) |bytes| {
         if (config.qemu) kernel.drivers.qemu.write(bytes);
-        kernel.drivers.fb.write(bytes);
+        kernel.drivers.fb.write(bytes) catch {};
         total += bytes.len;
     }
 
     const pattern = data[data.len - 1];
     for (0..splat) |_| {
         if (config.qemu) kernel.drivers.qemu.write(pattern);
-        kernel.drivers.fb.write(pattern);
+        kernel.drivers.fb.write(pattern) catch {};
         total += pattern.len;
     }
 
@@ -36,5 +36,5 @@ fn kernelDrain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io
 }
 
 export fn _putchar(char: u8) void {
-    kernel.drivers.fb.write(&.{char});
+    kernel.drivers.fb.write(&.{char}) catch {};
 }

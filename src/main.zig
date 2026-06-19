@@ -71,10 +71,7 @@ export fn _start() noreturn {
     } else if (!limine.LIMINE_BASE_REVISION_SUPPORTED(LIMINE_BASE_REVISION)) {
         @panic("Limine bootloader base revision not supported");
     }
-    drivers.fb.Task.run();
-    if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    // lib.smp.Task.run();
-    drivers.timers.Task.run();
+    drivers.fb.init() catch @panic("");
 
     while (true) asm volatile ("hlt");
 }
