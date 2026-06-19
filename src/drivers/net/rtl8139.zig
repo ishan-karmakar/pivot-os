@@ -167,10 +167,10 @@ fn irq_handler(_: ?*anyopaque, cpu_status: *cpu.Status) *const cpu.Status {
             const frame_ptr: [*]const u8 = @ptrFromInt(@intFromPtr(buffer.ptr) + rx_offset + @sizeOf(Header));
             var err = lwip.pbuf_take(p, frame_ptr, header.len - 4);
             if (err != lwip.ERR_OK)
-                log.err("pbuf_take failed with error code {}", err);
+                log.err("pbuf_take failed with error code {}", .{err});
             err = netif.input.?(p, &netif);
             if (err != lwip.ERR_OK)
-                log.err("LWIP input processing failed with error code {}", err);
+                log.err("LWIP input processing failed with error code {}", .{err});
 
             rx_offset = ((rx_offset + header.len + @sizeOf(Header) + 3) & ~@as(u16, 3)) % BUFFER_SIZE;
             serial.out(io_base + IORegisters.CAPR, rx_offset - 16);
