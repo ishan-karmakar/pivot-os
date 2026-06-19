@@ -4,7 +4,7 @@ const serial = kernel.drivers.serial;
 const std = @import("std");
 const uacpi = @import("uacpi");
 
-pub var GTSTask = kernel.Task{
+pub var Task = kernel.Task{
     .name = "ACPI Timer",
     .init = init,
     .dependencies = &.{
@@ -12,9 +12,9 @@ pub var GTSTask = kernel.Task{
     },
 };
 
-pub const GTSVTable = timers.GTSVTable{
-    .requires_calibration = false,
-    .time = time,
+const CLOCKSOURCE = timers.ClockSource{
+    .rating = 200,
+    .read = time,
 };
 
 const HZ = 3579545;
@@ -33,6 +33,8 @@ fn init() kernel.Task.Ret {
             address = @intCast(fadt.pm_tmr_blk);
         } else return .failed;
     }
+
+    timers.register_clocksource(&CLOCKSOURCE);
     return .success;
 }
 
