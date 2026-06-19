@@ -47,6 +47,8 @@ const QEMU_ARGS = .{
     "-no-reboot",
     "-no-shutdown",
     "-enable-kvm",
+    // "-nic",
+    // "bridge,model=rtl8139",
     "-cpu",
     "host,+invtsc",
 };

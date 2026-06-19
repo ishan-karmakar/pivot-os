@@ -18,17 +18,7 @@ pub var Task = kernel.Task{
 
 fn init() kernel.Task.Ret {
     lwip.lwip_init();
-    var netif = lwip.netif{};
-    var ipaddr = lwip.ip4_addr_t{};
-    var netmask = lwip.ip4_addr_t{};
-    var gw = lwip.ip4_addr_t{};
-    _ = lwip.netif_add(&netif, &ipaddr, &netmask, &gw, null, if_init, lwip.ethernet_input);
     return .success;
-}
-
-fn if_init(netif: [*c]lwip.netif) callconv(.c) lwip.err_t {
-    _ = netif;
-    @panic("if_init()");
 }
 
 export fn strncmp(s1: [*c]const u8, s2: [*c]const u8, num: usize) c_int {
@@ -109,7 +99,8 @@ export fn sys_sem_new(sem: *std.atomic.Value(u8), count: u8) lwip.err_t {
 export fn sys_arch_sem_wait(sem: *lwip.sys_sem_t, timeout: u32) u32 {
     _ = sem;
     _ = timeout;
-    @panic("sys_arch_sem_wait");
+    return 0;
+    // @panic("sys_arch_sem_wait");
 }
 
 export fn sys_sem_free(sem: *lwip.sys_sem_t) void {
@@ -164,7 +155,7 @@ export fn sys_arch_mbox_fetch(mbox: *lwip.sys_mbox_t, msg: ?**anyopaque, timeout
 
 export fn sys_sem_signal(sem: *lwip.sys_sem_t) void {
     _ = sem;
-    @panic("sys_sem_signal");
+    // @panic("sys_sem_signal");
 }
 
 export fn lwip_assert(str: [*c]const u8) void {
