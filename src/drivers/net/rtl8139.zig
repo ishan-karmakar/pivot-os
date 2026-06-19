@@ -49,6 +49,15 @@ const Header = packed struct {
     len: u16,
 };
 
+const CommandRegister = packed struct {
+    buffer_empty: bool,
+    rsv0: u1,
+    transmitter_enable: bool,
+    receiver_enable: bool,
+    reset: bool,
+    rsv1: u3,
+};
+
 const BUFFER_SIZE = 8192 + 16 + 1500;
 
 pub var PCIVTable = pci.VTable{ .target_codes = &.{.{
@@ -67,6 +76,7 @@ pub var PCITask = kernel.Task{
 
 var io_base: u16 = undefined;
 var buffer: []u8 = undefined;
+var netif: lwip.netif = undefined;
 
 fn init() kernel.Task.Ret {
     switch (PCIVTable.info.bars[0]) {
@@ -89,7 +99,7 @@ fn init() kernel.Task.Ret {
     serial.out(io_base + IORegisters.CONFIG_1, @as(u8, 0));
 
     serial.out(io_base + IORegisters.CMD, @as(u8, 0x10));
-    while (serial.in(io_base + IORegisters.CMD, u8) & 0x10 != 0) {}
+    while (@as(CommandRegister, @bitCast(serial.in(io_base + IORegisters.CMD, u8))).reset) {}
 
     const num_pages = std.math.divCeil(usize, BUFFER_SIZE, 0x1000) catch return .failed;
     const pages = kernel.lib.mem.pmm.frames(num_pages);
@@ -102,7 +112,6 @@ fn init() kernel.Task.Ret {
     serial.out(io_base + IORegisters.RCR, @as(u32, 0b1110 | (1 << 7)));
     serial.out(io_base + IORegisters.CMD, @as(u8, 0x0C));
 
-    var netif = lwip.netif{};
     var ipaddr = lwip.ip4_addr_t{ .addr = 0xC0A85C64 }; // 192.168.86.100
     var netmask = lwip.ip4_addr_t{ .addr = 0xFFFFFF00 };
     var gw = lwip.ip4_addr_t{};
@@ -111,8 +120,7 @@ fn init() kernel.Task.Ret {
     return .success;
 }
 
-fn if_init(_netif: [*c]lwip.netif) callconv(.c) lwip.err_t {
-    const netif: *lwip.netif = @ptrCast(_netif);
+fn if_init(_: [*c]lwip.netif) callconv(.c) lwip.err_t {
     netif.hwaddr = get_mac();
     netif.hwaddr_len = 6;
     return lwip.ERR_OK;
@@ -134,11 +142,11 @@ fn get_mac() [6]u8 {
 var rx_offset: u16 = 0;
 
 fn irq_handler(_: ?*anyopaque, cpu_status: *cpu.Status) *const cpu.Status {
-    var status: InterruptStatusRegister = @bitCast(serial.in(io_base + IORegisters.ISR, u16));
+    const status: InterruptStatusRegister = @bitCast(serial.in(io_base + IORegisters.ISR, u16));
 
     // Check for receive OK
     if (status.ROK) {
-        while (serial.in(io_base + IORegisters.CBR, u16) != rx_offset) {
+        while (!@as(CommandRegister, @bitCast(serial.in(io_base + IORegisters.CMD, u8))).buffer_empty) {
             const header = @as(*const Header, @ptrFromInt(@intFromPtr(buffer.ptr) + rx_offset)).*;
             if (header.status.ROK) {
                 log.info("Received packet with length: {} and status {}", .{ header.len, header.status });
@@ -153,16 +161,26 @@ fn irq_handler(_: ?*anyopaque, cpu_status: *cpu.Status) *const cpu.Status {
                 log.debug("Frame is corrupt", .{});
             }
 
+            const p = lwip.pbuf_alloc(lwip.PBUF_RAW, header.len - 4, lwip.PBUF_RAM);
+            if (p == null) @panic("Failed to allocate pbuf");
+
+            const frame_ptr: [*]const u8 = @ptrFromInt(@intFromPtr(buffer.ptr) + rx_offset + @sizeOf(Header));
+            var err = lwip.pbuf_take(p, frame_ptr, header.len - 4);
+            if (err != lwip.ERR_OK)
+                log.err("pbuf_take failed with error code {}", err);
+            err = netif.input.?(p, &netif);
+            if (err != lwip.ERR_OK)
+                log.err("LWIP input processing failed with error code {}", err);
+
             rx_offset = ((rx_offset + header.len + @sizeOf(Header) + 3) & ~@as(u16, 3)) % BUFFER_SIZE;
-            serial.out(io_base + IORegisters.CAPR, rx_offset);
+            serial.out(io_base + IORegisters.CAPR, rx_offset - 16);
         }
         log.info("Finished receiving packet", .{});
 
-        // clear ROK bit in ISR
-        status = @bitCast(@as(u16, 0));
-        status.ROK = true;
         serial.out(io_base + IORegisters.ISR, @as(u16, @bitCast(status)));
     }
+
+    kernel.drivers.intctrl.eoi(0);
 
     return cpu_status;
 }
