@@ -28,43 +28,35 @@ pub export var PAGING_REQUEST = limine.limine_paging_mode_request{
 const KHEAP_SIZE = 0x1000 * 128;
 const KVMM_SIZE = KHEAP_SIZE + 0x1000 * 2;
 
-pub var KMapperTask = kernel.Task{
-    .name = "Kernel Mapper",
-    .init = mapper_init,
-    .dependencies = &.{
-        .{ .task = &pmm.Task },
-    },
-};
-
 pub var KMapperTaskAP = kernel.Task{
     .name = "Kernel Mapper (AP)",
     .init = mapper_ap_init,
     .dependencies = &.{},
 };
 
-pub var KVMMTask = kernel.Task{
-    .name = "Kernel Virtual Memory Manager",
-    .init = vmm_init,
-    .dependencies = &.{
-        .{ .task = &pmm.Task },
-        .{ .task = &KMapperTask },
-    },
-};
+var kmapper_initialized = false;
+var kvmm_initialized = false;
+var kheap_initialized = false;
 
-pub var KHeapTask = kernel.Task{
-    .name = "Kernel Heap",
-    .init = kheap_init,
-    .dependencies = &.{
-        .{ .task = &KVMMTask },
-    },
-};
-
-fn mapper_init() kernel.Task.Ret {
-    if (PAGING_REQUEST.response == null or PAGING_REQUEST.response.*.mode != PAGING_REQUEST.mode) return .failed;
+pub fn init_kmapper() !void {
+    if (kmapper_initialized)
+        return kernel.lib.logger.already_initialized(log, "Kernel mapper");
+    pmm.init() catch |err| {
+        log.err("Failed to initialize kernel mapper because PMM failed: {}", .{err});
+        return err;
+    };
+    if (PAGING_REQUEST.response == null) {
+        log.err("Failed to initialize kernel mapper because Limine paging request is empty", .{});
+        return error.PagingUnavailable;
+    } else if (PAGING_REQUEST.response.*.mode != PAGING_REQUEST.mode) {
+        log.err("Failed to initialize kernel mapper because Limine paging mode is not our expected mode", .{});
+        return error.PagingModeUnsupported;
+    }
     kmapper = Mapper.create(virt(asm volatile ("mov %%cr3, %[result]"
         : [result] "=r" (-> usize),
     ) & 0xfffffffffffffffe));
-    return .success;
+    kmapper_initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Kernel mapper");
 }
 
 fn mapper_ap_init() kernel.Task.Ret {
@@ -72,22 +64,31 @@ fn mapper_ap_init() kernel.Task.Ret {
     return .success;
 }
 
-fn vmm_init() kernel.Task.Ret {
+pub fn init_kvmm() !void {
+    if (kvmm_initialized)
+        return kernel.lib.logger.already_initialized(log, "Kernel VMM");
+    init_kmapper() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Kernel VMM", err);
     // The VMM size will be a percentage of the total free space from the PMM rounded up to the nearest power of two
     // The minimum size will be 0.1% of total free space
     const vmm_size = std.math.ceilPowerOfTwoAssert(usize, pmm.get_free_size() * 2 / 100);
     const last: *limine.limine_memmap_entry = MMAP_REQUEST.response.*.entries[MMAP_REQUEST.response.*.entry_count - 1];
     kvmm = VMM.create(virt(0) + last.base + last.length, vmm_size, 0b11 | (1 << 63), &kmapper);
-    return .success;
+    kvmm_initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Kernel VMM");
 }
 
-fn kheap_init() kernel.Task.Ret {
+pub fn init_kheap() !void {
+    if (kheap_initialized)
+        return kernel.lib.logger.already_initialized(log, "Kernel heap");
     // The kernel heap size will be a percentage of the total free space from the PMM
     // For now it will be 0.1%
     // It must be less than or equal to the VMM size
     const kheap_size = (pmm.get_free_size() * 1 / 100) / 0x1000 * 0x1000;
-    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, kheap_size) catch return .failed);
-    return .success;
+    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, kheap_size) catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Kernel heap", err));
+    kheap_initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Kernel heap");
 }
 
 /// Converts virtual address to physical address

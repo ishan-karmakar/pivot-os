@@ -36,21 +36,18 @@ pub const HandlerData = struct {
 
 var handlerTable: [256 - 0x20]HandlerData = @splat(HandlerData{});
 
-pub var Task = kernel.Task{
-    .name = "IDT",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.gdt.StaticTask },
-    },
-};
-
 pub var TaskAP = kernel.Task{
     .name = "IDT (AP)",
     .init = init_ap,
     .dependencies = &.{},
 };
 
-fn init() kernel.Task.Ret {
+var initialized = false;
+
+pub fn init_bsp() void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "IDT (BSP)");
+    kernel.drivers.gdt.init_static();
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
     set_ent(1, create_exc_isr(1, false, "exception_handler"));
     set_ent(2, create_exc_isr(2, false, "exception_handler"));
@@ -85,7 +82,8 @@ fn init() kernel.Task.Ret {
 
     idtr.addr = @intFromPtr(&rawTable);
     lidt();
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "IDT (BSP)");
 }
 
 fn init_ap() kernel.Task.Ret {

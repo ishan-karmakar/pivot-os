@@ -30,8 +30,8 @@ pub var Task = kernel.Task{
     .name = "Local APIC",
     .init = bsp_init,
     .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
-        .{ .task = &kernel.lib.mem.KMapperTask },
+        // .{ .task = &kernel.drivers.idt.Task },
+        // .{ .task = &kernel.lib.mem.KMapperTask },
     },
 };
 

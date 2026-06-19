@@ -21,8 +21,8 @@ pub var Task = kernel.Task{
     .name = "SMP",
     .init = init,
     .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KHeapTask },
-        .{ .task = &kernel.drivers.gdt.DynamicTask },
+        // .{ .task = &kernel.lib.mem.KHeapTask },
+        // .{ .task = &kernel.drivers.gdt.DynamicTask },
         .{ .task = &kernel.drivers.lapic.Task },
     },
 };

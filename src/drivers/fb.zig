@@ -13,20 +13,16 @@ export var FB_REQUEST = limine.limine_framebuffer_request{
 var initialized = false;
 
 pub fn init() !void {
-    kernel.drivers.modules.init() catch |err| {
-        log.err("Framebuffer failed to initialize because modules failed: {}", .{err});
-        return err;
-    };
-    const response: *limine.limine_framebuffer_response = FB_REQUEST.response orelse {
-        log.err("Framebuffer failed to initialize because Limine framebuffer request is empty", .{});
-        return error.FramebufferUnavailable;
-    };
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "Framebuffer");
+    kernel.drivers.modules.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", err);
+    const response: *limine.limine_framebuffer_response = FB_REQUEST.response orelse
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", error.FramebufferUnavailable);
     // TODO: Multiple framebuffers
     const fb: *limine.limine_framebuffer = response.framebuffers[0];
-    const font = kernel.drivers.modules.get_module("font") catch |err| {
-        log.err("Framebuffer failed to initialize because modules failed: {}", .{err});
-        return err;
-    };
+    const font = kernel.drivers.modules.get_module("font") catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", err);
 
     ssfn.ssfn_src = @ptrFromInt(font);
     ssfn.ssfn_dst.bg = 0;
@@ -38,7 +34,7 @@ pub fn init() !void {
     ssfn.ssfn_dst.p = @intCast(fb.pitch);
     ssfn.ssfn_dst.ptr = @ptrCast(fb.address);
     initialized = true;
-    log.info("Framebuffer successfully initialized", .{});
+    kernel.lib.logger.successfully_initialized(log, "Framebuffer");
 }
 
 pub fn write(bytes: []const u8) !void {

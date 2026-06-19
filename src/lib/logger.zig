@@ -38,3 +38,16 @@ fn kernelDrain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io
 export fn _putchar(char: u8) void {
     kernel.drivers.fb.write(&.{char}) catch {};
 }
+
+pub fn already_initialized(comptime log: anytype, name: []const u8) void {
+    log.debug("{s} already initialized, skipping attempted initialization", .{name});
+}
+
+pub fn successfully_initialized(comptime log: anytype, name: []const u8) void {
+    log.info("{s} successfully initialized", .{name});
+}
+
+pub fn failed_initialization(comptime log: anytype, name: []const u8, err: anytype) @TypeOf(err) {
+    log.err("{s} failed initialization: {}", .{ name, err });
+    return err;
+}

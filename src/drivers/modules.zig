@@ -13,13 +13,11 @@ var initialized = false;
 
 pub fn init() !void {
     if (initialized)
-        return log.debug("Modules already initialized, skipping attempted initialization", .{});
-    if (MODULE_REQUEST.response == null) {
-        log.err("Failed to retrive modules because Limine modules request was empty", .{});
-        return error.ModulesUnavailable;
-    }
+        return kernel.lib.logger.already_initialized(log, "Modules");
+    if (MODULE_REQUEST.response == null)
+        return kernel.lib.logger.failed_initialization(log, "Modules", error.ModulesUnavailable);
     initialized = true;
-    log.info("Modules successfully initialized", .{});
+    kernel.lib.logger.successfully_initialized(log, "Modules");
 }
 
 pub fn get_module(cmdline: []const u8) !usize {

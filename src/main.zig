@@ -71,7 +71,15 @@ export fn _start() noreturn {
     } else if (!limine.LIMINE_BASE_REVISION_SUPPORTED(LIMINE_BASE_REVISION)) {
         @panic("Limine bootloader base revision not supported");
     }
-    drivers.fb.init() catch @panic("");
+
+    drivers.fb.init() catch {};
+    drivers.gdt.init_static();
+    drivers.idt.init_bsp();
+    lib.mem.pmm.init() catch {};
+    lib.mem.init_kmapper() catch {};
+    lib.mem.init_kvmm() catch {};
+    lib.mem.init_kheap() catch {};
+    drivers.gdt.init_dynamic() catch {};
 
     while (true) asm volatile ("hlt");
 }
