@@ -22,12 +22,17 @@ pub const ClockEvent = struct {
 var clocksource: ?*const ClockSource = null;
 var clockevent: ?*const ClockEvent = null;
 
-pub fn init() void {
+pub fn init() !void {
     @import("pit.zig").init() catch {};
     @import("acpi.zig").init() catch {};
     @import("hpet.zig").init() catch {};
-    // @import("lapic.zig").Task.run();
-    // @import("tsc.zig").Task.run();
+    @import("lapic.zig").init() catch {};
+    @import("tsc.zig").init() catch {};
+
+    if (clocksource == null)
+        return kernel.lib.logger.failed_initialization(log, "Timer Subsystem", error.NoClockSourceFound);
+    if (clockevent == null)
+        return kernel.lib.logger.failed_initialization(log, "Timer Subsystem", error.NoClockEventFound);
     kernel.lib.logger.successfully_initialized(log, "Timer Subsystem");
 }
 
@@ -43,11 +48,11 @@ pub fn register_clocksource(cs: *const ClockSource) void {
         clocksource = cs;
 }
 
-pub fn sleep(ns: usize) void {
-    const start = time();
-    while (time() < (start + ns)) asm volatile ("pause");
+pub fn sleep(ns: usize) !void {
+    const start = try time();
+    while (try time() < (start + ns)) asm volatile ("pause");
 }
 
-pub fn time() usize {
-    return (clocksource orelse @panic("No timer available")).read();
+pub fn time() !usize {
+    return (clocksource orelse return error.NoClockSourceFound).read();
 }

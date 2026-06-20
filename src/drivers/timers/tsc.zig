@@ -6,44 +6,49 @@ const cpu = kernel.drivers.cpu;
 const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
 
-pub var GTSVTable = timers.GTSVTable{
-    .requires_calibration = true,
-    .time = time,
+const CLOCKSOURCE = timers.ClockSource{
+    .rating = 300,
+    .read = time,
 };
 
 const CALIBRATION_NS = 1_000_000; // 1 ms
 
-pub var GTSTask = kernel.Task{
-    .name = "TSC",
-    .init = init,
-    .dependencies = &.{},
-};
-
 // Period between ticks in nanoseconds
 pub var period: f64 = undefined;
+var initialized = false;
 
-fn init() kernel.Task.Ret {
-    const cpuid = cpu.cpuid(0x80000007, 0);
-    if (cpuid.edx & (1 << 8) == 0) {
-        log.debug("Invariant TSC not supported", .{});
-        return .failed;
-    }
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "TSC");
+
+    if (!is_supported())
+        return kernel.lib.logger.failed_initialization(log, "TSC", error.InvariantTSCUnsupported);
     const freqs = cpu.cpuid(0x15, 0);
     const freqs2 = cpu.cpuid(0x16, 0);
     if (freqs.eax != 0 and freqs.ebx != 0) {
         if (freqs.ecx != 0) {
             period = @as(f64, @floatFromInt(@as(u64, freqs.ecx) * freqs.ebx)) / @as(f64, @floatFromInt(freqs.eax)) / 1_000_000_000.0;
-            return .success;
+            initialized = true;
         } else if (freqs2.eax != 0) {
             period = @as(f64, @floatFromInt(@as(u64, freqs2.eax) * 10_000_000 * freqs.eax)) / @as(f64, @floatFromInt(freqs.ebx)) / 1_000_000_000.0;
-            return .success;
+            initialized = true;
         }
     }
-    const before = rdtsc();
-    timers.sleep(CALIBRATION_NS);
-    const after = rdtsc();
-    period = @as(f64, @floatFromInt(after - before)) / @as(f64, CALIBRATION_NS);
-    return .success;
+    if (!initialized) {
+        const before = rdtsc();
+        timers.sleep(CALIBRATION_NS) catch |err|
+            return kernel.lib.logger.failed_initialization(log, "TSC", err);
+        const after = rdtsc();
+        period = @as(f64, @floatFromInt(after - before)) / @as(f64, CALIBRATION_NS);
+        initialized = true;
+    }
+    timers.register_clocksource(&CLOCKSOURCE);
+    kernel.lib.logger.successfully_initialized(log, "TSC");
+}
+
+pub fn is_supported() bool {
+    const cpuid = cpu.cpuid(0x80000007, 0);
+    return cpuid.edx & (1 << 8) != 0;
 }
 
 pub fn rdtsc() usize {

@@ -70,7 +70,18 @@ var registers: *volatile Registers = undefined;
 
 pub const TimerVTable = timers.TimerVTable{
     .requires_calibration = false,
-    .callback = timer_callback,
+    .callback = oneshot,
+};
+
+const CLOCKEVENT = timers.ClockEvent{
+    .features = .{ .per_cpu = false },
+    .oneshot = oneshot,
+    .rating = 50,
+};
+
+const CLOCKSOURCE = timers.ClockSource{
+    .rating = 250,
+    .read = time,
 };
 
 pub const GTSVTable = timers.GTSVTable{
@@ -112,6 +123,7 @@ pub fn init() !void {
     comp = registers.get_comparator(0);
     log.debug("Supports FSB interrupts: {}", .{comp.config_cap.fsb_int_del_cap});
 
+    // At this point most likely PIT has already taken the IRQ, we take it back
     intctrl.unmap(0);
     handler = idt.allocate_handler(intctrl.pref_vec(0));
     irq = intctrl.map(idt.handler2vec(handler), 0) catch |err| {
@@ -120,6 +132,8 @@ pub fn init() !void {
     };
     handler.handler = timer_handler;
 
+    timers.register_clockevent(&CLOCKEVENT);
+    timers.register_clocksource(&CLOCKSOURCE);
     initialized = true;
     kernel.lib.logger.successfully_initialized(log, "HPET");
 }
@@ -137,7 +151,7 @@ fn map_hpet() void {
     }
 }
 
-fn timer_callback(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void {
+fn oneshot(ns: usize, ctx: ?*anyopaque, _handler: timers.CallbackFn) void {
     const ticks = ns * 1_000_000 / registers.gcap_id.counter_clk_period;
     callback = _handler;
     handler.ctx = ctx;

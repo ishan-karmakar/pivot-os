@@ -13,7 +13,7 @@ const IRQ = 0;
 const HZ = 1193182;
 
 const CLOCKEVENT = timers.ClockEvent{
-    .rating = 100,
+    .rating = 25,
     .features = .{
         .per_cpu = false,
     },
