@@ -15,7 +15,7 @@ const KERNEL_TARGET_QUERY = std.Target.Query{
     }),
 };
 
-const ISO_COPY = [_][]const u8{ "limine.conf", "font.sfn" };
+const ISO_COPY = [_][]const u8{"limine.conf"};
 
 const XORRISO_ARGS = .{
     "xorriso",
