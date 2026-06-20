@@ -6,7 +6,8 @@ const log = @import("std").log.scoped(.ioapic);
 const uacpi = @import("uacpi");
 const std = @import("std");
 
-pub var InterruptControllerVTable = intctrl.VTable{
+pub const INTERRUPT_CONTROLLER = intctrl.InterruptController{
+    .rating = 200,
     .map = map,
     .unmap = unmap,
     .pref_vec = pref_vec,
@@ -112,6 +113,7 @@ pub fn init() !void {
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
     isos = iso_arr.toOwnedSlice(kernel.lib.mem.kheap.allocator()) catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
+    intctrl.register_controller(&INTERRUPT_CONTROLLER);
     initialized = true;
     kernel.lib.logger.successfully_initialized(log, "IOAPIC");
 }
@@ -147,7 +149,12 @@ fn map(vec: u8, _irq: usize) !usize {
     return error.OutOfIRQs;
 }
 
-fn unmap(irq: usize) void {
+fn unmap(_irq: usize) void {
+    var irq = _irq;
+    if (find_so(irq)) |so| {
+        log.debug("Found interrupt source override for IRQ {} -> {}", .{ irq, so.gsi });
+        irq = @intCast(so.gsi);
+    }
     for (ioapics) |ioapic| {
         if (ioapic.supports_irq(irq)) {
             ioapic.write_red(irq, @bitCast(@as(u64, 0)));

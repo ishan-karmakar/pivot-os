@@ -81,6 +81,9 @@ export fn _start() noreturn {
     lib.mem.init_kheap() catch {};
     drivers.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};
+    drivers.intctrl.init() catch {};
+    drivers.timers.init();
+    // lib.smp.init() catch {};
 
     while (true) asm volatile ("hlt");
 }

@@ -21,13 +21,16 @@ pub const SYSCALLS = enum(c_int) {
 
 var syscalls: [@typeInfo(SYSCALLS).@"enum".fields.len]SyscallHandler = undefined;
 
-fn init() kernel.Task.Ret {
+var initialized = false;
+
+pub fn init() void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "Syscalls");
+    idt.init_bsp();
     const handler = idt.allocate_handler(0x80);
-    if (idt.handler2vec(handler) != 0x80) return .failed;
-
     handler.handler = syscall_handler;
-
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Syscalls");
 }
 
 pub fn register_syscall(idx: SYSCALLS, handler: SyscallHandler) void {

@@ -257,9 +257,9 @@ export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
 }
 
 export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    if (kernel.lib.smp.Task.ret) |_| {
-        if (kernel.lib.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
-    }
+    // if (kernel.lib.smp.Task.ret) |_| {
+    //     if (kernel.lib.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
+    // }
     return @ptrFromInt(1);
 }
 

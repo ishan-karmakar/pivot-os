@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const cpu = kernel.drivers.cpu;
-const std = @import("std");
+const log = @import("std").log.scoped(.timers);
 
 pub const CallbackFn = *const fn (?*anyopaque, *cpu.Status) *const cpu.Status;
 
@@ -19,22 +19,16 @@ pub const ClockEvent = struct {
     oneshot: *const fn (ns: u64, ctx: ?*anyopaque, cb: CallbackFn) void,
 };
 
-pub var Task = kernel.Task{
-    .name = "Timers",
-    .init = init,
-    .dependencies = &.{},
-};
-
 var clocksource: ?*const ClockSource = null;
 var clockevent: ?*const ClockEvent = null;
 
-fn init() kernel.Task.Ret {
-    @import("pit.zig").Task.run();
-    @import("acpi.zig").Task.run();
-    // @import("hpet.zig").Task.run();
+pub fn init() void {
+    @import("pit.zig").init() catch {};
+    @import("acpi.zig").init() catch {};
+    @import("hpet.zig").init() catch {};
     // @import("lapic.zig").Task.run();
     // @import("tsc.zig").Task.run();
-    return .success;
+    kernel.lib.logger.successfully_initialized(log, "Timer Subsystem");
 }
 
 /// Registers a new clockevent. The actual clockevent that is chosen depends on the rating comparison

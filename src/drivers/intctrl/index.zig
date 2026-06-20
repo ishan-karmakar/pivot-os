@@ -1,9 +1,9 @@
-pub const ioapic = @import("ioapic.zig");
-
 const kernel = @import("root");
+const log = @import("std").log.scoped(.intctrl);
 const mem = kernel.lib.mem;
 
-pub const VTable = struct {
+pub const InterruptController = struct {
+    rating: u16,
     map: *const fn (vec: u8, irq: usize) error{ IRQUsed, OutOfIRQs, InvalidIRQ }!usize,
     unmap: *const fn (irq: usize) void,
     mask: *const fn (irq: usize, m: bool) void,
@@ -11,29 +11,19 @@ pub const VTable = struct {
     eoi: *const fn (irq: usize) void,
 };
 
-pub var controller: ?*const VTable = null;
+var controller: ?*const InterruptController = null;
 
-const AVAILABLE_CONTROLLERS = [_]type{
-    ioapic,
-};
-
-pub var Task = kernel.Task{
-    .name = "Interrupt Controller",
-    .init = init,
-    .dependencies = &.{},
-};
-
-fn init() kernel.Task.Ret {
-    inline for (AVAILABLE_CONTROLLERS) |cntrl| {
-        cntrl.InterruptControllerTask.run();
-        if (cntrl.InterruptControllerTask.ret == .success) {
-            controller = &cntrl.InterruptControllerVTable;
-            break;
-        }
-    }
-    if (controller == null) return .failed;
+pub fn init() !void {
+    @import("ioapic.zig").init() catch {};
+    if (controller == null)
+        return kernel.lib.logger.failed_initialization(log, "Interrupt Controller Subsystem", error.NoInterruptControllersAvailable);
     asm volatile ("sti");
-    return .success;
+    return kernel.lib.logger.successfully_initialized(log, "Interrupt Controller Subsystem");
+}
+
+pub fn register_controller(c: *const InterruptController) void {
+    if (controller == null or c.rating > controller.?.rating)
+        controller = c;
 }
 
 pub inline fn map(vec: u8, irq: usize) !usize {

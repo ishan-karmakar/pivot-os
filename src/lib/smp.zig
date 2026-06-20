@@ -17,16 +17,6 @@ pub const CPU = struct {
     lapic_handler: *kernel.drivers.idt.HandlerData,
 };
 
-pub var Task = kernel.Task{
-    .name = "SMP",
-    .init = init,
-    .dependencies = &.{
-        // .{ .task = &kernel.lib.mem.KHeapTask },
-        // .{ .task = &kernel.drivers.gdt.DynamicTask },
-        .{ .task = &kernel.drivers.lapic.Task },
-    },
-};
-
 var TaskAP = kernel.Task{
     .name = "SMP (AP)",
     .init = null,
@@ -37,11 +27,24 @@ var TaskAP = kernel.Task{
     },
 };
 
-pub fn init() kernel.Task.Ret {
-    const response: *limine.limine_mp_response = SMP_REQUEST.response orelse return .failed;
+var initialized = false;
+
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "SMP");
+    kernel.lib.mem.init_kheap() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "SMP", err);
+    kernel.drivers.gdt.init_dynamic() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "SMP", err);
+    kernel.drivers.lapic.init_bsp() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "SMP", err);
+
+    const response: *limine.limine_mp_response = SMP_REQUEST.response orelse
+        return kernel.lib.logger.failed_initialization(log, "SMP", error.SMPUnavailable);
     for (0..response.cpu_count) |i| {
         const info: *limine.limine_mp_info = response.cpus[i];
-        const _info = mem.kheap.allocator().create(CPU) catch return .failed;
+        const _info = mem.kheap.allocator().create(CPU) catch |err|
+            return kernel.lib.logger.failed_initialization(log, "SMP", err);
         _info.* = CPU{
             .id = info.lapic_id,
             .ready = std.atomic.Value(bool).init(false),
@@ -56,7 +59,8 @@ pub fn init() kernel.Task.Ret {
             while (!_info.ready.load(.acquire)) {}
         }
     }
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "SMP");
 }
 
 fn ap_init(info: *limine.limine_mp_info) callconv(.c) noreturn {

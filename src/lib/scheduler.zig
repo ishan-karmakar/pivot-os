@@ -68,7 +68,16 @@ var idle_thread_ef: cpu.Status = .{
     },
 };
 
-fn init() kernel.Task.Ret {
+var initialized = false;
+
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "Scheduler");
+    mem.init_kheap() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
+    smp.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
+
     syscalls.register_syscall(syscalls.SYSCALLS.EXIT, syscall_exit);
     syscalls.register_syscall(syscalls.SYSCALLS.SLEEP, syscall_sleep);
     sched_vec = idt.allocate_handler(null);

@@ -2,6 +2,7 @@ const kernel = @import("root");
 const timers = kernel.drivers.timers;
 const serial = kernel.drivers.serial;
 const std = @import("std");
+const log = std.log.scoped(.acpi_timer);
 const uacpi = @import("uacpi");
 
 pub var Task = kernel.Task{
@@ -20,22 +21,34 @@ const CLOCKSOURCE = timers.ClockSource{
 const HZ = 3579545;
 
 var address: usize = undefined;
+var initialized = false;
 
-fn init() kernel.Task.Ret {
-    const fadt = kernel.drivers.acpi.get_table(uacpi.acpi_fadt, "FACP") orelse return .failed;
-    if (fadt.pm_tmr_len != 4) return .failed;
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "ACPI Timer");
+    kernel.drivers.acpi.init_tables() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Timer", err);
+
+    const fadt = kernel.drivers.acpi.get_table(uacpi.acpi_fadt, "FACP") catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Timer", err);
+    if (fadt.pm_tmr_len != 4) {
+        log.err("fadt.pm_tmr_len ({}) != 4", .{fadt.pm_tmr_len});
+        return kernel.lib.logger.failed_initialization(log, "ACPI Timer", error.PMTmrLenIncorrectLength);
+    }
     var rsdp_addr: u64 = undefined;
-    if (uacpi.uacpi_kernel_get_rsdp(@ptrCast(&rsdp_addr)) != uacpi.UACPI_STATUS_OK) return .failed;
+    if (uacpi.uacpi_kernel_get_rsdp(@ptrCast(&rsdp_addr)) != uacpi.UACPI_STATUS_OK)
+        return kernel.lib.logger.failed_initialization(log, "ACPI Timer", error.RSDPNotFound);
     const rsdp: *uacpi.acpi_rsdp = @ptrFromInt(rsdp_addr);
     address = fadt.x_pm_tmr_blk.address;
     if (!(rsdp.revision == 2 and address != 0)) {
         if (fadt.pm_tmr_blk != 0) {
             address = @intCast(fadt.pm_tmr_blk);
-        } else return .failed;
+        } else return kernel.lib.logger.failed_initialization(log, "ACPI Timer", error.FADTPMTmrBlkAddrNotFound);
     }
 
     timers.register_clocksource(&CLOCKSOURCE);
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "ACPI Timer");
 }
 
 fn read_ticks() u32 {

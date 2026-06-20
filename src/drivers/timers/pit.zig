@@ -12,15 +12,6 @@ const DATA_REG = 0x40;
 const IRQ = 0;
 const HZ = 1193182;
 
-pub var Task = kernel.Task{
-    .name = "PIT Timer",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
-        .{ .task = &kernel.drivers.intctrl.Task },
-    },
-};
-
 const CLOCKEVENT = timers.ClockEvent{
     .rating = 100,
     .features = .{
@@ -35,21 +26,28 @@ const THandlerCtx = struct {
 };
 var thandler_ctx: THandlerCtx = undefined;
 var idt_handler: *idt.HandlerData = undefined;
+var initialized = false;
 
-fn init() kernel.Task.Ret {
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "PIT");
+    idt.init_bsp();
+    intctrl.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "PIT", err);
     idt_handler = idt.allocate_handler(intctrl.pref_vec(IRQ));
-    thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), IRQ) catch {
+    thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), IRQ) catch |err| {
         idt_handler.reserved = false;
-        return .failed;
+        return kernel.lib.logger.failed_initialization(log, "PIT", err);
     };
     idt_handler.handler = timer_handler;
 
-    var triggered: bool = false;
+    var triggered = false;
     oneshot(1_000_000, &triggered, disable_pit_callback);
     while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
 
     timers.register_clockevent(&CLOCKEVENT);
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "PIT");
 }
 
 fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
