@@ -72,13 +72,15 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
 
-    drivers.fb.init() catch {};
+    log.info("Kernel initialization starting", .{});
+    drivers.fb.init_main() catch {};
     drivers.gdt.init_static();
     drivers.idt.init_bsp();
     lib.mem.pmm.init() catch {};
     lib.mem.init_kmapper() catch {};
     lib.mem.init_kvmm() catch {};
     lib.mem.init_kheap() catch {};
+    drivers.fb.init_all() catch {};
     drivers.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};
     drivers.intctrl.init() catch {};
