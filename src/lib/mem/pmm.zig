@@ -15,27 +15,28 @@ const FreeRegion = struct {
     }
 };
 
-// IDT isn't strictly necessary, but we would like to get paging errors instead of a triple fault
-pub var Task = kernel.Task{
-    .name = "Physical Memory Manager",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
-    },
-};
-
 var mutex = std.atomic.Value(bool).init(false);
 var head_region: ?*FreeRegion = null;
+var initialized = false;
 
-fn init() kernel.Task.Ret {
-    if (mem.HHDM_REQUEST.response == null) return .failed;
-    const response: *limine.limine_memmap_response = mem.MMAP_REQUEST.response orelse return .failed;
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "PMM");
+    kernel.drivers.idt.init_bsp();
+
+    if (mem.HHDM_REQUEST.response == null)
+        return kernel.lib.logger.failed_initialization(log, "PMM", error.HHDMUnavailable);
+
+    const response: *limine.limine_memmap_response = mem.MMAP_REQUEST.response orelse
+        return kernel.lib.logger.failed_initialization(log, "PMM", error.MMAPUnavailable);
+
     for (0..response.entry_count) |i| {
         const entry: *limine.limine_memmap_entry = response.entries[i];
         if (entry.type == limine.LIMINE_MEMMAP_USABLE)
             add_region(entry.base, entry.length / 0x1000);
     }
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "PMM");
 }
 
 /// Adds region (start and number of pages) to free regions linked list

@@ -8,21 +8,12 @@ const smp = kernel.lib.smp;
 const std = @import("std");
 const log = std.log.scoped(.lapic_timer);
 
-pub var TimerVTable = timers.TimerVTable{
-    .requires_calibration = true,
-    .callback = undefined,
-};
+const tsc = @import("tsc.zig");
 
-pub var TimerTask = kernel.Task{
-    .name = "Local APIC Timer",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &lapic.Task },
-        .{ .task = &timers.tsc.GTSTask, .accept_failure = true },
-        .{ .task = &mem.KHeapTask },
-        .{ .task = &kernel.drivers.intctrl.Task },
-        .{ .task = &smp.Task },
-    },
+var CLOCKEVENT = timers.ClockEvent{
+    .features = .{ .per_cpu = true },
+    .oneshot = undefined,
+    .rating = 125,
 };
 
 const HandlerCtx = struct {
@@ -39,19 +30,32 @@ const IA32_TSC_DEADLINE = 0x6E0;
 const CALIBRATION_NS = 1_000_000; // 1 ms
 
 var hertz: usize = undefined;
+var initialized = false;
 
-fn init() kernel.Task.Ret {
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "LAPIC Timer");
+    kernel.drivers.lapic.init_bsp() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
+    mem.init_kheap() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
+    kernel.drivers.intctrl.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
+    smp.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
+
     const tsc_deadline = cpu.cpuid(0x1, 0).ecx & (1 << 24);
-    if (tsc_deadline > 0 and timers.tsc.GTSTask.ret == .success) {
+    if (tsc_deadline > 0 and tsc.is_supported()) {
         // We are actually able to use TSC Deadline
         log.debug("Using TSC deadine mode", .{});
-        TimerVTable.callback = tsc_deadline_callback;
+        CLOCKEVENT.oneshot = tsc_deadline_callback;
     } else {
         log.debug("Using normal oneshot mode", .{});
-        TimerVTable.callback = oneshot_callback;
+        CLOCKEVENT.oneshot = oneshot_callback;
 
         lapic.write_reg(INITIAL_COUNT_OFF, std.math.maxInt(u32));
-        timers.sleep(CALIBRATION_NS);
+        timers.sleep(CALIBRATION_NS) catch |err|
+            return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
         const cur_count = lapic.read_reg(CUR_COUNT_OFF);
         lapic.write_reg(INITIAL_COUNT_OFF, 0);
         hertz = (std.math.maxInt(u32) - cur_count) * (1_000_000_000 / CALIBRATION_NS);
@@ -61,10 +65,12 @@ fn init() kernel.Task.Ret {
         const cpu_info = smp.cpu_info(i);
         cpu_info.lapic_handler = idt.allocate_handler(null);
         cpu_info.lapic_handler.handler = timer_handler;
-        cpu_info.lapic_handler.ctx = mem.kheap.allocator().create(HandlerCtx) catch @panic("OOM");
+        cpu_info.lapic_handler.ctx = mem.kheap.allocator().create(HandlerCtx) catch |err|
+            return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
     }
 
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "LAPIC Timer");
 }
 
 fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
@@ -79,12 +85,12 @@ fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
 
 fn tsc_deadline_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) void {
     lapic.write_reg(TIMER_OFF, @as(u32, @intCast(callback_common(ctx, callback))) | (0b10 << 17));
-    cpu.wrmsr(IA32_TSC_DEADLINE, timers.tsc.rdtsc() + timers.tsc.ns2ticks(ns));
+    cpu.wrmsr(IA32_TSC_DEADLINE, tsc.rdtsc() + tsc.ns2ticks(ns));
 }
 
 fn oneshot_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) void {
     lapic.write_reg(TIMER_OFF, @as(u32, @intCast(callback_common(ctx, callback))));
-    lapic.write_reg(INITIAL_COUNT_OFF, timers.tsc.ns2ticks(ns));
+    lapic.write_reg(INITIAL_COUNT_OFF, tsc.ns2ticks(ns));
 }
 
 fn timer_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {

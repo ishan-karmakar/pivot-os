@@ -8,20 +8,11 @@ pub const VTable = struct {
     ret: *uacpi.uacpi_namespace_node,
 };
 
-pub var TablesTask = kernel.Task{
-    .name = "ACPI Tables",
-    .init = init_tables,
-    .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KHeapTask },
-        .{ .task = &kernel.lib.mem.KMapperTask },
-    },
-};
-
 pub var NamespaceLoadTask = kernel.Task{
     .name = "ACPI Namespace Load",
     .init = namespace_load,
     .dependencies = &.{
-        .{ .task = &TablesTask },
+        // .{ .task = &TablesTask },
         .{ .task = &kernel.drivers.timers.Task },
         .{ .task = &kernel.drivers.intctrl.Task },
         .{ .task = &kernel.lib.scheduler.Task },
@@ -41,10 +32,27 @@ const CallbackInfo = struct {
     task: *kernel.Task,
 };
 
-fn init_tables() kernel.Task.Ret {
-    if (uacpi.uacpi_initialize(0) != uacpi.UACPI_STATUS_OK) return .failed;
-    if (uacpi.uacpi_install_fixed_event_handler(uacpi.UACPI_FIXED_EVENT_POWER_BUTTON, fixed_shutdown_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
-    return .success;
+pub fn init_tables() !void {
+    if (uacpi.uacpi_get_current_init_level() >= uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED)
+        return kernel.lib.logger.already_initialized(log, "ACPI Tables");
+
+    kernel.lib.mem.init_kmapper() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Tables", err);
+    kernel.lib.mem.init_kheap() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Tables", err);
+
+    var err = uacpi.uacpi_initialize(0);
+    if (err != uacpi.UACPI_STATUS_OK) {
+        log.err("uacpi_initialize() failed with error code {}", .{err});
+        return kernel.lib.logger.failed_initialization(log, "ACPI Tables", error.UACPIFailedInitialization);
+    }
+
+    err = uacpi.uacpi_install_fixed_event_handler(uacpi.UACPI_FIXED_EVENT_POWER_BUTTON, fixed_shutdown_handler, null);
+    if (err != uacpi.UACPI_STATUS_OK) {
+        log.err("uacpi_install_fixed_event_handler() failed with error code {}", .{err});
+        return kernel.lib.logger.failed_initialization(log, "ACPI Tables", error.UACPIInstallFixedEventHandlerFailed);
+    }
+    kernel.lib.logger.successfully_initialized(log, "ACPI Tables");
 }
 
 fn install_notify_handler(_: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: uacpi.uacpi_u32) callconv(.C) uacpi.uacpi_iteration_decision {
@@ -100,10 +108,12 @@ fn driver_callback(_info: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: ua
     return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
 }
 
-pub fn get_table(T: type, sig: [*c]const u8) ?*const T {
+pub fn get_table(T: type, sig: [*c]const u8) !*const T {
     var tbl: uacpi.uacpi_table = undefined;
-    if (uacpi.uacpi_table_find_by_signature(sig, &tbl) != uacpi.UACPI_STATUS_OK) {
-        return null;
+    const err = uacpi.uacpi_table_find_by_signature(sig, &tbl);
+    if (err != uacpi.UACPI_STATUS_OK) {
+        log.err("uacpi_table_find_by_signature() failed with error code {}", .{err});
+        return error.ACPIFindTableFailed;
     }
     return @ptrCast(tbl.unnamed_0.hdr);
 }

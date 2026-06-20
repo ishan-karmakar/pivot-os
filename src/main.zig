@@ -71,10 +71,19 @@ export fn _start() noreturn {
     } else if (!limine.LIMINE_BASE_REVISION_SUPPORTED(LIMINE_BASE_REVISION)) {
         @panic("Limine bootloader base revision not supported");
     }
-    drivers.fb.Task.run();
-    if (drivers.fb.Task.ret != .success) @panic("Framebuffer failed to initialize");
-    // lib.smp.Task.run();
-    drivers.pci.Task.run();
+
+    drivers.fb.init() catch {};
+    drivers.gdt.init_static();
+    drivers.idt.init_bsp();
+    lib.mem.pmm.init() catch {};
+    lib.mem.init_kmapper() catch {};
+    lib.mem.init_kvmm() catch {};
+    lib.mem.init_kheap() catch {};
+    drivers.gdt.init_dynamic() catch {};
+    drivers.acpi.init_tables() catch {};
+    drivers.intctrl.init() catch {};
+    drivers.timers.init() catch {};
+    // lib.smp.init() catch {};
 
     while (true) asm volatile ("hlt");
 }

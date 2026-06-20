@@ -257,9 +257,9 @@ export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
 }
 
 export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    if (kernel.lib.smp.Task.ret) |_| {
-        if (kernel.lib.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
-    }
+    // if (kernel.lib.smp.Task.ret) |_| {
+    //     if (kernel.lib.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
+    // }
     return @ptrFromInt(1);
 }
 
@@ -270,15 +270,15 @@ export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_stat
 }
 
 export fn uacpi_kernel_get_nanoseconds_since_boot() uacpi.uacpi_u64 {
-    return kernel.drivers.timers.time();
+    return kernel.drivers.timers.time() catch @panic("Failed to get time");
 }
 
 export fn uacpi_kernel_sleep(ms: uacpi.uacpi_u64) void {
-    kernel.drivers.timers.sleep(ms * 1_000_000);
+    kernel.drivers.timers.sleep(ms * 1_000_000) catch @panic("Failed to sleep");
 }
 
 export fn uacpi_kernel_stall(us: uacpi.uacpi_u8) void {
-    kernel.drivers.timers.sleep(@as(u64, @intCast(us)) * 1_000);
+    kernel.drivers.timers.sleep(@as(u64, @intCast(us)) * 1_000) catch @panic("Failed to sleep");
 }
 
 export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware_request) uacpi.uacpi_status {

@@ -62,7 +62,7 @@ export fn strlen(str: [*c]const u8) usize {
 
 export fn sys_now() u32 {
     // Convert NS -> MS
-    return @intCast(kernel.drivers.timers.time() / 1_000_000);
+    return @intCast((kernel.drivers.timers.time() catch @panic("Failed to get time")) / 1_000_000);
 }
 
 export fn sys_arch_protect() c_char {

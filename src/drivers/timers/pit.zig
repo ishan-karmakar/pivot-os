@@ -12,18 +12,12 @@ const DATA_REG = 0x40;
 const IRQ = 0;
 const HZ = 1193182;
 
-pub var TimerTask = kernel.Task{
-    .name = "PIT Timer",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.Task },
-        .{ .task = &kernel.drivers.intctrl.Task },
+const CLOCKEVENT = timers.ClockEvent{
+    .rating = 25,
+    .features = .{
+        .per_cpu = false,
     },
-};
-
-pub const TimerVTable = timers.TimerVTable{
-    .requires_calibration = false,
-    .callback = callback,
+    .oneshot = oneshot,
 };
 
 const THandlerCtx = struct {
@@ -32,19 +26,28 @@ const THandlerCtx = struct {
 };
 var thandler_ctx: THandlerCtx = undefined;
 var idt_handler: *idt.HandlerData = undefined;
+var initialized = false;
 
-fn init() kernel.Task.Ret {
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "PIT");
+    idt.init_bsp();
+    intctrl.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "PIT", err);
     idt_handler = idt.allocate_handler(intctrl.pref_vec(IRQ));
-    thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), IRQ) catch {
+    thandler_ctx.irq = intctrl.map(idt.handler2vec(idt_handler), IRQ) catch |err| {
         idt_handler.reserved = false;
-        return .failed;
+        return kernel.lib.logger.failed_initialization(log, "PIT", err);
     };
     idt_handler.handler = timer_handler;
 
-    var triggered: bool = false;
-    callback(1_000_000, &triggered, disable_pit_callback);
+    var triggered = false;
+    oneshot(1_000_000, &triggered, disable_pit_callback);
     while (!@atomicLoad(bool, @as(*const volatile bool, @ptrCast(&triggered)), .acquire)) asm volatile ("pause");
-    return .success;
+
+    timers.register_clockevent(&CLOCKEVENT);
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "PIT");
 }
 
 fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
@@ -52,9 +55,9 @@ fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status
     return status;
 }
 
-fn callback(ns: usize, ctx: ?*anyopaque, handler: timers.CallbackFn) void {
+fn oneshot(ns: u64, ctx: ?*anyopaque, cb: timers.CallbackFn) void {
     const ticks = (ns * HZ) / 1_000_000_000;
-    thandler_ctx.callback = handler;
+    thandler_ctx.callback = cb;
     idt_handler.ctx = ctx;
     serial.out(CMD_REG, @as(u8, 0x30));
     serial.out(DATA_REG, @as(u8, @truncate(ticks)));

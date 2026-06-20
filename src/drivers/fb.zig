@@ -5,24 +5,24 @@ const std = @import("std");
 const log = std.log.scoped(.fb);
 const mem = kernel.lib.mem;
 
-pub var Task = kernel.Task{
-    .name = "Framebuffer (SSFN)",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.modules.Task },
-    },
-};
-
 export var FB_REQUEST = limine.limine_framebuffer_request{
     .id = kernel.LIMINE_REQUEST_ID(0x9d5827dcd881dd75, 0xa3148604f6fab11b),
     .revision = 1,
 };
 
-pub fn init() kernel.Task.Ret {
-    const response: *limine.limine_framebuffer_response = FB_REQUEST.response orelse return .failed;
+var initialized = false;
+
+pub fn init() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "Framebuffer");
+    kernel.drivers.modules.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", err);
+    const response: *limine.limine_framebuffer_response = FB_REQUEST.response orelse
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", error.FramebufferUnavailable);
     // TODO: Multiple framebuffers
     const fb: *limine.limine_framebuffer = response.framebuffers[0];
-    const font = kernel.drivers.modules.get_module("font");
+    const font = kernel.drivers.modules.get_module("font") catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", err);
 
     ssfn.ssfn_src = @ptrFromInt(font);
     ssfn.ssfn_dst.bg = 0;
@@ -33,11 +33,13 @@ pub fn init() kernel.Task.Ret {
     ssfn.ssfn_dst.w = @intCast(fb.width);
     ssfn.ssfn_dst.p = @intCast(fb.pitch);
     ssfn.ssfn_dst.ptr = @ptrCast(fb.address);
-    return .success;
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Framebuffer");
 }
 
-pub fn write(bytes: []const u8) void {
-    if ((Task.ret orelse return) != .success) return;
+pub fn write(bytes: []const u8) !void {
+    if (!initialized)
+        return error.FramebufferNotInitialized;
     for (bytes) |b| {
         // Wrap around on x overflow
         if (ssfn.ssfn_dst.x >= ssfn.ssfn_dst.w) {

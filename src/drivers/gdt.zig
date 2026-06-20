@@ -38,20 +38,6 @@ var gdtr = GDTR{
     .size = static_gdt.len * @sizeOf(Entry) - 1,
 };
 
-pub var StaticTask = kernel.Task{
-    .name = "Static GDT",
-    .init = init_static,
-    .dependencies = &.{},
-};
-
-pub var DynamicTask = kernel.Task{
-    .name = "Dynamic GDT",
-    .init = init_dynamic,
-    .dependencies = &.{
-        .{ .task = &mem.KHeapTask },
-    },
-};
-
 pub var DynamicTaskAP = kernel.Task{
     .name = "Dynamic GDT (AP)",
     .init = init_dynamic_ap,
@@ -60,15 +46,28 @@ pub var DynamicTaskAP = kernel.Task{
     },
 };
 
-fn init_static() kernel.Task.Ret {
+var static_initialized = false;
+var dynamic_initialized = false;
+
+pub fn init_static() void {
+    if (static_initialized)
+        return kernel.lib.logger.already_initialized(log, "Static GDT");
     gdtr.addr = @intFromPtr(&static_gdt);
     lgdt();
-    return .success;
+    static_initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Static GDT");
 }
 
-fn init_dynamic() kernel.Task.Ret {
-    if (smp.SMP_REQUEST.response == null) return .failed;
-    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.*.cpu_count * 2) catch return .failed;
+pub fn init_dynamic() !void {
+    if (dynamic_initialized)
+        return kernel.lib.logger.already_initialized(log, "Dynamic GDT");
+    mem.init_kheap() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Dynamic GDT", err);
+    if (smp.SMP_REQUEST.response == null)
+        return kernel.lib.logger.failed_initialization(log, "Dynamic GDT", error.SMPUnavailable);
+
+    const buf = mem.kheap.allocator().alloc(Entry, 5 + smp.SMP_REQUEST.response.*.cpu_count * 2) catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Dynamic GDT", err);
     for (0..3) |i| buf[i] = static_gdt[i];
     buf[3] = .{
         .access = 0b11111011,
@@ -81,7 +80,8 @@ fn init_dynamic() kernel.Task.Ret {
     gdtr.size = @intCast(buf.len * @sizeOf(Entry) - 1);
     gdtr.addr = @intFromPtr(buf.ptr);
     lgdt();
-    return .success;
+    dynamic_initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Dynamic GDT");
 }
 
 fn init_dynamic_ap() kernel.Task.Ret {
