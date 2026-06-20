@@ -80,6 +80,7 @@ export fn _start() noreturn {
     lib.mem.init_kvmm() catch {};
     lib.mem.init_kheap() catch {};
     drivers.gdt.init_dynamic() catch {};
+    drivers.acpi.init_tables() catch {};
 
     while (true) asm volatile ("hlt");
 }

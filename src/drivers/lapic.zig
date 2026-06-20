@@ -26,15 +26,6 @@ var addr: usize = undefined;
 pub var read_reg: *const fn (off: u32) u64 = undefined;
 pub var write_reg: *const fn (off: u32, val: u64) void = undefined;
 
-pub var Task = kernel.Task{
-    .name = "Local APIC",
-    .init = bsp_init,
-    .dependencies = &.{
-        // .{ .task = &kernel.drivers.idt.Task },
-        // .{ .task = &kernel.lib.mem.KMapperTask },
-    },
-};
-
 pub var TaskAP = kernel.Task{
     .name = "Local APIC (AP)",
     .init = ap_init,
@@ -43,7 +34,15 @@ pub var TaskAP = kernel.Task{
     },
 };
 
-fn bsp_init() kernel.Task.Ret {
+var initialized = false;
+
+pub fn init_bsp() !void {
+    if (initialized)
+        return kernel.lib.logger.already_initialized(log, "LAPIC");
+    kernel.drivers.idt.init_bsp();
+    kernel.lib.mem.init_kmapper() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "LAPIC", err);
+
     var msr = cpu.rdmsr(MSR) | (1 << 11);
     const cpuid = cpu.cpuid(1, 0);
     if (cpuid.ecx & (1 << 21) > 0) {
@@ -57,14 +56,16 @@ fn bsp_init() kernel.Task.Ret {
         read_reg = xapic_read_reg;
         write_reg = xapic_write_reg;
         log.debug("Found xAPIC", .{});
-    } else return .failed;
+    }
     cpu.wrmsr(MSR, msr);
 
     kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
     write_reg(TPR_OFF, 0);
     write_reg(CONFIG_OFF, TDIV);
-    return .success;
+
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "LAPIC");
 }
 
 fn ap_init() kernel.Task.Ret {
