@@ -48,10 +48,6 @@
             .url = "https://github.com/uACPI/uACPI/archive/6cc7d85f9ef97d77ac9596d66a93592fedff8245.zip",
             .hash = "N-V-__8AAKFYKQDh-GkxC2Xfs3LRBElU3dvy0kPDHL8qizS-",
         },
-        .ssfn = .{
-            .url = "https://gitlab.com/bztsrc/scalable-font2/-/archive/a3d87340ef894434cce68e10be08fa1764061097/scalable-font2-a3d87340ef894434cce68e10be08fa1764061097.zip",
-            .hash = "N-V-__8AAJIhUwGHy-hy6JVGRZ_ScbpreCAnHudJPQaHumeV",
-        },
         .lwip = .{
             .url = "https://github.com/lwip-tcpip/lwip/archive/3d896ba0a37ff3ce73270ca5e230707fe47f60e3.zip",
             .hash = "N-V-__8AAAOydQCYoapOa-GQ8Hpp5mQ7Fis6g3yTspb9aL1U",
@@ -59,6 +55,10 @@
         .printf = .{
             .url = "https://api.github.com/repos/mpaland/printf/zipball/d3b984684bb8a8bdc48cc7a1abecb93ce59bbe3e",
             .hash = "N-V-__8AAAtwCQCm0Joa7hrSO-YKYxoZmIxSUEpnj4IWSlm_",
+        },
+        .flanterm = .{
+            .url = "https://github.com/Mintsuki/Flanterm/archive/e231edd0e508022521c8233392aabc8ce5c9b242.zip",
+            .hash = "N-V-__8AAO3JAgDxsQ54myF0biQHILa5EbAr8LC7iEzSAioX",
         },
     },
 

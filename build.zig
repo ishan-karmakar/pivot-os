@@ -197,7 +197,7 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
     kernel.setLinkerScript(b.path("linker.ld"));
     kernel.root_module.addImport("config", options.createModule());
     b.installArtifact(kernel);
-    addSSFN(kernel);
+    addFlanterm(kernel);
     addLimine(kernel);
     addUACPI(kernel);
     addLWIP(kernel);
@@ -205,16 +205,22 @@ fn createKernelStep(b: *std.Build, options: *Step.Options, optimize: std.builtin
     return kernel;
 }
 
-fn addSSFN(kernel: *Step.Compile) void {
-    const dep = kernel.step.owner.dependency("ssfn", .{});
-    kernel.root_module.addCSourceFile(.{ .file = kernel.step.owner.path("src/ssfn.c") });
-    kernel.root_module.addImport("ssfn", kernel.step.owner.addTranslateC(.{
-        .link_libc = false,
+fn addFlanterm(kernel: *Step.Compile) void {
+    const dep = kernel.step.owner.dependency("flanterm", .{});
+    kernel.root_module.addCSourceFiles(.{
+        .files = &.{ "flanterm.c", "flanterm_backends/fb.c" },
+        .language = .c,
+        .root = dep.path("src"),
+    });
+
+    const translateC = kernel.step.owner.addTranslateC(.{
         .optimize = kernel.root_module.optimize.?,
+        .link_libc = false,
         .target = kernel.root_module.resolved_target.?,
-        .root_source_file = dep.path("ssfn.h"),
-    }).createModule());
-    kernel.root_module.addIncludePath(dep.path(""));
+        .root_source_file = kernel.step.owner.path("src/flanterm.h"),
+    });
+    translateC.addIncludePath(dep.path("src"));
+    kernel.root_module.addImport("flanterm", translateC.createModule());
 }
 
 fn addUACPI(kernel: *Step.Compile) void {
