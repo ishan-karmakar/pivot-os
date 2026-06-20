@@ -1,10 +1,13 @@
 const kernel = @import("root");
 const timers = kernel.drivers.timers;
-const hpet = kernel.drivers.timers.hpet;
-const pit = kernel.drivers.timers.pit;
+const limine = @import("limine");
 const cpu = kernel.drivers.cpu;
 const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
+
+export var TSC_FREQ_REQUEST = limine.limine_tsc_frequency_request{
+    .id = kernel.LIMINE_REQUEST_ID(0x10f2ee1d87d195e4, 0xf747a2b78f6ddb31),
+};
 
 const CLOCKSOURCE = timers.ClockSource{
     .rating = 300,
@@ -23,25 +26,18 @@ pub fn init() !void {
 
     if (!is_supported())
         return kernel.lib.logger.failed_initialization(log, "TSC", error.InvariantTSCUnsupported);
-    const freqs = cpu.cpuid(0x15, 0);
-    const freqs2 = cpu.cpuid(0x16, 0);
-    if (freqs.eax != 0 and freqs.ebx != 0) {
-        if (freqs.ecx != 0) {
-            period = @as(f64, @floatFromInt(@as(u64, freqs.ecx) * freqs.ebx)) / @as(f64, @floatFromInt(freqs.eax)) / 1_000_000_000.0;
-            initialized = true;
-        } else if (freqs2.eax != 0) {
-            period = @as(f64, @floatFromInt(@as(u64, freqs2.eax) * 10_000_000 * freqs.eax)) / @as(f64, @floatFromInt(freqs.ebx)) / 1_000_000_000.0;
-            initialized = true;
-        }
-    }
-    if (!initialized) {
+    if (TSC_FREQ_REQUEST.response) |resp| {
+        log.debug("TSC Frequency (from Limine) is {} Hz", .{resp.*.frequency});
+        period = @as(f64, 1_000_000_000) / @as(f64, @floatFromInt(resp.*.frequency));
+    } else {
+        log.debug("TSC Frequency response is empty, falling back to manual calibration", .{});
         const before = rdtsc();
-        timers.sleep(CALIBRATION_NS) catch |err|
-            return kernel.lib.logger.failed_initialization(log, "TSC", err);
+        timers.sleep(CALIBRATION_NS);
         const after = rdtsc();
         period = @as(f64, @floatFromInt(after - before)) / @as(f64, CALIBRATION_NS);
-        initialized = true;
+        log.debug("TSC frequency (manually calibrated) is {} Hz", .{1_000_000_000 / period});
     }
+    initialized = true;
     timers.register_clocksource(&CLOCKSOURCE);
     kernel.lib.logger.successfully_initialized(log, "TSC");
 }

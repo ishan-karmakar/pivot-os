@@ -54,8 +54,7 @@ pub fn init() !void {
         CLOCKEVENT.oneshot = oneshot_callback;
 
         lapic.write_reg(INITIAL_COUNT_OFF, std.math.maxInt(u32));
-        timers.sleep(CALIBRATION_NS) catch |err|
-            return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
+        timers.sleep(CALIBRATION_NS);
         const cur_count = lapic.read_reg(CUR_COUNT_OFF);
         lapic.write_reg(INITIAL_COUNT_OFF, 0);
         hertz = (std.math.maxInt(u32) - cur_count) * (1_000_000_000 / CALIBRATION_NS);

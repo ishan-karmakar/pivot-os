@@ -10,17 +10,6 @@ const log = std.log.scoped(.sched);
 
 const QUANTUM = 50_000_000;
 
-pub var Task = kernel.Task{
-    .name = "Scheduler",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &mem.KHeapTask },
-        .{ .task = &smp.Task },
-        .{ .task = &timers.Task },
-        .{ .task = &syscalls.Task },
-    },
-};
-
 pub const Thread = struct {
     id: usize = 0,
     priority: u8,
@@ -77,6 +66,9 @@ pub fn init() !void {
         return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
     smp.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
+    timers.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
+    syscalls.init();
 
     syscalls.register_syscall(syscalls.SYSCALLS.EXIT, syscall_exit);
     syscalls.register_syscall(syscalls.SYSCALLS.SLEEP, syscall_sleep);
@@ -85,7 +77,8 @@ pub fn init() !void {
     global_queue = ThreadPriorityQueue.initContext({});
     sleep_queue = SleepPriorityQueue.initContext({});
 
-    const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return .failed;
+    const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
     idle_thread_ef.iret_status.rsp = @intFromPtr(stack.ptr) + 0x1000;
     idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);
 
@@ -94,8 +87,9 @@ pub fn init() !void {
         .mapper = mem.kmapper,
         .priority = 100,
         .quantum_end = timers.time() + QUANTUM,
-    }) catch return .failed;
-    return .success;
+    }) catch |err| return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
+    initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "Scheduler");
 }
 
 fn enqueue_no_preempt(thread: *Thread) void {
@@ -206,13 +200,13 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
         nt.quantum_end = timers.time() + QUANTUM;
         cpu_info.cur_proc = nt;
         cpu.set_cr3(mem.phys(@intFromPtr(nt.mapper.pml4)));
-        timers.callback(QUANTUM, null, schedule);
+        timers.oneshot(QUANTUM, null, schedule);
         return &nt.ef;
     }
 
     // If the sleep queue is not empty, we set a callback for when the first thread will wake up
     if (sleep_queue.peek()) |t| {
-        timers.callback(t.wakeup - timers.time(), null, schedule);
+        timers.oneshot(t.wakeup - timers.time(), null, schedule);
     }
     return &idle_thread_ef;
 }

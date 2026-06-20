@@ -48,11 +48,15 @@ pub fn register_clocksource(cs: *const ClockSource) void {
         clocksource = cs;
 }
 
-pub fn sleep(ns: usize) !void {
-    const start = try time();
-    while (try time() < (start + ns)) asm volatile ("pause");
+pub fn oneshot(ns: u64, ctx: ?*anyopaque, cb: CallbackFn) void {
+    clockevent.?.oneshot(ns, ctx, cb);
 }
 
-pub fn time() !usize {
-    return (clocksource orelse return error.NoClockSourceFound).read();
+pub fn sleep(ns: usize) void {
+    const start = time();
+    while (time() < (start + ns)) asm volatile ("pause");
+}
+
+pub fn time() usize {
+    return clocksource.?.read();
 }
