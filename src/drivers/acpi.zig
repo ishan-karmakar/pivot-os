@@ -15,7 +15,7 @@ pub var NamespaceLoadTask = kernel.Task{
         // .{ .task = &TablesTask },
         .{ .task = &kernel.drivers.timers.Task },
         .{ .task = &kernel.drivers.intctrl.Task },
-        .{ .task = &kernel.lib.scheduler.Task },
+        .{ .task = &kernel.cpu.scheduler.Task },
     },
 };
 

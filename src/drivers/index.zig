@@ -9,11 +9,6 @@ pub const modules = @import("modules.zig");
 pub const elf = @import("elf.zig");
 pub const smbios = @import("smbios.zig");
 
-// CPU stuff
-pub const gdt = @import("gdt.zig");
-pub const idt = @import("idt.zig");
-pub const cpu = @import("cpu.zig");
-pub const lapic = @import("lapic.zig");
 pub const lwip = @import("lwip.zig");
 
 pub const PCI_DRIVER_LIST = [_]type{@import("net/rtl8139.zig")};

@@ -3,8 +3,8 @@ const uacpi = @import("uacpi");
 const serial = kernel.drivers.serial;
 const pci = kernel.drivers.pci;
 const mem = kernel.lib.mem;
-const idt = kernel.drivers.idt;
-const cpu = kernel.drivers.cpu;
+const idt = kernel.cpu.idt;
+const cpu = kernel.cpu;
 const math = @import("std").math;
 const log = @import("std").log.scoped(.uacpi);
 const limine = @import("limine");
@@ -230,7 +230,7 @@ export fn uacpi_kernel_free_event(handle: uacpi.uacpi_handle) void {
 
 export fn uacpi_kernel_schedule_work(wtype: uacpi.uacpi_work_type, handler: uacpi.uacpi_work_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
     const stack = mem.kvmm.allocator().alloc(u8, 0x1000) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
-    kernel.lib.scheduler.enqueue(kernel.lib.scheduler.Thread.create(kernel.lib.scheduler.Thread{
+    kernel.cpu.scheduler.enqueue(kernel.cpu.scheduler.Thread.create(kernel.cpu.scheduler.Thread{
         .affinity = if (wtype == uacpi.UACPI_WORK_GPE_EXECUTION) 0 else null,
         .priority = 99,
         .ef = .{
@@ -257,8 +257,8 @@ export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
 }
 
 export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    // if (kernel.lib.smp.Task.ret) |_| {
-    //     if (kernel.lib.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
+    // if (kernel.cpu.smp.Task.ret) |_| {
+    //     if (kernel.cpu.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
     // }
     return @ptrFromInt(1);
 }

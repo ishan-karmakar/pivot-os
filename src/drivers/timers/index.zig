@@ -1,5 +1,5 @@
 const kernel = @import("root");
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 const log = @import("std").log.scoped(.timers);
 
 pub const CallbackFn = *const fn (?*anyopaque, *cpu.Status) *const cpu.Status;

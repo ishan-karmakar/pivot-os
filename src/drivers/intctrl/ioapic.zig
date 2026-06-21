@@ -1,7 +1,7 @@
 const kernel = @import("root");
 const intctrl = kernel.drivers.intctrl;
 const acpi = kernel.drivers.acpi;
-const lapic = kernel.drivers.lapic;
+const lapic = kernel.cpu.lapic;
 const log = @import("std").log.scoped(.ioapic);
 const uacpi = @import("uacpi");
 const std = @import("std");
@@ -88,7 +88,7 @@ pub fn init() !void {
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
     kernel.drivers.acpi.init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
-    kernel.drivers.lapic.init_bsp() catch |err|
+    kernel.cpu.lapic.init_bsp() catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
 
     const madt = acpi.get_table(uacpi.acpi_madt, uacpi.ACPI_MADT_SIGNATURE) catch |err|

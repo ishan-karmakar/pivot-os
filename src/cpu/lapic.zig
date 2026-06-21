@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const log = @import("std").log.scoped(.lapic);
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 
 const MSR = 0x1B;
 const SPURIOUS_VEC = 0xFF;
@@ -39,7 +39,7 @@ var initialized = false;
 pub fn init_bsp() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "LAPIC");
-    kernel.drivers.idt.init_bsp();
+    kernel.cpu.idt.init_bsp();
     kernel.lib.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC", err);
 
@@ -59,7 +59,7 @@ pub fn init_bsp() !void {
     }
     cpu.wrmsr(MSR, msr);
 
-    kernel.drivers.idt.vec2handler(SPURIOUS_VEC).reserved = true;
+    kernel.cpu.idt.vec2handler(SPURIOUS_VEC).reserved = true;
     write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
     write_reg(TPR_OFF, 0);
     write_reg(CONFIG_OFF, TDIV);
@@ -69,7 +69,7 @@ pub fn init_bsp() !void {
 }
 
 pub fn init_ap() void {
-    const cpu_info = kernel.lib.smp.cpu_info(null).?;
+    const cpu_info = kernel.cpu.smp.cpu_info(null).?;
     if (cpu_info.lapic_initialized)
         return kernel.lib.logger.already_initialized(log, "LAPIC");
     kernel.lib.mem.init_kmapper_ap();

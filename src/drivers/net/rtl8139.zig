@@ -2,7 +2,7 @@ const kernel = @import("root");
 const log = @import("std").log.scoped(.rtl8139);
 const pci = kernel.drivers.pci;
 const serial = kernel.drivers.serial;
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 const lwip = @import("lwip");
 const std = @import("std");
 
@@ -84,9 +84,9 @@ fn init() kernel.Task.Ret {
         else => return .failed,
     }
 
-    const handler = kernel.drivers.idt.allocate_handler(null);
+    const handler = kernel.cpu.idt.allocate_handler(null);
     handler.handler = irq_handler;
-    var handlers = [_]*kernel.drivers.idt.HandlerData{handler};
+    var handlers = [_]*kernel.cpu.idt.HandlerData{handler};
     const routing = pci.setup_handlers(PCIVTable.info, handlers[0..]);
     switch (routing) {
         .PRT => |irq| {

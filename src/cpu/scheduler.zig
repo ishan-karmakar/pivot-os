@@ -1,8 +1,8 @@
 const kernel = @import("root");
-const idt = kernel.drivers.idt;
+const idt = kernel.cpu.idt;
 const mem = kernel.lib.mem;
-const cpu = kernel.drivers.cpu;
-const smp = kernel.lib.smp;
+const cpu = kernel.cpu;
+const smp = kernel.cpu.smp;
 const timers = kernel.drivers.timers;
 const syscalls = kernel.lib.syscalls;
 const std = @import("std");
@@ -111,15 +111,15 @@ pub fn enqueue(thread: *Thread) void {
         const cpu_info = smp.cpu_info(id).?;
         const cproc = cpu_info.cur_proc;
         if (cproc == null or thread.priority > cproc.?.priority)
-            return kernel.drivers.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
+            return kernel.cpu.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
     } else {
         for (0..smp.cpu_count()) |i| {
             const cpu_info = smp.cpu_info(i).?;
-            if (cpu_info.cur_proc == null) return kernel.drivers.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
+            if (cpu_info.cur_proc == null) return kernel.cpu.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
         }
         for (0..smp.cpu_count()) |i| {
             const cpu_info = smp.cpu_info(i).?;
-            if (thread.priority > cpu_info.cur_proc.?.priority) return kernel.drivers.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
+            if (thread.priority > cpu_info.cur_proc.?.priority) return kernel.cpu.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
         }
     }
 }

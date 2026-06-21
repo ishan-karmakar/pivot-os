@@ -6,7 +6,7 @@ const uacpi = @import("uacpi");
 const std = @import("std");
 const log = std.log.scoped(.pci);
 const acpi = kernel.drivers.acpi;
-const idt = kernel.drivers.idt;
+const idt = kernel.cpu.idt;
 
 pub const Codes = struct {
     class_code: ?u8 = null,

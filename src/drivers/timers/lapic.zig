@@ -1,10 +1,10 @@
 const kernel = @import("root");
-const lapic = kernel.drivers.lapic;
+const lapic = kernel.cpu.lapic;
 const timers = kernel.drivers.timers;
 const mem = kernel.lib.mem;
-const idt = kernel.drivers.idt;
-const cpu = kernel.drivers.cpu;
-const smp = kernel.lib.smp;
+const idt = kernel.cpu.idt;
+const cpu = kernel.cpu;
+const smp = kernel.cpu.smp;
 const std = @import("std");
 const log = std.log.scoped(.lapic_timer);
 
@@ -35,7 +35,7 @@ var initialized = false;
 pub fn init() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "LAPIC Timer");
-    kernel.drivers.lapic.init_bsp() catch |err|
+    kernel.cpu.lapic.init_bsp() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
     mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
