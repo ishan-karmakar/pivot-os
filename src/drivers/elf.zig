@@ -1,7 +1,7 @@
 const kernel = @import("root");
 const std = @import("std");
 const log = std.log.scoped(.elf);
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 
 const ELFHeader = extern struct {
     ident: [4]u8,

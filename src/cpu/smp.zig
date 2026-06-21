@@ -1,7 +1,7 @@
 const kernel = @import("root");
 const limine = @import("limine");
 const std = @import("std");
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const cpu = kernel.cpu;
 const log = std.log.scoped(.smp);
 
@@ -23,7 +23,7 @@ var initialized = false;
 pub fn init() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "SMP");
-    kernel.lib.mem.init_kheap() catch |err|
+    kernel.mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMP", err);
     kernel.cpu.gdt.init_dynamic() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMP", err);
@@ -53,7 +53,7 @@ pub fn init() !void {
 fn ap_init(info: *limine.limine_mp_info) callconv(.c) noreturn {
     kernel.cpu.set_kgs(info.extra_argument);
     kernel.cpu.idt.init_ap();
-    kernel.lib.mem.init_kmapper_ap();
+    kernel.mem.init_kmapper_ap();
     kernel.cpu.gdt.init_ap();
     kernel.cpu.lapic.init_ap();
     asm volatile ("sti");

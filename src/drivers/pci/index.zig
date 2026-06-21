@@ -185,7 +185,7 @@ fn get_bars(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.BAR {
     while (i < 5) : (i += 1) {
         const raw = read_reg32(addr, 0x10 + i * 4);
         if (raw & 1 == 1) {
-            try bars.append(kernel.lib.mem.kheap.allocator(), .{ .IO = raw & ~@as(u32, 0b11) });
+            try bars.append(kernel.mem.kheap.allocator(), .{ .IO = raw & ~@as(u32, 0b11) });
             continue;
         }
 
@@ -194,12 +194,12 @@ fn get_bars(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.BAR {
             i += 1;
             bar_addr |= @as(u64, read_reg32(addr, 0x10 + i * 4)) << 32;
         }
-        try bars.append(kernel.lib.mem.kheap.allocator(), .{ .MEM = .{
+        try bars.append(kernel.mem.kheap.allocator(), .{ .MEM = .{
             .addr = bar_addr,
             .prefetchable = (raw >> 3) & 1 > 0,
         } });
     }
-    return try bars.toOwnedSlice(kernel.lib.mem.kheap.allocator());
+    return try bars.toOwnedSlice(kernel.mem.kheap.allocator());
 }
 
 fn get_capabilities(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.Capability {
@@ -210,10 +210,10 @@ fn get_capabilities(addr: uacpi.uacpi_pci_address) ![]DeviceInfo.Capability {
     var capabilities = std.ArrayList(DeviceInfo.Capability).empty;
     var ptr = read_reg8(addr, 0x34);
     while (ptr != 0) : (ptr = read_reg8(addr, ptr + 1)) {
-        try capabilities.append(kernel.lib.mem.kheap.allocator(), .{
+        try capabilities.append(kernel.mem.kheap.allocator(), .{
             .id = read_reg8(addr, @intCast(ptr)),
             .offset = ptr,
         });
     }
-    return try capabilities.toOwnedSlice(kernel.lib.mem.kheap.allocator());
+    return try capabilities.toOwnedSlice(kernel.mem.kheap.allocator());
 }

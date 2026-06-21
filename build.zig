@@ -217,7 +217,7 @@ fn addFlanterm(kernel: *Step.Compile) void {
         .optimize = kernel.root_module.optimize.?,
         .link_libc = false,
         .target = kernel.root_module.resolved_target.?,
-        .root_source_file = kernel.step.owner.path("src/flanterm.h"),
+        .root_source_file = kernel.step.owner.path("src/thirdparty/flanterm.h"),
     });
     translateC.addIncludePath(dep.path("src"));
     kernel.root_module.addImport("flanterm", translateC.createModule());
@@ -237,7 +237,7 @@ fn addUACPI(kernel: *Step.Compile) void {
         .link_libc = false,
         .optimize = kernel.root_module.optimize.?,
         .target = kernel.root_module.resolved_target.?,
-        .root_source_file = kernel.step.owner.path("src/uacpi.h"),
+        .root_source_file = kernel.step.owner.path("src/thirdparty/uacpi.h"),
     });
     translateC.addIncludePath(uacpi.path("include"));
     kernel.root_module.addImport("uacpi", translateC.createModule());
@@ -266,7 +266,7 @@ fn addLWIP(kernel: *Step.Compile) void {
         .link_libc = false,
         .optimize = kernel.root_module.optimize.?,
         .target = kernel.root_module.resolved_target.?,
-        .root_source_file = kernel.step.owner.path("src/lwip.h"),
+        .root_source_file = kernel.step.owner.path("src/thirdparty/lwip.h"),
     });
     translateC.addIncludePath(dep.path("src/include"));
     translateC.addIncludePath(kernel.step.owner.path("src/lwip"));

@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const log = @import("std").log.scoped(.mapper);
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const math = @import("std").math;
 const Mutex = kernel.lib.Mutex;
 pub const Table = *[512]u64;

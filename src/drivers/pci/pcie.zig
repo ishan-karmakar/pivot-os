@@ -6,7 +6,7 @@ pub var Task = kernel.Task{
     .init = init,
     .name = "PCIe",
     .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KMapperTask },
+        .{ .task = &kernel.mem.KMapperTask },
         .{ .task = &kernel.drivers.acpi.TablesTask },
     },
 };
@@ -28,7 +28,7 @@ fn init() kernel.Task.Ret {
 
     for (segment_groups) |seg| {
         for (0..CONFIG_SPACE_PAGES) |i| {
-            kernel.lib.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
+            kernel.mem.kmapper.map(seg.address + i * 0x1000, seg.address + i * 0x1000, (1 << 63) | 0b11);
         }
         pci.scan_devices(seg.segment) catch return .failed;
     }

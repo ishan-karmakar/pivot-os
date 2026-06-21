@@ -3,7 +3,7 @@ const std = @import("std");
 const uacpi = @import("uacpi");
 const log = std.log.scoped(.hpet);
 const acpi = kernel.drivers.acpi;
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const cpu = kernel.cpu;
 const timers = kernel.timers;
 const intctrl = kernel.drivers.intctrl;
@@ -103,7 +103,7 @@ var initialized = false;
 pub fn init() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "HPET");
-    kernel.lib.mem.init_kmapper() catch |err|
+    kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
     kernel.drivers.acpi.init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);

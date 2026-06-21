@@ -6,7 +6,7 @@ const kernel = @import("root");
 const log = std.log.scoped(.vmm);
 const math = std.math;
 const Allocator = std.mem.Allocator;
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const Mutex = kernel.lib.Mutex;
 const Self = @This();
 

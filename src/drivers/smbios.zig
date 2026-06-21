@@ -1,5 +1,5 @@
 const kernel = @import("root");
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const limine = @import("limine");
 const std = @import("std");
 const log = std.log.scoped(.smbios);

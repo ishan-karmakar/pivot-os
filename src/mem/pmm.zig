@@ -2,7 +2,7 @@ const kernel = @import("root");
 const limine = @import("limine");
 const std = @import("std");
 const log = @import("std").log.scoped(.pmm);
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 
 const FreeRegion = struct {
     const Self = @This();

@@ -36,9 +36,9 @@ pub fn init_tables() !void {
     if (uacpi.uacpi_get_current_init_level() >= uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED)
         return kernel.lib.logger.already_initialized(log, "ACPI Tables");
 
-    kernel.lib.mem.init_kmapper() catch |err|
+    kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Tables", err);
-    kernel.lib.mem.init_kheap() catch |err|
+    kernel.mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Tables", err);
 
     var err = uacpi.uacpi_initialize(0);
@@ -83,7 +83,7 @@ fn init_drivers() kernel.Task.Ret {
         var info = CallbackInfo{ .task = &driver.ACPITask, .vtable = &driver.ACPIVTable };
         // I am doing this allocation because I don't want the user making ACPI drivers to have to constantly
         // put the uacpi.UACPI_NULL themselves. This should be handled automatically and one extra allocation + free is the cost
-        const hids = kernel.lib.mem.kheap.allocator().alloc([*c]const u8, driver.ACPIVTable.hids.len + 1) catch @panic("OOM");
+        const hids = kernel.mem.kheap.allocator().alloc([*c]const u8, driver.ACPIVTable.hids.len + 1) catch @panic("OOM");
         std.mem.copyForwards([*c]const u8, hids, driver.ACPIVTable.hids);
         hids[driver.ACPIVTable.hids.len] = @ptrCast(uacpi.UACPI_NULL);
         if (uacpi.uacpi_find_devices_at(
@@ -94,7 +94,7 @@ fn init_drivers() kernel.Task.Ret {
             driver_callback,
             &info,
         ) != uacpi.UACPI_STATUS_OK) @panic("uacpi_find_devices_at failed");
-        kernel.lib.mem.kheap.allocator().free(hids);
+        kernel.mem.kheap.allocator().free(hids);
     }
     return .success;
 }

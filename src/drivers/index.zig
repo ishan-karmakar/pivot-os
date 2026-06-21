@@ -8,13 +8,6 @@ pub const modules = @import("modules.zig");
 pub const elf = @import("elf.zig");
 pub const smbios = @import("smbios.zig");
 
-pub const lwip = @import("lwip.zig");
-
 pub const PCI_DRIVER_LIST = [_]type{@import("net/rtl8139.zig")};
 
 pub const ACPI_DRIVER_LIST = [_]type{};
-
-comptime {
-    _ = @import("uacpi.zig");
-    _ = @import("lwip.zig");
-}

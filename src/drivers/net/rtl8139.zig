@@ -102,10 +102,10 @@ fn init() kernel.Task.Ret {
     while (@as(CommandRegister, @bitCast(serial.in(io_base + IORegisters.CMD, u8))).reset) {}
 
     const num_pages = std.math.divCeil(usize, BUFFER_SIZE, 0x1000) catch return .failed;
-    const pages = kernel.lib.mem.pmm.frames(num_pages);
+    const pages = kernel.mem.pmm.frames(num_pages);
     for (0..num_pages) |i|
-        kernel.lib.mem.kmapper.map(pages + 0x1000 * i, kernel.lib.mem.virt(pages + 0x1000 + i), 0b11 | (1 << 63));
-    buffer = @as([*]u8, @ptrFromInt(kernel.lib.mem.virt(pages)))[0..BUFFER_SIZE];
+        kernel.mem.kmapper.map(pages + 0x1000 * i, kernel.mem.virt(pages + 0x1000 + i), 0b11 | (1 << 63));
+    buffer = @as([*]u8, @ptrFromInt(kernel.mem.virt(pages)))[0..BUFFER_SIZE];
 
     serial.out(io_base + IORegisters.RBSTART, @as(u32, @intCast(pages)));
     serial.out(io_base + IORegisters.IMR, @as(u16, 0x5));

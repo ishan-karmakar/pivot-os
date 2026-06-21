@@ -2,9 +2,15 @@ pub const lib = @import("lib/index.zig");
 pub const drivers = @import("drivers/index.zig");
 pub const cpu = @import("cpu/index.zig");
 pub const timers = @import("timers/index.zig");
+pub const mem = @import("mem/index.zig");
 const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);
+
+comptime {
+    _ = @import("thirdparty/uacpi.zig");
+    _ = @import("thirdparty/lwip.zig");
+}
 
 pub const std_options = std.Options{
     .logFn = lib.logger.logger,
@@ -119,10 +125,10 @@ export fn _start() noreturn {
     drivers.smbios.init() catch {};
     cpu.gdt.init_static();
     cpu.idt.init_bsp();
-    lib.mem.pmm.init() catch {};
-    lib.mem.init_kmapper() catch {};
-    lib.mem.init_kvmm() catch {};
-    lib.mem.init_kheap() catch {};
+    mem.pmm.init() catch {};
+    mem.init_kmapper() catch {};
+    mem.init_kvmm() catch {};
+    mem.init_kheap() catch {};
     drivers.fb.init_all() catch {};
     cpu.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};

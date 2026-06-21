@@ -34,18 +34,18 @@ pub fn enable(addr: uacpi.uacpi_pci_address) ![]*idt.HandlerData {
             const table_addr = bar.addr + table_offset;
             const num_pages = std.math.divCeil(usize, table_addr % 0x1000 + table_size * @sizeOf(TableEntry), 0x1000) catch unreachable;
             for (0..num_pages) |i|
-                kernel.lib.mem.kmapper.map(table_addr + i * 0x1000, table_addr + i * 0x1000, (1 << 63) | 0b11);
+                kernel.mem.kmapper.map(table_addr + i * 0x1000, table_addr + i * 0x1000, (1 << 63) | 0b11);
             break :blk @as([*]volatile TableEntry, @ptrFromInt(table_addr))[0..table_size];
         },
         .IO => @panic("IO BARs are not allowed with MSI-X"),
     };
     const id = kernel.cpu.smp.cpu_info(null).id;
-    const handlers = try std.ArrayList(*idt.HandlerData).initCapacity(kernel.lib.mem.kheap.allocator(), table_size);
+    const handlers = try std.ArrayList(*idt.HandlerData).initCapacity(kernel.mem.kheap.allocator(), table_size);
     for (table) |*ent| {
         ent.msg_addr_low = 0xFEE00000 | (id << 12);
         ent.msg_addr_high = 0;
         const handler = kernel.cpu.idt.allocate_handler(null);
-        try handlers.append(kernel.lib.mem.kheap.allocator(), handler);
+        try handlers.append(kernel.mem.kheap.allocator(), handler);
         ent.msg_data = kernel.cpu.idt.handler2vec(handler);
         ent.vec_ctrl = 0;
     }

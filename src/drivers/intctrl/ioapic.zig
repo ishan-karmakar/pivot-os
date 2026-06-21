@@ -33,7 +33,7 @@ const IOAPIC = struct {
     data: *const uacpi.acpi_madt_ioapic,
 
     pub fn create(data: *const uacpi.acpi_madt_ioapic) @This() {
-        kernel.lib.mem.kmapper.map(data.address, data.address, (@as(u64, 1) << 63) | 0b11);
+        kernel.mem.kmapper.map(data.address, data.address, (@as(u64, 1) << 63) | 0b11);
         var self = @This(){ .data = data, .max_red_ent = 0 };
         self.max_red_ent = ((self.read_reg(1) >> 16) & 0xFF) + 1;
         for (0..self.max_red_ent) |i| {
@@ -82,9 +82,9 @@ pub fn init() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "IOAPIC");
 
-    kernel.lib.mem.init_kmapper() catch |err|
+    kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
-    kernel.lib.mem.init_kheap() catch |err|
+    kernel.mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
     kernel.drivers.acpi.init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
@@ -97,7 +97,7 @@ pub fn init() !void {
     var ioapic_iter = acpi.Iterator(uacpi.acpi_madt_ioapic).create(uacpi.ACPI_MADT_ENTRY_TYPE_IOAPIC, &madt.hdr, @sizeOf(uacpi.acpi_madt));
     var ioapic_arr = std.ArrayList(IOAPIC).empty;
     while (ioapic_iter.next()) |ioapic|
-        ioapic_arr.append(kernel.lib.mem.kheap.allocator(), IOAPIC.create(ioapic)) catch |err|
+        ioapic_arr.append(kernel.mem.kheap.allocator(), IOAPIC.create(ioapic)) catch |err|
             return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
 
     if (ioapic_arr.items.len == 0)
@@ -106,12 +106,12 @@ pub fn init() !void {
     var iso_iter = acpi.Iterator(uacpi.acpi_madt_interrupt_source_override).create(uacpi.ACPI_MADT_ENTRY_TYPE_INTERRUPT_SOURCE_OVERRIDE, &madt.hdr, @sizeOf(uacpi.acpi_madt));
     var iso_arr = std.ArrayList(*const uacpi.acpi_madt_interrupt_source_override).empty;
     while (iso_iter.next()) |iso|
-        iso_arr.append(kernel.lib.mem.kheap.allocator(), iso) catch |err|
+        iso_arr.append(kernel.mem.kheap.allocator(), iso) catch |err|
             return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
 
-    ioapics = ioapic_arr.toOwnedSlice(kernel.lib.mem.kheap.allocator()) catch |err|
+    ioapics = ioapic_arr.toOwnedSlice(kernel.mem.kheap.allocator()) catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
-    isos = iso_arr.toOwnedSlice(kernel.lib.mem.kheap.allocator()) catch |err|
+    isos = iso_arr.toOwnedSlice(kernel.mem.kheap.allocator()) catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);
     intctrl.register_controller(&INTERRUPT_CONTROLLER);
     initialized = true;

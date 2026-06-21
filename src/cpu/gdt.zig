@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const smp = kernel.cpu.smp;
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const log = @import("std").log.scoped(.gdt);
 
 const Entry = packed struct {

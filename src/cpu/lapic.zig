@@ -30,7 +30,7 @@ pub var TaskAP = kernel.Task{
     .name = "Local APIC (AP)",
     .init = ap_init,
     .dependencies = &.{
-        // .{ .task = &kernel.lib.mem.KMapperTaskAP },
+        // .{ .task = &kernel.mem.KMapperTaskAP },
     },
 };
 
@@ -40,7 +40,7 @@ pub fn init_bsp() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "LAPIC");
     kernel.cpu.idt.init_bsp();
-    kernel.lib.mem.init_kmapper() catch |err|
+    kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC", err);
 
     var msr = cpu.rdmsr(MSR) | (1 << 11);
@@ -52,7 +52,7 @@ pub fn init_bsp() !void {
         log.debug("Found x2APIC", .{});
     } else if (cpuid.edx & (1 << 9) > 0) {
         addr = msr & ~@as(u64, 0xFFF);
-        kernel.lib.mem.kmapper.map(addr, addr, (1 << 63) | 0b11);
+        kernel.mem.kmapper.map(addr, addr, (1 << 63) | 0b11);
         read_reg = xapic_read_reg;
         write_reg = xapic_write_reg;
         log.debug("Found xAPIC", .{});
@@ -72,7 +72,7 @@ pub fn init_ap() void {
     const cpu_info = kernel.cpu.smp.cpu_info(null).?;
     if (cpu_info.lapic_initialized)
         return kernel.lib.logger.already_initialized(log, "LAPIC");
-    kernel.lib.mem.init_kmapper_ap();
+    kernel.mem.init_kmapper_ap();
 
     var msr = cpu.rdmsr(MSR) | (1 << 11);
     if (read_reg == x2apic_read_reg) msr |= 1 << 10;

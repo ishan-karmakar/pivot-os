@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const idt = kernel.cpu.idt;
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 const cpu = kernel.cpu;
 const smp = kernel.cpu.smp;
 const timers = kernel.timers;

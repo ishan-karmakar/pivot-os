@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const log = @import("std").log.scoped(.intctrl);
-const mem = kernel.lib.mem;
+const mem = kernel.mem;
 
 pub const InterruptController = struct {
     rating: u16,
