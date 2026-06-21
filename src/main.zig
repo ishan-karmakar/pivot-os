@@ -1,6 +1,7 @@
 pub const lib = @import("lib/index.zig");
 pub const drivers = @import("drivers/index.zig");
 pub const cpu = @import("cpu/index.zig");
+pub const timers = @import("timers/index.zig");
 const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);

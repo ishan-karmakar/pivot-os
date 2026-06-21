@@ -1,5 +1,5 @@
 const kernel = @import("root");
-const timers = kernel.drivers.timers;
+const timers = kernel.timers;
 const limine = @import("limine");
 const cpu = kernel.cpu;
 const std = @import("std");

@@ -1,5 +1,5 @@
 const kernel = @import("root");
-const timers = kernel.drivers.timers;
+const timers = kernel.timers;
 const intctrl = kernel.drivers.intctrl;
 const idt = kernel.cpu.idt;
 const cpu = kernel.cpu;
