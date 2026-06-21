@@ -1,7 +1,7 @@
 const kernel = @import("root");
 const timers = kernel.drivers.timers;
 const limine = @import("limine");
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 const std = @import("std");
 const log = @import("std").log.scoped(.tsc);
 

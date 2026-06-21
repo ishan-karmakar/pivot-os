@@ -2,7 +2,7 @@ const kernel = @import("root");
 const limine = @import("limine");
 const std = @import("std");
 const mem = kernel.lib.mem;
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 const log = std.log.scoped(.smp);
 
 pub export var SMP_REQUEST = limine.limine_mp_request{
@@ -12,8 +12,8 @@ pub export var SMP_REQUEST = limine.limine_mp_request{
 
 pub const CPU = struct {
     id: u32,
-    cur_proc: ?*kernel.lib.scheduler.Thread,
-    lapic_handler: *kernel.drivers.idt.HandlerData,
+    cur_proc: ?*kernel.cpu.scheduler.Thread,
+    lapic_handler: *kernel.cpu.idt.HandlerData,
 
     lapic_initialized: bool = false,
 };
@@ -25,9 +25,9 @@ pub fn init() !void {
         return kernel.lib.logger.already_initialized(log, "SMP");
     kernel.lib.mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMP", err);
-    kernel.drivers.gdt.init_dynamic() catch |err|
+    kernel.cpu.gdt.init_dynamic() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMP", err);
-    kernel.drivers.lapic.init_bsp() catch |err|
+    kernel.cpu.lapic.init_bsp() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMP", err);
 
     const response: *limine.limine_mp_response = SMP_REQUEST.response orelse
@@ -51,11 +51,11 @@ pub fn init() !void {
 }
 
 fn ap_init(info: *limine.limine_mp_info) callconv(.c) noreturn {
-    kernel.drivers.cpu.set_kgs(info.extra_argument);
-    kernel.drivers.idt.init_ap();
+    kernel.cpu.set_kgs(info.extra_argument);
+    kernel.cpu.idt.init_ap();
     kernel.lib.mem.init_kmapper_ap();
-    kernel.drivers.gdt.init_ap();
-    kernel.drivers.lapic.init_ap();
+    kernel.cpu.gdt.init_ap();
+    kernel.cpu.lapic.init_ap();
     asm volatile ("sti");
     while (true) asm volatile ("hlt");
 }

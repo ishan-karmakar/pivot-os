@@ -22,7 +22,7 @@ var initialized = false;
 pub fn init() !void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "PMM");
-    kernel.drivers.idt.init_bsp();
+    kernel.cpu.idt.init_bsp();
 
     if (mem.HHDM_REQUEST.response == null)
         return kernel.lib.logger.failed_initialization(log, "PMM", error.HHDMUnavailable);

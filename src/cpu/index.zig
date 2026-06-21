@@ -1,3 +1,9 @@
+pub const gdt = @import("gdt.zig");
+pub const idt = @import("idt.zig");
+pub const lapic = @import("lapic.zig");
+pub const scheduler = @import("scheduler.zig");
+pub const smp = @import("smp.zig");
+
 const kernel = @import("root");
 
 pub const CPUIDResult = struct {

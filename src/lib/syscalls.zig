@@ -1,8 +1,8 @@
 const kernel = @import("root");
 const std = @import("std");
 const log = std.log.scoped(.syscall);
-const idt = kernel.drivers.idt;
-const cpu = kernel.drivers.cpu;
+const idt = kernel.cpu.idt;
+const cpu = kernel.cpu;
 
 pub var Task = kernel.Task{
     .name = "Syscalls",

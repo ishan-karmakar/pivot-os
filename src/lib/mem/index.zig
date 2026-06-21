@@ -54,7 +54,7 @@ pub fn init_kmapper() !void {
 }
 
 pub fn init_kmapper_ap() void {
-    kernel.drivers.cpu.set_cr3(phys(@intFromPtr(kmapper.pml4)));
+    kernel.cpu.set_cr3(phys(@intFromPtr(kmapper.pml4)));
     return kernel.lib.logger.successfully_initialized(log, "Kernel mapper");
 }
 

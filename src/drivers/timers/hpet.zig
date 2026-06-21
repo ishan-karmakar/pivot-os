@@ -4,10 +4,10 @@ const uacpi = @import("uacpi");
 const log = std.log.scoped(.hpet);
 const acpi = kernel.drivers.acpi;
 const mem = kernel.lib.mem;
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 const timers = kernel.drivers.timers;
 const intctrl = kernel.drivers.intctrl;
-const idt = kernel.drivers.idt;
+const idt = kernel.cpu.idt;
 
 const GeneralCapabilitiesID = packed struct {
     rev_id: u8,
@@ -107,7 +107,7 @@ pub fn init() !void {
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
     kernel.drivers.acpi.init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
-    kernel.drivers.idt.init_bsp();
+    kernel.cpu.idt.init_bsp();
     kernel.drivers.intctrl.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
 

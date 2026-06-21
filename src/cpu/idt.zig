@@ -1,6 +1,6 @@
 const std = @import("std");
 const kernel = @import("root");
-const cpu = kernel.drivers.cpu;
+const cpu = kernel.cpu;
 const log = std.log.scoped(.idt);
 
 const ISR = *const fn () callconv(.naked) void;
@@ -41,7 +41,7 @@ var initialized = false;
 pub fn init_bsp() void {
     if (initialized)
         return kernel.lib.logger.already_initialized(log, "IDT");
-    kernel.drivers.gdt.init_static();
+    kernel.cpu.gdt.init_static();
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
     set_ent(1, create_exc_isr(1, false, "exception_handler"));
     set_ent(2, create_exc_isr(2, false, "exception_handler"));

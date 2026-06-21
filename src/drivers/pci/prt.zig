@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const pci = kernel.drivers.pci;
-const idt = kernel.drivers.idt;
+const idt = kernel.cpu.idt;
 const uacpi = @import("uacpi");
 const log = @import("std").log.scoped(.prt);
 

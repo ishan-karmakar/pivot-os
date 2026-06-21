@@ -3,7 +3,7 @@ const uacpi = @import("uacpi");
 const pci = kernel.drivers.pci;
 const std = @import("std");
 const log = std.log.scoped(.msix);
-const idt = kernel.drivers.idt;
+const idt = kernel.cpu.idt;
 
 pub var Task = kernel.Task{
     .name = "MSI",
@@ -39,14 +39,14 @@ pub fn enable(addr: uacpi.uacpi_pci_address) ![]*idt.HandlerData {
         },
         .IO => @panic("IO BARs are not allowed with MSI-X"),
     };
-    const id = kernel.lib.smp.cpu_info(null).id;
+    const id = kernel.cpu.smp.cpu_info(null).id;
     const handlers = try std.ArrayList(*idt.HandlerData).initCapacity(kernel.lib.mem.kheap.allocator(), table_size);
     for (table) |*ent| {
         ent.msg_addr_low = 0xFEE00000 | (id << 12);
         ent.msg_addr_high = 0;
-        const handler = kernel.drivers.idt.allocate_handler(null);
+        const handler = kernel.cpu.idt.allocate_handler(null);
         try handlers.append(kernel.lib.mem.kheap.allocator(), handler);
-        ent.msg_data = kernel.drivers.idt.handler2vec(handler);
+        ent.msg_data = kernel.cpu.idt.handler2vec(handler);
         ent.vec_ctrl = 0;
     }
 

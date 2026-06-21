@@ -1,5 +1,6 @@
 pub const lib = @import("lib/index.zig");
 pub const drivers = @import("drivers/index.zig");
+pub const cpu = @import("cpu/index.zig");
 const std = @import("std");
 const limine = @import("limine");
 const log = std.log.scoped(.main);
@@ -92,7 +93,7 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
 
-    drivers.cpu.set_kgs(0);
+    cpu.set_kgs(0);
     log.info("Kernel initialization starting", .{});
     drivers.fb.init_main() catch {};
 
@@ -115,17 +116,17 @@ export fn _start() noreturn {
         log.info("Kernel booted at {} seconds (UNIX time)", .{res.*.timestamp});
 
     drivers.smbios.init() catch {};
-    drivers.gdt.init_static();
-    drivers.idt.init_bsp();
+    cpu.gdt.init_static();
+    cpu.idt.init_bsp();
     lib.mem.pmm.init() catch {};
     lib.mem.init_kmapper() catch {};
     lib.mem.init_kvmm() catch {};
     lib.mem.init_kheap() catch {};
     drivers.fb.init_all() catch {};
-    drivers.gdt.init_dynamic() catch {};
+    cpu.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};
     drivers.intctrl.init() catch {};
-    lib.scheduler.init() catch {};
+    cpu.scheduler.init() catch {};
 
     while (true) asm volatile ("hlt");
 }

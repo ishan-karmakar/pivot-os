@@ -13,7 +13,7 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
     const levelText = comptime level.asText();
     const prefix = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
     var id: u32 = 0;
-    if (kernel.lib.smp.cpu_info(null)) |info|
+    if (kernel.cpu.smp.cpu_info(null)) |info|
         id = info.id;
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     writer.print("[{}]" ++ " " ++ levelText ++ prefix ++ format ++ "\r\n", .{id} ++ args) catch {};
