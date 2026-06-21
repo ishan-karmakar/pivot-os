@@ -28,12 +28,6 @@ pub export var PAGING_REQUEST = limine.limine_paging_mode_request{
 const KHEAP_SIZE = 0x1000 * 128;
 const KVMM_SIZE = KHEAP_SIZE + 0x1000 * 2;
 
-pub var KMapperTaskAP = kernel.Task{
-    .name = "Kernel Mapper (AP)",
-    .init = mapper_ap_init,
-    .dependencies = &.{},
-};
-
 var kmapper_initialized = false;
 var kvmm_initialized = false;
 var kheap_initialized = false;
@@ -59,9 +53,9 @@ pub fn init_kmapper() !void {
     kernel.lib.logger.successfully_initialized(log, "Kernel mapper");
 }
 
-fn mapper_ap_init() kernel.Task.Ret {
+pub fn init_kmapper_ap() void {
     kernel.drivers.cpu.set_cr3(phys(@intFromPtr(kmapper.pml4)));
-    return .success;
+    return kernel.lib.logger.successfully_initialized(log, "Kernel mapper");
 }
 
 pub fn init_kvmm() !void {

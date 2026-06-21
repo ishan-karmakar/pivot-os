@@ -30,7 +30,7 @@ pub var TaskAP = kernel.Task{
     .name = "Local APIC (AP)",
     .init = ap_init,
     .dependencies = &.{
-        .{ .task = &kernel.lib.mem.KMapperTaskAP },
+        // .{ .task = &kernel.lib.mem.KMapperTaskAP },
     },
 };
 
@@ -65,6 +65,24 @@ pub fn init_bsp() !void {
     write_reg(CONFIG_OFF, TDIV);
 
     initialized = true;
+    kernel.lib.logger.successfully_initialized(log, "LAPIC");
+}
+
+pub fn init_ap() void {
+    const cpu_info = kernel.lib.smp.cpu_info(null).?;
+    if (cpu_info.lapic_initialized)
+        return kernel.lib.logger.already_initialized(log, "LAPIC");
+    kernel.lib.mem.init_kmapper_ap();
+
+    var msr = cpu.rdmsr(MSR) | (1 << 11);
+    if (read_reg == x2apic_read_reg) msr |= 1 << 10;
+    cpu.wrmsr(MSR, msr);
+
+    write_reg(SPURIOUS_OFF, (@as(u32, 1) << 8) | SPURIOUS_VEC);
+    write_reg(TPR_OFF, 0);
+    write_reg(CONFIG_OFF, TDIV);
+
+    cpu_info.lapic_initialized = true;
     kernel.lib.logger.successfully_initialized(log, "LAPIC");
 }
 

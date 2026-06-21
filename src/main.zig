@@ -92,6 +92,7 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
 
+    drivers.cpu.set_kgs(0);
     log.info("Kernel initialization starting", .{});
     drivers.fb.init_main() catch {};
 

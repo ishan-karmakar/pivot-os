@@ -38,14 +38,6 @@ var gdtr = GDTR{
     .size = static_gdt.len * @sizeOf(Entry) - 1,
 };
 
-pub var DynamicTaskAP = kernel.Task{
-    .name = "Dynamic GDT (AP)",
-    .init = init_dynamic_ap,
-    .dependencies = &.{
-        .{ .task = &mem.KMapperTaskAP },
-    },
-};
-
 var static_initialized = false;
 var dynamic_initialized = false;
 
@@ -84,9 +76,10 @@ pub fn init_dynamic() !void {
     kernel.lib.logger.successfully_initialized(log, "Dynamic GDT");
 }
 
-fn init_dynamic_ap() kernel.Task.Ret {
+pub fn init_ap() void {
+    mem.init_kmapper_ap();
     lgdt();
-    return .success;
+    kernel.lib.logger.successfully_initialized(log, "GDT");
 }
 
 pub fn lgdt() void {

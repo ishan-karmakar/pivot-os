@@ -29,16 +29,6 @@ pub const VTable = struct {
     info: DeviceInfo = undefined,
 };
 
-pub var Task = kernel.Task{
-    .name = "PCI(e)",
-    .init = init,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.intctrl.Task },
-        .{ .task = &kernel.drivers.acpi.NamespaceLoadTask },
-        .{ .task = &pcie.Task, .accept_failure = true },
-    },
-};
-
 pub fn ReadFunc(T: type) type {
     return *const fn (addr: uacpi.uacpi_pci_address, off: u13) T;
 }

@@ -12,19 +12,10 @@ pub export var SMP_REQUEST = limine.limine_mp_request{
 
 pub const CPU = struct {
     id: u32,
-    ready: std.atomic.Value(bool),
     cur_proc: ?*kernel.lib.scheduler.Thread,
     lapic_handler: *kernel.drivers.idt.HandlerData,
-};
 
-var TaskAP = kernel.Task{
-    .name = "SMP (AP)",
-    .init = null,
-    .dependencies = &.{
-        .{ .task = &kernel.drivers.idt.TaskAP },
-        .{ .task = &kernel.drivers.gdt.DynamicTaskAP },
-        .{ .task = &kernel.drivers.lapic.TaskAP },
-    },
+    lapic_initialized: bool = false,
 };
 
 var initialized = false;
@@ -47,17 +38,13 @@ pub fn init() !void {
             return kernel.lib.logger.failed_initialization(log, "SMP", err);
         _info.* = CPU{
             .id = info.lapic_id,
-            .ready = std.atomic.Value(bool).init(false),
             .cur_proc = null,
             .lapic_handler = undefined,
         };
         info.extra_argument = @intFromPtr(_info);
         if (info.lapic_id == response.bsp_lapic_id) {
             cpu.set_kgs(info.extra_argument);
-        } else {
-            @atomicStore(usize, @as(*usize, @ptrCast(&info.goto_address)), @intFromPtr(&ap_init), .unordered);
-            while (!_info.ready.load(.acquire)) {}
-        }
+        } else @atomicStore(usize, @as(*usize, @ptrCast(&info.goto_address)), @intFromPtr(&ap_init), .unordered);
     }
     initialized = true;
     kernel.lib.logger.successfully_initialized(log, "SMP");
@@ -65,17 +52,17 @@ pub fn init() !void {
 
 fn ap_init(info: *limine.limine_mp_info) callconv(.c) noreturn {
     kernel.drivers.cpu.set_kgs(info.extra_argument);
-    TaskAP.run();
-    if (TaskAP.ret != .success) @panic("SMP AP Task failed");
-    TaskAP.reset();
+    kernel.drivers.idt.init_ap();
+    kernel.lib.mem.init_kmapper_ap();
+    kernel.drivers.gdt.init_ap();
+    kernel.drivers.lapic.init_ap();
     asm volatile ("sti");
-    cpu_info(null).ready.store(true, .monotonic);
     while (true) asm volatile ("hlt");
 }
 
 /// Gets CPU info of {idx} cpu
 /// If idx is null, gets current cpu info
-pub fn cpu_info(idx: ?usize) *CPU {
+pub fn cpu_info(idx: ?usize) ?*CPU {
     if (idx) |i| return @ptrFromInt(SMP_REQUEST.response.*.cpus[i].*.extra_argument);
     return @ptrFromInt(cpu.get_kgs());
 }
