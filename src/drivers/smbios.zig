@@ -69,11 +69,11 @@ const TableHeader = extern struct {
     length: u8,
     handle: u16 align(1),
 
-    pub fn from(table: anytype) *const @This() {
+    pub fn from(table: anytype) *align(1) const @This() {
         return @ptrFromInt(@intFromPtr(table) - @sizeOf(@This()));
     }
 
-    pub fn to(self: *const @This(), TableType: type) *const TableType {
+    pub fn to(self: *align(1) const @This(), TableType: type) *align(1) const TableType {
         return @ptrFromInt(@intFromPtr(self) + @sizeOf(@This()));
     }
 };
@@ -205,7 +205,7 @@ pub fn init() !void {
     return kernel.lib.logger.successfully_initialized(log, "SMBIOS");
 }
 
-fn parse_system_information(table: *const SystemInformation) void {
+fn parse_system_information(table: *align(1) const SystemInformation) void {
     log.debug("System Information Table:", .{});
     log.debug("-> Manufacturer: {s}", .{get_string(table, table.manufacturer)});
     log.debug("-> Product Name: {s}", .{get_string(table, table.product_name)});
@@ -218,7 +218,7 @@ fn parse_system_information(table: *const SystemInformation) void {
     log.debug("", .{});
 }
 
-fn parse_system_enclosure_chassis(table: *const SystemEnclosureChassis) void {
+fn parse_system_enclosure_chassis(table: *align(1) const SystemEnclosureChassis) void {
     log.debug("System Enclosure or Chassis:", .{});
     log.debug("-> Chassis Type: {s}, Chassis Lock: {}", .{ @tagName(table.type), table.chassis_lock });
     log.debug("-> Version: {s}", .{get_string(table, table.version)});
