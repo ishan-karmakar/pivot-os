@@ -7,6 +7,7 @@ pub const pci = @import("pci/index.zig");
 pub const fb = @import("fb.zig");
 pub const modules = @import("modules.zig");
 pub const elf = @import("elf.zig");
+pub const smbios = @import("smbios.zig");
 
 // CPU stuff
 pub const gdt = @import("gdt.zig");

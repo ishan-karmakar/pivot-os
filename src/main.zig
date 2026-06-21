@@ -113,6 +113,7 @@ export fn _start() noreturn {
     if (DATE_AT_BOOT_REQUEST.response) |res|
         log.info("Kernel booted at {} seconds (UNIX time)", .{res.*.timestamp});
 
+    drivers.smbios.init() catch {};
     drivers.gdt.init_static();
     drivers.idt.init_bsp();
     lib.mem.pmm.init() catch {};
