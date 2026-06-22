@@ -266,13 +266,13 @@ fn addLWIP(kernel: *Step.Compile) void {
         .link_libc = false,
         .optimize = kernel.root_module.optimize.?,
         .target = kernel.root_module.resolved_target.?,
-        .root_source_file = kernel.step.owner.path("src/thirdparty/lwip.h"),
+        .root_source_file = kernel.step.owner.path("src/thirdparty/lwip/lwip.h"),
     });
     translateC.addIncludePath(dep.path("src/include"));
-    translateC.addIncludePath(kernel.step.owner.path("src/lwip"));
+    translateC.addIncludePath(kernel.step.owner.path("src/thirdparty/lwip"));
     kernel.root_module.addImport("lwip", translateC.createModule());
     kernel.root_module.addIncludePath(dep.path("src/include"));
-    kernel.root_module.addIncludePath(kernel.step.owner.path("src/lwip"));
+    kernel.root_module.addIncludePath(kernel.step.owner.path("src/thirdparty/lwip"));
 }
 
 fn addPrintf(kernel: *Step.Compile) void {
