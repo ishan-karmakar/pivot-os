@@ -38,8 +38,7 @@ pub fn init_bsp() !void {
 }
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "SMP");
+    if (initialized) return;
     init_bsp() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMP", err);
     kernel.mem.init_kheap() catch |err|

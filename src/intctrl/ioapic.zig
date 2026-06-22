@@ -79,8 +79,7 @@ var isos: []*const uacpi.acpi_madt_interrupt_source_override = undefined;
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "IOAPIC");
+    if (initialized) return;
 
     kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "IOAPIC", err);

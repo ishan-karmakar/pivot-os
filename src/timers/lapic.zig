@@ -33,8 +33,7 @@ var hertz: usize = undefined;
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "LAPIC Timer");
+    if (initialized) return;
     kernel.cpu.lapic.init_bsp() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
     mem.init_kheap() catch |err|

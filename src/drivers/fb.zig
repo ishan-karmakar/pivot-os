@@ -19,8 +19,7 @@ var other_fbs = std.ArrayList(*flanterm.flanterm_context).empty;
 
 /// Initializes the first framebuffer using the default bump allocator just to get a monitor working
 pub fn init_main() !void {
-    if (main_fb != null)
-        return kernel.lib.logger.already_initialized(log, "Framebuffer (Main)");
+    if (main_fb != null) return;
 
     if (FB_REQUEST.response == null or FB_REQUEST.response.*.framebuffer_count == 0)
         return kernel.lib.logger.failed_initialization(log, "Framebuffer (Main)", error.FBUnavailable);
@@ -72,8 +71,7 @@ pub fn init_main() !void {
 
 /// Initializes the rest of the monitors using the regular kernel heap allocator
 pub fn init_all() !void {
-    if (other_fbs.items.len > 0)
-        return kernel.lib.logger.already_initialized(log, "Framebuffer (All)");
+    if (other_fbs.items.len > 0) return;
     init_main() catch |err|
         return kernel.lib.logger.failed_initialization(log, "Framebuffer (All)", err);
     mem.init_kheap() catch |err|

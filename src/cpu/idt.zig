@@ -39,8 +39,7 @@ var handlerTable: [256 - 0x20]HandlerData = @splat(HandlerData{});
 var initialized = false;
 
 pub fn init_bsp() void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "IDT");
+    if (initialized) return;
     kernel.cpu.gdt.init_static();
     set_ent(0, create_exc_isr(0, false, "exception_handler"));
     set_ent(1, create_exc_isr(1, false, "exception_handler"));

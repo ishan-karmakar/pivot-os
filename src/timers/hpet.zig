@@ -101,8 +101,7 @@ var initialized = false;
 // FIXME: Allocate handlers in init, should not be each time callback is called
 // FIXME: Add deinit/destroy to timer API vtable to free IRQs for non calibrated timers
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "HPET");
+    if (initialized) return;
     kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
     kernel.drivers.acpi.init_tables() catch |err|

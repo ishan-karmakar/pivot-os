@@ -60,8 +60,7 @@ var idle_thread_ef: cpu.Status = .{
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "Scheduler");
+    if (initialized) return;
     mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "Scheduler", err);
     smp.init() catch |err|

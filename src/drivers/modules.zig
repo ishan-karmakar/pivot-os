@@ -12,8 +12,7 @@ export var MODULE_REQUEST = limine.limine_module_request{
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "Modules");
+    if (initialized) return;
     if (MODULE_REQUEST.response == null)
         return kernel.lib.logger.failed_initialization(log, "Modules", error.ModulesUnavailable);
     initialized = true;

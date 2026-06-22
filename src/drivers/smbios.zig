@@ -179,8 +179,7 @@ export var SMBIOS_REQUEST = limine.limine_smbios_request{
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "SMBIOS");
+    if (initialized) return;
     mem.pmm.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "SMBIOS", err);
 

@@ -23,7 +23,7 @@ const CallbackInfo = struct {
 
 pub fn init_tables() !void {
     if (uacpi.uacpi_get_current_init_level() >= uacpi.UACPI_INIT_LEVEL_SUBSYSTEM_INITIALIZED)
-        return kernel.lib.logger.already_initialized(log, "ACPI Tables");
+        return;
 
     kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Tables", err);
@@ -46,7 +46,7 @@ pub fn init_tables() !void {
 
 pub fn init_namespace() !void {
     if (uacpi.uacpi_get_current_init_level() >= uacpi.UACPI_INIT_LEVEL_NAMESPACE_LOADED)
-        return kernel.lib.logger.already_initialized(log, "ACPI Namespaces");
+        return;
 
     init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);

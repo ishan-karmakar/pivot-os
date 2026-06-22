@@ -21,8 +21,7 @@ pub var period: f64 = undefined;
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "TSC");
+    if (initialized) return;
 
     if (!is_supported())
         return kernel.lib.logger.failed_initialization(log, "TSC", error.InvariantTSCUnsupported);

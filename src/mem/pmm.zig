@@ -20,8 +20,7 @@ var head_region: ?*FreeRegion = null;
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "PMM");
+    if (initialized) return;
     kernel.cpu.idt.init_bsp();
 
     if (mem.HHDM_REQUEST.response == null)

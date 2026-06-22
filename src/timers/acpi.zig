@@ -24,8 +24,7 @@ var address: usize = undefined;
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "ACPI Timer");
+    if (initialized) return;
     kernel.drivers.acpi.init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Timer", err);
 

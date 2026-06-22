@@ -42,8 +42,7 @@ var static_initialized = false;
 var dynamic_initialized = false;
 
 pub fn init_static() void {
-    if (static_initialized)
-        return kernel.lib.logger.already_initialized(log, "Static GDT");
+    if (static_initialized) return;
     gdtr.addr = @intFromPtr(&static_gdt);
     lgdt();
     static_initialized = true;
@@ -51,8 +50,7 @@ pub fn init_static() void {
 }
 
 pub fn init_dynamic() !void {
-    if (dynamic_initialized)
-        return kernel.lib.logger.already_initialized(log, "Dynamic GDT");
+    if (dynamic_initialized) return;
     mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "Dynamic GDT", err);
     if (smp.SMP_REQUEST.response == null)

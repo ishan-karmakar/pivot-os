@@ -37,8 +37,7 @@ pub var TaskAP = kernel.Task{
 var initialized = false;
 
 pub fn init_bsp() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "LAPIC");
+    if (initialized) return;
     kernel.cpu.idt.init_bsp();
     kernel.mem.init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC", err);
@@ -70,8 +69,7 @@ pub fn init_bsp() !void {
 
 pub fn init_ap() void {
     const cpu_info = kernel.cpu.smp.cpu_info(null);
-    if (cpu_info.lapic_initialized)
-        return kernel.lib.logger.already_initialized(log, "LAPIC");
+    if (cpu_info.lapic_initialized) return;
     kernel.mem.init_kmapper_ap();
 
     var msr = cpu.rdmsr(MSR) | (1 << 11);

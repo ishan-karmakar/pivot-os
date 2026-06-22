@@ -32,8 +32,7 @@ var kmapper_initialized = false;
 var kvmm_initialized = false;
 
 pub fn init_kmapper() !void {
-    if (kmapper_initialized)
-        return kernel.lib.logger.already_initialized(log, "Kernel mapper");
+    if (kmapper_initialized) return;
     pmm.init() catch |err| {
         log.err("Failed to initialize kernel mapper because PMM failed: {}", .{err});
         return err;
@@ -58,8 +57,7 @@ pub fn init_kmapper_ap() void {
 }
 
 pub fn init_kvmm() !void {
-    if (kvmm_initialized)
-        return kernel.lib.logger.already_initialized(log, "Kernel VMM");
+    if (kvmm_initialized) return;
     init_kmapper() catch |err|
         return kernel.lib.logger.failed_initialization(log, "Kernel VMM", err);
     // The VMM size will be a percentage of the total free space from the PMM rounded up to the nearest power of two

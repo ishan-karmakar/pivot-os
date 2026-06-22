@@ -29,8 +29,7 @@ var idt_handler: *idt.HandlerData = undefined;
 var initialized = false;
 
 pub fn init() !void {
-    if (initialized)
-        return kernel.lib.logger.already_initialized(log, "PIT");
+    if (initialized) return;
     idt.init_bsp();
     intctrl.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "PIT", err);
