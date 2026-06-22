@@ -6,7 +6,7 @@ const acpi = kernel.drivers.acpi;
 const mem = kernel.mem;
 const cpu = kernel.cpu;
 const timers = kernel.timers;
-const intctrl = kernel.drivers.intctrl;
+const intctrl = kernel.intctrl;
 const idt = kernel.cpu.idt;
 
 const GeneralCapabilitiesID = packed struct {
@@ -108,7 +108,7 @@ pub fn init() !void {
     kernel.drivers.acpi.init_tables() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
     kernel.cpu.idt.init_bsp();
-    kernel.drivers.intctrl.init() catch |err|
+    kernel.intctrl.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "HPET", err);
 
     const hpet = acpi.get_table(uacpi.acpi_hpet, uacpi.ACPI_HPET_SIGNATURE) catch |err|

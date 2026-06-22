@@ -90,7 +90,7 @@ fn init() kernel.Task.Ret {
     const routing = pci.setup_handlers(PCIVTable.info, handlers[0..]);
     switch (routing) {
         .PRT => |irq| {
-            kernel.drivers.intctrl.mask(irq, false);
+            kernel.intctrl.mask(irq, false);
         },
         else => {},
     }
@@ -180,7 +180,7 @@ fn irq_handler(_: ?*anyopaque, cpu_status: *cpu.Status) *const cpu.Status {
         serial.out(io_base + IORegisters.ISR, @as(u16, @bitCast(status)));
     }
 
-    kernel.drivers.intctrl.eoi(0);
+    kernel.intctrl.eoi(0);
 
     return cpu_status;
 }

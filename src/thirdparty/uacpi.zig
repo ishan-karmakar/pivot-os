@@ -125,24 +125,24 @@ export fn uacpi_kernel_map(addr: uacpi.uacpi_phys_addr, size: uacpi.uacpi_size) 
 export fn uacpi_kernel_unmap(_: ?*anyopaque, _: uacpi.uacpi_size) void {}
 
 export fn uacpi_kernel_install_interrupt_handler(irq: uacpi.uacpi_u32, callback: uacpi.uacpi_interrupt_handler, _ctx: uacpi.uacpi_handle, out_handle: [*c]uacpi.uacpi_handle) uacpi.uacpi_status {
-    const handler = idt.allocate_handler(kernel.drivers.intctrl.pref_vec(@intCast(irq)));
+    const handler = idt.allocate_handler(kernel.intctrl.pref_vec(@intCast(irq)));
     const ctx = mem.kheap.allocator().create(HandlerInfo) catch return uacpi.UACPI_STATUS_OUT_OF_MEMORY;
     ctx.* = .{
         .ctx = _ctx,
         .callback = callback,
-        .irq = kernel.drivers.intctrl.map(idt.handler2vec(handler), irq) catch return uacpi.UACPI_STATUS_INTERNAL_ERROR,
+        .irq = kernel.intctrl.map(idt.handler2vec(handler), irq) catch return uacpi.UACPI_STATUS_INTERNAL_ERROR,
     };
     handler.ctx = ctx;
     handler.handler = uacpi_handler;
     out_handle.* = handler;
-    kernel.drivers.intctrl.mask(ctx.irq, false);
+    kernel.intctrl.mask(ctx.irq, false);
     return uacpi.UACPI_STATUS_OK;
 }
 
 export fn uacpi_kernel_uninstall_interrupt_handler(_: uacpi.uacpi_interrupt_handler, handle: uacpi.uacpi_handle) uacpi.uacpi_status {
     const handler: *idt.HandlerData = @ptrCast(@alignCast(handle));
     const ctx: *HandlerInfo = @ptrCast(@alignCast(handler.ctx));
-    kernel.drivers.intctrl.unmap(ctx.irq);
+    kernel.intctrl.unmap(ctx.irq);
     handler.reserved = false;
     mem.kheap.allocator().destroy(ctx);
     return uacpi.UACPI_STATUS_OK;
@@ -327,6 +327,6 @@ fn uacpi_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     if (ctx.callback.?(ctx.ctx) == uacpi.UACPI_INTERRUPT_NOT_HANDLED) {
         log.warn("uACPI handler for IRQ {} was not handled correctly", .{ctx.irq});
     }
-    kernel.drivers.intctrl.eoi(ctx.irq);
+    kernel.intctrl.eoi(ctx.irq);
     return status;
 }

@@ -39,7 +39,7 @@ pub fn init() !void {
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
     mem.init_kheap() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
-    kernel.drivers.intctrl.init() catch |err|
+    kernel.intctrl.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
     smp.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "LAPIC Timer", err);
@@ -95,6 +95,6 @@ fn oneshot_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) vo
 fn timer_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ctx: *HandlerCtx = @ptrCast(@alignCast(_ctx));
     const ret = ctx.callback(ctx.ctx, status);
-    kernel.drivers.intctrl.eoi(0);
+    kernel.intctrl.eoi(0);
     return ret;
 }

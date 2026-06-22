@@ -181,7 +181,7 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     // We have to do EOI here because we call this interrupt handler with the IPI and IPI expects an EOI
     // This results in normal timer handler calling EOI twice, but its probably fine
     // Scheduler is pretty tightly knit with LAPIC
-    defer kernel.drivers.intctrl.eoi(0);
+    defer kernel.intctrl.eoi(0);
 
     check_sleep_threads();
     check_cur_thread(cpu_info);

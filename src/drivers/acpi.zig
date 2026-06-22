@@ -52,7 +52,7 @@ pub fn init_namespace() !void {
         return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
     kernel.timers.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
-    kernel.drivers.intctrl.init() catch |err|
+    kernel.intctrl.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
     kernel.cpu.scheduler.init() catch |err|
         return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);

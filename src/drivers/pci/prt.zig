@@ -27,7 +27,7 @@ pub fn setup_handler(info: pci.DeviceInfo, handler: *idt.HandlerData) u32 {
         &data,
         // &addr,
     ) != uacpi.UACPI_STATUS_OK) @panic("Failed to iterate over PCI devices");
-    _ = kernel.drivers.intctrl.map(idt.handler2vec(handler), data.gsi) catch @panic("Failed to map PCI device's GSI");
+    _ = kernel.intctrl.map(idt.handler2vec(handler), data.gsi) catch @panic("Failed to map PCI device's GSI");
     return data.gsi;
 }
 

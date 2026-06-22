@@ -1,6 +1,6 @@
 const kernel = @import("root");
 const timers = kernel.timers;
-const intctrl = kernel.drivers.intctrl;
+const intctrl = kernel.intctrl;
 const idt = kernel.cpu.idt;
 const cpu = kernel.cpu;
 const serial = kernel.drivers.serial;

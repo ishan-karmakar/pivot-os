@@ -1,5 +1,5 @@
 const kernel = @import("root");
-const intctrl = kernel.drivers.intctrl;
+const intctrl = kernel.intctrl;
 const acpi = kernel.drivers.acpi;
 const lapic = kernel.cpu.lapic;
 const log = @import("std").log.scoped(.ioapic);
