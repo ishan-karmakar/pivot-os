@@ -2,14 +2,14 @@ const kernel = @import("root");
 pub const pmm = @import("pmm.zig");
 pub const Mapper = @import("mapper.zig");
 pub const VMM = @import("vmm.zig");
+pub const SLUB = @import("SLUB.zig");
 const limine = @import("limine");
 const std = @import("std");
 const log = std.log.scoped(.mem);
-const FixedBufferAllocator = std.heap.FixedBufferAllocator;
 
 pub var kmapper: Mapper = undefined;
 pub var kvmm: VMM = undefined;
-pub var kheap: FixedBufferAllocator = undefined;
+pub var kheap: SLUB = .{};
 
 pub export var MMAP_REQUEST = limine.limine_memmap_request{
     .id = kernel.LIMINE_REQUEST_ID(0x67cf3d9d378a806f, 0xe304acdfc50c3c62),
@@ -30,7 +30,6 @@ const KVMM_SIZE = KHEAP_SIZE + 0x1000 * 2;
 
 var kmapper_initialized = false;
 var kvmm_initialized = false;
-var kheap_initialized = false;
 
 pub fn init_kmapper() !void {
     if (kmapper_initialized)
@@ -73,15 +72,8 @@ pub fn init_kvmm() !void {
 }
 
 pub fn init_kheap() !void {
-    if (kheap_initialized)
-        return kernel.lib.logger.already_initialized(log, "Kernel heap");
-    // The kernel heap size will be a percentage of the total free space from the PMM
-    // For now it will be 0.1%
-    // It must be less than or equal to the VMM size
-    const kheap_size = (pmm.get_free_size() * 1 / 100) / 0x1000 * 0x1000;
-    kheap = FixedBufferAllocator.init(kvmm.allocator().alloc(u8, kheap_size) catch |err|
-        return kernel.lib.logger.failed_initialization(log, "Kernel heap", err));
-    kheap_initialized = true;
+    init_kvmm() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Kernel heap", err);
     kernel.lib.logger.successfully_initialized(log, "Kernel heap");
 }
 
