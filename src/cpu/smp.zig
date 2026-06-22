@@ -16,6 +16,8 @@ pub const CPU = struct {
     lapic_handler: *kernel.cpu.idt.HandlerData,
 
     lapic_initialized: bool = false,
+
+    slabs: [mem.SLUB.NUM_CACHES]?*mem.SLUB.Slab = @splat(null),
 };
 
 var bsp_cpu_info = CPU{

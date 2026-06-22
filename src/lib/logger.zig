@@ -2,7 +2,7 @@ const kernel = @import("root");
 const std = @import("std");
 const config = @import("config");
 
-var lock = std.atomic.Value(bool).init(false);
+var lock: kernel.lib.Spinlock = .{};
 
 var writer = std.Io.Writer{
     .vtable = &.{ .drain = kernel_drain },
@@ -13,9 +13,9 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
     const levelText = comptime level.asText();
     const prefix = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
     const id: u32 = kernel.cpu.smp.cpu_info(null).id;
-    while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
+    lock.acquire();
+    defer lock.release();
     writer.print("[{}]" ++ " " ++ levelText ++ prefix ++ format ++ "\r\n", .{id} ++ args) catch {};
-    lock.store(false, .release);
 }
 
 fn kernel_drain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Writer.Error!usize {

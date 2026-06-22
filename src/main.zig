@@ -134,6 +134,7 @@ export fn _start() noreturn {
     drivers.acpi.init_tables() catch {};
     drivers.intctrl.init() catch {};
     cpu.scheduler.init() catch {};
+    drivers.acpi.init_namespace() catch {};
 
     while (true) asm volatile ("hlt");
 }

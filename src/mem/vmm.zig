@@ -32,16 +32,18 @@ flags: u64,
 pub fn create(start: usize, size: usize, flags: u64, mapper: *mem.Mapper) Self {
     const sizes = calc_split(size);
     // TODO: is meta size guaranteed to be page size multiple?
-    const pages = math.divCeil(usize, sizes[2], 0x1000) catch unreachable;
-    for (0..pages) |i| {
+    const bitmap_pages = math.divCeil(usize, sizes[2], 0x1000) catch unreachable;
+    const bitmap_size = bitmap_pages * 0x1000;
+    const bitmap_start = start + sizes[1];
+    for (0..bitmap_pages) |i| {
         const frm = mem.pmm.frame();
-        mapper.map(frm, start + i * 0x1000, flags | 0b10 | (1 << 63));
+        mapper.map(frm, bitmap_start + i * 0x1000, flags | 0b10 | (1 << 63));
     }
-    const bitmap = @as([*]u8, @ptrFromInt(start))[0..(pages * 0x1000)];
+    const bitmap = @as([*]u8, @ptrFromInt(bitmap_start))[0..bitmap_size];
     @memset(bitmap, 0);
     var vmm = Self{
         .bitmap = bitmap,
-        .start = start + pages * 0x1000,
+        .start = start,
         .flags = flags,
         .internal_blocks = sizes[3],
         .mapper = mapper,
