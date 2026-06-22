@@ -8,22 +8,11 @@ pub const VTable = struct {
     ret: *uacpi.uacpi_namespace_node,
 };
 
-pub var NamespaceLoadTask = kernel.Task{
-    .name = "ACPI Namespace Load",
-    .init = namespace_load,
-    .dependencies = &.{
-        // .{ .task = &TablesTask },
-        .{ .task = &kernel.timers.Task },
-        .{ .task = &kernel.drivers.intctrl.Task },
-        .{ .task = &kernel.cpu.scheduler.Task },
-    },
-};
-
 pub var DriversTask = kernel.Task{
     .name = "ACPI Drivers",
     .init = init_drivers,
     .dependencies = &.{
-        .{ .task = &NamespaceLoadTask },
+        // .{ .task = &NamespaceLoadTask },
     },
 };
 
@@ -55,6 +44,27 @@ pub fn init_tables() !void {
     kernel.lib.logger.successfully_initialized(log, "ACPI Tables");
 }
 
+pub fn init_namespace() !void {
+    if (uacpi.uacpi_get_current_init_level() >= uacpi.UACPI_INIT_LEVEL_NAMESPACE_LOADED)
+        return kernel.lib.logger.already_initialized(log, "ACPI Namespaces");
+
+    init_tables() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
+    kernel.timers.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
+    kernel.drivers.intctrl.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
+    kernel.cpu.scheduler.init() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", err);
+
+    const err = uacpi.uacpi_namespace_load();
+    if (err != uacpi.UACPI_STATUS_OK) {
+        log.err("uacpi_namespace_load() failed with error code {}", .{err});
+        return kernel.lib.logger.failed_initialization(log, "ACPI Namespaces", error.UACPIFailedNamespaceLoad);
+    }
+    kernel.lib.logger.successfully_initialized(log, "ACPI Namespaces");
+}
+
 fn install_notify_handler(_: ?*anyopaque, node: ?*uacpi.uacpi_namespace_node, _: uacpi.uacpi_u32) callconv(.C) uacpi.uacpi_iteration_decision {
     _ = uacpi.uacpi_install_notify_handler(node, shutdown_notify_handler, null);
     return uacpi.UACPI_ITERATION_DECISION_CONTINUE;
@@ -70,12 +80,6 @@ fn shutdown_notify_handler(_: ?*anyopaque, _: ?*uacpi.uacpi_namespace_node, valu
 fn fixed_shutdown_handler(_: ?*anyopaque) callconv(.c) uacpi.uacpi_interrupt_ret {
     log.info("Shutdown fixed event handler", .{});
     return uacpi.UACPI_INTERRUPT_HANDLED;
-}
-
-fn namespace_load() kernel.Task.Ret {
-    if (uacpi.uacpi_namespace_load() != uacpi.UACPI_STATUS_OK) return .failed;
-    // if (uacpi.uacpi_find_devices("PNP0C0C", install_notify_handler, null) != uacpi.UACPI_STATUS_OK) return .failed;
-    return .success;
 }
 
 fn init_drivers() kernel.Task.Ret {
