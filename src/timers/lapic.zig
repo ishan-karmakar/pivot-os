@@ -61,7 +61,7 @@ pub fn init() !void {
     }
 
     for (0..smp.cpu_count()) |i| {
-        const cpu_info = smp.cpu_info(i).?;
+        const cpu_info = smp.cpu_info(i);
         cpu_info.lapic_handler = idt.allocate_handler(null);
         cpu_info.lapic_handler.handler = timer_handler;
         cpu_info.lapic_handler.ctx = mem.kheap.allocator().create(HandlerCtx) catch |err|
@@ -73,7 +73,7 @@ pub fn init() !void {
 }
 
 fn callback_common(_ctx: ?*anyopaque, callback: timers.CallbackFn) u8 {
-    const handler = smp.cpu_info(null).?.lapic_handler;
+    const handler = smp.cpu_info(null).lapic_handler;
     const ctx: *HandlerCtx = @ptrCast(@alignCast(handler.ctx));
     ctx.* = .{
         .callback = callback,

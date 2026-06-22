@@ -82,7 +82,7 @@ pub fn init() !void {
     idle_thread_ef.iret_status.rsp = @intFromPtr(stack.ptr) + 0x1000;
     idle_thread_ef.iret_status.rip = @intFromPtr(&idle_func);
 
-    smp.cpu_info(null).?.cur_proc = Thread.create(.{
+    smp.cpu_info(null).cur_proc = Thread.create(.{
         .ef = undefined,
         .mapper = mem.kmapper,
         .priority = 100,
@@ -108,17 +108,17 @@ pub fn enqueue(thread: *Thread) void {
     enqueue_no_preempt(thread);
     if (thread.affinity) |id| {
         // If there is affinity, only check that CPU
-        const cpu_info = smp.cpu_info(id).?;
+        const cpu_info = smp.cpu_info(id);
         const cproc = cpu_info.cur_proc;
         if (cproc == null or thread.priority > cproc.?.priority)
             return kernel.cpu.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
     } else {
         for (0..smp.cpu_count()) |i| {
-            const cpu_info = smp.cpu_info(i).?;
+            const cpu_info = smp.cpu_info(i);
             if (cpu_info.cur_proc == null) return kernel.cpu.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
         }
         for (0..smp.cpu_count()) |i| {
-            const cpu_info = smp.cpu_info(i).?;
+            const cpu_info = smp.cpu_info(i);
             if (thread.priority > cpu_info.cur_proc.?.priority) return kernel.cpu.lapic.ipi(@intCast(cpu_info.id), idt.handler2vec(sched_vec));
         }
     }
@@ -173,7 +173,7 @@ fn check_sleep_threads() void {
 
 // TODO: Create separate method to get delta for next call
 pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
-    const cpu_info = smp.cpu_info(null).?;
+    const cpu_info = smp.cpu_info(null);
 
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     defer lock.store(false, .release);
@@ -212,7 +212,7 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
 }
 
 fn syscall_exit(status: *cpu.Status) *const cpu.Status {
-    const cpu_info = smp.cpu_info(null).?;
+    const cpu_info = smp.cpu_info(null);
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     if (delete_proc) |dp| {
         delete_proc = null;
@@ -226,7 +226,7 @@ fn syscall_exit(status: *cpu.Status) *const cpu.Status {
 }
 
 fn syscall_sleep(status: *cpu.Status) *const cpu.Status {
-    const cpu_info = smp.cpu_info(null).?;
+    const cpu_info = smp.cpu_info(null);
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     const cp = cpu_info.cur_proc.?;
     cp.ef = status.*;

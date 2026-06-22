@@ -69,7 +69,7 @@ pub fn init_bsp() !void {
 }
 
 pub fn init_ap() void {
-    const cpu_info = kernel.cpu.smp.cpu_info(null).?;
+    const cpu_info = kernel.cpu.smp.cpu_info(null);
     if (cpu_info.lapic_initialized)
         return kernel.lib.logger.already_initialized(log, "LAPIC");
     kernel.mem.init_kmapper_ap();

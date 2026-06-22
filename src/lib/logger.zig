@@ -12,9 +12,7 @@ var writer = std.Io.Writer{
 pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), comptime format: []const u8, args: anytype) void {
     const levelText = comptime level.asText();
     const prefix = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
-    var id: u32 = 0;
-    if (kernel.cpu.smp.cpu_info(null)) |info|
-        id = info.id;
+    const id: u32 = kernel.cpu.smp.cpu_info(null).id;
     while (lock.cmpxchgWeak(false, true, .acquire, .monotonic) != null) {}
     writer.print("[{}]" ++ " " ++ levelText ++ prefix ++ format ++ "\r\n", .{id} ++ args) catch {};
     lock.store(false, .release);

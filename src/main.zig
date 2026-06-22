@@ -100,7 +100,7 @@ export fn _start() noreturn {
         @panic("Limine bootloader base revision not supported");
     }
 
-    cpu.set_kgs(0);
+    cpu.smp.init_bsp() catch @panic("Failed to initialize BSP CPU information");
     log.info("Kernel initialization starting", .{});
     drivers.fb.init_main() catch {};
 
