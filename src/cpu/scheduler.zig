@@ -11,35 +11,73 @@ const log = std.log.scoped(.sched);
 const QUANTUM = 50_000_000;
 
 pub const Thread = struct {
-    id: usize = 0,
-    priority: u8,
-    ef: cpu.Status,
-    mapper: mem.Mapper,
-    affinity: ?u32 = null,
-    quantum_end: usize = 0, // Absolute time of when thread should end
-    status: enum {
-        ready,
-        sleeping,
-        dead,
-    } = .ready,
-    node: std.DoublyLinkedList.Node = std.DoublyLinkedList.Node{},
+    const State = enum {
+        RUNNABLE,
+        RUNNING,
+        BLOCKED,
+        DEAD,
+    };
 
-    pub fn create(info: @This()) !*@This() {
-        const thread: *@This() = try mem.kheap.allocator().create(@This());
-        thread.* = info;
-        thread.id = id_counter.fetchAdd(1, .monotonic);
-        return thread;
+    id: usize,
+    state: State,
+    queue_level: u8 = 0,
+    quantum_used: u64 = 0,
+};
+
+const NUM_QUEUES = 5;
+
+pub const Scheduler = struct {
+    queues: [NUM_QUEUES]RunQueue,
+    boost_deadline: u64,
+
+    const QUANTA = [_]u64{
+        5_000_000,
+        10_000_000,
+        20_000_000,
+        40_000_000,
+        80_000_000,
+    };
+
+    pub fn pick_next(self: *@This()) ?*Thread {
+        for (0..NUM_QUEUES) |i| {
+            if (self.queues[i].popFirst()) |thread|
+                return thread;
+        }
+        return null;
     }
+
+    pub fn on_tick(self: *@This(), thread: *Thread) bool {
+        thread.quantum_used += 1_000_000;
+
+        const quantum = quanta[thread.queue_level];
+        return thread.quantum_used >= quantum;
+    }
+
+    pub fn quantum_expired(self: *@This(), thread: *Thread) void {
+        thread.quantum_used = 0;
+
+        if (thread.queue_level < NUM_QUEUES - 1)
+            thread.queue_level += 1;
+        self.enqueue(thread);
+    }
+
+    pub fn block_thread(self: *@This(), thread: *Thread) void {
+        thread.quantum_used = 0;
+        thread.state = .BLOCKED;
+    }
+
+    pub fn wake_thread(self: *@This(), thread: *Thread) void {
+        thread.state = .RUNNABLE;
+        self.enqueue(thread);
+    }
+
+    pub const CPUScheduler = struct {
+        queues: [NUM_QUEUES]RunQueue,
+        lock: kernel.lib.Spinlock,
+    };
 };
 
-const SleepThread = struct {
-    thread: *Thread,
-    wakeup: usize,
-};
-
-const ThreadPriorityQueue = std.PriorityQueue(std.DoublyLinkedList, void, compareThreadPriorities);
-
-const SleepPriorityQueue = std.PriorityQueue(SleepThread, void, compareSleepThreads);
+const RunQueue = std.DoublyLinkedList(*Thread);
 
 var sched_vec: *idt.HandlerData = undefined;
 var id_counter = std.atomic.Value(usize).init(1);
