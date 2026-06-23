@@ -181,22 +181,25 @@ export fn uacpi_kernel_free_mutex(handle: uacpi.uacpi_handle) void {
 }
 
 export fn uacpi_kernel_create_spinlock() uacpi.uacpi_handle {
-    return uacpi_kernel_create_mutex();
+    const spinlock = mem.kheap.allocator().create(kernel.lib.Spinlock) catch return uacpi.UACPI_NULL;
+    spinlock.* = .{};
+    return @ptrCast(spinlock);
 }
 
 export fn uacpi_kernel_lock_spinlock(handle: uacpi.uacpi_handle) uacpi.uacpi_cpu_flags {
-    asm volatile ("cli");
-    _ = uacpi_kernel_acquire_mutex(handle, 0xFFFF);
+    const spinlock: *kernel.lib.Spinlock = @ptrCast(handle);
+    spinlock.acquire();
     return 0;
 }
 
 export fn uacpi_kernel_unlock_spinlock(handle: uacpi.uacpi_handle, _: uacpi.uacpi_cpu_flags) void {
-    uacpi_kernel_release_mutex(handle);
-    asm volatile ("sti");
+    const spinlock: *kernel.lib.Spinlock = @ptrCast(handle);
+    spinlock.release();
 }
 
 export fn uacpi_kernel_free_spinlock(handle: uacpi.uacpi_handle) void {
-    uacpi_kernel_free_mutex(handle);
+    const spinlock: *kernel.lib.Spinlock = @ptrCast(handle);
+    mem.kheap.allocator().destroy(spinlock);
 }
 
 export fn uacpi_kernel_create_event() uacpi.uacpi_handle {
@@ -257,10 +260,9 @@ export fn uacpi_kernel_wait_for_work_completion() uacpi.uacpi_status {
 }
 
 export fn uacpi_kernel_get_thread_id() uacpi.uacpi_thread_id {
-    // if (kernel.cpu.smp.Task.ret) |_| {
-    //     if (kernel.cpu.smp.cpu_info(null).cur_proc) |cp| return @ptrFromInt(cp.id);
-    // }
-    return @ptrFromInt(1);
+    const cpu_info = kernel.cpu.smp.cpu_info(null);
+    if (cpu_info.cur_proc) |cp| return @ptrFromInt(cp.id);
+    return uacpi.UACPI_THREAD_ID_NONE;
 }
 
 export fn uacpi_kernel_get_rsdp(out: [*c]uacpi.uacpi_phys_addr) uacpi.uacpi_status {
@@ -294,13 +296,13 @@ export fn uacpi_kernel_handle_firmware_request(request: [*c]uacpi.uacpi_firmware
     return uacpi.UACPI_STATUS_OK;
 }
 
-export fn uacpi_kernel_disable_interrupts() void {
+export fn uacpi_kernel_disable_interrupts() uacpi.uacpi_interrupt_state {
     asm volatile ("cli");
+    return 0;
 }
 
-export fn uacpi_kernel_restore_interrupts(state: uacpi.uacpi_interrupt_state) void {
-    log.info("uacpi_kernel_restore_interrupts: {}", .{state});
-    @panic("uacpi_kernel_restore_interrupts");
+export fn uacpi_kernel_restore_interrupts(_: uacpi.uacpi_interrupt_state) void {
+    asm volatile ("sti");
 }
 
 export fn uacpi_kernel_log(level: uacpi.uacpi_log_level, msg: [*c]const uacpi.uacpi_char) void {
