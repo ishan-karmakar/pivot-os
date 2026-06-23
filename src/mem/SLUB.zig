@@ -1,7 +1,7 @@
 const kernel = @import("root");
 const mem = kernel.mem;
 const std = @import("std");
-const log = std.log.scoped(.heap);
+const log = std.log.scoped(.slub);
 const Allocator = std.mem.Allocator;
 
 pub const Slab = struct {
@@ -143,7 +143,6 @@ fn free(_: ?*anyopaque, data: []u8, alignment: std.mem.Alignment, _: usize) void
     if (data.len > MAX_CACHE_SIZE)
         return mem.kvmm.allocator().free(data);
 
-    // log.info("Freeing {} bytes", .{data.len});
     const idx = get_cache_idx(@max(data.len, alignment.toByteUnits()));
     var cache = caches[idx];
     const slab: *Slab = @ptrFromInt(@intFromPtr(data.ptr) & ~(cache.slab_size - 1));
