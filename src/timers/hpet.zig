@@ -74,7 +74,6 @@ pub const TimerVTable = timers.TimerVTable{
 };
 
 const CLOCKEVENT = timers.ClockEvent{
-    .features = .{ .per_cpu = false },
     .oneshot = oneshot,
     .rating = 50,
 };
@@ -168,7 +167,7 @@ fn time() usize {
 }
 
 fn timer_handler(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
-    const ret = callback(ctx, status);
+    callback(ctx);
     intctrl.eoi(irq);
-    return ret;
+    return status;
 }

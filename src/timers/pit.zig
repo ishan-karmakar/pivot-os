@@ -14,9 +14,6 @@ const HZ = 1193182;
 
 const CLOCKEVENT = timers.ClockEvent{
     .rating = 25,
-    .features = .{
-        .per_cpu = false,
-    },
     .oneshot = oneshot,
 };
 
@@ -49,9 +46,8 @@ pub fn init() !void {
     kernel.lib.logger.successfully_initialized(log, "PIT");
 }
 
-fn disable_pit_callback(ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
+fn disable_pit_callback(ctx: ?*anyopaque) void {
     @as(*bool, @ptrCast(@alignCast(ctx))).* = true;
-    return status;
 }
 
 fn oneshot(ns: u64, ctx: ?*anyopaque, cb: timers.CallbackFn) void {
@@ -65,8 +61,8 @@ fn oneshot(ns: u64, ctx: ?*anyopaque, cb: timers.CallbackFn) void {
 }
 
 fn timer_handler(callback_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
-    const ret = thandler_ctx.callback(callback_ctx, status);
+    thandler_ctx.callback(callback_ctx);
     // No need to mask because we are only doing oneshot ints
     intctrl.eoi(thandler_ctx.irq);
-    return ret;
+    return status;
 }

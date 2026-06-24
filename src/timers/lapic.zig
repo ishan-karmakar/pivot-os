@@ -11,7 +11,6 @@ const log = std.log.scoped(.lapic_timer);
 const tsc = @import("tsc.zig");
 
 var CLOCKEVENT = timers.ClockEvent{
-    .features = .{ .per_cpu = true },
     .oneshot = undefined,
     .rating = 125,
 };
@@ -93,7 +92,7 @@ fn oneshot_callback(ns: usize, ctx: ?*anyopaque, callback: timers.CallbackFn) vo
 
 fn timer_handler(_ctx: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
     const ctx: *HandlerCtx = @ptrCast(@alignCast(_ctx));
-    const ret = ctx.callback(ctx.ctx, status);
+    ctx.callback(ctx.ctx);
     kernel.intctrl.eoi(0);
-    return ret;
+    return status;
 }

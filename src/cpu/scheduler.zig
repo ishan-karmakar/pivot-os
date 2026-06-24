@@ -199,13 +199,14 @@ pub fn schedule(_: ?*anyopaque, status: *cpu.Status) *const cpu.Status {
         nt.quantum_end = timers.time() + QUANTUM;
         cpu_info.cur_proc = nt;
         cpu.set_cr3(mem.phys(@intFromPtr(nt.mapper.pml4)));
-        timers.oneshot(QUANTUM, null, schedule);
+        // timers.oneshot(QUANTUM, null, schedule);
         return &nt.ef;
     }
 
     // If the sleep queue is not empty, we set a callback for when the first thread will wake up
     if (sleep_queue.peek()) |t| {
-        timers.oneshot(t.wakeup - timers.time(), null, schedule);
+        _ = t;
+        // timers.oneshot(t.wakeup - timers.time(), null, schedule);
     }
     return &idle_thread_ef;
 }

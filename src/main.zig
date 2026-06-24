@@ -85,7 +85,7 @@ export fn _start() noreturn {
     cpu.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};
     intctrl.init() catch {};
-    cpu.scheduler.init() catch {};
+    // cpu.scheduler.init() catch {};
     drivers.acpi.init_namespace() catch {};
 
     while (true) asm volatile ("hlt");

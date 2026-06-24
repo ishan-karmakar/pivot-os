@@ -1,8 +1,9 @@
 const kernel = @import("root");
 const cpu = kernel.cpu;
-const log = @import("std").log.scoped(.timers);
+const std = @import("std");
+const log = std.log.scoped(.timers);
 
-pub const CallbackFn = *const fn (?*anyopaque, *cpu.Status) *const cpu.Status;
+pub const CallbackFn = *const fn (?*anyopaque) void;
 
 pub const ClockSource = struct {
     rating: u16,
@@ -11,16 +12,20 @@ pub const ClockSource = struct {
 };
 
 pub const ClockEvent = struct {
-    pub const Features = struct {
-        per_cpu: bool,
-    };
     rating: u16,
-    features: Features,
     oneshot: *const fn (ns: u64, ctx: ?*anyopaque, cb: CallbackFn) void,
+};
+
+const Wakeup = struct {
+    wake_time: usize,
+    ctx: ?*anyopaque,
+    func: CallbackFn,
 };
 
 var clocksource: ?*const ClockSource = null;
 var clockevent: ?*const ClockEvent = null;
+
+const wakeups: std.PriorityQueue(Wakeup, void, compare_wakeups) = .empty;
 
 pub fn init() !void {
     @import("pit.zig").init() catch {};
@@ -48,8 +53,13 @@ pub fn register_clocksource(cs: *const ClockSource) void {
         clocksource = cs;
 }
 
-pub fn oneshot(ns: u64, ctx: ?*anyopaque, cb: CallbackFn) void {
-    clockevent.?.oneshot(ns, ctx, cb);
+pub fn schedule(ns: u64, ctx: ?*anyopaque, cb: CallbackFn) !void {
+    try wakeups.push(kernel.mem.kheap.allocator(), .{
+        .ctx = ctx,
+        .func = cb,
+        .wake_time = time() + ns,
+    });
+    clockevent.?.oneshot(wakeups.peek().?.wake_time - time(), null, timer_interrupt);
 }
 
 pub fn sleep(ns: usize) void {
@@ -59,4 +69,20 @@ pub fn sleep(ns: usize) void {
 
 pub fn time() usize {
     return clocksource.?.read();
+}
+
+fn timer_interrupt(_: ?*anyopaque) void {
+    const now = time();
+    while (wakeups.peek()) |wakeup| {
+        if (wakeup.wake_time > now) break;
+
+        const expired = wakeups.pop().?;
+        expired.func(expired.ctx);
+    }
+    if (wakeups.peek()) |next_wakeup|
+        clockevent.?.oneshot(next_wakeup.wake_time - now, null, timer_interrupt);
+}
+
+fn compare_wakeups(_: void, a: Wakeup, b: Wakeup) std.math.Order {
+    return std.math.order(a.wake_time, b.wake_time);
 }
