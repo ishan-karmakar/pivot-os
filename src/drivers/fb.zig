@@ -15,79 +15,32 @@ export var FLANTERM_INIT_PARAMS_REQUEST = limine.limine_flanterm_fb_init_params_
     .id = kernel.LIMINE_REQUEST_ID(0x3259399fe7c5f126, 0xe01c1c8c5db9d1a9),
 };
 
-var main_fb: ?*flanterm.flanterm_context = null;
-var other_fbs = std.ArrayList(*flanterm.flanterm_context).empty;
+var fbs = std.ArrayList(*flanterm.flanterm_context).empty;
 
 pub var writer = Writer{
     .vtable = &.{ .drain = drain },
     .buffer = &.{},
 };
 
-/// Initializes the first framebuffer using the default bump allocator just to get a monitor working
-pub fn init_main() !void {
-    if (main_fb != null) return;
+pub fn init() !void {
+    if (fbs.items.len > 0) return;
+    mem.init_kheap() catch |err|
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", err);
 
     if (FB_REQUEST.response == null or FB_REQUEST.response.*.framebuffer_count == 0)
-        return kernel.lib.logger.failed_initialization(log, "Framebuffer (Main)", error.FBUnavailable);
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", error.FBUnavailable);
 
     if (FLANTERM_INIT_PARAMS_REQUEST.response == null)
-        return kernel.lib.logger.failed_initialization(log, "Framebuffer (Main)", error.FBInitParamsUnavailable);
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", error.FBInitParamsUnavailable);
 
     const fb_response: *limine.limine_framebuffer_response = FB_REQUEST.response;
     const params_response: *limine.limine_flanterm_fb_init_params_response = FLANTERM_INIT_PARAMS_REQUEST.response;
 
     if (fb_response.framebuffer_count != params_response.entry_count)
-        return kernel.lib.logger.failed_initialization(log, "Framebuffer (Main)", error.FBCountsNotMatching);
+        return kernel.lib.logger.failed_initialization(log, "Framebuffer", error.FBCountsNotMatching);
 
-    const fb: *limine.limine_framebuffer = fb_response.framebuffers[0];
-    const params: *limine.limine_flanterm_fb_init_params = params_response.entries[0];
-
-    main_fb = flanterm.flanterm_fb_init(
-        null,
-        null,
-        @ptrCast(@alignCast(fb.address)),
-        fb.width,
-        fb.height,
-        fb.pitch,
-        fb.red_mask_size,
-        fb.red_mask_shift,
-        fb.green_mask_size,
-        fb.green_mask_shift,
-        fb.blue_mask_size,
-        fb.blue_mask_shift,
-        params.canvas,
-        &params.ansi_colours,
-        &params.ansi_bright_colours,
-        &params.default_bg,
-        &params.default_fg,
-        &params.default_bg_bright,
-        &params.default_fg_bright,
-        params.font,
-        params.font_width,
-        params.font_height,
-        params.font_spacing,
-        params.font_scale_x,
-        params.font_scale_y,
-        params.margin,
-        @intCast(params.rotation),
-    );
-
-    kernel.lib.logger.successfully_initialized(log, "Framebuffer (Main)");
-}
-
-/// Initializes the rest of the monitors using the regular kernel heap allocator
-pub fn init_all() !void {
-    if (other_fbs.items.len > 0) return;
-    init_main() catch |err|
-        return kernel.lib.logger.failed_initialization(log, "Framebuffer (All)", err);
-    mem.init_kheap() catch |err|
-        return kernel.lib.logger.failed_initialization(log, "Framebuffer (All)", err);
-
-    if (FB_REQUEST.response.*.framebuffer_count <= 1)
-        return;
-
-    for (1..FB_REQUEST.response.*.framebuffer_count) |i| {
-        const fb: *limine.limine_framebuffer = FB_REQUEST.response.*.framebuffers[i];
+    for (0..FB_REQUEST.response.*.framebuffer_count) |i| {
+        const fb: *limine.limine_framebuffer = fb_response.framebuffers[i];
         const params: *limine.limine_flanterm_fb_init_params = FLANTERM_INIT_PARAMS_REQUEST.response.*.entries[i];
 
         const ctx = flanterm.flanterm_fb_init(
@@ -120,29 +73,11 @@ pub fn init_all() !void {
             @intCast(params.rotation),
         );
         if (ctx) |c| {
-            other_fbs.append(mem.kheap.allocator(), c) catch |err|
-                return kernel.lib.logger.failed_initialization(log, "Framebuffer (All)", err);
+            fbs.append(mem.kheap.allocator(), c) catch |err|
+                return kernel.lib.logger.failed_initialization(log, "Framebuffer", err);
         } else log.warn("Flanterm failed to create context, skipping to next FB", .{});
     }
-    kernel.lib.logger.successfully_initialized(log, "Framebuffer (All)");
-}
-
-pub fn set_fg(idx: usize, bright: bool) !void {
-    if (main_fb == null)
-        return error.FramebufferNotInitialized;
-
-    flanterm.flanterm_set_text_fg(main_fb, idx, bright);
-    for (other_fbs.items) |fb|
-        flanterm.flanterm_set_text_fg(fb, idx, bright);
-}
-
-pub fn reset_fg() !void {
-    if (main_fb == null)
-        return error.FramebufferNotInitialized;
-
-    flanterm.flanterm_reset_text_fg(main_fb);
-    for (other_fbs.items) |fb|
-        flanterm.flanterm_reset_text_fg(fb);
+    kernel.lib.logger.successfully_initialized(log, "Framebuffer");
 }
 
 fn drain(_: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize {
@@ -161,11 +96,7 @@ fn drain(_: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize 
 }
 
 fn write(bytes: []const u8) !void {
-    if (main_fb == null)
-        return error.FramebufferNotInitialized;
-
-    flanterm.flanterm_write(main_fb, bytes.ptr, bytes.len);
-    for (other_fbs.items) |fb|
+    for (fbs.items) |fb|
         flanterm.flanterm_write(fb, bytes.ptr, bytes.len);
 }
 

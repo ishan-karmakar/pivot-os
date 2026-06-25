@@ -14,17 +14,25 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
     defer lock.release();
 
     for (writers.items) |*writer| {
+        const terminal = std.Io.Terminal{
+            .mode = .escape_codes,
+            .writer = writer,
+        };
+        terminal.setColor(.reset) catch {};
+        terminal.setColor(.bright_white) catch {};
         writer.print("[{}] ", .{id}) catch {};
-        switch (level) {
-            .debug => kernel.drivers.fb.set_fg(5, true) catch {},
-            .info => kernel.drivers.fb.set_fg(2, false) catch {},
-            .warn => kernel.drivers.fb.set_fg(3, true) catch {},
-            .err => kernel.drivers.fb.set_fg(1, false) catch {},
-        }
+        terminal.setColor(switch (level) {
+            .debug => .bright_magenta,
+            .info => .green,
+            .warn => .yellow,
+            .err => .red,
+        }) catch {};
         writer.print(levelText, .{}) catch {};
-        kernel.drivers.fb.set_fg(7, true) catch {};
+        terminal.setColor(.reset) catch {};
+        terminal.setColor(.dim) catch {};
+        terminal.setColor(.bold) catch {};
         writer.print(prefix, .{}) catch {};
-        kernel.drivers.fb.reset_fg() catch {};
+        terminal.setColor(.reset) catch {};
         writer.print(format ++ "\r\n", args) catch {};
     }
 }

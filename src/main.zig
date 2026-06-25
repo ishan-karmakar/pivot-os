@@ -63,7 +63,7 @@ export fn _start() noreturn {
     mem.init_kmapper() catch {};
     mem.init_kvmm() catch {};
     mem.init_kheap() catch {};
-    drivers.fb.init_main() catch {};
+    drivers.fb.init() catch {};
     lib.logger.writers.append(mem.kheap.allocator(), drivers.fb.writer) catch {};
 
     if (BOOTLOADER_INFO_REQUEST.response) |res|
@@ -85,7 +85,6 @@ export fn _start() noreturn {
         log.info("Kernel booted at {} seconds (UNIX time)", .{res.*.timestamp});
 
     drivers.smbios.init() catch {};
-    drivers.fb.init_all() catch {};
     cpu.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};
     intctrl.init() catch {};
