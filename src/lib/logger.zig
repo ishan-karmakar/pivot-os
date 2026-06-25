@@ -15,7 +15,18 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
     const id: u32 = kernel.cpu.smp.cpu_info(null).id;
     lock.acquire();
     defer lock.release();
-    writer.print("[{}]" ++ " " ++ levelText ++ prefix ++ format ++ "\r\n", .{id} ++ args) catch {};
+    writer.print("[{}] ", .{id}) catch {};
+    switch (level) {
+        .debug => kernel.drivers.fb.set_fg(5, true) catch {},
+        .info => kernel.drivers.fb.set_fg(2, false) catch {},
+        .warn => kernel.drivers.fb.set_fg(3, true) catch {},
+        .err => kernel.drivers.fb.set_fg(1, false) catch {},
+    }
+    writer.print(levelText, .{}) catch {};
+    kernel.drivers.fb.set_fg(7, true) catch {};
+    writer.print(prefix, .{}) catch {};
+    kernel.drivers.fb.reset_fg() catch {};
+    writer.print(format ++ "\r\n", args) catch {};
 }
 
 fn kernel_drain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Writer.Error!usize {

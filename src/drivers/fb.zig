@@ -121,11 +121,31 @@ pub fn init_all() !void {
     kernel.lib.logger.successfully_initialized(log, "Framebuffer (All)");
 }
 
+pub fn set_fg(idx: usize, bright: bool) !void {
+    if (main_fb == null)
+        return error.FramebufferNotInitialized;
+
+    flanterm.flanterm_set_text_fg(main_fb, idx, bright);
+    for (other_fbs.items) |fb|
+        flanterm.flanterm_set_text_fg(fb, idx, bright);
+}
+
+pub fn reset_fg() !void {
+    if (main_fb == null)
+        return error.FramebufferNotInitialized;
+
+    flanterm.flanterm_reset_text_fg(main_fb);
+    for (other_fbs.items) |fb|
+        flanterm.flanterm_reset_text_fg(fb);
+}
+
 pub fn write(bytes: []const u8) !void {
     if (main_fb == null)
         return error.FramebufferNotInitialized;
 
     flanterm.flanterm_write(main_fb, bytes.ptr, bytes.len);
+    for (other_fbs.items) |fb|
+        flanterm.flanterm_write(fb, bytes.ptr, bytes.len);
 }
 
 fn malloc(size: usize) callconv(.c) ?*anyopaque {
