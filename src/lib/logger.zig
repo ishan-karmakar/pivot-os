@@ -4,10 +4,7 @@ const config = @import("config");
 
 var lock: kernel.lib.Spinlock = .{};
 
-var writer = std.Io.Writer{
-    .vtable = &.{ .drain = kernel_drain },
-    .buffer = &.{},
-};
+pub var writers = std.ArrayList(std.Io.Writer).empty;
 
 pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), comptime format: []const u8, args: anytype) void {
     const levelText = comptime level.asText();
@@ -15,29 +12,35 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
     const id: u32 = kernel.cpu.smp.cpu_info(null).id;
     lock.acquire();
     defer lock.release();
-    writer.print("[{}]" ++ " " ++ levelText ++ prefix ++ format ++ "\r\n", .{id} ++ args) catch {};
-}
 
-fn kernel_drain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Writer.Error!usize {
-    var total: usize = 0;
-    for (data[0 .. data.len - 1]) |bytes| {
-        if (config.qemu) kernel.drivers.qemu.write(bytes);
-        kernel.drivers.fb.write(bytes) catch {};
-        total += bytes.len;
+    for (writers.items) |*writer| {
+        const terminal = std.Io.Terminal{
+            .mode = .escape_codes,
+            .writer = writer,
+        };
+        terminal.setColor(.reset) catch {};
+        terminal.setColor(.bright_white) catch {};
+        writer.print("[{}] ", .{id}) catch {};
+        terminal.setColor(switch (level) {
+            .debug => .bright_magenta,
+            .info => .green,
+            .warn => .yellow,
+            .err => .red,
+        }) catch {};
+        writer.print(levelText, .{}) catch {};
+        terminal.setColor(.reset) catch {};
+        terminal.setColor(.dim) catch {};
+        terminal.setColor(.bold) catch {};
+        writer.print(prefix, .{}) catch {};
+        terminal.setColor(.reset) catch {};
+        writer.print(format ++ "\r\n", args) catch {};
+        writer.flush() catch {};
     }
-
-    const pattern = data[data.len - 1];
-    for (0..splat) |_| {
-        if (config.qemu) kernel.drivers.qemu.write(pattern);
-        kernel.drivers.fb.write(pattern) catch {};
-        total += pattern.len;
-    }
-
-    return total;
 }
 
 export fn _putchar(char: u8) void {
-    kernel.drivers.fb.write(&.{char}) catch {};
+    _ = char;
+    // kernel.drivers.fb.write(&.{char}) catch {};
 }
 
 pub fn successfully_initialized(comptime log: anytype, name: []const u8) void {
