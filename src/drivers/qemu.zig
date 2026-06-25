@@ -3,22 +3,26 @@ const serial = @import("root").drivers.serial;
 const Writer = std.Io.Writer;
 
 const QEMU_SERIAL_PORT = 0x3F8;
+
+var buffer: [128]u8 = undefined;
 pub const writer = Writer{
     .vtable = &.{ .drain = drain },
-    .buffer = &.{},
+    .buffer = &buffer,
 };
 
-fn drain(_: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize {
-    var total: usize = 0;
-    for (data[0 .. data.len - 1]) |bytes| {
+fn drain(w: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize {
+    var total: usize = w.end;
+    write(w.buffer[0..w.end]);
+    w.end = 0;
+
+    for (data) |bytes| {
         write(bytes);
         total += bytes.len;
     }
 
-    const pattern = data[data.len - 1];
     for (0..splat) |_| {
-        write(pattern);
-        total += pattern.len;
+        write(data[data.len - 1]);
+        total += data[data.len - 1].len;
     }
     return total;
 }

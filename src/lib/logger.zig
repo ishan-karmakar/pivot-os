@@ -34,6 +34,7 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
         writer.print(prefix, .{}) catch {};
         terminal.setColor(.reset) catch {};
         writer.print(format ++ "\r\n", args) catch {};
+        writer.flush() catch {};
     }
 }
 

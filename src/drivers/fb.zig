@@ -17,9 +17,12 @@ export var FLANTERM_INIT_PARAMS_REQUEST = limine.limine_flanterm_fb_init_params_
 
 var fbs = std.ArrayList(*flanterm.flanterm_context).empty;
 
+var buffer: [128]u8 = undefined;
 pub var writer = Writer{
-    .vtable = &.{ .drain = drain },
-    .buffer = &.{},
+    .vtable = &.{
+        .drain = drain,
+    },
+    .buffer = &buffer,
 };
 
 pub fn init() !void {
@@ -80,17 +83,19 @@ pub fn init() !void {
     kernel.lib.logger.successfully_initialized(log, "Framebuffer");
 }
 
-fn drain(_: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize {
-    var total: usize = 0;
-    for (data[0 .. data.len - 1]) |bytes| {
+fn drain(w: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize {
+    var total: usize = w.end;
+    write(w.buffer[0..w.end]) catch return error.WriteFailed;
+    w.end = 0;
+
+    for (data) |bytes| {
         write(bytes) catch return error.WriteFailed;
         total += bytes.len;
     }
 
-    const pattern = data[data.len - 1];
     for (0..splat) |_| {
-        write(pattern) catch return error.WriteFailed;
-        total += pattern.len;
+        write(data[data.len - 1]) catch return error.WriteFailed;
+        total += data[data.len - 1].len;
     }
     return total;
 }
