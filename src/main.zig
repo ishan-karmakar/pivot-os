@@ -45,7 +45,10 @@ export var DATE_AT_BOOT_REQUEST = limine.limine_date_at_boot_request{
     .id = LIMINE_REQUEST_ID(0x502746e184c088aa, 0xfbc5ec83e6327893),
 };
 
+var INITIAL_WRITERS = [_]std.Io.Writer{drivers.qemu.writer};
+
 export fn _start() noreturn {
+    lib.logger.writers = .fromOwnedSlice(&INITIAL_WRITERS);
     if (!limine.LIMINE_LOADED_BASE_REVISION_VALID(LIMINE_BASE_REVISION)) {
         @panic("Limine bootloader base revision not valid");
     } else if (!limine.LIMINE_BASE_REVISION_SUPPORTED(LIMINE_BASE_REVISION)) {
@@ -54,7 +57,14 @@ export fn _start() noreturn {
 
     cpu.smp.init_bsp() catch @panic("Failed to initialize BSP CPU information");
     log.info("Kernel initialization starting", .{});
+    cpu.gdt.init_static();
+    cpu.idt.init_bsp();
+    mem.pmm.init() catch {};
+    mem.init_kmapper() catch {};
+    mem.init_kvmm() catch {};
+    mem.init_kheap() catch {};
     drivers.fb.init_main() catch {};
+    lib.logger.writers.append(mem.kheap.allocator(), drivers.fb.writer) catch {};
 
     if (BOOTLOADER_INFO_REQUEST.response) |res|
         log.info("Kernel was booted with {s} (version {s})", .{ std.mem.span(res.*.name), std.mem.span(res.*.version) });
@@ -75,12 +85,6 @@ export fn _start() noreturn {
         log.info("Kernel booted at {} seconds (UNIX time)", .{res.*.timestamp});
 
     drivers.smbios.init() catch {};
-    cpu.gdt.init_static();
-    cpu.idt.init_bsp();
-    mem.pmm.init() catch {};
-    mem.init_kmapper() catch {};
-    mem.init_kvmm() catch {};
-    mem.init_kheap() catch {};
     drivers.fb.init_all() catch {};
     cpu.gdt.init_dynamic() catch {};
     drivers.acpi.init_tables() catch {};

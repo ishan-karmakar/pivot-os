@@ -4,6 +4,7 @@ const kernel = @import("root");
 const std = @import("std");
 const log = std.log.scoped(.fb);
 const mem = kernel.mem;
+const Writer = std.Io.Writer;
 
 export var FB_REQUEST = limine.limine_framebuffer_request{
     .id = kernel.LIMINE_REQUEST_ID(0x9d5827dcd881dd75, 0xa3148604f6fab11b),
@@ -16,6 +17,11 @@ export var FLANTERM_INIT_PARAMS_REQUEST = limine.limine_flanterm_fb_init_params_
 
 var main_fb: ?*flanterm.flanterm_context = null;
 var other_fbs = std.ArrayList(*flanterm.flanterm_context).empty;
+
+pub var writer = Writer{
+    .vtable = &.{ .drain = drain },
+    .buffer = &.{},
+};
 
 /// Initializes the first framebuffer using the default bump allocator just to get a monitor working
 pub fn init_main() !void {
@@ -139,7 +145,22 @@ pub fn reset_fg() !void {
         flanterm.flanterm_reset_text_fg(fb);
 }
 
-pub fn write(bytes: []const u8) !void {
+fn drain(_: *Writer, data: []const []const u8, splat: usize) Writer.Error!usize {
+    var total: usize = 0;
+    for (data[0 .. data.len - 1]) |bytes| {
+        write(bytes) catch return error.WriteFailed;
+        total += bytes.len;
+    }
+
+    const pattern = data[data.len - 1];
+    for (0..splat) |_| {
+        write(pattern) catch return error.WriteFailed;
+        total += pattern.len;
+    }
+    return total;
+}
+
+fn write(bytes: []const u8) !void {
     if (main_fb == null)
         return error.FramebufferNotInitialized;
 

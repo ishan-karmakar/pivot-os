@@ -4,10 +4,7 @@ const config = @import("config");
 
 var lock: kernel.lib.Spinlock = .{};
 
-var writer = std.Io.Writer{
-    .vtable = &.{ .drain = kernel_drain },
-    .buffer = &.{},
-};
+pub var writers = std.ArrayList(std.Io.Writer).empty;
 
 pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), comptime format: []const u8, args: anytype) void {
     const levelText = comptime level.asText();
@@ -15,40 +12,26 @@ pub fn logger(comptime level: std.log.Level, comptime scope: @EnumLiteral(), com
     const id: u32 = kernel.cpu.smp.cpu_info(null).id;
     lock.acquire();
     defer lock.release();
-    writer.print("[{}] ", .{id}) catch {};
-    switch (level) {
-        .debug => kernel.drivers.fb.set_fg(5, true) catch {},
-        .info => kernel.drivers.fb.set_fg(2, false) catch {},
-        .warn => kernel.drivers.fb.set_fg(3, true) catch {},
-        .err => kernel.drivers.fb.set_fg(1, false) catch {},
-    }
-    writer.print(levelText, .{}) catch {};
-    kernel.drivers.fb.set_fg(7, true) catch {};
-    writer.print(prefix, .{}) catch {};
-    kernel.drivers.fb.reset_fg() catch {};
-    writer.print(format ++ "\r\n", args) catch {};
-}
 
-fn kernel_drain(_: *std.Io.Writer, data: []const []const u8, splat: usize) std.Io.Writer.Error!usize {
-    var total: usize = 0;
-    for (data[0 .. data.len - 1]) |bytes| {
-        if (config.qemu) kernel.drivers.qemu.write(bytes);
-        kernel.drivers.fb.write(bytes) catch {};
-        total += bytes.len;
+    for (writers.items) |*writer| {
+        writer.print("[{}] ", .{id}) catch {};
+        switch (level) {
+            .debug => kernel.drivers.fb.set_fg(5, true) catch {},
+            .info => kernel.drivers.fb.set_fg(2, false) catch {},
+            .warn => kernel.drivers.fb.set_fg(3, true) catch {},
+            .err => kernel.drivers.fb.set_fg(1, false) catch {},
+        }
+        writer.print(levelText, .{}) catch {};
+        kernel.drivers.fb.set_fg(7, true) catch {};
+        writer.print(prefix, .{}) catch {};
+        kernel.drivers.fb.reset_fg() catch {};
+        writer.print(format ++ "\r\n", args) catch {};
     }
-
-    const pattern = data[data.len - 1];
-    for (0..splat) |_| {
-        if (config.qemu) kernel.drivers.qemu.write(pattern);
-        kernel.drivers.fb.write(pattern) catch {};
-        total += pattern.len;
-    }
-
-    return total;
 }
 
 export fn _putchar(char: u8) void {
-    kernel.drivers.fb.write(&.{char}) catch {};
+    _ = char;
+    // kernel.drivers.fb.write(&.{char}) catch {};
 }
 
 pub fn successfully_initialized(comptime log: anytype, name: []const u8) void {
